@@ -1,0 +1,146 @@
+{
+  "@@locale": "uk",
+
+  "appName": "MedKit",
+
+  "navToday": "Сьогодні",
+  "navMeds": "Ліки",
+  "navFamily": "Сім'я",
+  "navProfile": "Профіль",
+
+  "todayProgressTitle": "{taken} з {total}",
+  "@todayProgressTitle": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "todayProgressSubtitle": "ліків прийнято сьогодні",
+  "todayProgressPercent": "{percent}%",
+  "@todayProgressPercent": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "todayAllDone": "Всі ліки прийнято 🎉",
+  "todayNothingPlanned": "На сьогодні нічого не заплановано",
+
+  "sectionFamily": "Сім'я",
+  "sectionScheduled": "Заплановано",
+  "sectionDone": "Виконано",
+  "actionAll": "Всі",
+  "actionAdd": "Додати",
+  "actionSave": "Зберегти",
+  "actionCancel": "Скасувати",
+  "actionDelete": "Видалити",
+  "actionEdit": "Редагувати",
+
+  "intakeTaken": "Прийнято",
+  "intakeSkipped": "Пропущено",
+  "intakeTake": "Прийняти",
+  "intakeSkip": "Пропустити",
+
+  "medsTitle": "Мої ліки",
+  "medsEmpty": "Ліки ще не додані",
+  "medsEmptyHint": "Натисніть + щоб додати перший препарат",
+  "medsRemaining": "Залишилось: {count} шт.",
+  "@medsRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medsDaysLeft": "{days} дн.",
+  "@medsDaysLeft": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "medsActive": "Активні",
+  "medsArchived": "Архів",
+  "medsFreeLimitTitle": "Ліміт безкоштовного тарифу",
+  "medsFreeLimitBody": "У безкоштовному тарифі можна додати до {max} препаратів. Перейдіть на Pro для необмеженої кількості.",
+  "@medsFreeLimitBody": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+
+  "addMedTitle": "Новий препарат",
+  "addMedName": "Назва препарату",
+  "addMedNameHint": "Наприклад: Еналаприл",
+  "addMedDose": "Доза",
+  "addMedDoseHint": "Наприклад: 10 мг",
+  "addMedForm": "Форма випуску",
+  "addMedFood": "Відношення до їжі",
+  "addMedTotal": "Кількість у упаковці",
+  "addMedInstructions": "Інструкції (необов'язково)",
+  "addMedInstructionsHint": "Особливі вказівки лікаря",
+
+  "medFormTablet": "Таблетки",
+  "medFormCapsule": "Капсули",
+  "medFormSyrup": "Сироп",
+  "medFormDrops": "Краплі",
+  "medFormCream": "Мазь / крем",
+  "medFormInhaler": "Інгалятор",
+  "medFormInjection": "Ін'єкція",
+  "medFormOther": "Інше",
+
+  "foodBefore": "До їжі",
+  "foodAfter": "Після їжі",
+  "foodWith": "Під час їжі",
+  "foodAny": "Незалежно від їжі",
+
+  "familyTitle": "Сім'я",
+  "familyAdherenceToday": "Виконання сьогодні",
+  "familyAddMember": "Додати члена сім'ї",
+  "familyProRequired": "Сімейний режим",
+  "familyProBody": "Відстежуйте прийом ліків для всіх членів сім'ї. Доступно в Pro-тарифі.",
+  "familyMemberOwner": "Власник",
+  "familyMemberMember": "Член сім'ї",
+  "familyMemberDependent": "Під опікою",
+  "familyMedsToday": "{taken}/{total} ліків",
+  "@familyMedsToday": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "profileTitle": "Профіль",
+  "profileMyProfile": "Мій профіль",
+  "profileLanguage": "Мова",
+  "profileLanguageUk": "Українська",
+  "profileLanguageEn": "English",
+  "profileNotifications": "Сповіщення",
+  "profileNotificationsHint": "Нагадування про прийом ліків",
+  "profileExportData": "Експорт даних",
+  "profileExportDataHint": "Зберегти у CSV або PDF",
+  "profileAnalytics": "Аналітика прийому",
+  "profileAnalyticsHint": "Графіки та статистика",
+  "profileAbout": "Про застосунок",
+  "profileVersion": "Версія {version}",
+  "@profileVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+
+  "proTitle": "MedKit Pro",
+  "proSubtitle": "Розблокуйте всі можливості",
+  "proFeatureFamily": "Необмежена кількість членів сім'ї",
+  "proFeatureReminders": "Розумні нагадування",
+  "proFeatureExport": "Експорт даних",
+  "proFeatureAnalytics": "Детальна аналітика",
+  "proUpgradeButton": "Перейти на Pro",
+  "proBadge": "PRO",
+  "proLockedHint": "Функція доступна в Pro-тарифі",
+
+  "comingSoon": "Незабаром",
+  "errorRequired": "Обов'язкове поле",
+  "errorMinLength": "Мінімум {min} символи",
+  "@errorMinLength": {
+    "placeholders": {
+      "min": { "type": "int" }
+    }
+  }
+}

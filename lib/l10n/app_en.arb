@@ -1,0 +1,146 @@
+{
+  "@@locale": "en",
+
+  "appName": "MedKit",
+
+  "navToday": "Today",
+  "navMeds": "Meds",
+  "navFamily": "Family",
+  "navProfile": "Profile",
+
+  "todayProgressTitle": "{taken} of {total}",
+  "@todayProgressTitle": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "todayProgressSubtitle": "medications taken today",
+  "todayProgressPercent": "{percent}%",
+  "@todayProgressPercent": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "todayAllDone": "All medications taken 🎉",
+  "todayNothingPlanned": "Nothing planned for today",
+
+  "sectionFamily": "Family",
+  "sectionScheduled": "Scheduled",
+  "sectionDone": "Done",
+  "actionAll": "All",
+  "actionAdd": "Add",
+  "actionSave": "Save",
+  "actionCancel": "Cancel",
+  "actionDelete": "Delete",
+  "actionEdit": "Edit",
+
+  "intakeTaken": "Taken",
+  "intakeSkipped": "Skipped",
+  "intakeTake": "Take",
+  "intakeSkip": "Skip",
+
+  "medsTitle": "My Medications",
+  "medsEmpty": "No medications added yet",
+  "medsEmptyHint": "Tap + to add your first medication",
+  "medsRemaining": "Remaining: {count} pcs.",
+  "@medsRemaining": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "medsDaysLeft": "{days} days",
+  "@medsDaysLeft": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "medsActive": "Active",
+  "medsArchived": "Archived",
+  "medsFreeLimitTitle": "Free plan limit",
+  "medsFreeLimitBody": "Free plan allows up to {max} medications. Upgrade to Pro for unlimited.",
+  "@medsFreeLimitBody": {
+    "placeholders": {
+      "max": { "type": "int" }
+    }
+  },
+
+  "addMedTitle": "New Medication",
+  "addMedName": "Medication name",
+  "addMedNameHint": "E.g.: Enalapril",
+  "addMedDose": "Dose",
+  "addMedDoseHint": "E.g.: 10 mg",
+  "addMedForm": "Form",
+  "addMedFood": "Food relation",
+  "addMedTotal": "Package quantity",
+  "addMedInstructions": "Instructions (optional)",
+  "addMedInstructionsHint": "Special doctor instructions",
+
+  "medFormTablet": "Tablets",
+  "medFormCapsule": "Capsules",
+  "medFormSyrup": "Syrup",
+  "medFormDrops": "Drops",
+  "medFormCream": "Cream / ointment",
+  "medFormInhaler": "Inhaler",
+  "medFormInjection": "Injection",
+  "medFormOther": "Other",
+
+  "foodBefore": "Before meal",
+  "foodAfter": "After meal",
+  "foodWith": "With meal",
+  "foodAny": "Any time",
+
+  "familyTitle": "Family",
+  "familyAdherenceToday": "Today's adherence",
+  "familyAddMember": "Add family member",
+  "familyProRequired": "Family mode",
+  "familyProBody": "Track medications for all family members. Available in Pro plan.",
+  "familyMemberOwner": "Owner",
+  "familyMemberMember": "Member",
+  "familyMemberDependent": "Dependent",
+  "familyMedsToday": "{taken}/{total} meds",
+  "@familyMedsToday": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "profileTitle": "Profile",
+  "profileMyProfile": "My Profile",
+  "profileLanguage": "Language",
+  "profileLanguageUk": "Ukrainian",
+  "profileLanguageEn": "English",
+  "profileNotifications": "Notifications",
+  "profileNotificationsHint": "Medication reminders",
+  "profileExportData": "Export data",
+  "profileExportDataHint": "Save as CSV or PDF",
+  "profileAnalytics": "Adherence analytics",
+  "profileAnalyticsHint": "Charts and statistics",
+  "profileAbout": "About",
+  "profileVersion": "Version {version}",
+  "@profileVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+
+  "proTitle": "MedKit Pro",
+  "proSubtitle": "Unlock all features",
+  "proFeatureFamily": "Unlimited family members",
+  "proFeatureReminders": "Smart reminders",
+  "proFeatureExport": "Data export",
+  "proFeatureAnalytics": "Detailed analytics",
+  "proUpgradeButton": "Upgrade to Pro",
+  "proBadge": "PRO",
+  "proLockedHint": "Available in Pro plan",
+
+  "comingSoon": "Coming soon",
+  "errorRequired": "Required field",
+  "errorMinLength": "Minimum {min} characters",
+  "@errorMinLength": {
+    "placeholders": {
+      "min": { "type": "int" }
+    }
+  }
+}
