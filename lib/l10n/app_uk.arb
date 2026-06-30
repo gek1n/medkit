@@ -8,6 +8,12 @@
   "navFamily": "Сім'я",
   "navProfile": "Профіль",
 
+  "todayGreeting": "Привіт! 👋",
+  "todayLegendTaken": "{count} прийнято",
+  "@todayLegendTaken": { "placeholders": { "count": { "type": "int" } } },
+  "todayLegendPending": "{count} очікує",
+  "@todayLegendPending": { "placeholders": { "count": { "type": "int" } } },
+
   "todayProgressTitle": "{taken} з {total}",
   "@todayProgressTitle": {
     "placeholders": {
@@ -134,6 +140,14 @@
   "proUpgradeButton": "Перейти на Pro",
   "proBadge": "PRO",
   "proLockedHint": "Функція доступна в Pro-тарифі",
+
+  "wellbeingTitle": "Самочуття",
+  "wellbeingQuestion": "💜 Як ви себе почуваєте зараз?",
+  "wellbeingBad": "Погано",
+  "wellbeingMeh": "Так собі",
+  "wellbeingOk": "Нормально",
+  "wellbeingGood": "Добре",
+  "wellbeingGreat": "Відмінно",
 
   "comingSoon": "Незабаром",
   "errorRequired": "Обов'язкове поле",

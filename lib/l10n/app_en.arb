@@ -8,6 +8,12 @@
   "navFamily": "Family",
   "navProfile": "Profile",
 
+  "todayGreeting": "Hello! 👋",
+  "todayLegendTaken": "{count} taken",
+  "@todayLegendTaken": { "placeholders": { "count": { "type": "int" } } },
+  "todayLegendPending": "{count} pending",
+  "@todayLegendPending": { "placeholders": { "count": { "type": "int" } } },
+
   "todayProgressTitle": "{taken} of {total}",
   "@todayProgressTitle": {
     "placeholders": {
@@ -134,6 +140,14 @@
   "proUpgradeButton": "Upgrade to Pro",
   "proBadge": "PRO",
   "proLockedHint": "Available in Pro plan",
+
+  "wellbeingTitle": "Wellbeing",
+  "wellbeingQuestion": "💜 How are you feeling right now?",
+  "wellbeingBad": "Bad",
+  "wellbeingMeh": "So-so",
+  "wellbeingOk": "Okay",
+  "wellbeingGood": "Good",
+  "wellbeingGreat": "Great",
 
   "comingSoon": "Coming soon",
   "errorRequired": "Required field",
