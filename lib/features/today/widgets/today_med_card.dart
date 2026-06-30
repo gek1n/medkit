@@ -5,7 +5,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/l10n_ext.dart';
 import '../../../data/models/med_intake.dart';
-import '../../../shared/widgets/mk_card.dart';
 
 class TodayMedCard extends StatelessWidget {
   final MedIntake intake;
@@ -22,91 +21,133 @@ class TodayMedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final isPending = intake.isPending;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.md),
-      child: MkCard(
-        color: intake.isTaken
-            ? AppColors.successLight
-            : intake.isSkipped
-                ? AppColors.dangerLight
-                : AppColors.surface,
-        borderColor: intake.isTaken
-            ? AppColors.success.withValues(alpha: 0.3)
-            : intake.isSkipped
-                ? AppColors.danger.withValues(alpha: 0.2)
-                : AppColors.border,
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusMd),
-              ),
-              child: Center(
-                child: Text(intake.medicationEmoji,
-                    style: const TextStyle(fontSize: 22)),
-              ),
+    Color cardBg;
+    Color cardBorder;
+    Color iconBg;
+    Color timeDot;
+
+    if (intake.isTaken) {
+      cardBg = const Color(0xFFF0FDF4);
+      cardBorder = const Color(0xFFD1FAE5);
+      iconBg = const Color(0xFFDCFCE7);
+      timeDot = const Color(0xFFFCD34D);
+    } else if (intake.isSkipped) {
+      cardBg = const Color(0xFFFFF5F5);
+      cardBorder = const Color(0xFFFEE2E2);
+      iconBg = const Color(0xFFFEF3C7);
+      timeDot = const Color(0xFFFCD34D);
+    } else {
+      cardBg = AppColors.bg;
+      cardBorder = AppColors.border;
+      iconBg = AppColors.primaryMid;
+      timeDot = const Color(0xFFC4B5FD);
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: cardBorder, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          // Icon
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
-            const SizedBox(width: AppDimensions.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    intake.medicationName,
-                    style: AppTextStyles.labelMd,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${intake.medicationDose} · ${MKDateUtils.formatTime(intake.scheduledAt)}',
-                    style: AppTextStyles.bodyMd,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ],
-              ),
+            child: Center(
+              child: Text(intake.medicationEmoji,
+                  style: const TextStyle(fontSize: 20)),
             ),
-            if (isPending) ...[
-              const SizedBox(width: AppDimensions.sm),
-              _ActionButton(
-                label: l10n.intakeSkip,
-                color: AppColors.danger,
-                bgColor: AppColors.dangerLight,
-                onTap: onSkip,
-              ),
-              const SizedBox(width: AppDimensions.sm),
-              _ActionButton(
-                label: l10n.intakeTake,
-                color: AppColors.success,
-                bgColor: AppColors.successLight,
-                onTap: onTake,
-              ),
-            ] else
-              _StatusBadge(intake: intake, l10n: l10n),
-          ],
-        ),
+          ),
+          const SizedBox(width: AppDimensions.md),
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  intake.medicationName,
+                  style: AppTextStyles.labelMd,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  intake.medicationDose,
+                  style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSub),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: timeDot,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      MKDateUtils.formatTime(intake.scheduledAt),
+                      style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppDimensions.sm),
+          // Action / Status
+          if (intake.isPending)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ActionBtn(
+                  label: l10n.intakeSkip,
+                  color: AppColors.danger,
+                  bg: const Color(0xFFFEF2F2),
+                  onTap: onSkip,
+                ),
+                const SizedBox(width: 6),
+                _ActionBtn(
+                  label: l10n.intakeTake,
+                  color: AppColors.primary,
+                  bg: AppColors.primaryLight,
+                  onTap: onTake,
+                ),
+              ],
+            )
+          else
+            _StatusBadge(intake: intake, l10n: l10n),
+        ],
       ),
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _ActionBtn extends StatelessWidget {
   final String label;
   final Color color;
-  final Color bgColor;
+  final Color bg;
   final VoidCallback onTap;
 
-  const _ActionButton({
+  const _ActionBtn({
     required this.label,
     required this.color,
-    required this.bgColor,
+    required this.bg,
     required this.onTap,
   });
 
@@ -117,13 +158,13 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius:
-              BorderRadius.circular(AppDimensions.radiusFull),
+          color: bg,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
         ),
-        child: Text(label,
-            style:
-                AppTextStyles.labelSm.copyWith(color: color)),
+        child: Text(
+          label,
+          style: AppTextStyles.labelSm.copyWith(color: color),
+        ),
       ),
     );
   }
@@ -138,22 +179,20 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTaken = intake.isTaken;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          isTaken ? Icons.check_circle : Icons.cancel,
-          color: isTaken ? AppColors.success : AppColors.danger,
-          size: 16,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isTaken ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+      ),
+      child: Text(
+        isTaken ? l10n.intakeTaken : l10n.intakeSkipped,
+        style: AppTextStyles.labelSm.copyWith(
+          color: isTaken
+              ? const Color(0xFF065F46)
+              : const Color(0xFF991B1B),
         ),
-        const SizedBox(width: 4),
-        Text(
-          isTaken ? l10n.intakeTaken : l10n.intakeSkipped,
-          style: AppTextStyles.bodySm.copyWith(
-            color: isTaken ? AppColors.success : AppColors.danger,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

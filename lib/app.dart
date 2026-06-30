@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'core/config/app_config.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_dimensions.dart';
 import 'core/theme/app_theme.dart';
@@ -186,6 +187,7 @@ class _BottomBar extends StatelessWidget {
                 index: 3,
                 current: currentIndex,
                 onTap: onTap,
+                locked: !AppConfig.canAddFamilyMembers,
               ),
               _NavItem(
                 icon: Icons.person_outline,
@@ -210,6 +212,7 @@ class _NavItem extends StatelessWidget {
   final int index;
   final int current;
   final ValueChanged<int> onTap;
+  final bool locked;
 
   const _NavItem({
     required this.icon,
@@ -218,6 +221,7 @@ class _NavItem extends StatelessWidget {
     required this.index,
     required this.current,
     required this.onTap,
+    this.locked = false,
   });
 
   @override
@@ -230,10 +234,32 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              active ? activeIcon : icon,
-              color: active ? AppColors.primary : AppColors.textMuted,
-              size: 24,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  active ? activeIcon : icon,
+                  color: active ? AppColors.primary : AppColors.textMuted,
+                  size: 24,
+                ),
+                if (locked)
+                  Positioned(
+                    top: -4,
+                    right: -6,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: AppColors.proGold,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Text('👑',
+                            style: TextStyle(fontSize: 8)),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 3),
             Text(

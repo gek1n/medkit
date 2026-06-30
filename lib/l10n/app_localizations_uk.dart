@@ -24,6 +24,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get navProfile => 'Профіль';
 
   @override
+  String get todayGreeting => 'Привіт! 👋';
+
+  @override
+  String todayLegendTaken(int count) {
+    return '$count прийнято';
+  }
+
+  @override
+  String todayLegendPending(int count) {
+    return '$count очікує';
+  }
+
+  @override
   String todayProgressTitle(int taken, int total) {
     return '$taken з $total';
   }
@@ -277,6 +290,27 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get proLockedHint => 'Функція доступна в Pro-тарифі';
+
+  @override
+  String get wellbeingTitle => 'Самочуття';
+
+  @override
+  String get wellbeingQuestion => '💜 Як ви себе почуваєте зараз?';
+
+  @override
+  String get wellbeingBad => 'Погано';
+
+  @override
+  String get wellbeingMeh => 'Так собі';
+
+  @override
+  String get wellbeingOk => 'Нормально';
+
+  @override
+  String get wellbeingGood => 'Добре';
+
+  @override
+  String get wellbeingGreat => 'Відмінно';
 
   @override
   String get comingSoon => 'Незабаром';

@@ -128,6 +128,24 @@ abstract class AppLocalizations {
   /// **'Профіль'**
   String get navProfile;
 
+  /// No description provided for @todayGreeting.
+  ///
+  /// In uk, this message translates to:
+  /// **'Привіт! 👋'**
+  String get todayGreeting;
+
+  /// No description provided for @todayLegendTaken.
+  ///
+  /// In uk, this message translates to:
+  /// **'{count} прийнято'**
+  String todayLegendTaken(int count);
+
+  /// No description provided for @todayLegendPending.
+  ///
+  /// In uk, this message translates to:
+  /// **'{count} очікує'**
+  String todayLegendPending(int count);
+
   /// No description provided for @todayProgressTitle.
   ///
   /// In uk, this message translates to:
@@ -607,6 +625,48 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Функція доступна в Pro-тарифі'**
   String get proLockedHint;
+
+  /// No description provided for @wellbeingTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Самочуття'**
+  String get wellbeingTitle;
+
+  /// No description provided for @wellbeingQuestion.
+  ///
+  /// In uk, this message translates to:
+  /// **'💜 Як ви себе почуваєте зараз?'**
+  String get wellbeingQuestion;
+
+  /// No description provided for @wellbeingBad.
+  ///
+  /// In uk, this message translates to:
+  /// **'Погано'**
+  String get wellbeingBad;
+
+  /// No description provided for @wellbeingMeh.
+  ///
+  /// In uk, this message translates to:
+  /// **'Так собі'**
+  String get wellbeingMeh;
+
+  /// No description provided for @wellbeingOk.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нормально'**
+  String get wellbeingOk;
+
+  /// No description provided for @wellbeingGood.
+  ///
+  /// In uk, this message translates to:
+  /// **'Добре'**
+  String get wellbeingGood;
+
+  /// No description provided for @wellbeingGreat.
+  ///
+  /// In uk, this message translates to:
+  /// **'Відмінно'**
+  String get wellbeingGreat;
 
   /// No description provided for @comingSoon.
   ///
