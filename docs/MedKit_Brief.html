@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedKit — Product Brief</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #FAF8FF; color: #1A1A2E; line-height: 1.6; }
+
+  .cover {
+    background: linear-gradient(135deg, #5B35A8 0%, #9B6DE8 100%);
+    padding: 64px 40px;
+    color: #fff;
+    text-align: center;
+  }
+  .cover-logo { font-size: 64px; margin-bottom: 16px; }
+  .cover h1 { font-size: 42px; font-weight: 800; margin-bottom: 8px; }
+  .cover .sub { font-size: 18px; opacity: 0.8; margin-bottom: 24px; }
+  .cover .meta { display: inline-flex; gap: 24px; background: rgba(255,255,255,0.15); border-radius: 16px; padding: 12px 24px; font-size: 14px; }
+  .cover .meta span { opacity: 0.9; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+
+  .toc { background: #fff; border: 1.5px solid #EDE8FA; border-radius: 16px; padding: 24px 28px; margin-bottom: 40px; }
+  .toc h2 { font-size: 14px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+  .toc ol { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .toc li a { color: #7048C4; text-decoration: none; font-size: 15px; font-weight: 500; }
+  .toc li a:hover { text-decoration: underline; }
+
+  .section { margin-bottom: 48px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #EDE8FA; }
+  .section-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .section-header h2 { font-size: 22px; font-weight: 800; }
+
+  .card { background: #fff; border: 1.5px solid #EDE8FA; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #1A1A2E; }
+  .card p, .card li { font-size: 14px; color: #374151; line-height: 1.7; }
+  .card ul, .card ol { padding-left: 18px; }
+  .card ul li, .card ol li { margin-bottom: 4px; }
+
+  .highlight { background: #F2EEFF; border: 1.5px solid #C4B0F0; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px; }
+  .highlight h3 { font-size: 15px; font-weight: 700; color: #7048C4; margin-bottom: 8px; }
+
+  .warn { background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; font-size: 14px; color: #78350F; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #F2EEFF; color: #7048C4; font-weight: 700; padding: 10px 14px; text-align: left; }
+  td { padding: 10px 14px; border-bottom: 1px solid #F1F5F9; color: #374151; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .table-wrap { background: #fff; border: 1.5px solid #EDE8FA; border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; margin: 2px; }
+  .tag-blue { background: #F2EEFF; color: #7048C4; }
+  .tag-green { background: #F0FDF4; color: #15803D; }
+  .tag-purple { background: #F5F3FF; color: #5B21B6; }
+  .tag-amber { background: #FFFBEB; color: #92400E; }
+
+  .screen-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .screen-item { background: #FAF8FF; border: 1.5px solid #EDE8FA; border-radius: 12px; padding: 14px 16px; }
+  .screen-item .num { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .screen-item .name { font-size: 14px; font-weight: 700; color: #1A1A2E; margin-bottom: 4px; }
+  .screen-item .desc { font-size: 12px; color: #64748B; line-height: 1.5; }
+  .screen-item.new { border-color: #7048C4; background: #FAF8FF; }
+  .screen-item.new .num { color: #7048C4; }
+
+  .ai-block { background: linear-gradient(135deg, #F2EEFF, #F5F3FF); border: 1.5px solid #C4B0F0; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px; }
+  .ai-block h3 { font-size: 15px; font-weight: 700; color: #7048C4; margin-bottom: 10px; }
+
+  .monetization-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .plan-card { border-radius: 14px; padding: 18px; }
+  .plan-free { background: #FAF8FF; border: 1.5px solid #EDE8FA; }
+  .plan-pro { background: #fff; border: 2.5px solid #7048C4; box-shadow: 0 4px 16px rgba(112,72,196,0.12); }
+  .plan-family { background: linear-gradient(135deg, #2D1B69, #4A2D9C); color: #fff; }
+  .plan-card .plan-name { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .plan-card .plan-price { font-size: 28px; font-weight: 800; margin: 8px 0; }
+  .plan-card .plan-price span { font-size: 13px; font-weight: 400; opacity: 0.6; }
+  .plan-card ul { padding-left: 16px; font-size: 13px; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .plan-family ul { color: rgba(255,255,255,0.85); }
+  .plan-card .badge { display: inline-block; background: #7048C4; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-bottom: 8px; }
+
+  h4 { font-size: 14px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; margin: 16px 0 8px; }
+
+  .flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+  .flow-step { background: #F2EEFF; border: 1.5px solid #C4B0F0; border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #7048C4; }
+  .flow-arrow { color: #94A3B8; font-size: 16px; }
+
+  .decision { background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 14px; padding: 16px 20px; margin-bottom: 10px; font-size: 14px; color: #14532D; }
+  .decision strong { color: #15803D; }
+
+  footer { text-align: center; padding: 32px; font-size: 13px; color: #94A3B8; border-top: 1px solid #EDE8FA; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-logo">💊</div>
+  <h1>MedKit</h1>
+  <div class="sub">Сімейний менеджер ліків з AI</div>
+  <div class="meta">
+    <span>📅 Оновлено: червень 2026</span>
+    <span>📱 iOS + Android</span>
+    <span>🌍 UA / EU</span>
+    <span>📄 Версія 4.0</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ОГЛАВЛЕНИЕ -->
+  <div class="toc">
+    <h2>Содержание</h2>
+    <ol>
+      <li><a href="#vision">Продуктове бачення</a></li>
+      <li><a href="#audience">Цільова аудиторія</a></li>
+      <li><a href="#screens">Екрани та UX-потік</a></li>
+      <li><a href="#features">Функції</a></li>
+      <li><a href="#dependent">Залежні профілі (без реєстрації)</a></li>
+      <li><a href="#voice">Голосове управління</a></li>
+      <li><a href="#ai">AI-функції</a></li>
+      <li><a href="#onboarding">Швидкий старт (онбординг)</a></li>
+      <li><a href="#monetization">Монетизація та поведінка при відміні</a></li>
+      <li><a href="#affiliate">Партнерські програми</a></li>
+      <li><a href="#tech">Технічна архітектура</a></li>
+    </ol>
+  </div>
+
+
+  <!-- 1. ВИДЕНИЕ -->
+  <div class="section" id="vision">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F2EEFF;">🎯</div>
+      <h2>Продуктове бачення</h2>
+    </div>
+    <div class="card">
+      <p>MedKit — мобільний застосунок для управління ліками всієї родини. Користувач за 5 хвилин налаштовує розклад прийомів для себе та рідних, отримує розумні нагадування й контролює дотримання режиму лікування одним поглядом на дашборд.</p>
+    </div>
+    <div class="highlight">
+      <h3>Ключова цінність</h3>
+      <p>Одна людина (доросла дитина, опікун) налаштовує все за 5 хвилин і витрачає 30 секунд на день, щоб переконатися що мама й тато прийняли таблетки. AI та голосове управління роблять все інше.</p>
+    </div>
+    <div class="warn">
+      ⚠️ Головний конкурент — MyTherapy ($14.99/міс без сімейного плану). Наше вікно: сімейний сценарій + залежні профілі без реєстрації + голосове управління + доступна ціна + ринок UA/EU.
+    </div>
+  </div>
+
+
+  <!-- 2. АУДИТОРИЯ -->
+  <div class="section" id="audience">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F0FDF4;">👥</div>
+      <h2>Цільова аудиторія</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Сегмент</th><th>Хто</th><th>Сценарій</th></tr>
+        <tr><td><span class="tag tag-blue">Primary</span></td><td>Дорослі діти 28–45 років</td><td>Стежать за прийомом ліків мамою/татом дистанційно. Налаштовують залежні профілі батьків.</td></tr>
+        <tr><td><span class="tag tag-green">Secondary</span></td><td>Літні 60+ років</td><td>Самі приймають багато ліків, плутаються. Використовують спрощений залежний профіль або голосове управління.</td></tr>
+        <tr><td><span class="tag tag-purple">Tertiary</span></td><td>Батьки з дітьми</td><td>Дитячі курси антибіотиків, щеплення. Дитина як залежний профіль.</td></tr>
+        <tr><td><span class="tag tag-amber">Additional</span></td><td>Хронічні пацієнти 35–60</td><td>Діабет, гіпертонія, постійна терапія. Активно використовують щоденник самопочуття і скан рецептів.</td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- 3. ЭКРАНЫ -->
+  <div class="section" id="screens">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F5F3FF;">📱</div>
+      <h2>Екрани та UX-потік</h2>
+    </div>
+
+    <h4>Основний потік (основний користувач)</h4>
+    <div class="flow">
+      <div class="flow-step">1 · Сьогодні</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">2а · Тип</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">2б · Активність</div>
+      <div class="flow-arrow">або</div>
+      <div class="flow-step">2в · Ліки</div>
+      <div class="flow-arrow">або</div>
+      <div class="flow-step">2г · Самопочуття</div>
+      <div class="flow-arrow">або</div>
+      <div class="flow-step">Запис до лікаря</div>
+    </div>
+
+    <h4>Потік залежного профілю (Тато/Мама без реєстрації)</h4>
+    <div class="flow">
+      <div class="flow-step">Відкрив застосунок</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Face ID / автовхід</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Свій розклад</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Симптоми + голос</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Надіслати Олі</div>
+    </div>
+
+    <div class="screen-list">
+      <div class="screen-item">
+        <div class="num">Екран 1</div>
+        <div class="name">Сьогодні (дашборд)</div>
+        <div class="desc">Розклад на день, картки ліків з прогрес-баром залишку, статус сім'ї, активність, зріз самопочуття</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 2а</div>
+        <div class="name">Вибір типу</div>
+        <div class="desc">Що додаємо: Ліки / Активність / Самопочуття / Запис до лікаря</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 2б</div>
+        <div class="name">Додавання активності</div>
+        <div class="desc">Тип, тривалість, кілька занять на день з розкладом, дні тижня</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 2в</div>
+        <div class="name">Додавання ліків</div>
+        <div class="desc">Назва, форма, дозування, час прийому (до/після їжі), повтор/інтервал, тривалість курсу, фото упаковки, AI-скан рецепта</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 2г</div>
+        <div class="name">Нагадування самопочуття</div>
+        <div class="desc">Час і частота зрізів самопочуття</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 3</div>
+        <div class="name">Картка ліків</div>
+        <div class="desc">Розклад, залишок (таблетки / краплі / флакон), кнопки «Поповнити» і «Купити», історія прийомів</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 4</div>
+        <div class="name">Сім'я</div>
+        <div class="desc">Картки кожного члена сім'ї зі статусами: прийняв / пропустив / ще не час. Залежні профілі позначені іконкою опіки.</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 5</div>
+        <div class="name">Додавання члена сім'ї</div>
+        <div class="desc">Тип: «під опікою» (без реєстрації) або «запросити». Ім'я, аватар, доступ: посилання / код / тільки опікун</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 6</div>
+        <div class="name">Аналітика</div>
+        <div class="desc">Дотримання режиму, графіки, сімейна статистика, AI-інсайти</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 7</div>
+        <div class="name">Налаштування сповіщень</div>
+        <div class="desc">Канали, час тиші, інтенсивність нагадувань</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 9</div>
+        <div class="name">Профіль</div>
+        <div class="desc">Дані користувача, розмір шрифту, мова, тариф</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 10а</div>
+        <div class="name">Зріз самопочуття</div>
+        <div class="desc">5 емодзі настрою, чіпи симптомів з AI, текстовий або голосовий коментар з транскрипцією</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран 10б</div>
+        <div class="name">Історія самопочуття</div>
+        <div class="desc">Графік настрою, AI-кореляції з пропусками, хронологічний список зрізів</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран — Тарифи</div>
+        <div class="name">Paywall</div>
+        <div class="desc">Три плани: Безкоштовно / Турбота $3 / Сім'я $10. Перемикач місяць/рік (−20%). 7 днів триал для «Турбота».</div>
+      </div>
+      <div class="screen-item">
+        <div class="num">Екран — Лікар</div>
+        <div class="name">Запис до лікаря</div>
+        <div class="desc">Просте нагадування про прийом: хто, який лікар/процедура, де, коли, нагадати завчасно. Без інтеграцій з клініками на першому етапі.</div>
+      </div>
+      <div class="screen-item new">
+        <div class="num">Новий · Голос — очікування</div>
+        <div class="name">Голосове управління</div>
+        <div class="desc">Приклади команд, велика кнопка «Утримуй і говори». Розпізнавання через нативний Speech API.</div>
+      </div>
+      <div class="screen-item new">
+        <div class="num">Новий · Голос — результат</div>
+        <div class="name">Підтвердження команди</div>
+        <div class="desc">Що було сказано, що розпізнано (дія / препарат / доза / розклад), уточнюючі питання якщо потрібно, підтвердити або редагувати вручну</div>
+      </div>
+      <div class="screen-item new">
+        <div class="num">Новий · Скан — список</div>
+        <div class="name">Скан рецепта — кілька препаратів</div>
+        <div class="desc">Список розпізнаних препаратів з чекбоксами. Сумнівні позиції позначені ⚡. Кнопки «Додати вибрані» / «Переглянути оригінал».</div>
+      </div>
+      <div class="screen-item new">
+        <div class="num">Новий · Скан — wizard</div>
+        <div class="name">Batch-налаштування часу</div>
+        <div class="desc">Після скану — wizard по кожному препарату: для кого, час прийому, нагадування. Кнопка «Застосувати ці самі часи до всіх».</div>
+      </div>
+      <div class="screen-item new">
+        <div class="num">Новий · Залежний профіль</div>
+        <div class="name">Головний екран Тата</div>
+        <div class="desc">Тільки свій розклад, прогрес-бар, симптоми + голосова нотатка, кнопка «Надіслати самопочуття». Немає нижньої навігації.</div>
+      </div>
+      <div class="screen-item new">
+        <div class="num">Новий · Посилання</div>
+        <div class="name">View-only браузер</div>
+        <div class="desc">Тато відкриває посилання без завантаження застосунку. Бачить свій розклад на сьогодні. Кнопка зателефонувати опікуну.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4. ФУНКЦИИ -->
+  <div class="section" id="features">
+    <div class="section-header">
+      <div class="section-icon" style="background:#FFFBEB;">⚙️</div>
+      <h2>Функции</h2>
+    </div>
+
+    <h4>Управління ліками</h4>
+    <div class="card">
+      <ul>
+        <li>Додавання ліків: назва, форма випуску (таблетки / краплі / сироп / мазь / інгалятор / ін'єкції), дозування</li>
+        <li>Гнучкий розклад прийому: кілька прийомів на день, час відносно їжі (до / після / під час / незалежно)</li>
+        <li>Повтор та інтервал: щодня / через день / певні дні тижня / кожні N днів / циклом (N днів пити — M днів перерва)</li>
+        <li>Тривалість курсу: конкретна кількість днів або постійно</li>
+        <li>Фото упаковки та таблетки — щоб не переплутати, відображається в сповіщеннях</li>
+        <li>AI-скан рецепта — один або кілька препаратів одночасно, batch-wizard для налаштування часу</li>
+        <li>Моніторинг побічних ефектів: AI читає інструкцію і пропонує чіпи симптомів для відстеження</li>
+      </ul>
+    </div>
+
+    <h4>Залишок ліків</h4>
+    <div class="card">
+      <ul>
+        <li>Таблетки/капсули: точний лічильник, прогрес-бар, прогноз «вистачить на N днів»</li>
+        <li>Краплі/сироп/суспензія: візуальний флакон, оцінка залишку на погляд (75% / 40% / 15%), дата відкриття</li>
+        <li>Мазь/крем/інгалятор: приблизний відсоток використання</li>
+        <li>Кнопки «Поповнити упаковку» / «Відкрив новий флакон» / «🛒 Купити» (партнерське посилання на аптеку)</li>
+        <li>AI-сповіщення за 3–5 днів до закінчення</li>
+      </ul>
+    </div>
+
+    <h4>Активність та фізнавантаження</h4>
+    <div class="card">
+      <ul>
+        <li>Типи: прогулянка, зарядка, ЛФК, тренування, йога, велосипед та інші</li>
+        <li>Кілька занять на день з окремим розкладом (Заняття 1 / Заняття 2 / ...)</li>
+        <li>Дні тижня, тривалість, нагадування</li>
+        <li>Голосова команда: «Додай прогулянку щодня о 18:00»</li>
+      </ul>
+    </div>
+
+    <h4>Щоденник самопочуття</h4>
+    <div class="card">
+      <ul>
+        <li>Зрізи 2–3 рази на день за розкладом</li>
+        <li>Вибір настрою: 5 емодзі</li>
+        <li>Чіпи симптомів — автоматично з побічних ефектів поточних ліків</li>
+        <li>Текстовий або голосовий коментар з транскрипцією (3 стани: запис → транскрипція → підтвердження)</li>
+        <li>Для залежних профілів: блок самопочуття прямо на головному екрані + кнопка «Надіслати опікуну»</li>
+        <li>Історія: графік настрою, хронологічний список зрізів</li>
+        <li>AI-кореляції: зв'язок між пропусками таблеток і симптомами</li>
+        <li>Експорт даних для лікаря (PDF)</li>
+      </ul>
+    </div>
+
+    <h4>Сімейне управління</h4>
+    <div class="card">
+      <ul>
+        <li>До 10 профілів на сімейному тарифі</li>
+        <li>Два типи членів сім'ї: повноцінний акаунт (запрошення) або залежний профіль (без реєстрації)</li>
+        <li>Канали сповіщень для кожного: Push / Telegram-бот / SMS</li>
+        <li>Фото ліків відображається в сповіщенні — літній родич не переплутає</li>
+        <li>Єдиний дашборд сім'ї зі статусами: ✓ прийняв / ⚠ пропустив / ⏳ ще не час</li>
+        <li>Кнопка «Нагадати» — ручне повторне сповіщення одним тапом</li>
+        <li>Самопочуття залежного профілю надходить опікуну як сповіщення</li>
+      </ul>
+    </div>
+
+    <h4>Скан рецепта — кілька препаратів</h4>
+    <div class="card">
+      <ul>
+        <li>OCR + GPT-4o Vision розпізнає всі препарати з рецепта одночасно</li>
+        <li>Список з чекбоксами — користувач вибирає що додавати</li>
+        <li>Сумнівні позиції (нерозбірливий почерк) позначені ⚡ з варіантами для уточнення</li>
+        <li>Batch-wizard: налаштування часу для кожного препарату по черзі</li>
+        <li>Кнопка «Застосувати ці самі часи до всіх» — для типових схем прийому</li>
+        <li>Оригінал рецепта зберігається у профілі</li>
+      </ul>
+    </div>
+
+    <h4>Запис до лікаря</h4>
+    <div class="card">
+      <ul>
+        <li>На першому етапі — просте нагадування без інтеграцій з клініками</li>
+        <li>Форма: для кого, який лікар/процедура, де, дата і час, нагадати заздалегідь, нотатка</li>
+        <li>Опціонально: прикріпити PDF-виписку з ліками та симптомами за 30 днів</li>
+        <li>AI нагадує коли курс закінчується і пропонує записатися — без медичних порад</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- НОВЫЙ РАЗДЕЛ: ЗАЛЕЖНІ ПРОФІЛІ -->
+  <div class="section" id="dependent">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F0FDF4;">👴</div>
+      <h2>Залежні профілі (без реєстрації)</h2>
+    </div>
+
+    <div class="card">
+      <p>Залежний профіль — це профіль людини (батьки, дитина) всередині акаунту основного користувача. Людина <strong>не реєструється</strong> і не має власного акаунту. Усіма ліками та розкладом керує опікун.</p>
+    </div>
+
+    <div class="decision">
+      ✅ <strong>Рішення прийнято:</strong> залежні профілі — ключова диференціація від конкурентів. MyTherapy, Medisafe, Round Health не мають цієї функції.
+    </div>
+
+    <h4>Як створити залежний профіль</h4>
+    <div class="flow">
+      <div class="flow-step">Сім'я → +</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Тип: «під опікою»</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Ім'я, аватар, вік</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Спосіб доступу</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Готово</div>
+    </div>
+
+    <h4>Три варіанти доступу для залежного профілю</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Варіант</th><th>Як працює</th><th>Для кого</th></tr>
+        <tr>
+          <td><strong>Посилання-перегляд</strong></td>
+          <td>Опікун надсилає посилання → людина відкриває в браузері без завантаження застосунку → бачить тільки свій розклад на сьогодні. Дані зберігаються тільки у опікуна.</td>
+          <td>Літні батьки, які не хочуть встановлювати застосунки</td>
+        </tr>
+        <tr>
+          <td><strong>Вхід за кодом</strong></td>
+          <td>Опікун генерує 6-символьний код → людина завантажує MedKit → вводить код один раз → застосунок запам'ятовує профіль. Далі: просто відкрив → Face ID → всередині.</td>
+          <td>Батьки зі смартфоном, готові встановити застосунок</td>
+        </tr>
+        <tr>
+          <td><strong>Тільки опікун</strong></td>
+          <td>Людина не бачить застосунок взагалі. Опікун керує всім самостійно.</td>
+          <td>Маленькі діти, немічні люди</td>
+        </tr>
+      </table>
+    </div>
+
+    <h4>Що бачить залежний профіль</h4>
+    <div class="card">
+      <ul>
+        <li>Тільки свій розклад на сьогодні — без доступу до інших профілів</li>
+        <li>Прогрес-бар «прийнято X з Y ліків»</li>
+        <li>Блок самопочуття: 5 емодзі + чіпи симптомів + голосова нотатка</li>
+        <li>Кнопка «Надіслати самопочуття» — опікун отримує сповіщення</li>
+        <li>Контакт опікуна з кнопкою «Зателефонувати»</li>
+        <li><strong>Немає</strong>: нижньої навігації, доступу до аналітики, можливості змінювати розклад</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- НОВЫЙ РАЗДЕЛ: ГОЛОСОВЕ УПРАВЛІННЯ -->
+  <div class="section" id="voice">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F2EEFF;">🎙️</div>
+      <h2>Голосове управління</h2>
+    </div>
+
+    <div class="card">
+      <p>Голосове управління — окремий екран і FAB-кнопка на головному екрані. Реалізація: нативний Speech API (безкоштовно) → текст → парсинг інтентів → підтвердження перед дією. Жодна дія не виконується без підтвердження користувача.</p>
+    </div>
+
+    <div class="decision">
+      ✅ <strong>Рішення прийнято:</strong> особливо цінно для літніх користувачів залежних профілів — замість введення тексту просто говорять про симптоми.
+    </div>
+
+    <h4>Підтримувані команди</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Команда</th><th>Дія</th><th>Уточнення якщо потрібно</th></tr>
+        <tr><td>«Прийняв таблетку»</td><td>Відмічає найближчий прийом як виконаний</td><td>Якщо кілька ліків — уточнює який</td></tr>
+        <tr><td>«Додай Еналаприл 10 мг вранці та ввечері»</td><td>Відкриває форму з заповненими полями</td><td>До/після їжі</td></tr>
+        <tr><td>«Самопочуття — болить голова, 6 з 10»</td><td>Запис у щоденник самопочуття</td><td>Підтвердити перед збереженням</td></tr>
+        <tr><td>«Запис до кардіолога у п'ятницю о 10»</td><td>Створює нагадування про прийом</td><td>Для кого, де</td></tr>
+        <tr><td>«Скільки ліків залишилось?»</td><td>Зачитує залишок поточних ліків</td><td>—</td></tr>
+      </table>
+    </div>
+
+    <h4>UX-флоу</h4>
+    <div class="flow">
+      <div class="flow-step">Утримуй кнопку</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Говориш</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Розпізнано інтент</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Уточнення (якщо треба)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">Підтверди → Дія</div>
+    </div>
+
+    <div class="card">
+      <h3>Технічна реалізація</h3>
+      <ul>
+        <li><strong>iOS:</strong> SFSpeechRecognizer (нативний, безкоштовно, офлайн для базових команд)</li>
+        <li><strong>Android:</strong> SpeechRecognizer API (нативний, безкоштовно)</li>
+        <li><strong>Парсинг інтентів:</strong> локальні правила для базових команд + Claude API для складних фраз</li>
+        <li>Жодна дія не виконується автоматично — завжди екран підтвердження</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5. AI -->
+  <div class="section" id="ai">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F2EEFF;">✨</div>
+      <h2>AI-функції</h2>
+    </div>
+
+    <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:14px;padding:16px 20px;margin-bottom:16px;font-size:14px;color:#7F1D1D;line-height:1.6;">
+      ⚠️ <strong>Важливий принцип:</strong> застосунок не дає медичних порад і не ставить діагнозів. Усі AI-функції допомагають <em>фіксувати та структурувати інформацію</em> для передачі лікарю. У кожному AI-блоці явно зазначено: «Уточніть у свого лікаря» / «Не є медичною рекомендацією». Це і юридична вимога, і UX-рішення: користувач довіряє застосунку саме тому, що він не намагається замінити лікаря.
+    </div>
+
+    <div class="ai-block">
+      <h3>1. Скан рецепта — один або кілька препаратів</h3>
+      <p>Фото рецепта → GPT-4o Vision розпізнає всі препарати, дозування, частоту, тривалість. Якщо в рецепті кілька ліків — показує список з чекбоксами. Сумнівні позиції позначаються ⚡ з варіантами для уточнення. Після вибору — batch-wizard для налаштування часу. <em>Дані беруться з рецепта — не є рекомендацією застосунку.</em></p>
+    </div>
+    <div class="ai-block">
+      <h3>2. Підказки щодо розкладу</h3>
+      <p>На основі інструкції до препарату застосунок пропонує час прийому (після їжі, інтервал між дозами). Формулювання в UI: «З інструкції: ... Уточніть у свого лікаря». Прямих порад щодо зміни дозування немає.</p>
+    </div>
+    <div class="ai-block">
+      <h3>3. Чіпи симптомів з інструкції</h3>
+      <p>Застосунок читає список побічних ефектів з інструкції і пропонує їх як швидкі чіпи у формі самопочуття. Користувач сам відмічає що відчуває — дані накопичуються для лікаря. Застосунок не інтерпретує симптоми.</p>
+    </div>
+    <div class="ai-block">
+      <h3>4. Фіксація зв'язку пропусків і симптомів</h3>
+      <p>Застосунок відображає хронологію: пропуск таблетки + симптоми того самого дня. <em>Не робить висновків</em> — тільки показує дані у зручному вигляді для обговорення з лікарем. Формулювання: «Ці дані допоможуть лікарю на наступному візиті».</p>
+    </div>
+    <div class="ai-block">
+      <h3>5. Парсинг голосових команд</h3>
+      <p>Голос → текст (нативний Speech API) → розпізнавання інтенту (локальні правила + Claude API для складних фраз). Застосунок завжди показує що зрозумів і чекає підтвердження — жодна дія не виконується автоматично. Особливо цінно для літніх користувачів залежних профілів.</p>
+    </div>
+    <div class="ai-block">
+      <h3>6. Проактивні нагадування (не поради)</h3>
+      <p>Застосунок нагадує про факти: «Ліки закінчуються через 4 дні», «Курс Еналаприлу завершується — можливо, варто уточнити у лікаря продовження». Формулювання завжди м'яке: «можливо», «варто уточнити» — без тверджень.</p>
+    </div>
+    <div class="ai-block">
+      <h3>7. PDF-звіт для лікаря</h3>
+      <p>Структурований вивід фактичних даних: список ліків, дотримання режиму, щоденник симптомів за період. Лікар сам робить висновки — застосунок тільки агрегує дані. Прикріплюється до запису на прийом одним тапом.</p>
+    </div>
+  </div>
+
+
+  <!-- 6. ОНБОРДИНГ -->
+  <div class="section" id="onboarding">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F0FDF4;">🚀</div>
+      <h2>Швидкий старт (онбординг)</h2>
+    </div>
+    <div class="card">
+      <p style="margin-bottom:12px;">Майстер з 6 кроків (~5 хвилин). Після завершення користувач одразу бачить налаштований дашборд.</p>
+      <div class="flow" style="flex-direction:column; align-items:flex-start; gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;"><div class="flow-step" style="min-width:28px;text-align:center;">1</div> <span style="font-size:14px;"><b>Кого налаштовуємо</b> — Я / Мама / Тато / Дитина / Партнер (можна всіх одразу)</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><div class="flow-step" style="min-width:28px;text-align:center;">2</div> <span style="font-size:14px;"><b>Сім'я</b> — тип профілю (повний акаунт або залежний), ім'я, аватар, спосіб доступу</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><div class="flow-step" style="min-width:28px;text-align:center;">3</div> <span style="font-size:14px;"><b>Ліки</b> — скан рецепта (один або кілька препаратів) або введення вручну, перемикач по профілях</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><div class="flow-step" style="min-width:28px;text-align:center;">4</div> <span style="font-size:14px;"><b>AI будує розклад</b> — підтвердити або змістити час</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><div class="flow-step" style="min-width:28px;text-align:center;">5</div> <span style="font-size:14px;"><b>Активність + самопочуття</b> — увімкнути одним тоглом</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><div class="flow-step" style="min-width:28px;text-align:center;">6</div> <span style="font-size:14px;"><b>Готово</b> — зведення: профілі, ліки, перше нагадування сьогодні</span></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 7. МОНЕТИЗАЦИЯ -->
+  <div class="section" id="monetization">
+    <div class="section-header">
+      <div class="section-icon" style="background:#FFFBEB;">💰</div>
+      <h2>Монетизація та поведінка при відміні</h2>
+    </div>
+
+    <div class="monetization-grid">
+      <div class="plan-card plan-free">
+        <div class="plan-name">Безкоштовно</div>
+        <div class="plan-price">$0</div>
+        <ul>
+          <li>1 профіль</li>
+          <li>∞ ліків</li>
+          <li>Push + Telegram</li>
+          <li>Активність і самопочуття</li>
+          <li>3 скани рецептів</li>
+          <li>Запис до лікаря</li>
+          <li>Голосові команди (базові)</li>
+        </ul>
+      </div>
+      <div class="plan-card plan-pro">
+        <div class="badge">ПОПУЛЯРНИЙ</div>
+        <div class="plan-name" style="color:#7048C4;">Турбота</div>
+        <div class="plan-price" style="color:#7048C4;">$3 <span>/ міс</span></div>
+        <ul>
+          <li>Все з безкоштовного</li>
+          <li><b>10 сканів рецептів</b></li>
+          <li>AI-інсайти та кореляції</li>
+          <li>PDF-звіт для лікаря</li>
+          <li>Голос (розширені команди)</li>
+          <li>7 днів триал</li>
+        </ul>
+      </div>
+      <div class="plan-card plan-family">
+        <div class="plan-name">Сім'я 👨‍👩‍👧</div>
+        <div class="plan-price">$10 <span>/ міс</span></div>
+        <ul>
+          <li>Все з «Турботи»</li>
+          <li><b>50 сканів</b> на сім'ю</li>
+          <li>До 10 профілів</li>
+          <li>Залежні профілі (необмежено)</li>
+          <li>Сімейний дашборд</li>
+          <li>AI-інсайти по сім'ї</li>
+          <li>Пріоритетна підтримка</li>
+        </ul>
+      </div>
+    </div>
+
+    <h4>Поведінка при відміні або простроченні підписки</h4>
+    <div class="decision">
+      ✅ <strong>Рішення прийнято:</strong> дані ніколи не видаляються. При відміні підписки застосунок переходить у режим «тільки основне».
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Функція</th><th>Без підписки</th></tr>
+        <tr><td>Вся історія та дані</td><td>✅ збережено повністю</td></tr>
+        <tr><td>Нагадування про ліки</td><td>✅ працюють</td></tr>
+        <tr><td>Залежні профілі (перегляд)</td><td>✅ бачать свій розклад</td></tr>
+        <tr><td>Додавання нових ліків</td><td>❌ заблоковано</td></tr>
+        <tr><td>Скан рецептів</td><td>❌ заблоковано</td></tr>
+        <tr><td>Аналітика, PDF, AI-інсайти</td><td>❌ заблоковано</td></tr>
+        <tr><td>Сповіщення членам сім'ї</td><td>❌ заблоковано</td></tr>
+        <tr><td>Голосові команди (розширені)</td><td>❌ заблоковано</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Відновлення сім'ї після оплати</h3>
+      <p>Оплата → підписка відновлюється миттєво → всі залежні профілі і сімейний доступ автоматично активуються. Нічого не потрібно налаштовувати заново.</p>
+    </div>
+
+    <h4>Реферальна програма</h4>
+    <div class="warn">
+      ⚠️ <strong>Рішення: реферальну програму не робити на старті.</strong> Механіки «місяць за друга» і «слот за запрошення» легко зловживати (запросити 10 людей зі своєї ж сім'ї → безкоштовна підписка назавжди). Health-продукти ростуть органічно через «порадила подруга». Повернутися до питання після Product-Market Fit.
+    </div>
+
+    <h4>Економіка сканувань (GPT-4o Vision)</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Тариф</th><th>Сканів</th><th>Витрати на скани</th><th>Виручка</th><th>Маржа</th></tr>
+        <tr><td>Безкоштовно</td><td>3</td><td>~$0.06–0.15</td><td>$0</td><td>—</td></tr>
+        <tr><td>Турбота</td><td>10</td><td>~$0.20–0.50</td><td>$3</td><td>&gt;80%</td></tr>
+        <tr><td>Сім'я</td><td>50</td><td>~$1.00–2.50</td><td>$10</td><td>&gt;75%</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Річні плани</h3>
+      <p>Знижка 20% при оплаті за рік. Оплата через App Store / Google Play.</p>
+    </div>
+  </div>
+
+
+  <!-- 8. ПАРТНЁРКИ -->
+  <div class="section" id="affiliate">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F0FDF4;">🤝</div>
+      <h2>Партнерські програми</h2>
+    </div>
+
+    <h4>Аптеки (кнопка «Купити» в картці ліків)</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Партнер</th><th>Комісія</th><th>Ринок</th></tr>
+        <tr><td>Liki24.com</td><td>3–5% із замовлення</td><td>Україна</td></tr>
+        <tr><td>Tabletki.ua</td><td>CPA</td><td>Україна</td></tr>
+        <tr><td>iHerb (БАДи)</td><td>5%</td><td>Міжнародний</td></tr>
+        <tr><td>Pharma2go / місцеві агрегатори</td><td>CPA</td><td>UA / EU</td></tr>
+      </table>
+    </div>
+    <div class="highlight">
+      <h3>Рекомендація</h3>
+      <p>Пріоритет — прямі партнерства з <b>Liki24</b> та <b>Tabletki.ua</b>. При 1 000 активних сімей із середнім чеком $30/міс → ~$900–1 500/міс пасивно.</p>
+    </div>
+
+    <h4>Клініки (запис до лікаря — другий етап)</h4>
+    <div class="card">
+      <p>На першому етапі — запис до лікаря як просте нагадування без інтеграцій. На другому етапі: партнерська комісія 5–15% від вартості прийому за кожен запис через застосунок. Інтеграція з агрегаторами: <b>Doc.ua</b>, <b>Helsi.me</b>, міжнародні платформи.</p>
+    </div>
+  </div>
+
+</div>
+
+
+  <!-- 9. ТЕХНІЧНА АРХІТЕКТУРА -->
+  <div class="section" id="tech">
+    <div class="section-header">
+      <div class="section-icon" style="background:#F2EEFF;">🏗️</div>
+      <h2>Технічна архітектура</h2>
+    </div>
+
+    <div class="decision">
+      ✅ <strong>Рішення прийнято:</strong> окремий проект зі своїм сервером та БД. Ніякого спільного коду з іншими проектами. Архітектура з нуля — максимально проста, легка і захищена.
+    </div>
+
+    <h4>Стек</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Шар</th><th>Технологія</th><th>Чому</th></tr>
+        <tr><td><strong>Мобільний застосунок</strong></td><td>Flutter (Dart)</td><td>Єдиний кодобаза для iOS і Android. Кастомний дизайн без боротьби з нативними стилями. Компілюється в ARM — нативна продуктивність.</td></tr>
+        <tr><td><strong>Backend API</strong></td><td>PHP 8.2 REST API</td><td>Знайома технологія, нульовий overhead, легко деплоїти. Stateless через JWT — не зберігає стан між запитами.</td></tr>
+        <tr><td><strong>База даних</strong></td><td>MySQL / MariaDB</td><td>Перевірена, легка для сервера. Схема розроблена з нуля для MedKit.</td></tr>
+        <tr><td><strong>Кешування</strong></td><td>APCu / Redis (опційно)</td><td>Rate limiting, кеш конфігів сімей. Redis потрібен тільки при зростанні навантаження.</td></tr>
+      </table>
+    </div>
+
+    <h4>Flutter — ключові пакети</h4>
+    <div class="card">
+      <ul>
+        <li><code>http</code> — запити до PHP API</li>
+        <li><code>speech_to_text</code> — голосове управління (нативний Speech API, безкоштовно)</li>
+        <li><code>camera</code> — скан рецептів</li>
+        <li><code>local_auth</code> — Face ID / Touch ID для залежних профілів</li>
+        <li><code>flutter_local_notifications</code> — локальні нагадування про ліки (без сервера)</li>
+        <li><code>firebase_messaging</code> — FCM push для сімейних сповіщень</li>
+        <li><code>isar</code> — локальна БД для офлайн-режиму</li>
+        <li><code>riverpod</code> — стейт-менеджмент</li>
+        <li><code>go_router</code> — навігація</li>
+      </ul>
+    </div>
+
+    <h4>Структура PHP API</h4>
+    <div class="card">
+      <ul>
+        <li><code>api/auth.php</code> — реєстрація, JWT, залежні профілі, одноразовий код входу</li>
+        <li><code>api/meds.php</code> — ліки, розклад, прийоми</li>
+        <li><code>api/family.php</code> — сім'я, права доступу, налаштування членів</li>
+        <li><code>api/wellbeing.php</code> — самопочуття, симптоми</li>
+        <li><code>api/appointments.php</code> — записи до лікаря</li>
+        <li><code>api/scan.php</code> — проксі до GPT-4o Vision, перевірка ліміту сканів</li>
+        <li><code>api/voice.php</code> — проксі до Claude API для складних команд</li>
+        <li><code>api/push.php</code> — відправка FCM push для сімейних нагадувань</li>
+        <li><code>cron/reminders.php</code> — кожні 5 хв: шукає прострочені прийоми і надсилає push опікуну</li>
+      </ul>
+    </div>
+
+    <h4>Схема бази даних</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Таблиця</th><th>Призначення</th></tr>
+        <tr><td><code>users</code></td><td>Акаунти. email, телефон, хеш пароля, тариф, дата закінчення</td></tr>
+        <tr><td><code>families</code></td><td>Сімейна група. owner_id → users</td></tr>
+        <tr><td><code>family_members</code></td><td>Запрошені члени (з акаунтом). role, font_size, дата вступу</td></tr>
+        <tr><td><code>dependent_profiles</code></td><td>Залежні профілі (без реєстрації). avatar, font_size, тип доступу, хеш коду входу</td></tr>
+        <tr><td><code>medications</code></td><td>Ліки. owner_type (user / dependent), назва, форма, дозування, фото</td></tr>
+        <tr><td><code>med_schedules</code></td><td>Розклад прийомів. часи (JSON), тип повтору, дати початку і закінчення</td></tr>
+        <tr><td><code>med_intakes</code></td><td>Факти прийому. scheduled_at, статус (taken / skipped / pending), taken_at</td></tr>
+        <tr><td><code>wellbeing_entries</code></td><td>Самопочуття. настрій 1–5, симптоми (JSON), текст, голосова нотатка</td></tr>
+        <tr><td><code>appointments</code></td><td>Записи до лікаря. лікар, місце, час, нагадування, PDF-виписка</td></tr>
+        <tr><td><code>push_tokens</code></td><td>FCM токени пристроїв. platform (ios / android), upsert по токену</td></tr>
+      </table>
+    </div>
+
+    <h4>Аутентифікація та безпека</h4>
+    <div class="card">
+      <ul>
+        <li><strong>JWT токени:</strong> access token 15 хв + refresh token 30 днів (httpOnly cookie). Stateless — сервер не зберігає сесії</li>
+        <li><strong>Паролі:</strong> bcrypt, ніколи не зберігаються у відкритому вигляді</li>
+        <li><strong>Код входу залежного профілю:</strong> bcrypt-хеш у БД, plain текст тільки при генерації</li>
+        <li><strong>SQL:</strong> виключно prepared statements через PDO — захист від SQL injection</li>
+        <li><strong>IDOR:</strong> перед кожною операцією перевірка що ресурс належить поточному користувачу</li>
+        <li><strong>Rate limiting:</strong> 5 спроб авторизації / хв на IP; 10 сканів рецептів / день на акаунт</li>
+        <li><strong>Input validation:</strong> whitelist дозволених полів при кожному запиті, ніяких масових присвоювань</li>
+      </ul>
+    </div>
+
+    <h4>API ключі (GPT-4o, Claude)</h4>
+    <div class="highlight">
+      <h3>Ключі — тільки на сервері, Flutter їх ніколи не бачить</h3>
+      <p>Flutter надсилає запит на <em>свій</em> PHP сервер → сервер звертається до OpenAI / Claude від свого імені. Ключі зберігаються у <code>.env</code> файлі поза webroot і закриті через <code>.htaccess</code>. При компрометації — міняється тільки <code>.env</code>, застосунок не перевидається.</p>
+    </div>
+
+    <h4>Нагадування — два рівні</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Тип</th><th>Реалізація</th><th>Коли достатньо</th></tr>
+        <tr><td><strong>Локальні</strong></td><td>Flutter планує <code>flutter_local_notifications</code> при додаванні ліків</td><td>Для більшості юзерів — основний метод. Працює без інтернету.</td></tr>
+        <tr><td><strong>FCM push</strong></td><td>PHP cron кожні 5 хв → Firebase Cloud Messaging</td><td>Сімейні сповіщення: опікун не отримав підтвердження від залежного профілю</td></tr>
+        <tr><td><strong>Telegram-бот</strong></td><td>Альтернативний канал через Bot API</td><td>Юзери що не хочуть push або тримають застосунок вимкненим</td></tr>
+      </table>
+    </div>
+
+    <h4>Орієнтовні терміни MVP</h4>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Блок</th><th>Термін</th></tr>
+        <tr><td>Схема БД + auth.php + meds.php</td><td>1–2 тижні</td></tr>
+        <tr><td>Flutter дизайн-система (кольори, компоненти)</td><td>1 тиждень</td></tr>
+        <tr><td>Розклад ліків + локальні нагадування</td><td>2 тижні</td></tr>
+        <tr><td>Сімейні профілі + залежні профілі</td><td>1–2 тижні</td></tr>
+        <tr><td>Скан рецептів (GPT-4o)</td><td>3 дні</td></tr>
+        <tr><td>Голосові команди</td><td>3 дні</td></tr>
+        <tr><td>FCM push + cron</td><td>3 дні</td></tr>
+        <tr><td><strong>MVP разом</strong></td><td><strong>~6–7 тижнів</strong></td></tr>
+      </table>
+    </div>
+  </div>
+
+
+</div>
+
+<footer>
+  MedKit Product Brief · Версія 4.0 · Червень 2026<br>
+  <span style="margin-top:4px;display:block;">Мокапи: MedKit_Screens.html</span>
+</footer>
+
+</body>
+</html>

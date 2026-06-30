@@ -1,0 +1,31 @@
+{
+  "@@locale": "en",
+  "appName": "MedKit",
+  "navToday": "Today",
+  "navMeds": "Meds",
+  "navFamily": "Family",
+  "navProfile": "Profile",
+  "todayProgressTitle": "{taken} of {total}",
+  "@todayProgressTitle": {
+    "placeholders": {
+      "taken": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "todayProgressSubtitle": "medications taken today",
+  "todayProgressPercent": "{percent}%",
+  "@todayProgressPercent": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "sectionFamily": "Family",
+  "sectionScheduled": "Scheduled",
+  "sectionDone": "Done",
+  "actionAll": "All",
+  "intakeTaken": "Taken",
+  "intakeSkipped": "Skipped",
+  "intakeTake": "✓",
+  "intakeSkip": "✕",
+  "comingSoon": "Coming soon"
+}
