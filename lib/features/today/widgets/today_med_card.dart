@@ -57,12 +57,18 @@ class TodayMedCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(intake.medicationName,
-                      style: AppTextStyles.labelMd),
+                  Text(
+                    intake.medicationName,
+                    style: AppTextStyles.labelMd,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '${intake.medicationDose} · ${MKDateUtils.formatTime(intake.scheduledAt)}',
                     style: AppTextStyles.bodyMd,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ],
               ),

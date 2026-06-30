@@ -7,7 +7,6 @@ import '../../core/utils/date_utils.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/models/family_member.dart';
 import '../../data/models/med_intake.dart';
-import '../../shared/widgets/pro_gate.dart';
 import '../../shared/widgets/section_label.dart';
 import 'widgets/family_status_strip.dart';
 import 'widgets/today_med_card.dart';
@@ -136,12 +135,12 @@ class _TodayScreenState extends State<TodayScreen> {
                 SectionLabel(l10n.sectionFamily,
                     action: l10n.actionAll, onAction: () {}),
                 const SizedBox(height: AppDimensions.md),
-                ProGate(
-                  locked: !AppConfig.canAddFamilyMembers &&
+                FamilyStatusStrip(
+                  members: AppConfig.canAddFamilyMembers
+                      ? _family
+                      : _family.take(1).toList(),
+                  showProHint: !AppConfig.canAddFamilyMembers &&
                       _family.length > 1,
-                  title: l10n.familyProRequired,
-                  body: l10n.familyProBody,
-                  child: FamilyStatusStrip(members: _family),
                 ),
                 const SizedBox(height: AppDimensions.xxl),
                 if (pending.isNotEmpty) ...[

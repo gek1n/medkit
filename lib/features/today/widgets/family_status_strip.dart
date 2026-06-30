@@ -2,23 +2,60 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/l10n_ext.dart';
 import '../../../data/models/family_member.dart';
 
 class FamilyStatusStrip extends StatelessWidget {
   final List<FamilyMember> members;
+  final bool showProHint;
 
-  const FamilyStatusStrip({super.key, required this.members});
+  const FamilyStatusStrip({
+    super.key,
+    required this.members,
+    this.showProHint = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 80,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: members.length,
-        separatorBuilder: (context2, index2) =>
-            const SizedBox(width: AppDimensions.md),
-        itemBuilder: (_, i) => _MemberChip(member: members[i]),
+      height: 88,
+      child: Row(
+        children: [
+          ...members.map((m) => Padding(
+                padding: const EdgeInsets.only(right: AppDimensions.md),
+                child: _MemberChip(member: m),
+              )),
+          if (showProHint) _ProHintChip(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProHintChip extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        width: 72,
+        decoration: BoxDecoration(
+          color: AppColors.proGoldLight,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: AppColors.proGold, width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('👑', style: TextStyle(fontSize: 22)),
+            const SizedBox(height: 4),
+            Text(
+              context.l10n.proBadge,
+              style: AppTextStyles.caption
+                  .copyWith(color: AppColors.proGold, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
       ),
     );
   }
