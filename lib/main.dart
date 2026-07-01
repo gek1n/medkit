@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
 import 'features/add/add_type_sheet.dart';
+import 'features/family/family_screen.dart';
 import 'features/medications/medications_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/today/today_screen.dart';
@@ -67,7 +68,7 @@ class _ShellState extends State<_Shell> {
     TodayScreen(),
     MedicationsScreen(),
     SizedBox.shrink(), // placeholder for "+" tab — handled by bottom nav
-    PlaceholderScreen(title: 'Сім\'я'),
+    FamilyScreen(),
     PlaceholderScreen(title: 'Профіль'),
   ];
 
