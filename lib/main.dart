@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
+import 'features/medications/medications_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/today/today_screen.dart';
 import 'features/today/providers/today_providers.dart';
@@ -63,7 +64,7 @@ class _ShellState extends State<_Shell> {
 
   static const _screens = [
     TodayScreen(),
-    PlaceholderScreen(title: 'Ліки'),
+    MedicationsScreen(),
     PlaceholderScreen(title: 'Додати'),
     PlaceholderScreen(title: 'Сім\'я'),
     PlaceholderScreen(title: 'Профіль'),
