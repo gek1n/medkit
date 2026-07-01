@@ -3,7 +3,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/today/today_screen.dart';
+import 'features/today/providers/today_providers.dart';
 import 'features/placeholder/placeholder_screen.dart';
 import 'shared/widgets/app_bottom_nav.dart';
 
@@ -26,7 +28,25 @@ class MedKitApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('uk'), Locale('en')],
       locale: const Locale('uk'),
-      home: const _Shell(),
+      home: const _RootRouter(),
+    );
+  }
+}
+
+class _RootRouter extends ConsumerWidget {
+  const _RootRouter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final memberAsync = ref.watch(currentMemberProvider);
+
+    return memberAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => const OnboardingScreen(),
+      data: (member) =>
+          member == null ? const OnboardingScreen() : const _Shell(),
     );
   }
 }
@@ -53,7 +73,8 @@ class _ShellState extends State<_Shell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar: AppBottomNav(currentIndex: _index, onTap: (i) => setState(() => _index = i)),
+      bottomNavigationBar:
+          AppBottomNav(currentIndex: _index, onTap: (i) => setState(() => _index = i)),
     );
   }
 }
