@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
 import 'features/today/today_screen.dart';
 import 'features/placeholder/placeholder_screen.dart';
 import 'shared/widgets/app_bottom_nav.dart';
 
-void main() => runApp(const MedKitApp());
+void main() => runApp(const ProviderScope(child: MedKitApp()));
 
 class MedKitApp extends StatelessWidget {
   const MedKitApp({super.key});
