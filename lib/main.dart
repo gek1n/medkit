@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
+import 'features/add/add_type_sheet.dart';
 import 'features/medications/medications_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/today/today_screen.dart';
@@ -65,7 +66,7 @@ class _ShellState extends State<_Shell> {
   static const _screens = [
     TodayScreen(),
     MedicationsScreen(),
-    PlaceholderScreen(title: 'Додати'),
+    SizedBox.shrink(), // placeholder for "+" tab — handled by bottom nav
     PlaceholderScreen(title: 'Сім\'я'),
     PlaceholderScreen(title: 'Профіль'),
   ];
@@ -74,8 +75,16 @@ class _ShellState extends State<_Shell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar:
-          AppBottomNav(currentIndex: _index, onTap: (i) => setState(() => _index = i)),
+      bottomNavigationBar: AppBottomNav(
+        currentIndex: _index,
+        onTap: (i) {
+          if (i == 2) {
+            showAddTypeSheet(context);
+          } else {
+            setState(() => _index = i);
+          }
+        },
+      ),
     );
   }
 }
