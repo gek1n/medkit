@@ -9,6 +9,7 @@ import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_card.dart';
 import '../../shared/widgets/section_label.dart';
 import 'add_medication_screen.dart';
+import 'medication_detail_screen.dart';
 
 class MedicationsScreen extends ConsumerStatefulWidget {
   const MedicationsScreen({super.key});
@@ -111,7 +112,18 @@ class _MedicationsBody extends ConsumerWidget {
                     ...active.map((m) => Padding(
                           padding: const EdgeInsets.only(
                               bottom: AppDimensions.sm),
-                          child: _MedCard(med: m),
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MedicationDetailScreen(
+                                  medicationId: m.id,
+                                  memberId: selectedMemberId,
+                                ),
+                              ),
+                            ),
+                            child: _MedCard(med: m),
+                          ),
                         )),
                   ],
                   if (inactive.isNotEmpty) ...[

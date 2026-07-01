@@ -22,6 +22,10 @@ class MedicationsRepository {
       (_db.select(_db.medications)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
 
+  Stream<Medication?> watchById(int id) =>
+      (_db.select(_db.medications)..where((t) => t.id.equals(id)))
+          .watchSingleOrNull();
+
   Future<int> insert(MedicationsCompanion med) =>
       _db.into(_db.medications).insert(med);
 
