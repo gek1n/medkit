@@ -69,6 +69,19 @@ class IntakesRepository {
   }
 
   // Генерація прийомів для конкретного дня (викликається при відкритті дня)
+  Future<List<Intake>> getByMemberAndDateRange(
+    int memberId,
+    DateTime from,
+    DateTime to,
+  ) =>
+      (_db.select(_db.intakes)
+            ..where((t) =>
+                t.memberId.equals(memberId) &
+                t.scheduledAt.isBiggerOrEqualValue(from) &
+                t.scheduledAt.isSmallerThanValue(to))
+            ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
+          .get();
+
   Stream<List<Intake>> watchByMedicationAndDateRange(
     int medicationId,
     int memberId,

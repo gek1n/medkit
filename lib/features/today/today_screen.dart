@@ -7,6 +7,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../shared/widgets/mk_card.dart';
 import '../../shared/widgets/section_label.dart';
+import '../analytics/analytics_screen.dart';
 import 'providers/today_providers.dart';
 import 'widgets/family_status_strip.dart';
 import 'widgets/today_med_card.dart';
@@ -179,11 +180,20 @@ class _TodayContent extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Text(
-                      l10n.todayProgressPercent(
-                          (progress * 100).round()),
-                      style: AppTextStyles.h2.copyWith(
-                          color: Colors.white, fontSize: 32),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AnalyticsScreen(memberId: member.id),
+                        ),
+                      ),
+                      child: Text(
+                        l10n.todayProgressPercent(
+                            (progress * 100).round()),
+                        style: AppTextStyles.h2.copyWith(
+                            color: Colors.white, fontSize: 32),
+                      ),
                     ),
                   ],
                 ),

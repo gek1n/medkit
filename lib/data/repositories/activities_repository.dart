@@ -76,6 +76,18 @@ class ActivitiesRepository {
         .write(const ActivityLogsCompanion(status: Value('skipped')));
   }
 
+  Future<List<ActivityLog>> getLogsByMemberAndDateRange(
+    int memberId,
+    DateTime from,
+    DateTime to,
+  ) =>
+      (_db.select(_db.activityLogs)
+            ..where((t) =>
+                t.memberId.equals(memberId) &
+                t.scheduledAt.isBiggerOrEqualValue(from) &
+                t.scheduledAt.isSmallerThanValue(to)))
+          .get();
+
   Future<int> insertLog(ActivityLogsCompanion log) =>
       _db.into(_db.activityLogs).insert(log);
 
