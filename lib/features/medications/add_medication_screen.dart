@@ -1,13 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
-import '../../data/repositories/schedules_repository.dart';
 
 class AddMedicationScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -18,18 +19,47 @@ class AddMedicationScreen extends ConsumerStatefulWidget {
       _AddMedicationScreenState();
 }
 
+class _MedPhase {
+  List<TimeOfDay> times;
+  int? durationDays; // null = permanent
+  bool intervalMode;
+  int intervalHours;
+  TimeOfDay intervalStart;
+  double doseAmount;
+  String doseComment;
+
+  _MedPhase({
+    required this.times,
+    this.durationDays,
+    this.intervalMode = false,
+    this.intervalHours = 4,
+    this.intervalStart = const TimeOfDay(hour: 8, minute: 0),
+    this.doseAmount = 1.0,
+    this.doseComment = '',
+  });
+
+  List<TimeOfDay> get effectiveTimes {
+    if (!intervalMode) return times;
+    final result = <TimeOfDay>[];
+    int h = intervalStart.hour;
+    int m = intervalStart.minute;
+    while (h < 24) {
+      result.add(TimeOfDay(hour: h, minute: m));
+      h += intervalHours;
+    }
+    return result;
+  }
+}
+
 class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   final _nameController = TextEditingController();
-  final _doseAmountController = TextEditingController(text: '1');
-  final _doseUnitController = TextEditingController(text: 'мг');
 
   String _form = 'tablet';
   String _foodRelation = 'after';
   String _repeatType = 'daily';
-  int _timesPerDay = 1;
 
-  // Time slots: list of TimeOfDay
-  final List<TimeOfDay> _times = [const TimeOfDay(hour: 8, minute: 0)];
+  // Phases
+  late List<_MedPhase> _phases;
 
   // Repeat config for weekdays
   final Set<int> _weekdays = {1, 2, 3, 4, 5}; // 1=Mon..7=Sun
@@ -37,40 +67,43 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   int _cycleOn = 21;
   int _cycleOff = 7;
 
-  // Duration
-  bool _isPermanent = false;
-  int _durationDays = 7;
+  // Stock tracking
+  bool _trackStock = false;
+  int _availableCount = 0;
 
-  // Pill count
-  int _totalCount = 0;
+  // Photos
+  List<String> _photoPaths = [];
 
   bool _isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+    _phases = [
+      _MedPhase(
+        times: [const TimeOfDay(hour: 6, minute: 0)],
+        durationDays: 7,
+      ),
+    ];
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
-    _doseAmountController.dispose();
-    _doseUnitController.dispose();
     super.dispose();
   }
 
-  void _setTimesPerDay(int n) {
-    setState(() {
-      _timesPerDay = n;
-      while (_times.length < n) {
-        _times.add(_defaultTime(_times.length));
-      }
-      while (_times.length > n) {
-        _times.removeLast();
-      }
-    });
-  }
-
-  TimeOfDay _defaultTime(int index) => switch (index) {
-        0 => const TimeOfDay(hour: 8, minute: 0),
-        1 => const TimeOfDay(hour: 14, minute: 0),
-        2 => const TimeOfDay(hour: 20, minute: 0),
-        _ => TimeOfDay(hour: 8 + index * 4, minute: 0),
+  static String _unitForForm(String form) => switch (form) {
+        'tablet'      => 'табл.',
+        'capsule'     => 'капс.',
+        'syrup'       => 'мл',
+        'drops'       => 'крап.',
+        'cream'       => 'г',
+        'inhaler'     => 'вдих',
+        'injection'   => 'мл',
+        'suppository' => 'свіча',
+        'vial'        => 'фл.',
+        _             => 'шт.',
       };
 
   Future<void> _save() async {
@@ -81,25 +114,46 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       return;
     }
 
-    final doseAmount =
-        double.tryParse(_doseAmountController.text.trim()) ?? 1.0;
-    final doseUnit = _doseUnitController.text.trim().isEmpty
-        ? 'мг'
-        : _doseUnitController.text.trim();
-
+    final doseUnit = _unitForForm(_form);
     final repeatConfig = _buildRepeatConfig();
     final now = DateTime.now();
-    final endDate = _isPermanent
-        ? null
-        : DateTime(now.year, now.month, now.day)
-            .add(Duration(days: _durationDays));
+
+    // Build phases JSON (doseAmount per phase)
+    final phasesJson = jsonEncode(_phases
+        .map((p) => {
+              'times': p.effectiveTimes
+                  .map((t) =>
+                      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
+                  .toList(),
+              'durationDays': p.durationDays,
+              'doseAmount': p.doseAmount,
+              if (p.doseComment.isNotEmpty) 'doseComment': p.doseComment,
+            })
+        .toList());
+    // Use first phase dose as the top-level doseAmount for legacy display
+    final doseAmount = _phases.isNotEmpty ? _phases.first.doseAmount : 1.0;
+
+    // Compute endDate from phases
+    DateTime? endDate;
+    int totalDays = 0;
+    bool hasPermanent = false;
+    for (final p in _phases) {
+      if (p.durationDays == null) {
+        hasPermanent = true;
+        break;
+      }
+      totalDays += p.durationDays!;
+    }
+    if (!hasPermanent) {
+      endDate = DateTime(now.year, now.month, now.day)
+          .add(Duration(days: totalDays));
+    }
 
     setState(() => _isSaving = true);
     try {
       final medRepo = ref.read(medicationsRepositoryProvider);
-      final schedRepo = ref.read(schedulesRepositoryProvider);
 
-      final medId = await medRepo.insert(MedicationsCompanion.insert(
+      await medRepo.insert(MedicationsCompanion.insert(
         memberId: widget.memberId,
         name: name,
         form: Value(_form),
@@ -110,20 +164,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
         repeatConfig: Value(jsonEncode(repeatConfig)),
         startDate: now,
         endDate: Value(endDate),
-        totalCount: Value(_totalCount),
-        remainingCount: Value(_totalCount),
+        totalCount: Value(_availableCount),
+        remainingCount: Value(_availableCount),
+        photoPaths: Value(jsonEncode(_photoPaths)),
+        phases: Value(phasesJson),
       ));
-
-      for (int i = 0; i < _times.length; i++) {
-        final t = _times[i];
-        final hh = t.hour.toString().padLeft(2, '0');
-        final mm = t.minute.toString().padLeft(2, '0');
-        await schedRepo.insert(SchedulesCompanion.insert(
-          medicationId: medId,
-          timeOfDay: '$hh:$mm',
-          sortOrder: Value(i),
-        ));
-      }
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
@@ -150,7 +195,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _BackHeader(title: 'Лікарство', onBack: () => Navigator.pop(context)),
+            _BackHeader(title: 'Ліки', onBack: () => Navigator.pop(context)),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -170,31 +215,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                         hint: 'Назва препарату'),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Dose
-                    _FormLabel('Дозування'),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: _TextField(
-                            controller: _doseAmountController,
-                            hint: '500',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 3,
-                          child: _TextField(
-                              controller: _doseUnitController,
-                              hint: 'мг / мл / краплі'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Form
+                    // Form (перша — визначає одиницю)
                     _FormLabel('Форма випуску'),
                     const SizedBox(height: 8),
                     _FormChips(
@@ -203,38 +224,45 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Times per day
-                    _FormLabel('Частота прийому'),
-                    const SizedBox(height: 8),
-                    _FrequencyGrid(
-                      selected: _timesPerDay,
-                      onSelect: _setTimesPerDay,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
 
-                    // Time slots
-                    _FormLabel('Час прийому'),
+                    // Phases
+                    _FormLabel('Фази курсу'),
                     const SizedBox(height: 8),
-                    ..._times.asMap().entries.map((e) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _TimeSlot(
+                    ..._phases.asMap().entries.map((e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _PhaseCard(
                             index: e.key,
-                            time: e.value,
-                            foodRelation: _foodRelation,
-                            onTimeTap: () => _pickTime(e.key),
-                            onFoodTap: () => _pickFood(),
-                            onRemove: _times.length > 1
-                                ? () => setState(() => _times.removeAt(e.key))
-                                : null,
+                            phase: e.value,
+                            form: _form,
+                            canRemove: _phases.length > 1,
+                            isLast: e.key == _phases.length - 1,
+                            onChanged: (p) =>
+                                setState(() => _phases[e.key] = p),
+                            onRemove: () =>
+                                setState(() => _phases.removeAt(e.key)),
+                            onPickTime: (idx) => _pickPhaseTime(e.key, idx),
                           ),
                         )),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        _times.add(_defaultTime(_times.length));
-                        _timesPerDay = _times.length;
-                      }),
-                      child: _DashedAdd('Додати ще прийом'),
-                    ),
+                    if (_phases.length < 4)
+                      GestureDetector(
+                        onTap: () {
+                          final lastHour = _phases.isNotEmpty &&
+                                  _phases.last.times.isNotEmpty
+                              ? _phases.last.times.last.hour
+                              : 5;
+                          final nextHour =
+                              lastHour < 23 ? lastHour + 1 : 23;
+                          setState(() => _phases.add(
+                                _MedPhase(
+                                  times: [
+                                    TimeOfDay(hour: nextHour, minute: 0)
+                                  ],
+                                  durationDays: 7,
+                                ),
+                              ));
+                        },
+                        child: _DashedAdd('Додати фазу'),
+                      ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Repeat
@@ -264,28 +292,26 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Duration
-                    _FormLabel('Тривалість курсу'),
-                    const SizedBox(height: 8),
-                    _DurationSection(
-                      isPermanent: _isPermanent,
-                      days: _durationDays,
-                      onPermanentToggle: (v) =>
-                          setState(() => _isPermanent = v),
-                      onDaysSelect: (d) =>
-                          setState(() => _durationDays = d),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Pill count
-                    _FormLabel('Таблеток у упаковці'),
-                    const SizedBox(height: 8),
-                    _PillCountRow(
-                      count: _totalCount,
+                    // Optional block
+                    _OptionalSection(
+                      trackStock: _trackStock,
+                      availableCount: _availableCount,
+                      phases: _phases,
+                      doseAmount: _phases.isNotEmpty
+                          ? _phases.first.doseAmount
+                          : 1.0,
+                      doseUnit: _unitForForm(_form),
+                      onTrackToggle: (v) =>
+                          setState(() => _trackStock = v),
                       onDecrement: () => setState(() {
-                        if (_totalCount > 0) _totalCount--;
+                        if (_availableCount > 0) _availableCount--;
                       }),
-                      onIncrement: () => setState(() => _totalCount++),
+                      onIncrement: () =>
+                          setState(() => _availableCount++),
+                      onEdit: (v) => setState(() => _availableCount = v),
+                      photoPaths: _photoPaths,
+                      onPhotosChanged: (paths) =>
+                          setState(() => _photoPaths = paths),
                     ),
                     const SizedBox(height: 32),
 
@@ -323,10 +349,10 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     );
   }
 
-  Future<void> _pickTime(int index) async {
+  Future<void> _pickPhaseTime(int phaseIdx, int timeIdx) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _times[index],
+      initialTime: _phases[phaseIdx].times[timeIdx],
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.light(primary: AppColors.primary),
@@ -335,44 +361,10 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       ),
     );
     if (picked != null) {
-      setState(() => _times[index] = picked);
+      setState(() => _phases[phaseIdx].times[timeIdx] = picked);
     }
   }
 
-  Future<void> _pickFood() async {
-    const options = {
-      'before': 'До їжі',
-      'after': 'Після їжі',
-      'with': 'Під час їжі',
-      'any': 'Незалежно від їжі',
-    };
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Відносно їжі', style: AppTextStyles.h3),
-            const SizedBox(height: 16),
-            ...options.entries.map((e) => ListTile(
-                  title: Text(e.value, style: AppTextStyles.bodyMd),
-                  trailing: _foodRelation == e.key
-                      ? const Icon(Icons.check, color: AppColors.primary)
-                      : null,
-                  onTap: () => Navigator.pop(context, e.key),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                )),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (result != null) setState(() => _foodRelation = result);
-  }
 }
 
 // ─── Sub-widgets ──────────────────────────────────────────────────────────────
@@ -526,13 +518,15 @@ class _FormChips extends StatelessWidget {
   const _FormChips({required this.selected, required this.onSelect});
 
   static const _forms = [
-    ('tablet', '💊', 'Таблетка'),
-    ('capsule', '💊', 'Капсула'),
-    ('syrup', '🍶', 'Сироп'),
-    ('drops', '💧', 'Краплі'),
-    ('cream', '🧴', 'Крем'),
-    ('inhaler', '💨', 'Інгалятор'),
-    ('injection', '💉', 'Ін\'єкція'),
+    ('tablet',      '💊', 'Таблетка'),
+    ('capsule',     '💊', 'Капсула'),
+    ('suppository', '🕯️', 'Свічі'),
+    ('vial',        '🧪', 'Флакон'),
+    ('syrup',       '🍶', 'Сироп'),
+    ('drops',       '💧', 'Краплі'),
+    ('cream',       '🧴', 'Крем'),
+    ('inhaler',     '💨', 'Інгалятор'),
+    ('injection',   '💉', 'Ін\'єкція'),
   ];
 
   @override
@@ -573,188 +567,6 @@ class _FormChips extends StatelessWidget {
   }
 }
 
-// ─── Frequency grid ───────────────────────────────────────────────────────────
-
-class _FrequencyGrid extends StatelessWidget {
-  final int selected;
-  final void Function(int) onSelect;
-
-  const _FrequencyGrid({required this.selected, required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
-      childAspectRatio: 1.1,
-      children: [1, 2, 3, 4].map((n) {
-        final sel = selected == n;
-        return GestureDetector(
-          onTap: () => onSelect(n),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
-            decoration: BoxDecoration(
-              color: sel ? AppColors.primary : AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: sel ? AppColors.primary : AppColors.border),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$n×',
-                  style: AppTextStyles.h3.copyWith(
-                      color: sel ? Colors.white : AppColors.textMain,
-                      fontSize: 18),
-                ),
-                Text(
-                  'в день',
-                  style: AppTextStyles.bodySm.copyWith(
-                      color: sel
-                          ? Colors.white.withValues(alpha: 0.8)
-                          : AppColors.textMuted),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-// ─── Time slot ────────────────────────────────────────────────────────────────
-
-class _TimeSlot extends StatelessWidget {
-  final int index;
-  final TimeOfDay time;
-  final String foodRelation;
-  final VoidCallback onTimeTap;
-  final VoidCallback onFoodTap;
-  final VoidCallback? onRemove;
-
-  const _TimeSlot({
-    required this.index,
-    required this.time,
-    required this.foodRelation,
-    required this.onTimeTap,
-    required this.onFoodTap,
-    this.onRemove,
-  });
-
-  static const _timeEmojis = ['☀️', '🕑', '🌙', '🌚'];
-  static const _foodLabels = {
-    'before': 'До їжі',
-    'after': 'Після їжі',
-    'with': 'Під час',
-    'any': 'Будь-коли',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final hh = time.hour.toString().padLeft(2, '0');
-    final mm = time.minute.toString().padLeft(2, '0');
-    final emoji = _timeEmojis[index % _timeEmojis.length];
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 14)),
-              const SizedBox(width: 6),
-              Text(
-                'Прийом ${index + 1}',
-                style: AppTextStyles.labelMd
-                    .copyWith(color: AppColors.primary),
-              ),
-              const Spacer(),
-              if (onRemove != null)
-                GestureDetector(
-                  onTap: onRemove,
-                  child: Text('видалити',
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: AppColors.textMuted)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _SlotField(
-                  label: 'Час',
-                  value: '$hh:$mm',
-                  onTap: onTimeTap,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _SlotField(
-                  label: 'Відносно їжі',
-                  value: _foodLabels[foodRelation] ?? foodRelation,
-                  onTap: onFoodTap,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SlotField extends StatelessWidget {
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-
-  const _SlotField(
-      {required this.label, required this.value, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: AppTextStyles.labelSm.copyWith(fontSize: 10),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border:
-                  Border.all(color: AppColors.primary, width: 1.5),
-            ),
-            child: Text(
-              value,
-              style: AppTextStyles.labelMd
-                  .copyWith(color: AppColors.primary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _DashedAdd extends StatelessWidget {
   final String label;
@@ -779,6 +591,768 @@ class _DashedAdd extends StatelessWidget {
                   .copyWith(color: AppColors.textMuted,
                       fontWeight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Phase card ───────────────────────────────────────────────────────────────
+
+class _PhaseCard extends StatelessWidget {
+  final int index;
+  final _MedPhase phase;
+  final String form;
+  final bool canRemove;
+  final bool isLast;
+  final void Function(_MedPhase) onChanged;
+  final VoidCallback onRemove;
+  final void Function(int) onPickTime;
+
+  const _PhaseCard({
+    required this.index,
+    required this.phase,
+    required this.form,
+    required this.canRemove,
+    required this.isLast,
+    required this.onChanged,
+    required this.onRemove,
+    required this.onPickTime,
+  });
+
+  static String _fmt(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<TimeOfDay?> _pickTime(BuildContext context, TimeOfDay initial) =>
+      showTimePicker(
+        context: context,
+        initialTime: initial,
+        builder: (ctx, child) => Theme(
+          data: Theme.of(ctx).copyWith(
+            colorScheme:
+                const ColorScheme.light(primary: AppColors.primary),
+          ),
+          child: child!,
+        ),
+      );
+
+  Future<int?> _pickInt(
+    BuildContext context, {
+    required String title,
+    required int value,
+    required String suffix,
+  }) async {
+    final ctrl = TextEditingController(text: '$value');
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(suffixText: suffix),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () {
+              final v = int.tryParse(ctrl.text.trim());
+              Navigator.pop(ctx, v != null && v > 0 ? v : null);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPermanent = phase.durationDays == null;
+    final preview = phase.effectiveTimes.map(_fmt).join(' · ');
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Text('Фаза ${index + 1}',
+                  style: AppTextStyles.labelMd
+                      .copyWith(color: AppColors.primary)),
+              const Spacer(),
+              if (canRemove)
+                GestureDetector(
+                  onTap: onRemove,
+                  child: Text('видалити',
+                      style: AppTextStyles.bodySm
+                          .copyWith(color: AppColors.textMuted)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Mode toggle
+          Text('ЧАС ПРИЙОМУ',
+              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                _ModeTab(
+                  label: 'Конкретний час',
+                  active: !phase.intervalMode,
+                  onTap: () => onChanged(_MedPhase(
+                    times: phase.times,
+                    durationDays: phase.durationDays,
+                    intervalMode: false,
+                    intervalHours: phase.intervalHours,
+                    intervalStart: phase.intervalStart,
+                  )),
+                ),
+                _ModeTab(
+                  label: 'Кожні N годин',
+                  active: phase.intervalMode,
+                  onTap: () => onChanged(_MedPhase(
+                    times: phase.times,
+                    durationDays: phase.durationDays,
+                    intervalMode: true,
+                    intervalHours: phase.intervalHours,
+                    intervalStart: phase.intervalStart,
+                  )),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Content by mode
+          if (!phase.intervalMode) ...[
+            // ── Конкретний час ──
+            ...phase.times.asMap().entries.map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          final picked =
+                              await _pickTime(context, e.value);
+                          if (picked != null) {
+                            final updated =
+                                List<TimeOfDay>.from(phase.times);
+                            updated[e.key] = picked;
+                            onChanged(_MedPhase(
+                              times: updated,
+                              durationDays: phase.durationDays,
+                              intervalMode: false,
+                              intervalHours: phase.intervalHours,
+                              intervalStart: phase.intervalStart,
+                            ));
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: AppColors.primary, width: 1.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.access_time,
+                                  size: 14, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(_fmt(e.value),
+                                  style: AppTextStyles.labelMd
+                                      .copyWith(color: AppColors.primary)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (phase.times.length > 1)
+                        GestureDetector(
+                          onTap: () {
+                            final updated =
+                                List<TimeOfDay>.from(phase.times)
+                                  ..removeAt(e.key);
+                            onChanged(_MedPhase(
+                              times: updated,
+                              durationDays: phase.durationDays,
+                              intervalMode: false,
+                              intervalHours: phase.intervalHours,
+                              intervalStart: phase.intervalStart,
+                            ));
+                          },
+                          child: const Icon(Icons.close,
+                              size: 18, color: AppColors.textMuted),
+                        ),
+                    ],
+                  ),
+                )),
+            GestureDetector(
+              onTap: () {
+                final lastHour = phase.times.isNotEmpty
+                    ? phase.times.last.hour
+                    : 5;
+                final nextHour = lastHour < 23 ? lastHour + 1 : 23;
+                final updated = List<TimeOfDay>.from(phase.times)
+                  ..add(TimeOfDay(hour: nextHour, minute: 0));
+                onChanged(_MedPhase(
+                  times: updated,
+                  durationDays: phase.durationDays,
+                  intervalMode: false,
+                  intervalHours: phase.intervalHours,
+                  intervalStart: phase.intervalStart,
+                ));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border:
+                      Border.all(color: AppColors.border, width: 1.5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add,
+                        size: 14, color: AppColors.textMuted),
+                    const SizedBox(width: 6),
+                    Text('Додати час',
+                        style: AppTextStyles.labelMd
+                            .copyWith(color: AppColors.textMuted)),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            // ── Кожні N годин ──
+            Row(
+              children: [
+                // Інтервал
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ІНТЕРВАЛ',
+                        style:
+                            AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _CountBtn(
+                          icon: '−',
+                          onTap: phase.intervalHours <= 1
+                              ? null
+                              : () => onChanged(_MedPhase(
+                                    times: phase.times,
+                                    durationDays: phase.durationDays,
+                                    intervalMode: true,
+                                    intervalHours: phase.intervalHours - 1,
+                                    intervalStart: phase.intervalStart,
+                                  )),
+                        ),
+                        GestureDetector(
+                          onTap: () async {
+                            final v = await _pickInt(context,
+                                title: 'Інтервал',
+                                value: phase.intervalHours,
+                                suffix: 'год');
+                            if (v != null) {
+                              onChanged(_MedPhase(
+                                times: phase.times,
+                                durationDays: phase.durationDays,
+                                intervalMode: true,
+                                intervalHours: v,
+                                intervalStart: phase.intervalStart,
+                              ));
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10),
+                            child: Text(
+                              '${phase.intervalHours} год',
+                              style: AppTextStyles.labelLg
+                                  .copyWith(color: AppColors.primary),
+                            ),
+                          ),
+                        ),
+                        _CountBtn(
+                          icon: '＋',
+                          onTap: phase.intervalHours >= 23
+                              ? null
+                              : () => onChanged(_MedPhase(
+                                    times: phase.times,
+                                    durationDays: phase.durationDays,
+                                    intervalMode: true,
+                                    intervalHours: phase.intervalHours + 1,
+                                    intervalStart: phase.intervalStart,
+                                  )),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 20),
+                // Початок
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ПОЧАТОК',
+                        style:
+                            AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await _pickTime(
+                            context, phase.intervalStart);
+                        if (picked != null) {
+                          onChanged(_MedPhase(
+                            times: phase.times,
+                            durationDays: phase.durationDays,
+                            intervalMode: true,
+                            intervalHours: phase.intervalHours,
+                            intervalStart: picked,
+                          ));
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: AppColors.primary, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.access_time,
+                                size: 14, color: AppColors.primary),
+                            const SizedBox(width: 6),
+                            Text(_fmt(phase.intervalStart),
+                                style: AppTextStyles.labelMd
+                                    .copyWith(color: AppColors.primary)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Preview
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(
+                preview,
+                style: AppTextStyles.bodySm
+                    .copyWith(color: AppColors.textSub),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.primary),
+          const SizedBox(height: 10),
+
+          // Dose per intake
+          Text('КІЛЬКІСТЬ НА ПРИЙОМ',
+              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+          const SizedBox(height: 6),
+          _DoseRow(
+            value: phase.doseAmount,
+            form: form,
+            onChanged: (v) => onChanged(_copyPhase(phase, doseAmount: v)),
+          ),
+          const SizedBox(height: 8),
+          _DoseCommentField(
+            value: phase.doseComment,
+            onChanged: (c) => onChanged(_copyPhase(phase, doseComment: c)),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.primary),
+          const SizedBox(height: 10),
+
+          // Duration stepper
+          Text('ТРИВАЛІСТЬ',
+              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              AnimatedOpacity(
+                opacity: isPermanent ? 0.4 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                child: Row(
+                  children: [
+                    _CountBtn(
+                      icon: '−',
+                      onTap: isPermanent || (phase.durationDays ?? 1) <= 1
+                          ? null
+                          : () => onChanged(_copyPhase(
+                              phase, durationDays: phase.durationDays! - 1)),
+                    ),
+                    GestureDetector(
+                      onTap: isPermanent
+                          ? null
+                          : () async {
+                              final v = await _pickInt(context,
+                                  title: 'Кількість днів',
+                                  value: phase.durationDays ?? 1,
+                                  suffix: 'дн.');
+                              if (v != null) {
+                                onChanged(_copyPhase(phase,
+                                    durationDays: v));
+                              }
+                            },
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          isPermanent
+                              ? '— дн.'
+                              : '${phase.durationDays} дн.',
+                          style: AppTextStyles.labelLg
+                              .copyWith(color: AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    _CountBtn(
+                      icon: '＋',
+                      onTap: isPermanent
+                          ? null
+                          : () => onChanged(_copyPhase(phase,
+                              durationDays: (phase.durationDays ?? 0) + 1)),
+                    ),
+                  ],
+                ),
+              ),
+              if (isLast) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text('або',
+                      style: AppTextStyles.bodySm
+                          .copyWith(color: AppColors.textMuted)),
+                ),
+                GestureDetector(
+                  onTap: () => onChanged(
+                      _copyPhase(phase, durationDays: isPermanent ? 7 : -1)),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isPermanent
+                          ? AppColors.primary
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isPermanent
+                            ? AppColors.primary
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      'Постійно',
+                      style: AppTextStyles.labelMd.copyWith(
+                        color: isPermanent
+                            ? Colors.white
+                            : AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  _MedPhase _copyPhase(_MedPhase p,
+          {int? durationDays, double? doseAmount, String? doseComment}) =>
+      _MedPhase(
+        times: p.times,
+        durationDays:
+            durationDays == -1 ? null : (durationDays ?? p.durationDays),
+        intervalMode: p.intervalMode,
+        intervalHours: p.intervalHours,
+        intervalStart: p.intervalStart,
+        doseAmount: doseAmount ?? p.doseAmount,
+        doseComment: doseComment ?? p.doseComment,
+      );
+}
+
+// ─── Dose comment ─────────────────────────────────────────────────────────────
+
+class _DoseCommentField extends StatefulWidget {
+  final String value;
+  final void Function(String) onChanged;
+
+  const _DoseCommentField({required this.value, required this.onChanged});
+
+  @override
+  State<_DoseCommentField> createState() => _DoseCommentFieldState();
+}
+
+class _DoseCommentFieldState extends State<_DoseCommentField> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _ctrl,
+      onChanged: widget.onChanged,
+      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+      decoration: InputDecoration(
+        hintText: 'Коментар до дози (необов\'язково)',
+        hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        filled: true,
+        fillColor: AppColors.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+              const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Dose row ─────────────────────────────────────────────────────────────────
+
+class _DoseRow extends StatelessWidget {
+  final double value;
+  final String form;
+  final void Function(double) onChanged;
+
+  const _DoseRow({
+    required this.value,
+    required this.form,
+    required this.onChanged,
+  });
+
+  // Форми, де є сенс вводити дробові порції (¼, ½ таблетки)
+  static const _fractionalForms = {'tablet', 'capsule'};
+
+  static const _presets = <double>[0.25, 0.5, 1.0, 1.5, 2.0, 3.0];
+  static final _labels = <double, String>{
+    0.25: '¼',
+    0.5: '½',
+    1.0: '1',
+    1.5: '1½',
+    2.0: '2',
+    3.0: '3',
+  };
+
+  String _fmt(double v) {
+    if (v == v.truncateToDouble()) return v.toInt().toString();
+    // округлення до 2 знаків
+    return double.parse(v.toStringAsFixed(2))
+        .toString()
+        .replaceAll(RegExp(r'\.?0+$'), '');
+  }
+
+  Future<void> _openInput(BuildContext context) async {
+    final ctrl = TextEditingController(text: _fmt(value));
+    final result = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Кількість на прийом'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'наприклад 2.5'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () {
+              final v = double.tryParse(
+                  ctrl.text.trim().replaceAll(',', '.'));
+              Navigator.pop(ctx, v != null && v > 0 ? v : null);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) onChanged(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_fractionalForms.contains(form)) {
+      // ── Чипи з дробами ──
+      final isCustom = !_presets.contains(value);
+      return Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          ..._presets.map((p) {
+            final sel = value == p;
+            return GestureDetector(
+              onTap: () => onChanged(p),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: sel ? AppColors.primary : AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: sel ? AppColors.primary : AppColors.border),
+                ),
+                child: Text(
+                  _labels[p] ?? _fmt(p),
+                  style: AppTextStyles.labelMd.copyWith(
+                      color: sel ? Colors.white : AppColors.textMain),
+                ),
+              ),
+            );
+          }),
+          GestureDetector(
+            onTap: () => _openInput(context),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isCustom ? AppColors.primary : AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color:
+                        isCustom ? AppColors.primary : AppColors.border),
+              ),
+              child: Text(
+                isCustom ? _fmt(value) : '…',
+                style: AppTextStyles.labelMd.copyWith(
+                    color:
+                        isCustom ? Colors.white : AppColors.textMuted),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // ── Числовий інпут (мл, краплі, г, вдихи тощо) ──
+      return GestureDetector(
+        onTap: () => _openInput(context),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.primary, width: 1.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _fmt(value),
+                style: AppTextStyles.labelLg
+                    .copyWith(color: AppColors.primary),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.edit_outlined,
+                  size: 14, color: AppColors.primary),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+}
+
+// ─── Mode tab ─────────────────────────────────────────────────────────────────
+
+class _ModeTab extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _ModeTab(
+      {required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.all(3),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: AppTextStyles.labelSm.copyWith(
+                color: active ? Colors.white : AppColors.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1053,7 +1627,7 @@ class _StepperRow extends StatelessWidget {
 
 // ─── Duration section ─────────────────────────────────────────────────────────
 
-class _DurationSection extends StatelessWidget {
+class _DurationSection extends StatefulWidget {
   final bool isPermanent;
   final int days;
   final void Function(bool) onPermanentToggle;
@@ -1067,66 +1641,420 @@ class _DurationSection extends StatelessWidget {
   });
 
   @override
+  State<_DurationSection> createState() => _DurationSectionState();
+}
+
+class _DurationSectionState extends State<_DurationSection> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(
+        text: widget.isPermanent ? '' : '${widget.days}');
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: [
-            ...[7, 14, 30].map((d) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: GestureDetector(
-                    onTap: () {
-                      onPermanentToggle(false);
-                      onDaysSelect(d);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: !isPermanent && days == d
-                            ? AppColors.primary
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: !isPermanent && days == d
-                              ? AppColors.primary
-                              : AppColors.border,
-                        ),
-                      ),
-                      child: Text(
-                        '$d днів',
-                        style: AppTextStyles.labelMd.copyWith(
-                          color: !isPermanent && days == d
-                              ? Colors.white
-                              : AppColors.textMain,
-                        ),
-                      ),
+        // Числовой инпут
+        AnimatedOpacity(
+          opacity: widget.isPermanent ? 0.4 : 1.0,
+          duration: const Duration(milliseconds: 150),
+          child: Container(
+            width: 160,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+              child: Row(
+                children: [
+                  // Кнопка −
+                  GestureDetector(
+                    onTap: widget.isPermanent
+                        ? null
+                        : () {
+                            final v = (widget.days - 1).clamp(1, 365);
+                            widget.onDaysSelect(v);
+                            _ctrl.text = '$v';
+                          },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.remove,
+                          size: 18,
+                          color: widget.isPermanent
+                              ? AppColors.textMuted
+                              : AppColors.textMain),
                     ),
                   ),
-                )),
-            GestureDetector(
-              onTap: () => onPermanentToggle(true),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 9),
-                decoration: BoxDecoration(
-                  color: isPermanent ? AppColors.primary : AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isPermanent ? AppColors.primary : AppColors.border,
+                  // Инпут
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      enabled: !widget.isPermanent,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      style: AppTextStyles.bodyLg.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: widget.isPermanent
+                            ? AppColors.textMuted
+                            : AppColors.textMain,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '—',
+                        hintStyle: AppTextStyles.bodyLg
+                            .copyWith(color: AppColors.textMuted),
+                        suffixText: widget.isPermanent ? '' : ' дн.',
+                        suffixStyle: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.textSub),
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      onChanged: (v) {
+                        final n = int.tryParse(v);
+                        if (n != null && n >= 1 && n <= 365) {
+                          widget.onPermanentToggle(false);
+                          widget.onDaysSelect(n);
+                        }
+                      },
+                    ),
                   ),
-                ),
-                child: Text(
-                  '♾️ Постійно',
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: isPermanent ? Colors.white : AppColors.textMain,
+                  // Кнопка +
+                  GestureDetector(
+                    onTap: widget.isPermanent
+                        ? null
+                        : () {
+                            final v = (widget.days + 1).clamp(1, 365);
+                            widget.onDaysSelect(v);
+                            _ctrl.text = '$v';
+                          },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      child: Icon(Icons.add,
+                          size: 18,
+                          color: widget.isPermanent
+                              ? AppColors.textMuted
+                              : AppColors.textMain),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
+          ),
+        const SizedBox(width: 10),
+        // Кнопка "Постійно"
+        GestureDetector(
+          onTap: () {
+            widget.onPermanentToggle(!widget.isPermanent);
+            if (!widget.isPermanent) {
+              _ctrl.text = '';
+            } else {
+              _ctrl.text = '${widget.days}';
+            }
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: widget.isPermanent
+                  ? AppColors.primary
+                  : AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: widget.isPermanent
+                    ? AppColors.primary
+                    : AppColors.border,
+              ),
+            ),
+            child: Text(
+              'Постійно',
+              style: AppTextStyles.labelMd.copyWith(
+                color: widget.isPermanent
+                    ? Colors.white
+                    : AppColors.textMain,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Optional section ─────────────────────────────────────────────────────────
+
+class _OptionalSection extends StatefulWidget {
+  final bool trackStock;
+  final int availableCount;
+  final List<_MedPhase> phases;
+  final double doseAmount;
+  final String doseUnit;
+  final List<String> photoPaths;
+  final void Function(bool) onTrackToggle;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+  final void Function(int) onEdit;
+  final void Function(List<String>) onPhotosChanged;
+
+  const _OptionalSection({
+    required this.trackStock,
+    required this.availableCount,
+    required this.phases,
+    required this.doseAmount,
+    required this.doseUnit,
+    required this.photoPaths,
+    required this.onTrackToggle,
+    required this.onDecrement,
+    required this.onIncrement,
+    required this.onEdit,
+    required this.onPhotosChanged,
+  });
+
+  @override
+  State<_OptionalSection> createState() => _OptionalSectionState();
+}
+
+class _OptionalSectionState extends State<_OptionalSection> {
+  bool _expanded = false;
+
+  // Загальна кількість прийомів за курс (одиниць ліків)
+  int _totalIntakes() {
+    double total = 0;
+    for (final phase in widget.phases) {
+      final days = phase.durationDays ?? 0;
+      final intakesPerDay = phase.effectiveTimes.length;
+      total += days * intakesPerDay * widget.doseAmount;
+    }
+    return total.ceil();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final needed = _totalIntakes();
+    final toBuy = (needed - widget.availableCount).clamp(0, 99999);
+
+    return Column(
+      children: [
+        // Заголовок-тоглер
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded,
+                    size: 18, color: AppColors.textSub),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Додаткові параметри',
+                    style: AppTextStyles.labelMd
+                        .copyWith(color: AppColors.textSub),
+                  ),
+                ),
+                Text(
+                  'Необов\'язково',
+                  style: AppTextStyles.bodySm
+                      .copyWith(color: AppColors.textMuted),
+                ),
+                const SizedBox(width: 8),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(Icons.keyboard_arrow_down,
+                      size: 20, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Розкривний вміст
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Фото упаковки
+                _PhotoSection(
+                  paths: widget.photoPaths,
+                  onChanged: widget.onPhotosChanged,
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 16),
+
+                // Галочка відстеження
+                GestureDetector(
+                  onTap: () => widget.onTrackToggle(!widget.trackStock),
+                  child: Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: widget.trackStock
+                              ? AppColors.primary
+                              : AppColors.bg,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: widget.trackStock
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: widget.trackStock
+                            ? const Icon(Icons.check,
+                                size: 14, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Відстежувати та нагадувати про залишок',
+                          style: AppTextStyles.bodyMd,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Поля наявності та розрахунку
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      const Divider(height: 1, color: AppColors.border),
+                      const SizedBox(height: 14),
+
+                      Text('В наявності', style: AppTextStyles.labelMd),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Скільки ${widget.doseUnit} є зараз',
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 10),
+                      _PillCountRow(
+                        count: widget.availableCount,
+                        unit: widget.doseUnit,
+                        onDecrement: widget.onDecrement,
+                        onIncrement: widget.onIncrement,
+                        onEdit: widget.onEdit,
+                      ),
+
+                      if (needed > 0) ...[
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, color: AppColors.border),
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: toBuy > 0
+                                ? AppColors.primaryLight
+                                : AppColors.bg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: toBuy > 0
+                                  ? AppColors.primary.withValues(alpha: 0.4)
+                                  : AppColors.border,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                toBuy > 0
+                                    ? Icons.shopping_bag_outlined
+                                    : Icons.check_circle_outline,
+                                size: 20,
+                                color: toBuy > 0
+                                    ? AppColors.primary
+                                    : Colors.green,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: toBuy > 0
+                                    ? RichText(
+                                        text: TextSpan(
+                                          style: AppTextStyles.bodyMd,
+                                          children: [
+                                            const TextSpan(
+                                                text: 'Потрібно докупити: '),
+                                            TextSpan(
+                                              text:
+                                                  '$toBuy ${widget.doseUnit}',
+                                              style: AppTextStyles.labelMd
+                                                  .copyWith(
+                                                      color:
+                                                          AppColors.primary),
+                                            ),
+                                            TextSpan(
+                                              text:
+                                                  ' (курс: $needed, є: ${widget.availableCount})',
+                                              style: AppTextStyles.bodySm
+                                                  .copyWith(
+                                                      color: AppColors
+                                                          .textMuted),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : Text(
+                                        'Вистачить на весь курс',
+                                        style: AppTextStyles.bodyMd.copyWith(
+                                            color: Colors.green.shade700),
+                                      ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  crossFadeState: widget.trackStock
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 200),
+                ),
+              ],
+            ),
+          ),
+          crossFadeState: _expanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
         ),
       ],
     );
@@ -1137,13 +2065,17 @@ class _DurationSection extends StatelessWidget {
 
 class _PillCountRow extends StatelessWidget {
   final int count;
+  final String unit;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
+  final void Function(int) onEdit;
 
   const _PillCountRow({
     required this.count,
+    required this.unit,
     required this.onDecrement,
     required this.onIncrement,
+    required this.onEdit,
   });
 
   @override
@@ -1152,22 +2084,184 @@ class _PillCountRow extends StatelessWidget {
       children: [
         _CountBtn(icon: '−', onTap: count > 0 ? onDecrement : null),
         const SizedBox(width: 16),
-        Text(
-          count == 0 ? 'Не вказано' : '$count',
-          style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+        GestureDetector(
+          onTap: () async {
+            final ctrl = TextEditingController(text: '$count');
+            final result = await showDialog<int>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Кількість'),
+                content: TextField(
+                  controller: ctrl,
+                  keyboardType: TextInputType.number,
+                  autofocus: true,
+                  decoration: InputDecoration(suffixText: unit),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Скасувати'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      final v = int.tryParse(ctrl.text.trim());
+                      Navigator.pop(ctx, v != null && v >= 0 ? v : null);
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+            if (result != null) onEdit(result);
+          },
+          child: Text(
+            '$count',
+            style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+          ),
         ),
         const SizedBox(width: 16),
         _CountBtn(icon: '＋', onTap: onIncrement),
         const SizedBox(width: 12),
-        if (count > 0)
-          Text(
-            'таблеток',
-            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-          ),
+        Text(
+          unit,
+          style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+        ),
       ],
     );
   }
 }
+
+// ─── Photo section ────────────────────────────────────────────────────────────
+
+class _PhotoSection extends StatefulWidget {
+  final List<String> paths;
+  final void Function(List<String>) onChanged;
+
+  const _PhotoSection({required this.paths, required this.onChanged});
+
+  @override
+  State<_PhotoSection> createState() => _PhotoSectionState();
+}
+
+class _PhotoSectionState extends State<_PhotoSection> {
+  final Map<String, String> _absCache = {};
+  bool _loading = false;
+
+  Future<String> _abs(String rel) async {
+    return _absCache[rel] ??=
+        await PhotoService.absolutePath(rel);
+  }
+
+  Future<void> _add() async {
+    setState(() => _loading = true);
+    try {
+      final path = await PhotoService.showPickerDialog(context);
+      if (path != null) {
+        widget.onChanged([...widget.paths, path]);
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _remove(String rel) async {
+    await PhotoService.delete(rel);
+    _absCache.remove(rel);
+    widget.onChanged(widget.paths.where((p) => p != rel).toList());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Фото упаковки', style: AppTextStyles.labelMd),
+            const Spacer(),
+            if (_loading)
+              const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              GestureDetector(
+                onTap: _add,
+                child: Text('Додати',
+                    style: AppTextStyles.labelSm
+                        .copyWith(color: AppColors.primary)),
+              ),
+          ],
+        ),
+        if (widget.paths.isEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Допоможе не переплутати ліки',
+            style:
+                AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+          ),
+        ] else ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.paths.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (ctx, i) {
+                final rel = widget.paths[i];
+                return FutureBuilder<String>(
+                  future: _abs(rel),
+                  builder: (ctx, snap) {
+                    final abs = snap.data;
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: abs != null
+                              ? Image.file(
+                                  File(abs),
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: AppColors.primaryLight,
+                                ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _remove(rel),
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: const Icon(Icons.close,
+                                  size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Count button ─────────────────────────────────────────────────────────────
 
 class _CountBtn extends StatelessWidget {
   final String icon;

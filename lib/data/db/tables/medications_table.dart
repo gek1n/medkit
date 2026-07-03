@@ -26,6 +26,8 @@ class Medications extends Table {
       text().withDefault(const Constant('[]'))();
   // json: ["path1","path2"]
   TextColumn get instructions => text().nullable()();
+  TextColumn get phases => text().nullable()();
+  // json: [{"times":["08:00"],"durationDays":7}, ...]
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

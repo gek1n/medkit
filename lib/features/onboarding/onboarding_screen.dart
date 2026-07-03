@@ -41,6 +41,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
+  void _back() {
+    if (_step > 0) setState(() => _step--);
+  }
+
   void _next() {
     if (_step == 1 && _nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,7 +104,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _ProgressBar(step: _step, total: _totalSteps),
+            _ProgressBar(step: _step, total: _totalSteps, onBack: _step > 0 ? _back : null),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
@@ -175,7 +179,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 class _ProgressBar extends StatelessWidget {
   final int step;
   final int total;
-  const _ProgressBar({required this.step, required this.total});
+  final VoidCallback? onBack;
+  const _ProgressBar({required this.step, required this.total, this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -185,20 +190,28 @@ class _ProgressBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
-            children: List.generate(total, (i) => Expanded(
-              child: Container(
-                height: 4,
-                margin: EdgeInsets.only(right: i < total - 1 ? 4 : 0),
-                decoration: BoxDecoration(
-                  color: i < step
-                      ? AppColors.primary
-                      : i == step
-                          ? AppColors.primary
-                          : AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
+            children: [
+              if (onBack != null) ...[
+                GestureDetector(
+                  onTap: onBack,
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 10),
+                    child: Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textMuted),
+                  ),
                 ),
-              ),
-            )),
+              ] else
+                const SizedBox(width: 28),
+              ...List.generate(total, (i) => Expanded(
+                child: Container(
+                  height: 4,
+                  margin: EdgeInsets.only(right: i < total - 1 ? 4 : 0),
+                  decoration: BoxDecoration(
+                    color: i <= step ? AppColors.primary : AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              )),
+            ],
           ),
           const SizedBox(height: 6),
           Text(

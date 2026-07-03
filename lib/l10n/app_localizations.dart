@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'MedKit'**
   String get appName;
 
+  /// No description provided for @navAdd.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додати'**
+  String get navAdd;
+
   /// No description provided for @navToday.
   ///
   /// In uk, this message translates to:
@@ -113,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @navMeds.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки'**
+  /// **'Розклад'**
   String get navMeds;
 
   /// No description provided for @navFamily.

@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -39,12 +41,15 @@ class FamilyScreen extends ConsumerWidget {
 
 // ── Body ──────────────────────────────────────────────────────────────────────
 
-class _FamilyBody extends StatelessWidget {
+class _FamilyBody extends ConsumerWidget {
   final List<Member> members;
   const _FamilyBody({required this.members});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plan = ref.watch(planProvider);
+    final limitReached = members.length >= plan.limits.maxMembers;
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _FamilyHeader(count: members.length)),
@@ -54,17 +59,54 @@ class _FamilyBody extends StatelessWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               const SizedBox(height: AppDimensions.lg),
+              if (limitReached)
+                _PlanLimitBanner(plan: plan),
+              const SizedBox(height: AppDimensions.md),
               ...members.map((m) => Padding(
                     padding:
                         const EdgeInsets.only(bottom: AppDimensions.md),
                     child: _MemberCard(member: m),
                   )),
-              _AddMemberTile(),
+              _AddMemberTile(locked: limitReached),
+              const SizedBox(height: AppDimensions.xl),
+              const _InviteSection(),
               const SizedBox(height: 100),
             ]),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PlanLimitBanner extends StatelessWidget {
+  final AppPlan plan;
+  const _PlanLimitBanner({required this.plan});
+
+  @override
+  Widget build(BuildContext context) {
+    final nextPlanName = plan == AppPlan.free ? 'Сімʼя' : 'Сімʼя';
+    final msg = plan == AppPlan.free
+        ? 'Безкоштовний план — 1 профіль. Перейдіть на «$nextPlanName» щоб додати більше.'
+        : 'Plan «Турбота» — 1 профіль. Перейдіть на «$nextPlanName» для до 10 профілів.';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        children: [
+          const Text('🔒', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(msg,
+                style: AppTextStyles.bodySm
+                    .copyWith(color: const Color(0xFF92400E))),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -144,6 +186,9 @@ class _MemberCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final intakesAsync = ref.watch(todayIntakesProvider(member.id));
     final medsAsync = ref.watch(_memberMedsProvider(member.id));
+    final activeId = ref.watch(activeMemberIdProvider);
+    final isActive = activeId == member.id ||
+        (activeId == null && member.role == 'owner');
 
     final intakes = intakesAsync.valueOrNull ?? [];
     final meds = medsAsync.valueOrNull ?? [];
@@ -258,26 +303,50 @@ class _MemberCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Remind / OK button
-                if (status == _MemberStatus.warn)
-                  _RemindBtn(
-                    label: 'Нагадати',
-                    color: const Color(0xFFEF4444),
-                    bg: const Color(0xFFFEF2F2),
-                    onTap: () =>
-                        ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              'Нагадування для ${member.name} відправлено')),
-                    ),
-                  )
-                else if (status == _MemberStatus.ok)
-                  _RemindBtn(
-                    label: '✓ Добре',
-                    color: const Color(0xFF22C55E),
-                    bg: const Color(0xFFF0FDF4),
-                    onTap: null,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Switch profile button
+                    if (isActive)
+                      _RemindBtn(
+                        label: '● Активний',
+                        color: AppColors.primary,
+                        bg: AppColors.primaryLight,
+                        onTap: null,
+                      )
+                    else
+                      _RemindBtn(
+                        label: 'Переключитись',
+                        color: AppColors.primary,
+                        bg: AppColors.primaryLight,
+                        onTap: () => ref
+                            .read(activeMemberIdProvider.notifier)
+                            .state = member.id,
+                      ),
+                    const SizedBox(height: 6),
+                    // Remind / OK button
+                    if (status == _MemberStatus.warn)
+                      _RemindBtn(
+                        label: 'Нагадати',
+                        color: const Color(0xFFEF4444),
+                        bg: const Color(0xFFFEF2F2),
+                        onTap: () =>
+                            ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'Нагадування для ${member.name} відправлено')),
+                        ),
+                      )
+                    else if (status == _MemberStatus.ok)
+                      _RemindBtn(
+                        label: '✓ Добре',
+                        color: const Color(0xFF22C55E),
+                        bg: const Color(0xFFF0FDF4),
+                        onTap: null,
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -395,17 +464,26 @@ class _RemindBtn extends StatelessWidget {
 // ── Add member tile ───────────────────────────────────────────────────────────
 
 class _AddMemberTile extends StatelessWidget {
+  final bool locked;
+  const _AddMemberTile({this.locked = false});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showAddMemberSheet(context),
+      onTap: locked
+          ? () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text(
+                        'Ліміт профілів досягнуто. Перейдіть на план «Сімʼя»')),
+              )
+          : () => _showAddMemberSheet(context),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: locked ? const Color(0xFFF8FAFC) : AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: AppColors.border,
+              color: locked ? AppColors.border : AppColors.border,
               style: BorderStyle.solid,
               width: 1.5),
         ),
@@ -415,27 +493,201 @@ class _AddMemberTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primaryLight,
+                color: locked ? const Color(0xFFF1F5F9) : AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.add,
-                  color: AppColors.primary, size: 20),
+              child: Icon(
+                locked ? Icons.lock_outline : Icons.add,
+                color: locked ? AppColors.textMuted : AppColors.primary,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 14),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Додати члена сімʼї',
-                    style: AppTextStyles.labelLg
-                        .copyWith(color: AppColors.primary)),
+                Text(
+                  locked ? 'Ліміт профілів' : 'Додати члена сімʼї',
+                  style: AppTextStyles.labelLg.copyWith(
+                    color: locked ? AppColors.textMuted : AppColors.primary,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('Батьки, діти, партнер…',
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: AppColors.textMuted)),
+                Text(
+                  locked ? 'Оновіть план щоб додати більше' : 'Батьки, діти, партнер…',
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Invite section ────────────────────────────────────────────────────────────
+
+class _InviteSection extends StatelessWidget {
+  const _InviteSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Спільний доступ', style: AppTextStyles.labelLg),
+        const SizedBox(height: AppDimensions.md),
+        GestureDetector(
+          onTap: () => _showInviteSheet(context),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.share_outlined,
+                      color: Color(0xFF3B82F6), size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Запросити члена сімʼї',
+                          style: AppTextStyles.labelLg
+                              .copyWith(color: const Color(0xFF3B82F6))),
+                      const SizedBox(height: 2),
+                      Text('Поділіться посиланням для доступу',
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.textMuted)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right,
+                    color: AppColors.textMuted, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showInviteSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _InviteSheet(),
+    );
+  }
+}
+
+class _InviteSheet extends StatelessWidget {
+  const _InviteSheet();
+
+  static const _code = 'MK-2025';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text('📲', style: TextStyle(fontSize: 48)),
+          const SizedBox(height: 16),
+          Text('Запросити до сімʼї', style: AppTextStyles.h3),
+          const SizedBox(height: 8),
+          Text(
+            'Попросіть члена сімʼї встановити MedKit\nі ввести цей код при першому запуску',
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 28),
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(const ClipboardData(text: _code));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Код скопійовано')),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primaryLighter, width: 2),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _code,
+                    style: AppTextStyles.h2.copyWith(
+                      color: AppColors.primary,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.copy, color: AppColors.primary, size: 20),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Натисніть на код щоб скопіювати',
+            style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 28),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFDE68A), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Text('ℹ️', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Синхронізація між пристроями буде доступна після підключення сервера.',
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: const Color(0xFF92400E)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -30,6 +30,8 @@ class FamilyStatusStrip extends StatelessWidget {
           member: members[i],
           isCurrent: members[i].id == currentMemberId,
           ref: ref,
+          onTap: () => ref.read(activeMemberIdProvider.notifier).state =
+              members[i].id,
         ),
       ),
     );
@@ -40,9 +42,14 @@ class _MemberChip extends StatelessWidget {
   final Member member;
   final bool isCurrent;
   final WidgetRef ref;
+  final VoidCallback onTap;
 
-  const _MemberChip(
-      {required this.member, required this.isCurrent, required this.ref});
+  const _MemberChip({
+    required this.member,
+    required this.isCurrent,
+    required this.ref,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +67,15 @@ class _MemberChip extends StatelessWidget {
   }
 
   Widget _chip(int taken, int total) {
+    // wrapped in GestureDetector below
     final allDone = total > 0 && taken == total;
     final color = allDone ? AppColors.success : AppColors.primary;
     final avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
     final emoji = avatars[member.avatarIndex % avatars.length];
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       width: 80,
       padding: const EdgeInsets.symmetric(
           vertical: AppDimensions.sm, horizontal: AppDimensions.xs),
@@ -125,6 +135,7 @@ class _MemberChip extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

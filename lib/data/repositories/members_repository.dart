@@ -27,6 +27,8 @@ class MembersRepository {
   Future<int> delete(int id) =>
       (_db.delete(_db.members)..where((t) => t.id.equals(id))).go();
 
+  Future<void> deleteAll() => _db.delete(_db.members).go();
+
   Future<void> ensureOwnerExists(String name) async {
     final owner = await getOwner();
     if (owner == null) {

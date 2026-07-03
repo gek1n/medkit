@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../features/today/providers/today_providers.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
-import '../wellbeing/wellbeing_check_screen.dart';
+import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import 'add_activity_screen.dart';
+import '../voice/voice_screen.dart';
 
 void showAddTypeSheet(BuildContext context) {
   showModalBottomSheet(
@@ -24,6 +26,7 @@ class _AddTypeSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final memberAsync = ref.watch(currentMemberProvider);
     final memberId = memberAsync.valueOrNull?.id;
+    final plan = ref.watch(planProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -57,13 +60,9 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 20),
 
           _TypeCard(
-            color: AppColors.primaryLight,
-            borderColor: AppColors.primary,
-            iconBg: AppColors.primaryLighter,
             icon: '💊',
-            title: 'Лікарство',
+            title: 'Ліки',
             sub: 'Розклад, дозування, AI-скан рецепта',
-            checked: true,
             onTap: () {
               Navigator.pop(context);
               if (memberId != null) {
@@ -79,9 +78,6 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
-            color: const Color(0xFFF0FDF4),
-            borderColor: AppColors.border,
-            iconBg: const Color(0xFFDCFCE7),
             icon: '🚶',
             title: 'Активність',
             sub: 'Прогулянка, зарядка, вправи, ЛФК',
@@ -100,9 +96,6 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
-            color: const Color(0xFFF5F3FF),
-            borderColor: AppColors.border,
-            iconBg: const Color(0xFFEDE9FE),
             icon: '💜',
             title: 'Самопочуття',
             sub: 'Зробити зріз — настрій, симптоми, коментар',
@@ -113,7 +106,7 @@ class _AddTypeSheet extends ConsumerWidget {
                   context,
                   MaterialPageRoute(
                       builder: (_) =>
-                          WellbeingCheckScreen(memberId: memberId)),
+                          AddWellbeingScheduleScreen(memberId: memberId)),
                 );
               }
             },
@@ -121,9 +114,6 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
-            color: const Color(0xFFF0FDFA),
-            borderColor: AppColors.border,
-            iconBg: const Color(0xFFCCFBF1),
             icon: '🩺',
             title: 'Запис до лікаря',
             sub: 'Обрати спеціаліста, час та отримати нагадування',
@@ -139,30 +129,84 @@ class _AddTypeSheet extends ConsumerWidget {
               }
             },
           ),
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: plan.limits.voiceCommands
+                ? () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const VoiceScreen()),
+                    );
+                  }
+                : () => _showUpgradeSnack(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: plan.limits.voiceCommands
+                    ? AppColors.primaryLight
+                    : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: plan.limits.voiceCommands
+                      ? AppColors.primaryLighter
+                      : AppColors.border,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    plan.limits.voiceCommands ? Icons.mic : Icons.lock_outline,
+                    size: 18,
+                    color: plan.limits.voiceCommands
+                        ? AppColors.primary
+                        : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    plan.limits.voiceCommands
+                        ? 'Голосова команда'
+                        : 'Голосова команда (Турбота+)',
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: plan.limits.voiceCommands
+                          ? AppColors.primary
+                          : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
+void _showUpgradeSnack(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: const Text('Голосові команди доступні з плану Турбота'),
+      action: SnackBarAction(
+        label: 'Плани',
+        onPressed: () {},
+      ),
+    ),
+  );
+}
+
 class _TypeCard extends StatelessWidget {
-  final Color color;
-  final Color borderColor;
-  final Color iconBg;
   final String icon;
   final String title;
   final String sub;
-  final bool checked;
   final VoidCallback onTap;
 
   const _TypeCard({
-    required this.color,
-    required this.borderColor,
-    required this.iconBg,
     required this.icon,
     required this.title,
     required this.sub,
-    this.checked = false,
     required this.onTap,
   });
 
@@ -173,9 +217,9 @@ class _TypeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: checked ? 2 : 1.5),
+          border: Border.all(color: AppColors.border, width: 1.5),
         ),
         child: Row(
           children: [
@@ -183,7 +227,7 @@ class _TypeCard extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: iconBg,
+                color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
@@ -202,21 +246,7 @@ class _TypeCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: checked ? AppColors.primary : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: checked ? AppColors.primary : AppColors.border,
-                    width: 2),
-              ),
-              child: checked
-                  ? const Icon(Icons.check, color: Colors.white, size: 13)
-                  : null,
-            ),
+            const Icon(Icons.chevron_right, size: 20, color: AppColors.textMuted),
           ],
         ),
       ),

@@ -10,20 +10,23 @@ import '../../data/repositories/activities_repository.dart';
 
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
-  const AddActivityScreen({super.key, required this.memberId});
+  final Activity? existing;
+  const AddActivityScreen({super.key, required this.memberId, this.existing});
 
   @override
   ConsumerState<AddActivityScreen> createState() => _AddActivityScreenState();
 }
 
+typedef _Slot = ({TimeOfDay time, int? duration});
+
 class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
-  String _type = 'walk';
-  final _nameController = TextEditingController(text: 'Ранкова прогулянка');
-  int _durationMin = 30;
-  final List<TimeOfDay> _slots = [const TimeOfDay(hour: 8, minute: 30)];
-  final Set<int> _weekdays = {1, 2, 3, 4, 5};
+  String? _type;
+  late final TextEditingController _nameController;
+  List<_Slot> _slots = [(time: const TimeOfDay(hour: 8, minute: 30), duration: null)];
+  Set<int> _weekdays = {1, 2, 3, 4, 5};
   bool _reminder = true;
   bool _isSaving = false;
+  bool _loaded = false;
 
   static const _types = [
     ('walk', '🚶', 'Прогулянка'),
@@ -34,8 +37,48 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     ('custom', '＋', 'Своє'),
   ];
 
-  static const _durations = [15, 30, 45, 60];
   static const _dayNames = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+
+  @override
+  void initState() {
+    super.initState();
+    final ex = widget.existing;
+    _nameController = TextEditingController(text: ex?.name ?? '');
+    if (ex != null) {
+      _type = ex.type;
+      _reminder = (ex.reminderBeforeMin ?? 0) > 0;
+      try {
+        final days = List<int>.from(jsonDecode(ex.repeatDays ?? '[]') as List);
+        _weekdays = days.toSet();
+      } catch (_) {}
+      _loadSlots(ex.id);
+    } else {
+      _loaded = true;
+    }
+  }
+
+  Future<void> _loadSlots(int activityId) async {
+    final slots = await ref
+        .read(activitiesRepositoryProvider)
+        .getSlotsForActivity(activityId);
+    if (mounted) {
+      setState(() {
+        if (slots.isNotEmpty) {
+          _slots = slots.map((s) {
+            final parts = s.timeOfDay.split(':');
+            return (
+              time: TimeOfDay(
+                hour: int.parse(parts[0]),
+                minute: int.parse(parts[1]),
+              ),
+              duration: (s.durationMin == 0) ? null : s.durationMin,
+            );
+          }).toList();
+        }
+        _loaded = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -43,7 +86,36 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     super.dispose();
   }
 
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Видалити активність?'),
+        content: const Text('Активність буде вилучена з розкладу.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Скасувати')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Видалити',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await ref
+        .read(activitiesRepositoryProvider)
+        .softDelete(widget.existing!.id);
+    if (mounted) Navigator.pop(context);
+  }
+
   Future<void> _save() async {
+    if (_type == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Оберіть тип активності')));
+      return;
+    }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -53,26 +125,39 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     setState(() => _isSaving = true);
     try {
       final repo = ref.read(activitiesRepositoryProvider);
-      final activityId = await repo.insertActivity(ActivitiesCompanion.insert(
-        memberId: widget.memberId,
-        name: name,
-        type: Value(_type),
-        durationMin: Value(_durationMin),
-        repeatDays: Value(jsonEncode(_weekdays.toList()..sort())),
-        reminderBeforeMin: Value(_reminder ? 10 : 0),
-      ));
+      final repeatDays = jsonEncode(_weekdays.toList()..sort());
+      final int activityId;
+
+      if (widget.existing != null) {
+        await repo.updateActivity(ActivitiesCompanion(
+          id: Value(widget.existing!.id),
+          name: Value(name),
+          type: Value(_type!),
+          repeatDays: Value(repeatDays),
+          reminderBeforeMin: Value(_reminder ? 10 : 0),
+        ));
+        activityId = widget.existing!.id;
+      } else {
+        activityId = await repo.insertActivity(ActivitiesCompanion.insert(
+          memberId: widget.memberId,
+          name: name,
+          type: Value(_type!),
+          repeatDays: Value(repeatDays),
+          reminderBeforeMin: Value(_reminder ? 10 : 0),
+        ));
+      }
 
       final slots = _slots.asMap().entries.map((e) {
-        final hh = e.value.hour.toString().padLeft(2, '0');
-        final mm = e.value.minute.toString().padLeft(2, '0');
+        final hh = e.value.time.hour.toString().padLeft(2, '0');
+        final mm = e.value.time.minute.toString().padLeft(2, '0');
         return ActivitySlotsCompanion.insert(
           activityId: activityId,
           timeOfDay: '$hh:$mm',
-          durationMin: Value(_durationMin),
+          durationMin: Value(e.value.duration ?? 0),
           sortOrder: Value(e.key),
         );
       }).toList();
-      await repo.insertSlots(slots);
+      await repo.replaceSlots(activityId, slots);
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -87,13 +172,23 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_loaded) {
+      return const Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+    final isEdit = widget.existing != null;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
             _BackHeader(
-                title: 'Активність', onBack: () => Navigator.pop(context)),
+              title: isEdit ? 'Редагувати активність' : 'Активність',
+              onBack: () => Navigator.pop(context),
+              onDelete: isEdit ? _delete : null,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -112,7 +207,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       mainAxisSpacing: 8,
                       childAspectRatio: 1.2,
                       children: _types.map((t) {
-                        final sel = _type == t.$1;
+                        final sel = _type != null && _type == t.$1;
                         return GestureDetector(
                           onTap: () {
                             setState(() {
@@ -169,50 +264,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     _Input(controller: _nameController, hint: 'Назва активності'),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Duration
-                    _Label('Тривалість'),
-                    const SizedBox(height: 8),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 0,
-                      childAspectRatio: 2,
-                      children: _durations.map((d) {
-                        final sel = _durationMin == d;
-                        return GestureDetector(
-                          onTap: () => setState(() => _durationMin = d),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? AppColors.primaryLight
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: sel
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                                width: sel ? 2 : 1.5,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                d < 60 ? '$d хв' : '1 год',
-                                style: AppTextStyles.labelMd.copyWith(
-                                  color: sel
-                                      ? AppColors.primary
-                                      : AppColors.textSub,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
                     // Slots
                     _Label('Розклад'),
                     const SizedBox(height: 8),
@@ -220,18 +271,20 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           padding: const EdgeInsets.only(bottom: 8),
                           child: _ActivitySlot(
                             index: e.key,
-                            time: e.value,
-                            duration: _durationMin,
+                            time: e.value.time,
+                            duration: e.value.duration,
                             onTimeTap: () => _pickTime(e.key),
+                            onDurationTap: () => _pickDuration(e.key),
                             onRemove: _slots.length > 1
-                                ? () =>
-                                    setState(() => _slots.removeAt(e.key))
+                                ? () => setState(() => _slots.removeAt(e.key))
                                 : null,
                           ),
                         )),
                     GestureDetector(
-                      onTap: () => setState(() => _slots
-                          .add(TimeOfDay(hour: 17 + _slots.length, minute: 0))),
+                      onTap: () => setState(() => _slots.add((
+                            time: TimeOfDay(hour: (8 + _slots.length) % 24, minute: 0),
+                            duration: null,
+                          ))),
                       child: _DashedAdd('Додати ще заняття'),
                     ),
                     const SizedBox(height: AppDimensions.lg),
@@ -330,7 +383,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           elevation: 0,
                         ),
                         child: Text(
-                          _isSaving ? 'Зберігаємо...' : 'Зберегти активність',
+                          _isSaving ? 'Зберігаємо...' : (isEdit ? 'Зберегти зміни' : 'Зберегти активність'),
                           style: AppTextStyles.labelLg
                               .copyWith(color: Colors.white),
                         ),
@@ -350,16 +403,37 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   Future<void> _pickTime(int index) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _slots[index],
+      initialTime: _slots[index].time,
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme:
-              const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
         ),
         child: child!,
       ),
     );
-    if (picked != null) setState(() => _slots[index] = picked);
+    if (picked != null) {
+      setState(() {
+        _slots[index] = (time: picked, duration: _slots[index].duration);
+      });
+    }
+  }
+
+  Future<void> _pickDuration(int index) async {
+    final current = _slots[index].duration;
+    final picked = await showModalBottomSheet<int?>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _DurationPicker(current: current),
+    );
+    if (!mounted) return;
+    // -1 — sentinel для "Не вказано"
+    setState(() {
+      _slots[index] = (
+        time: _slots[index].time,
+        duration: picked == -1 ? null : (picked ?? _slots[index].duration),
+      );
+    });
   }
 }
 
@@ -368,8 +442,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 class _ActivitySlot extends StatelessWidget {
   final int index;
   final TimeOfDay time;
-  final int duration;
+  final int? duration;
   final VoidCallback onTimeTap;
+  final VoidCallback onDurationTap;
   final VoidCallback? onRemove;
 
   const _ActivitySlot({
@@ -377,8 +452,16 @@ class _ActivitySlot extends StatelessWidget {
     required this.time,
     required this.duration,
     required this.onTimeTap,
+    required this.onDurationTap,
     this.onRemove,
   });
+
+  static String _fmtDuration(int min) {
+    if (min < 60) return '$min хв';
+    final h = min ~/ 60;
+    final m = min % 60;
+    return m == 0 ? '$h год' : '$h год $m хв';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -398,28 +481,29 @@ class _ActivitySlot extends StatelessWidget {
           Row(
             children: [
               Text('Заняття ${index + 1}',
-                  style: AppTextStyles.labelMd
-                      .copyWith(color: AppColors.primary)),
+                  style: AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
               const Spacer(),
               if (onRemove != null)
                 GestureDetector(
                   onTap: onRemove,
                   child: Text('видалити',
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: AppColors.textMuted)),
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
                 ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _SlotField(label: 'Час', value: '$hh:$mm', onTap: onTimeTap)),
+              Expanded(
+                child: _SlotField(label: 'Час', value: '$hh:$mm', onTap: onTimeTap),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: _SlotField(
                   label: 'Тривалість',
-                  value: duration < 60 ? '$duration хв' : '1 год',
-                  onTap: null,
+                  value: duration != null ? _fmtDuration(duration!) : '—',
+                  hint: duration == null,
+                  onTap: onDurationTap,
                 ),
               ),
             ],
@@ -430,12 +514,256 @@ class _ActivitySlot extends StatelessWidget {
   }
 }
 
+// ─── Duration picker ──────────────────────────────────────────────────────────
+
+class _DurationPicker extends StatefulWidget {
+  final int? current; // в минутах, null = не вказано
+  const _DurationPicker({this.current});
+
+  @override
+  State<_DurationPicker> createState() => _DurationPickerState();
+}
+
+class _DurationPickerState extends State<_DurationPicker> {
+  static const _minuteOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+  late bool _notSpecified;
+  late int _hours;
+  late int _minuteIdx; // индекс в _minuteOptions
+
+  late FixedExtentScrollController _hourCtrl;
+  late FixedExtentScrollController _minCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final cur = widget.current;
+    _notSpecified = cur == null || cur == 0;
+    _hours = _notSpecified ? 0 : (cur! ~/ 60).clamp(0, 3);
+    final rawMin = _notSpecified ? 0 : (cur! % 60);
+    _minuteIdx = (_minuteOptions.indexOf(rawMin)).clamp(0, _minuteOptions.length - 1);
+    if (_minuteIdx < 0) _minuteIdx = 0;
+    _hourCtrl = FixedExtentScrollController(initialItem: _hours);
+    _minCtrl = FixedExtentScrollController(initialItem: _minuteIdx);
+  }
+
+  @override
+  void dispose() {
+    _hourCtrl.dispose();
+    _minCtrl.dispose();
+    super.dispose();
+  }
+
+  int get _totalMin => _hours * 60 + _minuteOptions[_minuteIdx];
+
+  void _confirm() {
+    if (_notSpecified) {
+      Navigator.pop(context, -1);
+    } else {
+      final total = _totalMin;
+      Navigator.pop(context, total == 0 ? -1 : total);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            width: 36, height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Тривалість', style: AppTextStyles.h3),
+                    Text('Необов\'язково',
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.textMuted)),
+                  ],
+                ),
+              ),
+              // Переключатель "Не вказано"
+              GestureDetector(
+                onTap: () => setState(() => _notSpecified = !_notSpecified),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _notSpecified
+                        ? AppColors.primaryLight
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _notSpecified ? AppColors.primary : AppColors.border,
+                      width: _notSpecified ? 2 : 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    'Не вказано',
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: _notSpecified
+                          ? AppColors.primary
+                          : AppColors.textSub,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Барабанный пикер
+          AnimatedOpacity(
+            opacity: _notSpecified ? 0.3 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: IgnorePointer(
+              ignoring: _notSpecified,
+              child: SizedBox(
+                height: 160,
+                child: Row(
+                  children: [
+                    // Годинники
+                    Expanded(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          _PickerHighlight(),
+                          ListWheelScrollView.useDelegate(
+                            controller: _hourCtrl,
+                            itemExtent: 44,
+                            perspective: 0.003,
+                            diameterRatio: 1.8,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (i) =>
+                                setState(() => _hours = i),
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: 4,
+                              builder: (_, i) => Center(
+                                child: Text(
+                                  '$i год',
+                                  style: AppTextStyles.bodyLg.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: _hours == i
+                                        ? AppColors.primary
+                                        : AppColors.textSub,
+                                    fontSize: _hours == i ? 18 : 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Хвилини
+                    Expanded(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          _PickerHighlight(),
+                          ListWheelScrollView.useDelegate(
+                            controller: _minCtrl,
+                            itemExtent: 44,
+                            perspective: 0.003,
+                            diameterRatio: 1.8,
+                            physics: const FixedExtentScrollPhysics(),
+                            onSelectedItemChanged: (i) =>
+                                setState(() => _minuteIdx = i),
+                            childDelegate: ListWheelChildBuilderDelegate(
+                              childCount: _minuteOptions.length,
+                              builder: (_, i) {
+                                final sel = _minuteIdx == i;
+                                return Center(
+                                  child: Text(
+                                    '${_minuteOptions[i].toString().padLeft(2, '0')} хв',
+                                    style: AppTextStyles.bodyLg.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: sel
+                                          ? AppColors.primary
+                                          : AppColors.textSub,
+                                      fontSize: sel ? 18 : 16,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _confirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text(
+                _notSpecified
+                    ? 'Без тривалості'
+                    : 'Зберегти · ${_totalMin < 60 ? '$_totalMin хв' : '${_totalMin ~/ 60} год ${_totalMin % 60 == 0 ? '' : '${_totalMin % 60} хв'}'.trim()}',
+                style: AppTextStyles.labelLg.copyWith(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PickerHighlight extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        height: 44,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Reusable widgets ─────────────────────────────────────────────────────────
 
 class _BackHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
-  const _BackHeader({required this.title, required this.onBack});
+  final VoidCallback? onDelete;
+  const _BackHeader({required this.title, required this.onBack, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +787,22 @@ class _BackHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(title, style: AppTextStyles.h3),
+          Expanded(child: Text(title, style: AppTextStyles.h3)),
+          if (onDelete != null)
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: const Icon(Icons.delete_outline,
+                    size: 18, color: Color(0xFFDC2626)),
+              ),
+            ),
         ],
       ),
     );
@@ -509,8 +852,9 @@ class _Input extends StatelessWidget {
 class _SlotField extends StatelessWidget {
   final String label;
   final String value;
+  final bool hint;
   final VoidCallback? onTap;
-  const _SlotField({required this.label, required this.value, this.onTap});
+  const _SlotField({required this.label, required this.value, this.hint = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -532,8 +876,8 @@ class _SlotField extends StatelessWidget {
                   Border.all(color: AppColors.primary, width: 1.5),
             ),
             child: Text(value,
-                style: AppTextStyles.labelMd
-                    .copyWith(color: AppColors.primary)),
+                style: AppTextStyles.labelMd.copyWith(
+                    color: hint ? AppColors.textMuted : AppColors.primary)),
           ),
         ],
       ),

@@ -3,18 +3,35 @@ import '../../../data/db/app_database.dart';
 import '../../../data/repositories/members_repository.dart';
 import '../../../data/repositories/intakes_repository.dart';
 import '../../../data/repositories/activities_repository.dart';
+import '../../../data/repositories/medications_repository.dart';
+import '../../../data/repositories/doctor_appointments_repository.dart';
 import '../../../data/repositories/wellbeing_repository.dart';
 import '../../../core/services/intake_generator.dart';
+import '../../../core/services/activity_log_generator.dart';
+
+// Активний профіль (null = власник за замовчуванням)
+final activeMemberIdProvider = StateProvider<int?>((_) => null);
 
 // Поточний власник (перший запуск — null)
 final currentMemberProvider = StreamProvider<Member?>((ref) {
+  final activeId = ref.watch(activeMemberIdProvider);
   return ref.watch(membersRepositoryProvider).watchAll().map(
-        (members) => members.isEmpty
-            ? null
-            : members.firstWhere(
+        (members) {
+          if (members.isEmpty) return null;
+          if (activeId != null) {
+            return members.firstWhere(
+              (m) => m.id == activeId,
+              orElse: () => members.firstWhere(
                 (m) => m.role == 'owner',
                 orElse: () => members.first,
               ),
+            );
+          }
+          return members.firstWhere(
+            (m) => m.role == 'owner',
+            orElse: () => members.first,
+          );
+        },
       );
 });
 
@@ -45,6 +62,18 @@ final lastWellbeingProvider =
   return ref.watch(wellbeingRepositoryProvider).getLastByMember(memberId);
 });
 
+// Розклад самопочуття для члена сім'ї
+final todayWellbeingScheduleProvider =
+    StreamProvider.family<WellbeingSchedule?, int>((ref, memberId) {
+  return ref.watch(wellbeingRepositoryProvider).watchScheduleByMember(memberId);
+});
+
+// Зрізи самопочуття за сьогодні
+final todayWellbeingLogsProvider =
+    StreamProvider.family<List<WellbeingLog>, int>((ref, memberId) {
+  return ref.watch(wellbeingRepositoryProvider).watchTodayLogs(memberId, DateTime.now());
+});
+
 // Статистика сім'ї на сьогодні (memberId -> {taken, total})
 final familyTodayStatsProvider =
     FutureProvider<Map<int, ({int taken, int total})>>((ref) async {
@@ -63,4 +92,52 @@ final familyTodayStatsProvider =
 // Генерація прийомів при відкритті екрану
 final generateTodayIntakesProvider = FutureProvider<void>((ref) async {
   await ref.watch(intakeGeneratorProvider).generateForDay(DateTime.now());
+});
+
+// Генерація логів активностей при відкритті екрану
+final generateTodayActivityLogsProvider = FutureProvider<void>((ref) async {
+  await ref.watch(activityLogGeneratorProvider).generateForDay(DateTime.now());
+});
+
+// Активні ліки члена сім'ї (для відображення фото та деталей)
+final todayMedicationsProvider =
+    StreamProvider.family<List<Medication>, int>((ref, memberId) {
+  return ref.watch(medicationsRepositoryProvider).watchByMember(memberId);
+});
+
+// Активності члена сім'ї (для отримання назв/типів)
+final todayActivitiesProvider =
+    StreamProvider.family<List<Activity>, int>((ref, memberId) {
+  return ref.watch(activitiesRepositoryProvider).watchByMember(memberId);
+});
+
+// Завтра: прийоми
+final tomorrowIntakesProvider =
+    FutureProvider.family<List<Intake>, int>((ref, memberId) async {
+  final tomorrow = DateTime.now().add(const Duration(days: 1));
+  await ref.read(intakeGeneratorProvider).generateForDay(tomorrow);
+  return ref.read(intakesRepositoryProvider).getByMemberAndDate(memberId, tomorrow);
+});
+
+// Завтра: логи активностей
+final tomorrowActivityLogsProvider =
+    FutureProvider.family<List<ActivityLog>, int>((ref, memberId) async {
+  final tomorrow = DateTime.now().add(const Duration(days: 1));
+  await ref.read(activityLogGeneratorProvider).generateForDay(tomorrow);
+  return ref.read(activitiesRepositoryProvider).getLogsByMemberAndDate(memberId, tomorrow);
+});
+
+// Завтра: прийоми лікарів
+final tomorrowAppointmentsProvider =
+    FutureProvider.family<List<DoctorAppointment>, int>((ref, memberId) async {
+  final tomorrow = DateTime.now().add(const Duration(days: 1));
+  return ref.read(doctorAppointmentsRepositoryProvider).watchByDate(memberId, tomorrow).first;
+});
+
+// Прийоми лікаря на сьогодні
+final todayAppointmentsProvider =
+    StreamProvider.family<List<DoctorAppointment>, int>((ref, memberId) {
+  return ref
+      .watch(doctorAppointmentsRepositoryProvider)
+      .watchByDate(memberId, DateTime.now());
 });

@@ -12,10 +12,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appName => 'MedKit';
 
   @override
+  String get navAdd => 'Add';
+
+  @override
   String get navToday => 'Today';
 
   @override
-  String get navMeds => 'Meds';
+  String get navMeds => 'Schedule';
 
   @override
   String get navFamily => 'Family';

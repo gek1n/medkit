@@ -1,8 +1,9 @@
 {
   "@@locale": "uk",
   "appName": "MedKit",
+  "navAdd": "Додати",
   "navToday": "Сьогодні",
-  "navMeds": "Ліки",
+  "navMeds": "Розклад",
   "navFamily": "Сім'я",
   "navProfile": "Профіль",
   "todayProgressTitle": "{taken} з {total}",

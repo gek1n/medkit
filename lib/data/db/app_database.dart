@@ -33,12 +33,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        onUpgrade: (m, from, to) async {},
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // Guard against tables already containing this column
+            // (can happen if DB was created with createAll at schema 1)
+            try {
+              await m.addColumn(medications, medications.phases);
+            } catch (_) {}
+          }
+        },
       );
 }
 

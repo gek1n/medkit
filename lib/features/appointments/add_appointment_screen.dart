@@ -6,10 +6,12 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
+import 'appointments_history_screen.dart';
 
 class AddAppointmentScreen extends ConsumerStatefulWidget {
   final int memberId;
-  const AddAppointmentScreen({super.key, required this.memberId});
+  final DoctorAppointment? existing;
+  const AddAppointmentScreen({super.key, required this.memberId, this.existing});
 
   @override
   ConsumerState<AddAppointmentScreen> createState() =>
@@ -18,13 +20,13 @@ class AddAppointmentScreen extends ConsumerStatefulWidget {
 
 class _AddAppointmentScreenState
     extends ConsumerState<AddAppointmentScreen> {
-  final _doctorController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _notesController = TextEditingController();
+  late final TextEditingController _doctorController;
+  late final TextEditingController _locationController;
+  late final TextEditingController _notesController;
 
-  DateTime _date = DateTime.now().add(const Duration(days: 1));
-  TimeOfDay _time = const TimeOfDay(hour: 10, minute: 0);
-  int _remindBeforeMin = 1440; // 1 day
+  late DateTime _date;
+  late TimeOfDay _time;
+  int _remindBeforeMin = 1440;
   bool _isSaving = false;
 
   static const _remindOptions = [
@@ -34,11 +36,52 @@ class _AddAppointmentScreenState
   ];
 
   @override
+  void initState() {
+    super.initState();
+    final ex = widget.existing;
+    _doctorController = TextEditingController(text: ex?.doctorType ?? '');
+    _locationController = TextEditingController(text: ex?.location ?? '');
+    _notesController = TextEditingController(text: ex?.notes ?? '');
+    if (ex != null) {
+      _date = ex.scheduledAt;
+      _time = TimeOfDay(hour: ex.scheduledAt.hour, minute: ex.scheduledAt.minute);
+      _remindBeforeMin = ex.remindBeforeMin ?? 1440;
+    } else {
+      _date = DateTime.now();
+      _time = const TimeOfDay(hour: 10, minute: 0);
+    }
+  }
+
+  @override
   void dispose() {
     _doctorController.dispose();
     _locationController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Видалити запис?'),
+        content: const Text('Запис до лікаря буде видалено.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Скасувати')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Видалити',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await ref
+        .read(doctorAppointmentsRepositoryProvider)
+        .delete(widget.existing!.id);
+    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _pickDate() async {
@@ -85,20 +128,36 @@ class _AddAppointmentScreenState
       final scheduledAt = DateTime(
         _date.year, _date.month, _date.day, _time.hour, _time.minute,
       );
-      await ref.read(doctorAppointmentsRepositoryProvider).insert(
-            DoctorAppointmentsCompanion.insert(
-              memberId: widget.memberId,
-              doctorType: doctorType,
-              scheduledAt: scheduledAt,
-              location: Value(_locationController.text.trim().isEmpty
-                  ? null
-                  : _locationController.text.trim()),
-              remindBeforeMin: Value(_remindBeforeMin),
-              notes: Value(_notesController.text.trim().isEmpty
-                  ? null
-                  : _notesController.text.trim()),
-            ),
-          );
+      final locationVal = _locationController.text.trim().isEmpty
+          ? null
+          : _locationController.text.trim();
+      final notesVal = _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim();
+
+      if (widget.existing != null) {
+        await ref.read(doctorAppointmentsRepositoryProvider).update(
+              DoctorAppointmentsCompanion(
+                id: Value(widget.existing!.id),
+                doctorType: Value(doctorType),
+                scheduledAt: Value(scheduledAt),
+                location: Value(locationVal),
+                remindBeforeMin: Value(_remindBeforeMin),
+                notes: Value(notesVal),
+              ),
+            );
+      } else {
+        await ref.read(doctorAppointmentsRepositoryProvider).insert(
+              DoctorAppointmentsCompanion.insert(
+                memberId: widget.memberId,
+                doctorType: doctorType,
+                scheduledAt: scheduledAt,
+                location: Value(locationVal),
+                remindBeforeMin: Value(_remindBeforeMin),
+                notes: Value(notesVal),
+              ),
+            );
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -115,14 +174,24 @@ class _AddAppointmentScreenState
     final hh = _time.hour.toString().padLeft(2, '0');
     final mm = _time.minute.toString().padLeft(2, '0');
 
+    final isEdit = widget.existing != null;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
             _BackHeader(
-                title: 'Запис до лікаря',
-                onBack: () => Navigator.pop(context)),
+              title: isEdit ? 'Редагувати запис' : 'Запис до лікаря',
+              onBack: () => Navigator.pop(context),
+              trailingLabel: isEdit ? null : 'Список',
+              onTrailing: isEdit ? null : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AppointmentsHistoryScreen(),
+                ),
+              ),
+              onDelete: isEdit ? _delete : null,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -296,7 +365,7 @@ class _AddAppointmentScreenState
                         child: Text(
                           _isSaving
                               ? 'Зберігаємо...'
-                              : 'Зберегти нагадування',
+                              : (isEdit ? 'Зберегти зміни' : 'Зберегти нагадування'),
                           style: AppTextStyles.labelLg
                               .copyWith(color: Colors.white),
                         ),
@@ -355,7 +424,16 @@ class _DateTimeBox extends StatelessWidget {
 class _BackHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
-  const _BackHeader({required this.title, required this.onBack});
+  final String? trailingLabel;
+  final VoidCallback? onTrailing;
+  final VoidCallback? onDelete;
+  const _BackHeader({
+    required this.title,
+    required this.onBack,
+    this.trailingLabel,
+    this.onTrailing,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +457,31 @@ class _BackHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(title, style: AppTextStyles.h3),
+          Expanded(child: Text(title, style: AppTextStyles.h3)),
+          if (trailingLabel != null)
+            GestureDetector(
+              onTap: onTrailing,
+              child: Text(
+                trailingLabel!,
+                style: AppTextStyles.labelMd
+                    .copyWith(color: AppColors.primary),
+              ),
+            ),
+          if (onDelete != null)
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: const Icon(Icons.delete_outline,
+                    size: 18, color: Color(0xFFDC2626)),
+              ),
+            ),
         ],
       ),
     );

@@ -1,0 +1,373 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../data/db/app_database.dart';
+import '../../data/repositories/doctor_appointments_repository.dart';
+import '../today/providers/today_providers.dart';
+import 'add_appointment_screen.dart';
+
+// ────────────────────────────── provider ──────────────────────────────
+
+final _allAppointmentsProvider =
+    StreamProvider<List<DoctorAppointment>>((ref) {
+  return ref.watch(doctorAppointmentsRepositoryProvider).watchAll();
+});
+
+// ────────────────────────────── screen ──────────────────────────────
+
+class AppointmentsHistoryScreen extends ConsumerWidget {
+  const AppointmentsHistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aptsAsync = ref.watch(_allAppointmentsProvider);
+    final membersAsync = ref.watch(allMembersProvider);
+    final currentMemberAsync = ref.watch(currentMemberProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _Header(
+              onAdd: () => currentMemberAsync.whenData((m) {
+                if (m == null) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AddAppointmentScreen(memberId: m.id),
+                  ),
+                );
+              }),
+            ),
+            Expanded(
+              child: aptsAsync.when(
+                loading: () => const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primary)),
+                error: (e, _) =>
+                    Center(child: Text('Помилка: $e')),
+                data: (apts) {
+                  final members = membersAsync.valueOrNull ?? [];
+                  return _AppointmentsList(
+                      apts: apts, members: members);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────── header ──────────────────────────────
+
+class _Header extends StatelessWidget {
+  final void Function() onAdd;
+  const _Header({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.bg,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.arrow_back_ios_new,
+                  size: 16, color: AppColors.textMain),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              child:
+                  Text('Список записів', style: AppTextStyles.h3)),
+          GestureDetector(
+            onTap: onAdd,
+            child: Text(
+              '+ Додати',
+              style: AppTextStyles.labelMd
+                  .copyWith(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ────────────────────────────── list ──────────────────────────────
+
+class _AppointmentsList extends StatelessWidget {
+  final List<DoctorAppointment> apts;
+  final List<Member> members;
+
+  const _AppointmentsList(
+      {required this.apts, required this.members});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final upcoming =
+        apts.where((a) => a.scheduledAt.isAfter(now)).toList();
+    final past = apts
+        .where((a) => !a.scheduledAt.isAfter(now))
+        .toList()
+        .reversed
+        .toList(); // newest past first
+
+    if (apts.isEmpty) return _EmptyState();
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimensions.screenPadding,
+        AppDimensions.md,
+        AppDimensions.screenPadding,
+        48,
+      ),
+      children: [
+        if (upcoming.isNotEmpty) ...[
+          _SectionLabel('Майбутні'),
+          const SizedBox(height: AppDimensions.md),
+          ...upcoming.asMap().entries.map((e) => Padding(
+                padding: const EdgeInsets.only(
+                    bottom: AppDimensions.sm),
+                child: _AppointmentCard(
+                  apt: e.value,
+                  members: members,
+                  isNext: e.key == 0,
+                  isPast: false,
+                ),
+              )),
+          const SizedBox(height: AppDimensions.lg),
+        ],
+        if (past.isNotEmpty) ...[
+          _SectionLabel('Минулі'),
+          const SizedBox(height: AppDimensions.md),
+          ...past.map((a) => Padding(
+                padding: const EdgeInsets.only(
+                    bottom: AppDimensions.sm),
+                child: _AppointmentCard(
+                  apt: a,
+                  members: members,
+                  isNext: false,
+                  isPast: true,
+                ),
+              )),
+        ],
+      ],
+    );
+  }
+}
+
+// ────────────────────────────── section label ──────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text.toUpperCase(),
+        style: AppTextStyles.labelSm,
+      );
+}
+
+// ────────────────────────────── appointment card ──────────────────────────────
+
+class _AppointmentCard extends StatelessWidget {
+  final DoctorAppointment apt;
+  final List<Member> members;
+  final bool isNext;
+  final bool isPast;
+
+  const _AppointmentCard({
+    required this.apt,
+    required this.members,
+    required this.isNext,
+    required this.isPast,
+  });
+
+  static const _monthsShort = [
+    '', 'СІЧ', 'ЛЮТ', 'БЕР', 'КВІ', 'ТРА', 'ЧЕР',
+    'ЛИП', 'СЕР', 'ВЕР', 'ЖОВ', 'ЛИС', 'ГРУ'
+  ];
+  static const _avatars = [
+    '🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'
+  ];
+
+  Member? get _member =>
+      members.cast<Member?>().firstWhere(
+            (m) => m?.id == apt.memberId,
+            orElse: () => null,
+          );
+
+  Color get _badgeBg {
+    if (isPast) return AppColors.successLight;
+    if (isNext) return AppColors.primary;
+    return const Color(0xFFF1F5F9);
+  }
+
+  Color get _badgeText {
+    if (isPast) return AppColors.success;
+    if (isNext) return Colors.white;
+    return AppColors.textSub;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final member = _member;
+    final emoji = member != null
+        ? _avatars[member.avatarIndex % _avatars.length]
+        : '👤';
+    final memberName =
+        member?.role == 'owner' ? 'Я' : (member?.name ?? '');
+
+    final hh = apt.scheduledAt.hour.toString().padLeft(2, '0');
+    final mm = apt.scheduledAt.minute.toString().padLeft(2, '0');
+    final timeStr = '$hh:$mm';
+
+    return Opacity(
+      opacity: isPast ? 0.72 : 1.0,
+      child: Container(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        decoration: BoxDecoration(
+          color: isNext ? AppColors.primaryLight : AppColors.bg,
+          borderRadius:
+              BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: isNext
+                ? AppColors.primary
+                : AppColors.border,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date badge
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: _badgeBg,
+                borderRadius:
+                    BorderRadius.circular(AppDimensions.radiusMd),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${apt.scheduledAt.day}',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: _badgeText,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    _monthsShort[apt.scheduledAt.month],
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: _badgeText.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppDimensions.md),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    apt.doctorType,
+                    style: AppTextStyles.bodyMd.copyWith(
+                        fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    apt.location != null && apt.location!.isNotEmpty
+                        ? '$timeStr · ${apt.location}'
+                        : timeStr,
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: AppColors.textSub),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(emoji,
+                          style: const TextStyle(fontSize: 13)),
+                      const SizedBox(width: 4),
+                      Text(
+                        memberName,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: isNext
+                              ? AppColors.primary
+                              : AppColors.textSub,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Trailing
+            isPast
+                ? Text(
+                    '✓ пройшло',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : Text(
+                    '→',
+                    style: AppTextStyles.bodyMd
+                        .copyWith(color: AppColors.textMuted),
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────── empty ──────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('🗓', style: TextStyle(fontSize: 48)),
+          const SizedBox(height: 16),
+          Text('Записів ще немає', style: AppTextStyles.h3),
+          const SizedBox(height: 8),
+          Text(
+            'Натисніть "+ Додати" щоб створити перший',
+            style: AppTextStyles.bodyMd
+                .copyWith(color: AppColors.textSub),
+          ),
+        ],
+      ),
+    );
+  }
+}

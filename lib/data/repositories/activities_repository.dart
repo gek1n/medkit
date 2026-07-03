@@ -76,6 +76,11 @@ class ActivitiesRepository {
         .write(const ActivityLogsCompanion(status: Value('skipped')));
   }
 
+  Future<void> snoozeLog(int id, DateTime newScheduledAt) async {
+    await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
+        .write(ActivityLogsCompanion(scheduledAt: Value(newScheduledAt)));
+  }
+
   Future<List<ActivityLog>> getLogsByMemberAndDateRange(
     int memberId,
     DateTime from,
@@ -90,6 +95,10 @@ class ActivitiesRepository {
 
   Future<int> insertLog(ActivityLogsCompanion log) =>
       _db.into(_db.activityLogs).insert(log);
+
+  Future<void> updateActivity(ActivitiesCompanion activity) =>
+      (_db.update(_db.activities)..where((t) => t.id.equals(activity.id.value)))
+          .write(activity);
 
   Future<int> softDelete(int id) =>
       (_db.update(_db.activities)..where((t) => t.id.equals(id)))

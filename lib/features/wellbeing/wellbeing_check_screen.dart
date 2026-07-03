@@ -1,12 +1,15 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import 'wellbeing_history_screen.dart';
 
 class WellbeingCheckScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -110,21 +113,48 @@ class _WellbeingCheckScreenState
                         ),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.3)),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WellbeingHistoryScreen(
+                                  memberId: widget.memberId),
+                            ),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.bg,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Text('Історія',
+                                style: AppTextStyles.labelMd
+                                    .copyWith(color: AppColors.textSub)),
+                          ),
                         ),
-                        child: Text('Закрити',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: AppColors.primary)),
-                      ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.3)),
+                            ),
+                            child: Text('Закрити',
+                                style: AppTextStyles.labelMd
+                                    .copyWith(color: AppColors.primary)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -282,25 +312,7 @@ class _WellbeingCheckScreenState
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: TextField(
-                      controller: _commentController,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: 'Опишіть як себе почуваєте…',
-                        hintStyle: AppTextStyles.bodyMd
-                            .copyWith(color: AppColors.textMuted),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.all(14),
-                      ),
-                      style: AppTextStyles.bodyMd,
-                    ),
-                  ),
+                  _VoiceCommentField(controller: _commentController),
                   const SizedBox(height: 32),
 
                   SizedBox(
@@ -371,6 +383,407 @@ class _WellbeingCheckScreenState
       'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
     ];
     return '${d.day} ${months[d.month]}';
+  }
+}
+
+// ─── Voice comment field ──────────────────────────────────────────────────────
+
+enum _CommentMode { idle, recording, transcribed }
+
+class _VoiceCommentField extends StatefulWidget {
+  final TextEditingController controller;
+  const _VoiceCommentField({required this.controller});
+
+  @override
+  State<_VoiceCommentField> createState() => _VoiceCommentFieldState();
+}
+
+class _VoiceCommentFieldState extends State<_VoiceCommentField>
+    with SingleTickerProviderStateMixin {
+  final _speech = SpeechToText();
+  bool _sttReady = false;
+  _CommentMode _mode = _CommentMode.idle;
+  String _transcript = '';
+  int _seconds = 0;
+
+  late AnimationController _waveCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _waveCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+    _speech.initialize().then((ok) {
+      if (mounted) setState(() => _sttReady = ok);
+    });
+  }
+
+  @override
+  void dispose() {
+    _waveCtrl.dispose();
+    _speech.stop();
+    super.dispose();
+  }
+
+  Future<void> _startRecording() async {
+    if (!_sttReady) return;
+    setState(() {
+      _mode = _CommentMode.recording;
+      _transcript = '';
+      _seconds = 0;
+    });
+    // tick timer
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted || _mode != _CommentMode.recording) return false;
+      setState(() => _seconds++);
+      return true;
+    });
+
+    await _speech.listen(
+      onResult: (r) {
+        if (mounted) setState(() => _transcript = r.recognizedWords);
+        if (r.finalResult) _stopRecording();
+      },
+      listenOptions: SpeechListenOptions(
+        localeId: 'uk_UA',
+        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 3),
+        partialResults: true,
+        cancelOnError: true,
+      ),
+    );
+  }
+
+  Future<void> _stopRecording() async {
+    await _speech.stop();
+    if (!mounted) return;
+    if (_transcript.trim().isNotEmpty) {
+      widget.controller.text = _transcript.trim();
+      setState(() => _mode = _CommentMode.transcribed);
+    } else {
+      setState(() => _mode = _CommentMode.idle);
+    }
+  }
+
+  void _reRecord() {
+    widget.controller.clear();
+    setState(() {
+      _mode = _CommentMode.idle;
+      _transcript = '';
+    });
+  }
+
+  String get _timerLabel {
+    final m = _seconds ~/ 60;
+    final s = _seconds % 60;
+    return '${m.toString().padLeft(1, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_mode == _CommentMode.recording)
+          _RecordingBlock(
+            waveCtrl: _waveCtrl,
+            timerLabel: _timerLabel,
+            onStop: _stopRecording,
+          )
+        else if (_mode == _CommentMode.transcribed)
+          _TranscribedBlock(
+            text: _transcript,
+            onReRecord: _reRecord,
+          )
+        else
+          _MicIdleButton(
+            available: _sttReady,
+            onTap: _startRecording,
+          ),
+
+        if (_mode != _CommentMode.recording) ...[
+          const SizedBox(height: 10),
+          Row(children: [
+            const Expanded(child: Divider(color: AppColors.border)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text('або введіть текстом',
+                  style: AppTextStyles.bodySm
+                      .copyWith(color: AppColors.textMuted)),
+            ),
+            const Expanded(child: Divider(color: AppColors.border)),
+          ]),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: AppColors.border, style: BorderStyle.solid),
+            ),
+            child: TextField(
+              controller: widget.controller,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Опишіть як себе почуваєте…',
+                hintStyle: AppTextStyles.bodyMd
+                    .copyWith(color: AppColors.textMuted),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(14),
+              ),
+              style: AppTextStyles.bodyMd,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MicIdleButton extends StatelessWidget {
+  final bool available;
+  final VoidCallback onTap;
+  const _MicIdleButton({required this.available, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: available ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDF4FF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: available
+                    ? const Color(0xFF7C3AED)
+                    : AppColors.border,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(Icons.mic, color: Colors.white, size: 20),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    available
+                        ? 'Надиктуйте коментар'
+                        : 'Мікрофон недоступний',
+                    style: AppTextStyles.labelMd.copyWith(
+                        color: available
+                            ? const Color(0xFF4C1D95)
+                            : AppColors.textMuted),
+                  ),
+                  if (available)
+                    Text('Натисніть і говоріть',
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: const Color(0xFF7C3AED))),
+                ],
+              ),
+            ),
+            if (available)
+              const Icon(Icons.chevron_right,
+                  color: Color(0xFF7C3AED), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecordingBlock extends StatelessWidget {
+  final AnimationController waveCtrl;
+  final String timerLabel;
+  final VoidCallback onStop;
+
+  static const _barHeights = [12.0, 28.0, 20.0, 34.0, 16.0, 24.0, 10.0, 30.0, 18.0, 26.0, 14.0, 32.0];
+  static const _barPhases = [0.0, 0.3, 0.6, 0.1, 0.8, 0.4, 0.7, 0.2, 0.9, 0.5, 0.15, 0.65];
+
+  const _RecordingBlock({
+    required this.waveCtrl,
+    required this.timerLabel,
+    required this.onStop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onStop,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDF4FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7C3AED),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: const Color(0xFF7C3AED).withValues(alpha: 0.25),
+                          blurRadius: 0,
+                          spreadRadius: 6),
+                      BoxShadow(
+                          color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
+                          blurRadius: 0,
+                          spreadRadius: 10),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.mic, color: Colors.white, size: 22),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AnimatedBuilder(
+                    animation: waveCtrl,
+                    builder: (_, __) => Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: List.generate(_barHeights.length, (i) {
+                        final phase = _barPhases[i];
+                        final t = (waveCtrl.value + phase) % 1.0;
+                        final scale = 0.35 + 0.65 * math.sin(t * math.pi);
+                        final h = _barHeights[i] * scale;
+                        return Container(
+                          width: 3,
+                          height: h.clamp(4.0, 36.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7C3AED),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(timerLabel,
+                    style: AppTextStyles.labelMd
+                        .copyWith(color: const Color(0xFF7C3AED))),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Говоріть… натисніть щоб зупинити',
+              style: AppTextStyles.bodySm
+                  .copyWith(color: const Color(0xFF7C3AED), fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TranscribedBlock extends StatelessWidget {
+  final String text;
+  final VoidCallback onReRecord;
+
+  const _TranscribedBlock({required this.text, required this.onReRecord});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF8FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEDE8FA), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEDE9FE),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(Icons.mic, color: Color(0xFF7C3AED), size: 14),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('Розшифровка голосу',
+                  style: AppTextStyles.labelMd
+                      .copyWith(color: const Color(0xFF4C1D95))),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            text,
+            style: AppTextStyles.bodyMd.copyWith(height: 1.6),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  // "Edit" — text field below will already have the transcription
+                  onTap: () {},
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE9FE),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text('✏️ Редагувати',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.labelMd
+                            .copyWith(color: const Color(0xFF7C3AED))),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: onReRecord,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text('🎙 Записати знову',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.labelMd
+                            .copyWith(color: AppColors.textSub)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 

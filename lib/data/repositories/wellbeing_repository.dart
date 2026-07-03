@@ -40,14 +40,42 @@ class WellbeingRepository {
   Future<int> deleteLog(int id) =>
       (_db.delete(_db.wellbeingLogs)..where((t) => t.id.equals(id))).go();
 
+  Stream<List<WellbeingLog>> watchTodayLogs(int memberId, DateTime date) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    return (_db.select(_db.wellbeingLogs)
+          ..where((t) =>
+              t.memberId.equals(memberId) &
+              t.loggedAt.isBiggerOrEqualValue(start) &
+              t.loggedAt.isSmallerThanValue(end))
+          ..orderBy([(t) => OrderingTerm.asc(t.loggedAt)]))
+        .watch();
+  }
+
   // Schedules
   Future<WellbeingSchedule?> getScheduleByMember(int memberId) =>
       (_db.select(_db.wellbeingSchedules)
-            ..where((t) => t.memberId.equals(memberId)))
+            ..where((t) => t.memberId.equals(memberId))
+            ..orderBy([(t) => OrderingTerm.desc(t.id)])
+            ..limit(1))
           .getSingleOrNull();
 
+  Stream<WellbeingSchedule?> watchScheduleByMember(int memberId) =>
+      (_db.select(_db.wellbeingSchedules)
+            ..where((t) => t.memberId.equals(memberId))
+            ..orderBy([(t) => OrderingTerm.desc(t.id)])
+            ..limit(1))
+          .watchSingleOrNull();
+
   Future<void> upsertSchedule(WellbeingSchedulesCompanion schedule) async {
-    await _db.into(_db.wellbeingSchedules).insertOnConflictUpdate(schedule);
+    final existing = await getScheduleByMember(schedule.memberId.value);
+    if (existing != null) {
+      await (_db.update(_db.wellbeingSchedules)
+            ..where((t) => t.memberId.equals(schedule.memberId.value)))
+          .write(schedule);
+    } else {
+      await _db.into(_db.wellbeingSchedules).insert(schedule);
+    }
   }
 }
 

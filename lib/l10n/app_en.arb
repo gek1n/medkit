@@ -1,8 +1,9 @@
 {
   "@@locale": "en",
   "appName": "MedKit",
+  "navAdd": "Add",
   "navToday": "Today",
-  "navMeds": "Meds",
+  "navMeds": "Schedule",
   "navFamily": "Family",
   "navProfile": "Profile",
   "todayProgressTitle": "{taken} of {total}",

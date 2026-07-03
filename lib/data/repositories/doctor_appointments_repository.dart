@@ -7,12 +7,29 @@ class DoctorAppointmentsRepository {
   final AppDatabase _db;
   DoctorAppointmentsRepository(this._db);
 
+  Stream<List<DoctorAppointment>> watchAll() =>
+      (_db.select(_db.doctorAppointments)
+            ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
+          .watch();
+
   Stream<List<DoctorAppointment>> watchUpcoming(int memberId) {
     final now = DateTime.now();
     return (_db.select(_db.doctorAppointments)
           ..where((t) =>
               t.memberId.equals(memberId) &
               t.scheduledAt.isBiggerOrEqualValue(now))
+          ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
+        .watch();
+  }
+
+  Stream<List<DoctorAppointment>> watchByDate(int memberId, DateTime date) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    return (_db.select(_db.doctorAppointments)
+          ..where((t) =>
+              t.memberId.equals(memberId) &
+              t.scheduledAt.isBiggerOrEqualValue(start) &
+              t.scheduledAt.isSmallerThanValue(end))
           ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
         .watch();
   }
