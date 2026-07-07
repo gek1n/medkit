@@ -15,5 +15,9 @@ class Members extends Table {
   TextColumn get notificationChannels =>
       text().withDefault(const Constant('["push"]'))();
   // json: ["push","telegram","sms"]
+  TextColumn get contact => text().nullable()();
+  // telegram username або телефон, введені під час додавання (до підключення бота)
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
 }

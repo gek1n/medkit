@@ -13,4 +13,6 @@ class WellbeingLogs extends Table {
   TextColumn get comment => text().nullable()();
   TextColumn get voiceNotePath => text().nullable()();
   DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
 }

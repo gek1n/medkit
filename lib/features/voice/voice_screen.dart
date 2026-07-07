@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../core/services/ai_consent_service.dart';
+import '../../core/services/drug_info_service.dart';
 import '../../core/services/nlu_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -10,7 +12,9 @@ import '../today/providers/today_providers.dart';
 
 // ────────────────────────────── state ──────────────────────────────
 
-enum _VoiceState { idle, listening, analyzing, result, error }
+enum _VoiceState { checkingConsent, needsConsent, idle, listening, analyzing, result, error }
+
+const _consentKind = 'voice';
 
 // ────────────────────────────── screen ──────────────────────────────
 
@@ -25,12 +29,13 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     with SingleTickerProviderStateMixin {
   final _speech = SpeechToText();
 
-  _VoiceState _state = _VoiceState.idle;
+  _VoiceState _state = _VoiceState.checkingConsent;
   bool _sttAvailable = false;
   String _transcript = '';
   NluResult? _result;
   String _errorMsg = '';
   int _foodRelation = 1; // 0=before 1=after 2=any
+  DrugReference? _drugReference;
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
@@ -45,7 +50,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     _pulseAnim = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
-    _initSpeech();
+    _checkConsent();
   }
 
   @override
@@ -53,6 +58,24 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     _pulseCtrl.dispose();
     _speech.stop();
     super.dispose();
+  }
+
+  Future<void> _checkConsent() async {
+    final given = await AiConsentService.hasConsent(_consentKind);
+    if (!mounted) return;
+    if (given) {
+      setState(() => _state = _VoiceState.idle);
+      _initSpeech();
+    } else {
+      setState(() => _state = _VoiceState.needsConsent);
+    }
+  }
+
+  Future<void> _onConsentGiven() async {
+    await AiConsentService.recordConsent(_consentKind);
+    if (!mounted) return;
+    setState(() => _state = _VoiceState.idle);
+    _initSpeech();
   }
 
   Future<void> _initSpeech() async {
@@ -112,9 +135,21 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
           _foodRelation = fr == 'before' ? 0 : fr == 'after' ? 1 : 2;
           _state = _VoiceState.result;
         });
+        if (result.drugName != null) _fetchDrugReference(result.drugName!);
       }
     } catch (e) {
       _setError('Помилка аналізу: $e');
+    }
+  }
+
+  Future<void> _fetchDrugReference(String drugName) async {
+    try {
+      final items = await DrugInfoService().lookup([drugName]);
+      if (mounted && items.isNotEmpty && items.first.hasInfo) {
+        setState(() => _drugReference = items.first);
+      }
+    } catch (_) {
+      // Довідкова інформація не критична для основної команди — тихо ігноруємо.
     }
   }
 
@@ -131,6 +166,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
         _transcript = '';
         _result = null;
         _errorMsg = '';
+        _drugReference = null;
       });
 
   @override
@@ -143,6 +179,13 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
             _BackHeader(onBack: () => Navigator.pop(context)),
             Expanded(
               child: switch (_state) {
+                _VoiceState.checkingConsent => const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primary),
+                  ),
+                _VoiceState.needsConsent => _ConsentBody(
+                    onAgree: _onConsentGiven,
+                  ),
                 _VoiceState.idle => _IdleBody(
                     sttAvailable: _sttAvailable,
                     onStart: _startListening,
@@ -158,6 +201,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
                 _VoiceState.result => _ResultBody(
                     result: _result!,
                     foodRelation: _foodRelation,
+                    drugReference: _drugReference,
                     onFoodChanged: (v) =>
                         setState(() => _foodRelation = v),
                     onConfirm: () =>
@@ -185,11 +229,6 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
       case 'mark_taken':
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Найближчий прийом відмічено ✓')),
-        );
-        Navigator.pop(context);
-      case 'add_wellbeing':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Зріз самопочуття збережено')),
         );
         Navigator.pop(context);
       case 'add_appointment':
@@ -265,6 +304,80 @@ class _BackHeader extends StatelessWidget {
   }
 }
 
+// ────────────────────────────── consent body ──────────────────────────────
+
+class _ConsentBody extends StatelessWidget {
+  final VoidCallback onAgree;
+  const _ConsentBody({required this.onAgree});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+          AppDimensions.screenPadding,
+          AppDimensions.xl,
+          AppDimensions.screenPadding,
+          AppDimensions.xl),
+      children: [
+        Center(
+          child: Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: AppColors.primaryLighter, width: 2.5),
+            ),
+            child: const Center(
+              child: Icon(Icons.mic, size: 44, color: AppColors.primary),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text('Перш ніж почати',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(AppDimensions.md),
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            border: Border.all(color: AppColors.primaryLighter),
+          ),
+          child: Text(
+            'Розпізнавання голосу відбувається на пристрої. Але щоб зрозуміти '
+            'команду, текст твоєї фрази надсилається сервісу Anthropic (Claude). '
+            'Передаються лише короткі структуровані команди (прийом ліків, '
+            'розклад, запис до лікаря) — вільний опис самопочуття чи симптомів '
+            'сюди ніколи не відправляється, для цього є окреме поле в '
+            'щоденнику самопочуття, яке лишається тільки на пристрої.',
+            style: AppTextStyles.bodyMd,
+          ),
+        ),
+        const SizedBox(height: AppDimensions.xl),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: onAgree,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+              ),
+            ),
+            child: const Text('Зрозуміло, погоджуюсь',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 // ────────────────────────────── idle body ──────────────────────────────
 
 class _IdleBody extends StatelessWidget {
@@ -279,9 +392,6 @@ class _IdleBody extends StatelessWidget {
     ('⏱', Color(0xFFFFF1EB),
         '"Додай Еналаприл 10 мг вранці та ввечері"',
         'Відкриє форму з заповненими полями'),
-    ('💜', Color(0xFFF5F3FF),
-        '"Самопочуття сьогодні — болить голова"',
-        'Запис у щоденник самопочуття'),
     ('🗓', Color(0xFFFFFBEB),
         '"Запис до кардіолога у пʼятницю о 10"',
         'Додасть нагадування про прийом'),
@@ -553,6 +663,7 @@ class _AnalyzingBody extends StatelessWidget {
 class _ResultBody extends StatelessWidget {
   final NluResult result;
   final int foodRelation;
+  final DrugReference? drugReference;
   final ValueChanged<int> onFoodChanged;
   final VoidCallback onConfirm;
   final VoidCallback onEditManually;
@@ -561,11 +672,14 @@ class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.result,
     required this.foodRelation,
+    required this.drugReference,
     required this.onFoodChanged,
     required this.onConfirm,
     required this.onEditManually,
     required this.onRetry,
   });
+
+  static const _refFoodLabels = {'before': 'До їжі', 'after': 'Після їжі', 'any': 'Незалежно від їжі'};
 
   static const _foodOpts = ['До їжі', 'Після їжі', 'Не важливо'];
 
@@ -585,9 +699,6 @@ class _ResultBody extends StatelessWidget {
       rows.add(('РОЗКЛАД',
           result.scheduleTimes!.map(_scheduleLabel).join(' + ')));
     }
-    if (result.wellbeingMood != null) {
-      rows.add(('НАСТРІЙ', _moodLabel(result.wellbeingMood!)));
-    }
     if (result.appointmentType != null) {
       rows.add(('ЛІКАР', result.appointmentType!));
     }
@@ -597,7 +708,6 @@ class _ResultBody extends StatelessWidget {
   String _actionLabel(String a) => switch (a) {
         'mark_taken' => 'Відмітити прийом',
         'add_med' => 'Додати ліки',
-        'add_wellbeing' => 'Записати самопочуття',
         'add_appointment' => 'Запис до лікаря',
         _ => 'Невідома команда',
       };
@@ -608,15 +718,6 @@ class _ResultBody extends StatelessWidget {
         'afternoon' => 'Вдень',
         'night' => 'Вночі',
         _ => s,
-      };
-
-  String _moodLabel(int m) => switch (m) {
-        1 => '😣 Погано',
-        2 => '😕 Так собі',
-        3 => '😐 Норм',
-        4 => '🙂 Добре',
-        5 => '😄 Відмінно',
-        _ => '$m',
       };
 
   bool get _showFoodClarification =>
@@ -774,6 +875,43 @@ class _ResultBody extends StatelessWidget {
                 ),
               );
             }),
+          ),
+        ],
+        if (drugReference != null) ...[
+          const SizedBox(height: AppDimensions.md),
+          Container(
+            padding: const EdgeInsets.all(AppDimensions.md),
+            decoration: BoxDecoration(
+              color: AppColors.warningLight,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (drugReference!.foodRelation != null)
+                  Text(
+                    '🍽 ${_refFoodLabels[drugReference!.foodRelation] ?? drugReference!.foodRelation}',
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: const Color(0xFF92400E)),
+                  ),
+                if (drugReference!.sideEffects?.isNotEmpty ?? false)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '⚡ Можливі побічні ефекти: ${drugReference!.sideEffects!.join(', ')}',
+                      style: AppTextStyles.bodySm
+                          .copyWith(color: const Color(0xFF92400E)),
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  '⚠️ Довідково, не гарантовано. Звірте з інструкцією до препарату.',
+                  style: AppTextStyles.caption
+                      .copyWith(color: const Color(0xFF92400E)),
+                ),
+              ],
+            ),
           ),
         ],
         const SizedBox(height: AppDimensions.xl),

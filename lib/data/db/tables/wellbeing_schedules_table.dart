@@ -12,4 +12,6 @@ class WellbeingSchedules extends Table {
       text().withDefault(const Constant('["08:00","20:00"]'))();
   // json: ["08:00","13:00","20:00"]
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
 }

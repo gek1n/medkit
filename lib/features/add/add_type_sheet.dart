@@ -10,22 +10,23 @@ import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import 'add_activity_screen.dart';
 import '../voice/voice_screen.dart';
 
-void showAddTypeSheet(BuildContext context) {
+void showAddTypeSheet(BuildContext context, {int? memberId}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => const _AddTypeSheet(),
+    builder: (_) => _AddTypeSheet(memberId: memberId),
   );
 }
 
 class _AddTypeSheet extends ConsumerWidget {
-  const _AddTypeSheet();
+  final int? memberId;
+  const _AddTypeSheet({this.memberId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final memberAsync = ref.watch(currentMemberProvider);
-    final memberId = memberAsync.valueOrNull?.id;
+    final fallbackMemberAsync = ref.watch(currentMemberProvider);
+    final memberId = this.memberId ?? fallbackMemberAsync.valueOrNull?.id;
     final plan = ref.watch(planProvider);
 
     return Container(

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedKit — Умови використання</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #FAF8FF; color: #1A1A2E; line-height: 1.6; }
+
+  .cover { background: linear-gradient(135deg, #5B35A8 0%, #9B6DE8 100%); padding: 64px 40px; color: #fff; text-align: center; }
+  .cover-logo { font-size: 64px; margin-bottom: 16px; }
+  .cover h1 { font-size: 38px; font-weight: 800; margin-bottom: 8px; }
+  .cover .sub { font-size: 18px; opacity: 0.85; margin-bottom: 24px; }
+  .cover .meta { display: inline-flex; gap: 24px; background: rgba(255,255,255,0.15); border-radius: 16px; padding: 12px 24px; font-size: 14px; flex-wrap: wrap; justify-content: center; }
+  .cover .meta span { opacity: 0.9; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+
+  .toc { background: #fff; border: 1.5px solid #EDE8FA; border-radius: 16px; padding: 24px 28px; margin-bottom: 40px; }
+  .toc h2 { font-size: 14px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+  .toc ol { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .toc li a { color: #7048C4; text-decoration: none; font-size: 15px; font-weight: 500; }
+  .toc li a:hover { text-decoration: underline; }
+
+  .section { margin-bottom: 48px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #EDE8FA; }
+  .section-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; background: #F2EEFF; }
+  .section-header h2 { font-size: 21px; font-weight: 800; }
+
+  .card { background: #fff; border: 1.5px solid #EDE8FA; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: #1A1A2E; }
+  .card p, .card li { font-size: 14px; color: #374151; line-height: 1.7; }
+  .card ul, .card ol { padding-left: 18px; }
+  .card ul li, .card ol li { margin-bottom: 6px; }
+
+  .highlight { background: #F2EEFF; border: 1.5px solid #C4B0F0; border-radius: 14px; padding: 20px 24px; margin-bottom: 12px; }
+  .highlight h3 { font-size: 15px; font-weight: 700; color: #7048C4; margin-bottom: 8px; }
+
+  .warn { background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; font-size: 14px; color: #78350F; }
+  .warn strong { color: #92400E; }
+
+  .danger { background: #FEF2F2; border: 1.5px solid #FECACA; border-radius: 14px; padding: 16px 20px; margin-bottom: 12px; font-size: 14px; color: #7F1D1D; }
+  .danger strong { color: #B91C1C; }
+
+  .monetization-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .plan-card { border-radius: 14px; padding: 18px; }
+  .plan-free { background: #FAF8FF; border: 1.5px solid #EDE8FA; }
+  .plan-pro { background: #fff; border: 2.5px solid #7048C4; box-shadow: 0 4px 16px rgba(112,72,196,0.12); }
+  .plan-family { background: linear-gradient(135deg, #2D1B69, #4A2D9C); color: #fff; }
+  .plan-card .plan-name { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+  .plan-card ul { padding-left: 16px; font-size: 13px; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .plan-family ul { color: rgba(255,255,255,0.85); }
+
+  footer { text-align: center; padding: 32px; font-size: 13px; color: #94A3B8; border-top: 1px solid #EDE8FA; }
+  footer a { color: #7048C4; }
+
+  @media (max-width: 640px) { .monetization-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-logo">📜</div>
+  <h1>Умови використання</h1>
+  <div class="sub">MedKit — сімейний менеджер ліків</div>
+  <div class="meta">
+    <span>📅 Набирає чинності: липень 2026</span>
+    <span>📄 Версія 1.0</span>
+    <span>🌍 UA / EN</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <h2>Зміст</h2>
+    <ol>
+      <li><a href="#accept">Прийняття умов</a></li>
+      <li><a href="#disclaimer">Медичний застереження</a></li>
+      <li><a href="#service">Опис сервісу</a></li>
+      <li><a href="#plans">Тарифні плани та оплата</a></li>
+      <li><a href="#responsibility">Ваші обов'язки</a></li>
+      <li><a href="#ip">Інтелектуальна власність</a></li>
+      <li><a href="#liability">Обмеження відповідальності</a></li>
+      <li><a href="#termination">Припинення дії</a></li>
+      <li><a href="#changes">Зміни до цих Умов</a></li>
+      <li><a href="#law">Застосовне право</a></li>
+      <li><a href="#contact">Контакти</a></li>
+    </ol>
+  </div>
+
+  <div class="section" id="accept">
+    <div class="section-header"><div class="section-icon">✅</div><h2>1. Прийняття умов</h2></div>
+    <div class="card">
+      <p>Використовуючи застосунок MedKit, ви погоджуєтесь з цими Умовами використання та з Політикою конфіденційності. Якщо ви не погоджуєтесь з будь-яким пунктом — будь ласка, не використовуйте застосунок.</p>
+      <p>Якщо ви керуєте профілями інших членів родини (дітей, батьків похилого віку), ви підтверджуєте, що маєте на це право та несете відповідальність за дії, здійснені через ці профілі.</p>
+    </div>
+  </div>
+
+  <div class="section" id="disclaimer">
+    <div class="section-header"><div class="section-icon">⚕️</div><h2>2. Медичне застереження</h2></div>
+    <div class="danger">
+      <strong>MedKit не є медичним пристроєм, не надає медичних консультацій і не замінює лікаря чи фармацевта.</strong> Застосунок допомагає організовувати й нагадувати про прийом ліків на основі даних, які ви самі вносите. Точність нагадувань залежить від точності введених вами даних.
+    </div>
+    <div class="warn">
+      <strong>У разі невідкладного стану</strong> — телефонуйте до служби екстреної медичної допомоги. Не покладайтесь на застосунок у критичних чи невідкладних ситуаціях: сповіщення можуть затримуватись або не спрацювати через налаштування пристрою, відсутність інтернету, розряджений акумулятор тощо.
+    </div>
+    <div class="card">
+      <p>Остаточні рішення щодо дозування, схеми лікування чи заміни препаратів приймає виключно лікар або фармацевт, а не застосунок.</p>
+    </div>
+  </div>
+
+  <div class="section" id="service">
+    <div class="section-header"><div class="section-icon">🛠️</div><h2>3. Опис сервісу</h2></div>
+    <div class="card">
+      <p>MedKit — мобільний застосунок для планування прийому ліків, відстеження самопочуття, ведення записів до лікаря та (опційно) синхронізації розкладу між власними пристроями користувача. Реєстрація не потрібна; дані зберігаються локально на пристрої, як описано в Політиці конфіденційності.</p>
+    </div>
+  </div>
+
+  <div class="section" id="plans">
+    <div class="section-header"><div class="section-icon">💳</div><h2>4. Тарифні плани та оплата</h2></div>
+    <div class="monetization-grid">
+      <div class="plan-card plan-free">
+        <div class="plan-name">Безкоштовний</div>
+        <ul><li>1 профіль</li><li>Історія 7 днів</li><li>Базові нагадування</li></ul>
+      </div>
+      <div class="plan-card plan-pro">
+        <div class="plan-name">💜 Турбота</div>
+        <ul><li>1 профіль</li><li>Необмежена історія</li><li>Голосові команди</li><li>AI-підказки</li></ul>
+      </div>
+      <div class="plan-card plan-family">
+        <div class="plan-name">👑 Сімʼя</div>
+        <ul><li>До 10 профілів</li><li>Необмежена історія</li><li>Голосові команди</li><li>AI-підказки</li></ul>
+      </div>
+    </div>
+    <div class="card">
+      <p>Платні плани оформлюються та оплачуються через App Store (Apple) або Google Play — MedKit не обробляє й не зберігає дані вашої платіжної картки самостійно. Умови підписки, автопродовження та скасування регулюються правилами відповідного магазину застосунків.</p>
+    </div>
+  </div>
+
+  <div class="section" id="responsibility">
+    <div class="section-header"><div class="section-icon">🙋</div><h2>5. Ваші обов'язки</h2></div>
+    <div class="card">
+      <ul>
+        <li>Вносити дані про ліки та розклад точно й вчасно оновлювати їх при змінах;</li>
+        <li>Не використовувати застосунок для зберігання неправдивої чи оманливої медичної інформації, що стосується інших людей без їхньої згоди;</li>
+        <li>Забезпечити безпеку доступу до свого пристрою (код блокування, біометрія) — MedKit не може захистити дані, якщо доступ до розблокованого пристрою отримає третя особа;</li>
+        <li>Не намагатись обійти технічні обмеження застосунку чи втручатись у роботу сервера.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section" id="ip">
+    <div class="section-header"><div class="section-icon">©️</div><h2>6. Інтелектуальна власність</h2></div>
+    <div class="card">
+      <p>Застосунок MedKit, його дизайн, логотип і код належать розробнику застосунку. Дані, які ви вносите (ліки, розклад, фото тощо), належать виключно вам.</p>
+    </div>
+  </div>
+
+  <div class="section" id="liability">
+    <div class="section-header"><div class="section-icon">🚫</div><h2>7. Обмеження відповідальності</h2></div>
+    <div class="card">
+      <p>Застосунок надається «як є», без будь-яких гарантій. Розробник не несе відповідальності за:</p>
+      <ul>
+        <li>Пропущені чи затримані сповіщення через обставини поза контролем застосунку (налаштування ОС, відсутність інтернету, розряджений пристрій тощо);</li>
+        <li>Наслідки рішень, прийнятих на основі даних, внесених користувачем самостійно;</li>
+        <li>Втрату даних через видалення застосунку без попереднього створення резервної копії.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section" id="termination">
+    <div class="section-header"><div class="section-icon">🔚</div><h2>8. Припинення дії</h2></div>
+    <div class="card">
+      <p>Ви можете припинити користування застосунком у будь-який час, видаливши його з пристрою. Оскільки акаунтів немає, «блокування» чи «видалення акаунта» з нашого боку не застосовується — весь контроль над даними завжди залишається у вас.</p>
+    </div>
+  </div>
+
+  <div class="section" id="changes">
+    <div class="section-header"><div class="section-icon">📝</div><h2>9. Зміни до цих Умов</h2></div>
+    <div class="card">
+      <p>Ми можемо оновлювати ці Умови з часом. Про суттєві зміни ми повідомимо в застосунку. Продовження використання застосунку після змін означає згоду з оновленими Умовами.</p>
+    </div>
+  </div>
+
+  <div class="section" id="law">
+    <div class="section-header"><div class="section-icon">⚖️</div><h2>10. Застосовне право</h2></div>
+    <div class="card">
+      <p>Ці Умови регулюються законодавством України, якщо інше не вимагається обов'язковими нормами права країни вашого проживання.</p>
+    </div>
+  </div>
+
+  <div class="section" id="contact">
+    <div class="section-header"><div class="section-icon">✉️</div><h2>11. Контакти</h2></div>
+    <div class="card">
+      <p>Питання щодо цих Умов — на <strong>support@elly-medkit.com</strong>.</p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  MedKit © 2026. Ці Умови застосовуються разом з Політикою конфіденційності.
+</footer>
+
+</body>
+</html>

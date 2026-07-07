@@ -1,8 +1,11 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../backup/backup_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
+import '../sync/sync_settings_screen.dart';
+import '../../core/providers/font_scale_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -30,11 +33,10 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  int _fontSizeIndex = 1; // 0=xs 1=sm(default) 2=md 3=lg
-
   @override
   Widget build(BuildContext context) {
     final memberAsync = ref.watch(currentMemberProvider);
+    final fontSizeIndex = ref.watch(fontSizeIndexProvider);
 
     return memberAsync.when(
       loading: () => const Scaffold(
@@ -50,8 +52,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (member == null) return const SizedBox.shrink();
         return _ProfileBody(
           member: member,
-          fontSizeIndex: _fontSizeIndex,
-          onFontSizeChanged: (i) => setState(() => _fontSizeIndex = i),
+          fontSizeIndex: fontSizeIndex,
+          onFontSizeChanged: (i) =>
+              ref.read(fontSizeIndexProvider.notifier).setIndex(i),
         );
       },
     );
@@ -148,8 +151,11 @@ class _HeroSection extends StatelessWidget {
         AppDimensions.screenPadding,
         0,
       ),
-      child: Column(
-        children: [
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
           Stack(
             alignment: Alignment.bottomRight,
             children: [
@@ -203,7 +209,8 @@ class _HeroSection extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.md),
           _PlanBadge(plan: plan),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -656,6 +663,22 @@ class _OtherSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       children: [
+        _RowItem(
+          emoji: '🔄',
+          label: 'Синхронізація та акаунт',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SyncSettingsScreen()),
+          ),
+        ),
+        _RowItem(
+          emoji: '☁️',
+          label: 'Резервна копія',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BackupScreen()),
+          ),
+        ),
         _RowItem(
           emoji: '📤',
           label: 'Експорт даних',

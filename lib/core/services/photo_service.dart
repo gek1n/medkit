@@ -1,21 +1,35 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import 'file_encryption_service.dart';
+import 'photo_sync_queue.dart';
+
 class PhotoService {
   static const _dir = 'med_photos';
   static const _uuid = Uuid();
 
-  // Абсолютний шлях з відносного
+  // Абсолютний шлях з відносного (файл на диску зашифрований — для
+  // відображення використовуйте decryptedBytes, а не Image.file напряму).
   static Future<String> absolutePath(String relative) async {
     final base = await getApplicationDocumentsDirectory();
     return p.join(base.path, relative);
   }
 
-  // Відносний шлях зберігаємо в БД
+  /// Розшифровані байти зображення — готові для Image.memory().
+  static Future<Uint8List> decryptedBytes(String relative) async {
+    final abs = await absolutePath(relative);
+    final blob = await File(abs).readAsBytes();
+    return FileEncryptionService.decryptBytes(blob);
+  }
+
+  // Відносний шлях зберігаємо в БД. Сам файл на диску — вже зашифрований,
+  // plaintext-копію в своїй директорії ми ніколи не пишемо.
   static Future<String?> pickAndSave(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -35,14 +49,22 @@ class PhotoService {
     final filename = '${_uuid.v4()}$ext';
     final dest = p.join(dir.path, filename);
 
-    await File(picked.path).copy(dest);
-    return '$_dir/$filename'; // відносний шлях
+    final plainBytes = await File(picked.path).readAsBytes();
+    final encrypted = await FileEncryptionService.encryptBytes(plainBytes);
+    await File(dest).writeAsBytes(encrypted);
+
+    final relative = '$_dir/$filename';
+    // Не блокує збереження фото, якщо сама позначка в чергу з якоїсь
+    // причини не вдалась — синхронізація опційна, фото вже безпечно на диску.
+    unawaited(PhotoSyncQueue.markPendingUpload(relative));
+    return relative;
   }
 
   static Future<void> delete(String relative) async {
     final abs = await absolutePath(relative);
     final f = File(abs);
     if (f.existsSync()) f.deleteSync();
+    unawaited(PhotoSyncQueue.markPendingDelete(relative));
   }
 
   // Показати діалог: камера або галерея

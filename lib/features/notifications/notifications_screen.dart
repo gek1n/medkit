@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/notification_settings_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
+import '../../shared/widgets/wheel_time_picker.dart';
 import '../today/providers/today_providers.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -15,22 +17,10 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  // ── Основні ──
-  bool _pushEnabled = true;
+  // ── Не прив'язані до реальної логіки (поки що суто UI) ──
   bool _telegramEnabled = true;
   bool _vibrationEnabled = true;
-
-  // ── Час нагадувань ──
-  int _offsetMinutes = 0; // 0/5/10/15/30
   int _repeatIndex = 1; // 0=5хв 1=20хв 2=45хв 3=60хв
-
-  // ── Тихі години ──
-  bool _quietEnabled = false;
-  TimeOfDay _quietFrom = const TimeOfDay(hour: 23, minute: 0);
-  TimeOfDay _quietTo = const TimeOfDay(hour: 7, minute: 0);
-
-  // ── Алерти за членами ──
-  final Map<int, bool> _memberAlerts = {};
 
   static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
   static const _avatarBg = [
@@ -47,6 +37,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(allMembersProvider);
+    final settings = ref.watch(notificationSettingsProvider);
+    final settingsNotifier = ref.read(notificationSettingsProvider.notifier);
+    final quietFrom = TimeOfDay(
+        hour: settings.quietFromMinutes ~/ 60,
+        minute: settings.quietFromMinutes % 60);
+    final quietTo = TimeOfDay(
+        hour: settings.quietToMinutes ~/ 60,
+        minute: settings.quietToMinutes % 60);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -66,8 +64,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       emoji: '🔔',
                       label: 'Push-сповіщення',
                       sub: 'Нагадування про прийом ліків',
-                      value: _pushEnabled,
-                      onChanged: (v) => setState(() => _pushEnabled = v),
+                      value: settings.pushEnabled,
+                      onChanged: settingsNotifier.setPushEnabled,
                     ),
                     _SwitchRow(
                       emoji: '✈️',
@@ -88,8 +86,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   _SectionTitle('Час нагадувань'),
                   _SettingsCard(children: [
                     _OffsetRow(
-                      current: _offsetMinutes,
-                      onChanged: (v) => setState(() => _offsetMinutes = v),
+                      current: settings.offsetMinutes,
+                      onChanged: settingsNotifier.setOffsetMinutes,
                     ),
                     _RepeatRow(
                       index: _repeatIndex,
@@ -103,24 +101,24 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       emoji: '🌙',
                       label: 'Не турбувати',
                       sub: 'Нічний режим',
-                      value: _quietEnabled,
-                      onChanged: (v) => setState(() => _quietEnabled = v),
+                      value: settings.quietEnabled,
+                      onChanged: settingsNotifier.setQuietEnabled,
                     ),
                     _TimeRow(
                       emoji: '🔲',
                       label: 'З',
-                      time: _quietFrom,
-                      enabled: _quietEnabled,
-                      onTap: () => _pickTime(context, _quietFrom,
-                          (t) => setState(() => _quietFrom = t)),
+                      time: quietFrom,
+                      enabled: settings.quietEnabled,
+                      onTap: () => _pickTime(
+                          context, quietFrom, settingsNotifier.setQuietFrom),
                     ),
                     _TimeRow(
                       emoji: '🔳',
                       label: 'До',
-                      time: _quietTo,
-                      enabled: _quietEnabled,
-                      onTap: () => _pickTime(context, _quietTo,
-                          (t) => setState(() => _quietTo = t)),
+                      time: quietTo,
+                      enabled: settings.quietEnabled,
+                      onTap: () => _pickTime(
+                          context, quietTo, settingsNotifier.setQuietTo),
                     ),
                   ]),
                   const SizedBox(height: AppDimensions.xl),
@@ -131,20 +129,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       final nonOwners =
                           members.where((m) => m.role != 'owner').toList();
                       if (nonOwners.isEmpty) return const SizedBox.shrink();
-                      for (final m in nonOwners) {
-                        _memberAlerts.putIfAbsent(m.id, () => true);
-                      }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _SectionTitle('Алерти при пропуску членів сімʼї'),
                           _MemberAlertsCard(
                             members: nonOwners,
-                            alerts: _memberAlerts,
+                            alerts: settings.memberAlerts,
                             avatars: _avatars,
                             avatarBg: _avatarBg,
-                            onChanged: (id, v) =>
-                                setState(() => _memberAlerts[id] = v),
+                            onChanged: settingsNotifier.setMemberAlert,
                           ),
                         ],
                       );
@@ -165,20 +159,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     TimeOfDay initial,
     ValueChanged<TimeOfDay> onPicked,
   ) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            surface: AppColors.surface,
-          ),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await showWheelTimePicker(context, initialTime: initial);
     if (picked != null) onPicked(picked);
   }
 }

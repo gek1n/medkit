@@ -23,40 +23,13 @@ class AppBottomNav extends StatelessWidget {
           height: 60,
           child: Row(
             children: [
-              _AddItem(label: l10n.navAdd, onTap: () => onTap(0)),
+              _NavItem(icon: Icons.medical_information_rounded, label: l10n.navMedCard, index: 0, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.calendar_month_rounded, label: l10n.navMeds, index: 1, current: currentIndex, onTap: onTap),
               _TodayCenter(label: l10n.navToday, isActive: currentIndex == 2, onTap: () => onTap(2)),
               _NavItem(icon: Icons.people_alt_rounded, label: l10n.navFamily, index: 3, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.person_rounded, label: l10n.navProfile, index: 4, current: currentIndex, onTap: onTap),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddItem extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _AddItem({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.add_circle_outline_rounded, size: 22, color: AppColors.textMuted),
-            const SizedBox(height: 2),
-            Text(label, style: AppTextStyles.caption.copyWith(
-              color: AppColors.textMuted,
-              fontWeight: FontWeight.w400,
-            )),
-          ],
         ),
       ),
     );

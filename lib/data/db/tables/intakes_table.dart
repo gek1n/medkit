@@ -17,4 +17,8 @@ class Intakes extends Table {
   // pending/taken/skipped/snoozed
   DateTimeColumn get takenAt => dateTime().nullable()();
   DateTimeColumn get snoozedUntil => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable().unique()();
+  // для family_sync — див. коментар у medications_table.dart
 }

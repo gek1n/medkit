@@ -134,6 +134,12 @@ abstract class AppLocalizations {
   /// **'Профіль'**
   String get navProfile;
 
+  /// No description provided for @navMedCard.
+  ///
+  /// In uk, this message translates to:
+  /// **'Медкартка'**
+  String get navMedCard;
+
   /// No description provided for @todayProgressTitle.
   ///
   /// In uk, this message translates to:

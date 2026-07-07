@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -43,6 +45,83 @@ final _monthIntakesProvider = StreamProvider.family<List<Intake>, _MK>(
         .watchByMedicationAndDateRange(k.medId, k.memberId, start, end);
   },
 );
+
+// ── Фази курсу ────────────────────────────────────────────────────────────────
+
+List<Map<String, dynamic>> _parsePhases(String? phasesJson) {
+  if (phasesJson == null) return const [];
+  try {
+    return List<Map<String, dynamic>>.from(jsonDecode(phasesJson) as List);
+  } catch (_) {
+    return const [];
+  }
+}
+
+// Індекс фази, яка є активною на вказану дату (durationDays == null —
+// постійна фаза, завжди останній варіант, якщо жодна попередня не підійшла).
+int? _activePhaseIndex(
+    Medication med, List<Map<String, dynamic>> phases, DateTime date) {
+  if (phases.isEmpty) return null;
+  final day = DateTime(date.year, date.month, date.day);
+  final daysElapsed = day
+      .difference(DateTime(
+        med.startDate.year,
+        med.startDate.month,
+        med.startDate.day,
+      ))
+      .inDays;
+
+  int accumulated = 0;
+  for (var i = 0; i < phases.length; i++) {
+    final dur = phases[i]['durationDays'] as int?;
+    if (dur == null) return i;
+    accumulated += dur;
+    if (daysElapsed < accumulated) return i;
+  }
+  return phases.length - 1;
+}
+
+// Скільки одиниць препарату витрачається на день зараз (з активної фази
+// курсу, або, для старих ліків без фаз, з таблиці schedules).
+double? _dailyConsumption(Medication med, List<Schedule> schedules) {
+  final phases = _parsePhases(med.phases);
+  if (phases.isNotEmpty) {
+    final idx = _activePhaseIndex(med, phases, DateTime.now());
+    if (idx == null) return null;
+    final activePhase = phases[idx];
+    final times =
+        List<String>.from(activePhase['times'] as List? ?? const []);
+    if (times.isEmpty) return null;
+    final doseAmount =
+        (activePhase['doseAmount'] as num?)?.toDouble() ?? med.doseAmount;
+    return times.length * doseAmount;
+  }
+
+  if (schedules.isNotEmpty) {
+    return schedules.length * med.doseAmount;
+  }
+  return null;
+}
+
+Color _pillBarColor(int remaining, int total) {
+  if (total == 0) return AppColors.primary;
+  final ratio = remaining / total;
+  if (ratio > 0.3) return AppColors.success;
+  if (ratio > 0.1) return AppColors.warning;
+  return AppColors.danger;
+}
+
+String _stockUnitLabel(String form) => switch (form) {
+      'tablet' || 'capsule' => 'ТАБЛЕТКИ / КАПСУЛИ',
+      'syrup' => 'СИРОП',
+      'drops' => 'КРАПЛІ',
+      'injection' => 'ІН\'ЄКЦІЇ',
+      'suppository' => 'СВІЧКИ',
+      'vial' => 'ФЛАКОН',
+      'cream' => 'КРЕМ',
+      'inhaler' => 'ІНГАЛЯТОР',
+      _ => 'ЗАЛИШОК',
+    };
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +196,10 @@ class _DetailBody extends ConsumerWidget {
           ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              if (med.totalCount > 0 || med.stockPercent != null) ...[
+                _StockSection(med: med, schedules: schedules),
+                const SizedBox(height: AppDimensions.xl),
+              ],
               if (schedules.isNotEmpty)
                 _TodayScheduleSection(
                   schedules: schedules,
@@ -125,7 +208,10 @@ class _DetailBody extends ConsumerWidget {
                 ),
               const SizedBox(height: AppDimensions.xl),
               _CalendarSection(intakes: monthIntakes),
-              const SizedBox(height: AppDimensions.xl),
+              if (_parsePhases(med.phases).isNotEmpty) ...[
+                _PhasesSection(med: med),
+                const SizedBox(height: AppDimensions.xl),
+              ],
               _InfoBlock(med: med),
               const SizedBox(height: AppDimensions.xl),
               _ActionRow(med: med),
@@ -158,9 +244,11 @@ class _HeroSection extends StatelessWidget {
         .length;
     final pct = completed > 0 ? (taken / completed * 100).round() : 0;
 
-    final timesPerDay = schedules.length;
-    final daysLeft = timesPerDay > 0 && med.remainingCount > 0
-        ? (med.remainingCount / timesPerDay).floor()
+    final dailyConsumption = _dailyConsumption(med, schedules);
+    final daysLeft = (dailyConsumption != null &&
+            dailyConsumption > 0 &&
+            med.remainingCount > 0)
+        ? (med.remainingCount / dailyConsumption).floor()
         : null;
 
     return Container(
@@ -172,18 +260,7 @@ class _HeroSection extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(_formEmoji(med.form),
-                      style: const TextStyle(fontSize: 28)),
-                ),
-              ),
+              _MedAvatar(med: med),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -231,52 +308,21 @@ class _HeroSection extends StatelessWidget {
               ),
             ],
           ),
-          if (med.totalCount > 0) ...[
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Залишок',
-                    style:
-                        AppTextStyles.caption.copyWith(color: AppColors.textSub)),
-                Text('${med.remainingCount} / ${med.totalCount}',
-                    style:
-                        AppTextStyles.caption.copyWith(color: AppColors.textSub)),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: med.totalCount > 0
-                    ? (med.remainingCount / med.totalCount).clamp(0.0, 1.0)
-                    : 0,
-                minHeight: 8,
-                backgroundColor: AppColors.border,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  _pillBarColor(med.remainingCount, med.totalCount),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Color _pillBarColor(int remaining, int total) {
-    if (total == 0) return AppColors.primary;
-    final ratio = remaining / total;
-    if (ratio > 0.3) return AppColors.success;
-    if (ratio > 0.1) return AppColors.warning;
-    return AppColors.danger;
-  }
-
   String _doseStr(Medication m) {
-    final amount = m.doseAmount == m.doseAmount.roundToDouble()
-        ? m.doseAmount.toInt().toString()
-        : m.doseAmount.toStringAsFixed(1);
-    return '$amount ${m.doseUnit}';
+    final phases = _parsePhases(m.phases);
+    final idx = _activePhaseIndex(m, phases, DateTime.now());
+    final amount = idx != null
+        ? ((phases[idx]['doseAmount'] as num?)?.toDouble() ?? m.doseAmount)
+        : m.doseAmount;
+    final amountStr = amount == amount.roundToDouble()
+        ? amount.toInt().toString()
+        : amount.toStringAsFixed(1);
+    return '$amountStr ${m.doseUnit}';
   }
 
   String _repeatShort(Medication m) => switch (m.repeatType) {
@@ -287,6 +333,391 @@ class _HeroSection extends StatelessWidget {
         'cycle' => 'циклом',
         _ => '',
       };
+}
+
+// ── Залишок ────────────────────────────────────────────────────────────────────
+
+class _StockSection extends ConsumerWidget {
+  final Medication med;
+  final List<Schedule> schedules;
+  const _StockSection({required this.med, required this.schedules});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Залишок', style: AppTextStyles.labelLg),
+        const SizedBox(height: 10),
+        isPercentTrackedForm(med.form)
+            ? _buildPercentCard(context, ref)
+            : _buildCountCard(context, ref),
+      ],
+    );
+  }
+
+  // ── Дискретні одиниці (таблетки, капсули, свічки тощо) ──────────────────
+
+  Widget _buildCountCard(BuildContext context, WidgetRef ref) {
+    final dailyConsumption = _dailyConsumption(med, schedules);
+    final daysLeft = (dailyConsumption != null && dailyConsumption > 0)
+        ? med.remainingCount / dailyConsumption
+        : null;
+    final pct = med.totalCount > 0
+        ? (med.remainingCount / med.totalCount).clamp(0.0, 1.0)
+        : 0.0;
+    final color = _pillBarColor(med.remainingCount, med.totalCount);
+
+    // Скільки одиниць треба докупити: якщо курс має кінець — на решту курсу,
+    // якщо постійний — щоб покрити найближчі 30 днів.
+    int toBuy = 0;
+    String? toBuyPeriodLabel;
+    if (dailyConsumption != null && dailyConsumption > 0) {
+      if (med.endDate != null) {
+        final daysRemaining =
+            med.endDate!.difference(DateTime.now()).inDays + 1;
+        if (daysRemaining > 0) {
+          final neededForCourse = (dailyConsumption * daysRemaining).ceil();
+          toBuy = (neededForCourse - med.remainingCount).clamp(0, 99999);
+          toBuyPeriodLabel = 'до кінця курсу';
+        }
+      } else if (daysLeft != null && daysLeft < 30) {
+        final neededFor30Days = (dailyConsumption * 30).ceil();
+        toBuy = (neededFor30Days - med.remainingCount).clamp(0, 99999);
+        toBuyPeriodLabel = 'на найближчі 30 днів';
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primaryLighter),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.medication_outlined,
+                  size: 13, color: AppColors.textMuted),
+              const SizedBox(width: 5),
+              Text(_stockUnitLabel(med.form),
+                  style: AppTextStyles.labelSm.copyWith(fontSize: 11)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              RichText(
+                text: TextSpan(
+                  style: AppTextStyles.bodyMd,
+                  children: [
+                    const TextSpan(text: 'Залишилось: '),
+                    TextSpan(
+                      text: '${med.remainingCount} ${med.doseUnit}',
+                      style: AppTextStyles.bodyMd
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              if (daysLeft != null)
+                Text(
+                  'на ${daysLeft.toStringAsFixed(1)} дн.',
+                  style: AppTextStyles.bodyMd.copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w700),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 8,
+              backgroundColor: Colors.white,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+          if (toBuy > 0 && toBuyPeriodLabel != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.shopping_bag_outlined,
+                      size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: AppTextStyles.bodySm,
+                        children: [
+                          const TextSpan(text: 'Потрібно докупити: '),
+                          TextSpan(
+                            text: '$toBuy ${med.doseUnit}',
+                            style: AppTextStyles.labelMd
+                                .copyWith(color: AppColors.primary),
+                          ),
+                          TextSpan(
+                            text: ' ($toBuyPeriodLabel)',
+                            style: AppTextStyles.bodySm
+                                .copyWith(color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => _showRefillDialog(context, ref),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primaryLighter),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text('+ Поповнити упаковку',
+                  style:
+                      AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showRefillDialog(BuildContext context, WidgetRef ref) async {
+    final ctrl = TextEditingController(text: '${med.totalCount}');
+    final result = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Поповнити упаковку'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(suffixText: med.doseUnit, hintText: 'Кількість'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () {
+              final v = int.tryParse(ctrl.text.trim());
+              Navigator.pop(ctx, v != null && v > 0 ? v : null);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      await ref.read(medicationsRepositoryProvider).refill(med.id, result);
+    }
+  }
+
+  // ── Рідкі форми (сироп, краплі, крем, інгалятор) — залишок у % ──────────
+
+  Widget _buildPercentCard(BuildContext context, WidgetRef ref) {
+    final percent = med.stockPercent ?? 100;
+    final openedAt = med.openedAt;
+    double? daysLeft;
+    if (openedAt != null) {
+      final daysSince = DateTime.now().difference(openedAt).inDays;
+      if (daysSince > 0 && percent < 100) {
+        final ratePerDay = (100 - percent) / daysSince;
+        if (ratePerDay > 0) daysLeft = percent / ratePerDay;
+      }
+    }
+    final color = _pillBarColor(percent, 100);
+    const presets = [75, 50, 25, 10];
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primaryLighter),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.water_drop_outlined,
+                  size: 13, color: AppColors.textMuted),
+              const SizedBox(width: 5),
+              Text(_stockUnitLabel(med.form),
+                  style: AppTextStyles.labelSm.copyWith(fontSize: 11)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 34,
+                height: 56,
+                decoration: BoxDecoration(
+                  border: Border.all(color: color, width: 2),
+                  borderRadius: BorderRadius.circular(6),
+                  color: Colors.white,
+                ),
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        heightFactor: (percent / 100).clamp(0.03, 1.0),
+                        child: Container(color: color.withValues(alpha: 0.55)),
+                      ),
+                    ),
+                    Center(
+                      child: Text('$percent%',
+                          style: AppTextStyles.caption.copyWith(
+                              fontWeight: FontWeight.w800, fontSize: 10)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Залишилось ~$percent%',
+                        style: AppTextStyles.bodyMd
+                            .copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 3),
+                    if (daysLeft != null)
+                      Text(
+                        '~${daysLeft.toStringAsFixed(0)} днів при поточній витраті',
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.textSub),
+                      ),
+                    if (openedAt != null) ...[
+                      const SizedBox(height: 2),
+                      Text(_openedAgoLabel(openedAt),
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.textMuted)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('Оновити оцінку залишку:',
+              style: AppTextStyles.labelSm.copyWith(fontSize: 11)),
+          const SizedBox(height: 6),
+          Row(
+            children: presets.asMap().entries.map((e) {
+              final p = e.value;
+              final selected = percent == p;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: e.key < presets.length - 1 ? 6 : 0),
+                  child: GestureDetector(
+                    onTap: () => ref
+                        .read(medicationsRepositoryProvider)
+                        .setStockPercent(med.id, p),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primary : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: selected
+                                ? AppColors.primary
+                                : AppColors.primaryLighter),
+                      ),
+                      child: Text(
+                        '~$p%',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.labelSm.copyWith(
+                          fontSize: 11,
+                          color: selected ? Colors.white : AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => ref
+                  .read(medicationsRepositoryProvider)
+                  .openNewContainer(med.id),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primaryLighter),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text('+ Відкрив новий флакон',
+                  style:
+                      AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _openedAgoLabel(DateTime openedAt) {
+    final days = DateTime.now().difference(openedAt).inDays;
+    if (days <= 0) return 'Відкрито сьогодні';
+    return 'Відкрито $days ${_daysWord(days)} тому';
+  }
+
+  String _daysWord(int n) {
+    final mod10 = n % 10;
+    final mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 14) return 'днів';
+    if (mod10 == 1) return 'день';
+    if (mod10 >= 2 && mod10 <= 4) return 'дні';
+    return 'днів';
+  }
+}
+
+// ── Medication avatar (photo or emoji) ────────────────────────────────────────
+
+class _MedAvatar extends StatelessWidget {
+  final Medication med;
+  const _MedAvatar({required this.med});
+
+  String? _firstPhoto(String? json) {
+    if (json == null || json == '[]') return null;
+    try {
+      final list = jsonDecode(json) as List;
+      return list.isNotEmpty ? list.first as String : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   String _formEmoji(String form) => switch (form) {
         'syrup' => '🍶',
@@ -296,6 +727,41 @@ class _HeroSection extends StatelessWidget {
         'injection' => '💉',
         _ => '💊',
       };
+
+  Widget _placeholder() => Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(_formEmoji(med.form), style: const TextStyle(fontSize: 28)),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final photoPath = _firstPhoto(med.photoPaths);
+    if (photoPath == null) return _placeholder();
+
+    return FutureBuilder<Uint8List>(
+      future: PhotoService.decryptedBytes(photoPath),
+      builder: (context, snap) {
+        if (!snap.hasData) return _placeholder();
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.memory(
+            snap.data!,
+            width: 56,
+            height: 56,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _placeholder(),
+          ),
+        );
+      },
+    );
+  }
 }
 
 // ── Today Schedule ────────────────────────────────────────────────────────────
@@ -624,6 +1090,128 @@ class _Legend extends StatelessWidget {
             style: AppTextStyles.caption.copyWith(color: AppColors.textSub)),
       ],
     );
+  }
+}
+
+// ── Етапи курсу ───────────────────────────────────────────────────────────────
+
+class _PhasesSection extends StatelessWidget {
+  final Medication med;
+  const _PhasesSection({required this.med});
+
+  @override
+  Widget build(BuildContext context) {
+    final phases = _parsePhases(med.phases);
+    if (phases.isEmpty) return const SizedBox.shrink();
+    final activeIdx = _activePhaseIndex(med, phases, DateTime.now());
+
+    final rows = <Widget>[];
+    var cursor =
+        DateTime(med.startDate.year, med.startDate.month, med.startDate.day);
+    for (var i = 0; i < phases.length; i++) {
+      final phase = phases[i];
+      final dur = phase['durationDays'] as int?;
+      final start = cursor;
+      final end = dur != null ? start.add(Duration(days: dur - 1)) : null;
+      if (dur != null) cursor = start.add(Duration(days: dur));
+
+      final times = List<String>.from(phase['times'] as List? ?? const []);
+      final doseAmount =
+          (phase['doseAmount'] as num?)?.toDouble() ?? med.doseAmount;
+      final doseAmountStr = doseAmount == doseAmount.roundToDouble()
+          ? doseAmount.toInt().toString()
+          : doseAmount.toStringAsFixed(1);
+      final comment = phase['doseComment'] as String?;
+      final isActive = i == activeIdx;
+
+      if (i > 0) rows.add(const SizedBox(height: 10));
+      rows.add(Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.primaryLight : AppColors.bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : AppColors.border,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  'Етап ${i + 1}',
+                  style: AppTextStyles.labelMd.copyWith(
+                      color:
+                          isActive ? AppColors.primary : AppColors.textMain),
+                ),
+                if (isActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text('зараз',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              end != null
+                  ? '${_fmtShortDate(start)} — ${_fmtShortDate(end)}'
+                  : 'з ${_fmtShortDate(start)}, постійно',
+              style:
+                  AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+            ),
+            const SizedBox(height: 2),
+            Text('$doseAmountStr ${med.doseUnit} · ${times.join(", ")}',
+                style: AppTextStyles.bodyMd),
+            if (comment != null && comment.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(comment,
+                  style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic)),
+            ],
+          ],
+        ),
+      ));
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Етапи курсу', style: AppTextStyles.labelLg),
+          const SizedBox(height: 10),
+          ...rows,
+        ],
+      ),
+    );
+  }
+
+  String _fmtShortDate(DateTime d) {
+    const m = [
+      '', 'січ', 'лют', 'бер', 'кві', 'тра', 'чер',
+      'лип', 'сер', 'вер', 'жов', 'лис', 'гру',
+    ];
+    return '${d.day} ${m[d.month]}';
   }
 }
 

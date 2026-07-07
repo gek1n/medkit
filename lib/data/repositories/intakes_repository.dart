@@ -1,11 +1,18 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/family_sync_service.dart';
+import '../../core/services/notification_service.dart';
+import 'medications_repository.dart';
 
 class IntakesRepository {
   final AppDatabase _db;
-  IntakesRepository(this._db);
+  final Ref _ref;
+  IntakesRepository(this._db, this._ref);
 
   Stream<List<Intake>> watchByMemberAndDate(int memberId, DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
@@ -31,22 +38,42 @@ class IntakesRepository {
         .get();
   }
 
-  Future<int> insert(IntakesCompanion intake) =>
-      _db.into(_db.intakes).insert(intake);
+  Future<int> insert(IntakesCompanion intake) async {
+    final id = await _db.into(_db.intakes).insert(intake);
+    if (intake.memberId.present) _triggerFamilySync(intake.memberId.value);
+    return id;
+  }
 
   Future<void> markTaken(int id) async {
     await (_db.update(_db.intakes)..where((t) => t.id.equals(id))).write(
       IntakesCompanion(
         status: const Value('taken'),
         takenAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
       ),
     );
+    await NotificationService.cancelIntakeReminder(id);
+
+    final intake =
+        await (_db.select(_db.intakes)..where((t) => t.id.equals(id)))
+            .getSingleOrNull();
+    if (intake != null) {
+      await _ref
+          .read(medicationsRepositoryProvider)
+          .decrementRemaining(intake.medicationId);
+      _triggerFamilySync(intake.memberId);
+    }
   }
 
   Future<void> markSkipped(int id) async {
     await (_db.update(_db.intakes)..where((t) => t.id.equals(id))).write(
-      const IntakesCompanion(status: Value('skipped')),
+      IntakesCompanion(
+        status: const Value('skipped'),
+        updatedAt: Value(DateTime.now()),
+      ),
     );
+    await NotificationService.cancelIntakeReminder(id);
+    await _triggerFamilySyncForIntake(id);
   }
 
   Future<void> markSnoozed(int id, DateTime until) async {
@@ -54,18 +81,53 @@ class IntakesRepository {
       IntakesCompanion(
         status: const Value('snoozed'),
         snoozedUntil: Value(until),
+        updatedAt: Value(DateTime.now()),
       ),
     );
+    await NotificationService.cancelIntakeReminder(id);
+
+    final intake =
+        await (_db.select(_db.intakes)..where((t) => t.id.equals(id)))
+            .getSingleOrNull();
+    if (intake == null) return;
+    final med = await (_db.select(_db.medications)
+          ..where((t) => t.id.equals(intake.medicationId)))
+        .getSingleOrNull();
+    if (med == null) return;
+
+    final settings = _ref.read(notificationSettingsProvider);
+    final remindAt = settings.adjust(until, memberId: med.memberId);
+    if (remindAt != null) {
+      await NotificationService.scheduleIntakeReminder(
+        intakeId: id,
+        medName: med.name,
+        dose: '${med.doseAmount} ${med.doseUnit}',
+        scheduledAt: remindAt,
+      );
+    }
+    _triggerFamilySync(intake.memberId);
   }
 
   Future<void> markPending(int id) async {
+    final before =
+        await (_db.select(_db.intakes)..where((t) => t.id.equals(id)))
+            .getSingleOrNull();
+
     await (_db.update(_db.intakes)..where((t) => t.id.equals(id))).write(
-      const IntakesCompanion(
-        status: Value('pending'),
-        takenAt: Value(null),
-        snoozedUntil: Value(null),
+      IntakesCompanion(
+        status: const Value('pending'),
+        takenAt: const Value(null),
+        snoozedUntil: const Value(null),
+        updatedAt: Value(DateTime.now()),
       ),
     );
+
+    if (before?.status == 'taken') {
+      await _ref
+          .read(medicationsRepositoryProvider)
+          .incrementRemaining(before!.medicationId);
+    }
+    if (before != null) _triggerFamilySync(before.memberId);
   }
 
   // Генерація прийомів для конкретного дня (викликається при відкритті дня)
@@ -130,9 +192,19 @@ class IntakesRepository {
       memberId: memberId,
       scheduledAt: scheduledAt,
     ));
+    _triggerFamilySync(memberId);
+  }
+
+  void _triggerFamilySync(int memberId) {
+    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
+  }
+
+  Future<void> _triggerFamilySyncForIntake(int id) async {
+    final intake = await (_db.select(_db.intakes)..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (intake != null) _triggerFamilySync(intake.memberId);
   }
 }
 
 final intakesRepositoryProvider = Provider<IntakesRepository>((ref) {
-  return IntakesRepository(ref.watch(databaseProvider));
+  return IntakesRepository(ref.watch(databaseProvider), ref);
 });

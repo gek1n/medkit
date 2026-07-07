@@ -1,11 +1,14 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../shared/widgets/wheel_time_picker.dart';
 import 'appointments_history_screen.dart';
 
 class AddAppointmentScreen extends ConsumerStatefulWidget {
@@ -81,6 +84,7 @@ class _AddAppointmentScreenState
     await ref
         .read(doctorAppointmentsRepositoryProvider)
         .delete(widget.existing!.id);
+    await NotificationService.cancelAppointmentReminder(widget.existing!.id);
     if (mounted) Navigator.pop(context);
   }
 
@@ -102,17 +106,7 @@ class _AddAppointmentScreenState
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _time,
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme:
-              const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final picked = await showWheelTimePicker(context, initialTime: _time);
     if (picked != null) setState(() => _time = picked);
   }
 
@@ -135,10 +129,12 @@ class _AddAppointmentScreenState
           ? null
           : _notesController.text.trim();
 
+      final int appointmentId;
       if (widget.existing != null) {
+        appointmentId = widget.existing!.id;
         await ref.read(doctorAppointmentsRepositoryProvider).update(
               DoctorAppointmentsCompanion(
-                id: Value(widget.existing!.id),
+                id: Value(appointmentId),
                 doctorType: Value(doctorType),
                 scheduledAt: Value(scheduledAt),
                 location: Value(locationVal),
@@ -147,17 +143,36 @@ class _AddAppointmentScreenState
               ),
             );
       } else {
-        await ref.read(doctorAppointmentsRepositoryProvider).insert(
-              DoctorAppointmentsCompanion.insert(
-                memberId: widget.memberId,
-                doctorType: doctorType,
-                scheduledAt: scheduledAt,
-                location: Value(locationVal),
-                remindBeforeMin: Value(_remindBeforeMin),
-                notes: Value(notesVal),
-              ),
-            );
+        appointmentId =
+            await ref.read(doctorAppointmentsRepositoryProvider).insert(
+                  DoctorAppointmentsCompanion.insert(
+                    memberId: widget.memberId,
+                    doctorType: doctorType,
+                    scheduledAt: scheduledAt,
+                    location: Value(locationVal),
+                    remindBeforeMin: Value(_remindBeforeMin),
+                    notes: Value(notesVal),
+                  ),
+                );
       }
+
+      final settings = ref.read(notificationSettingsProvider);
+      final rawReminderAt =
+          scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
+      final remindAt =
+          settings.adjust(rawReminderAt, memberId: widget.memberId);
+      if (remindAt != null) {
+        await NotificationService.scheduleAppointmentReminder(
+          appointmentId: appointmentId,
+          doctorType: doctorType,
+          location: locationVal,
+          scheduledAt: remindAt,
+          remindBeforeMin: 0,
+        );
+      } else {
+        await NotificationService.cancelAppointmentReminder(appointmentId);
+      }
+
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {

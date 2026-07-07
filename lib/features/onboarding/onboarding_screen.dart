@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,7 +6,21 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
+import '../../core/services/prescription_scan_service.dart';
+import '../../data/repositories/activities_repository.dart';
+import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../data/repositories/wellbeing_repository.dart';
+import '../scan/prescription_scan_screen.dart';
+import '../today/providers/today_providers.dart';
+
+TimeOfDay _onboardingDefaultTime(String s) => switch (s) {
+      'morning' => const TimeOfDay(hour: 8, minute: 0),
+      'afternoon' => const TimeOfDay(hour: 13, minute: 0),
+      'evening' => const TimeOfDay(hour: 19, minute: 0),
+      'night' => const TimeOfDay(hour: 22, minute: 0),
+      _ => const TimeOfDay(hour: 8, minute: 0),
+    };
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -26,11 +41,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _avatarIndex = 0;
   final List<_FamilyMemberDraft> _familyDrafts = [];
 
+  // Step 3: ліки (скан)
+  final List<ScannedMedication> _scannedMedDrafts = [];
+
   // Step 5: activity/wellbeing toggles
   bool _walkEnabled = true;
   bool _wellbeingEnabled = true;
 
   bool _isSaving = false;
+
+  Future<void> _openScanFromOnboarding() async {
+    final results = await Navigator.push<List<ScannedMedication>>(
+      context,
+      MaterialPageRoute(builder: (_) => const PrescriptionScanScreen()),
+    );
+    if (results != null && results.isNotEmpty && mounted) {
+      setState(() => _scannedMedDrafts.addAll(results));
+    }
+    _next();
+  }
 
   @override
   void dispose() {
@@ -70,13 +99,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _finish() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
+    // Captured before any await: as soon as the owner member is inserted below,
+    // currentMemberProvider flips non-null and _RootRouter swaps this screen out,
+    // disposing this State. A ProviderContainer outlives that disposal, unlike `ref`.
+    final container = ProviderScope.containerOf(context, listen: false);
     try {
-      final repo = ref.read(membersRepositoryProvider);
+      final repo = container.read(membersRepositoryProvider);
       final name = _nameController.text.trim().isEmpty
           ? 'Я'
           : _nameController.text.trim();
 
-      await repo.insert(MembersCompanion.insert(
+      final ownerId = await repo.insert(MembersCompanion.insert(
         name: name,
         avatarIndex: Value(_avatarIndex),
         role: const Value('owner'),
@@ -91,6 +124,76 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             role: const Value('member'),
           ));
         }
+      }
+
+      if (_scannedMedDrafts.isNotEmpty) {
+        final medRepo = container.read(medicationsRepositoryProvider);
+        final medsNow = DateTime.now();
+        for (final m in _scannedMedDrafts) {
+          final times = (m.scheduleTimes ?? const ['morning'])
+              .map((s) =>
+                  '${_onboardingDefaultTime(s).hour.toString().padLeft(2, '0')}:${_onboardingDefaultTime(s).minute.toString().padLeft(2, '0')}')
+              .toList();
+          final phasesJson = jsonEncode([
+            {'times': times, 'durationDays': 7, 'doseAmount': m.doseAmount ?? 1.0},
+          ]);
+          await medRepo.insert(MedicationsCompanion.insert(
+            memberId: ownerId,
+            name: m.name,
+            form: const Value('tablet'),
+            doseAmount: m.doseAmount ?? 1.0,
+            doseUnit: Value(m.doseUnit ?? 'табл.'),
+            foodRelation: Value(m.foodRelation ?? 'after'),
+            repeatType: const Value('daily'),
+            repeatConfig: const Value('{}'),
+            startDate: medsNow,
+            endDate: Value(DateTime(medsNow.year, medsNow.month, medsNow.day).add(const Duration(days: 7))),
+            phases: Value(phasesJson),
+          ));
+        }
+        container.invalidate(generateTodayIntakesProvider);
+        container.invalidate(tomorrowIntakesProvider);
+      }
+
+      if (_walkEnabled) {
+        final activitiesRepo = container.read(activitiesRepositoryProvider);
+        final activityId = await activitiesRepo.insertActivity(
+          ActivitiesCompanion.insert(
+            memberId: ownerId,
+            name: 'Прогулянка',
+            type: const Value('walk'),
+            durationMin: const Value(30),
+            repeatDays: Value(jsonEncode(const [1, 2, 3, 4, 5, 6, 7])),
+          ),
+        );
+        await activitiesRepo.insertSlots([
+          ActivitySlotsCompanion.insert(
+            activityId: activityId,
+            timeOfDay: '08:30',
+            durationMin: const Value(30),
+            sortOrder: const Value(0),
+          ),
+        ]);
+        container.invalidate(generateTodayActivityLogsProvider);
+        container.invalidate(tomorrowActivityLogsProvider);
+      }
+
+      if (_wellbeingEnabled) {
+        final wellbeingRepo = container.read(wellbeingRepositoryProvider);
+        await wellbeingRepo.upsertSchedule(
+          WellbeingSchedulesCompanion.insert(
+            memberId: ownerId,
+            timesPerDay: const Value(3),
+            times: Value(jsonEncode(const ['08:00', '14:00', '20:00'])),
+          ),
+        );
+      }
+    } catch (e, st) {
+      debugPrint('🔴 Onboarding _finish() error: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Помилка при завершенні: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -152,6 +255,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           key: const ValueKey(2),
           onNext: _next,
           onSkip: _skip,
+          onScan: _openScanFromOnboarding,
         ),
       3 => _StepSchedule(
           key: const ValueKey(3),
@@ -671,8 +775,9 @@ class _FamilyMemberCard extends StatelessWidget {
 class _StepMedications extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onSkip;
+  final VoidCallback onScan;
 
-  const _StepMedications({super.key, required this.onNext, required this.onSkip});
+  const _StepMedications({super.key, required this.onNext, required this.onSkip, required this.onScan});
 
   @override
   Widget build(BuildContext context) {
@@ -690,35 +795,38 @@ class _StepMedications extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Scan button
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.camera_alt_outlined,
-                    color: Colors.white, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Сканувати рецепт',
-                          style: AppTextStyles.labelLg
-                              .copyWith(color: Colors.white)),
-                      const SizedBox(height: 2),
-                      Text('AI заповнить все за вас',
-                          style: AppTextStyles.bodySm
-                              .copyWith(
-                                  color: Colors.white.withValues(alpha: 0.8))),
-                    ],
+          GestureDetector(
+            onTap: onScan,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.camera_alt_outlined,
+                      color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Сканувати рецепт',
+                            style: AppTextStyles.labelLg
+                                .copyWith(color: Colors.white)),
+                        const SizedBox(height: 2),
+                        Text('AI заповнить все за вас',
+                            style: AppTextStyles.bodySm
+                                .copyWith(
+                                    color: Colors.white.withValues(alpha: 0.8))),
+                      ],
+                    ),
                   ),
-                ),
-                Icon(Icons.arrow_forward,
-                    color: Colors.white.withValues(alpha: 0.7)),
-              ],
+                  Icon(Icons.arrow_forward,
+                      color: Colors.white.withValues(alpha: 0.7)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),

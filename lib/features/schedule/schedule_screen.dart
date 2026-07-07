@@ -14,6 +14,7 @@ import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../add/add_activity_screen.dart';
+import '../add/add_type_sheet.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../medications/medication_detail_screen.dart';
@@ -45,6 +46,26 @@ final _scheduleWellbeingScheduleProvider =
   return ref.watch(wellbeingRepositoryProvider).watchScheduleByMember(memberId);
 });
 
+// ─── Category ────────────────────────────────────────────────────────────────
+
+enum _ScheduleCategory { meds, activities, wellbeing, appointments }
+
+extension on _ScheduleCategory {
+  String get emoji => switch (this) {
+        _ScheduleCategory.meds => '💊',
+        _ScheduleCategory.activities => '🚶',
+        _ScheduleCategory.wellbeing => '💜',
+        _ScheduleCategory.appointments => '🩺',
+      };
+
+  String get label => switch (this) {
+        _ScheduleCategory.meds => 'Ліки',
+        _ScheduleCategory.activities => 'Активності',
+        _ScheduleCategory.wellbeing => 'Самопочуття',
+        _ScheduleCategory.appointments => 'Лікарі',
+      };
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 class ScheduleScreen extends ConsumerStatefulWidget {
@@ -56,6 +77,8 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int? _selectedMemberId;
+  _ScheduleCategory _category = _ScheduleCategory.meds;
+  String _search = '';
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +86,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showAddTypeSheet(context, memberId: _selectedMemberId),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: membersAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator(color: AppColors.primary)),
@@ -76,6 +105,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             members: members,
             selectedMemberId: memberId,
             onMemberChanged: (id) => setState(() => _selectedMemberId = id),
+            category: _category,
+            onCategoryChanged: (c) => setState(() => _category = c),
+            search: _search,
+            onSearchChanged: (s) => setState(() => _search = s),
           );
         },
       ),
@@ -89,11 +122,19 @@ class _ScheduleBody extends ConsumerWidget {
   final List<Member> members;
   final int selectedMemberId;
   final void Function(int) onMemberChanged;
+  final _ScheduleCategory category;
+  final void Function(_ScheduleCategory) onCategoryChanged;
+  final String search;
+  final void Function(String) onSearchChanged;
 
   const _ScheduleBody({
     required this.members,
     required this.selectedMemberId,
     required this.onMemberChanged,
+    required this.category,
+    required this.onCategoryChanged,
+    required this.search,
+    required this.onSearchChanged,
   });
 
   @override
@@ -107,6 +148,8 @@ class _ScheduleBody extends ConsumerWidget {
       (m) => m.id == selectedMemberId,
       orElse: () => members.first,
     );
+
+    final q = search.trim().toLowerCase();
 
     return CustomScrollView(
       slivers: [
@@ -148,44 +191,264 @@ class _ScheduleBody extends ConsumerWidget {
             ),
           ),
 
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.screenPadding, AppDimensions.md,
+              AppDimensions.screenPadding, 0,
+            ),
+            child: _SearchField(
+              value: search,
+              hint: 'Пошук по всіх розділах',
+              onChanged: onSearchChanged,
+            ),
+          ),
+        ),
+
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.screenPadding, AppDimensions.sm,
+              AppDimensions.screenPadding, 0,
+            ),
+            child: _CategorySegmentControl(
+              selected: category,
+              onChanged: onCategoryChanged,
+            ),
+          ),
+        ),
+
         // Content
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              const SizedBox(height: AppDimensions.xl),
+              const SizedBox(height: AppDimensions.lg),
 
-              // ── Ліки ──────────────────────────────────────────────────
-              _SectionHeader(
-                emoji: '💊',
-                title: 'Ліки',
-                onAdd: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddMedicationScreen(memberId: selectedMemberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.md),
-              medsAsync.when(
-                loading: () => const _SectionLoading(),
-                error: (e, _) => Text('$e'),
-                data: (meds) {
-                  if (meds.isEmpty) {
-                    return _EmptySection(
-                      hint: 'Немає активних ліків',
-                      onAdd: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AddMedicationScreen(memberId: selectedMemberId),
-                        ),
+              if (q.isEmpty) ...[
+                if (category == _ScheduleCategory.meds) ...[
+                  _SectionHeader(
+                    emoji: '💊',
+                    title: 'Ліки',
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddMedicationScreen(memberId: selectedMemberId),
                       ),
-                    );
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  medsAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text('$e'),
+                    data: (meds) {
+                      if (meds.isEmpty) {
+                        return _EmptySection(
+                          hint: 'Немає активних ліків',
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddMedicationScreen(memberId: selectedMemberId),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: meds
+                            .map((m) => Padding(
+                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MedicationDetailScreen(
+                                          medicationId: m.id,
+                                          memberId: selectedMemberId,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _MedCard(med: m),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                ],
+
+                if (category == _ScheduleCategory.activities) ...[
+                  _SectionHeader(
+                    emoji: '🚶',
+                    title: 'Активності',
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddActivityScreen(memberId: selectedMemberId),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  activitiesAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text('$e'),
+                    data: (activities) {
+                      if (activities.isEmpty) {
+                        return _EmptySection(
+                          hint: 'Немає активних занять',
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddActivityScreen(memberId: selectedMemberId),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: activities
+                            .map((a) => Padding(
+                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => AddActivityScreen(
+                                          memberId: selectedMemberId,
+                                          existing: a,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _ActivityCard(activity: a),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                ],
+
+                if (category == _ScheduleCategory.wellbeing) ...[
+                  _SectionHeader(
+                    emoji: '💜',
+                    title: 'Самопочуття',
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  wellbeingScheduleAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text('$e'),
+                    data: (schedule) {
+                      if (schedule == null) {
+                        return _EmptySection(
+                          hint: 'Розклад не налаштовано',
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                            ),
+                          ),
+                        );
+                      }
+                      return GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                          ),
+                        ),
+                        child: _WellbeingScheduleCard(schedule: schedule),
+                      );
+                    },
+                  ),
+                ],
+
+                if (category == _ScheduleCategory.appointments) ...[
+                  _SectionHeader(
+                    emoji: '🩺',
+                    title: 'Прийоми лікарів',
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddAppointmentScreen(memberId: selectedMemberId),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  appointmentsAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text('$e'),
+                    data: (appointments) {
+                      if (appointments.isEmpty) {
+                        return _EmptySection(
+                          hint: 'Немає запланованих прийомів',
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddAppointmentScreen(memberId: selectedMemberId),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: appointments
+                            .map((a) => Padding(
+                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => AddAppointmentScreen(
+                                          memberId: selectedMemberId,
+                                          existing: a,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _AppointmentCard(appointment: a),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                ],
+              ] else
+                Builder(builder: (context) {
+                  final meds = (medsAsync.valueOrNull ?? [])
+                      .where((m) => m.name.toLowerCase().contains(q))
+                      .toList();
+                  final activities = (activitiesAsync.valueOrNull ?? [])
+                      .where((a) => a.name.toLowerCase().contains(q))
+                      .toList();
+                  final appointments = (appointmentsAsync.valueOrNull ?? [])
+                      .where((a) => a.doctorType.toLowerCase().contains(q))
+                      .toList();
+
+                  final anyFound = meds.isNotEmpty ||
+                      activities.isNotEmpty ||
+                      appointments.isNotEmpty;
+
+                  if (!anyFound) {
+                    return const _EmptySection(hint: 'Нічого не знайдено');
                   }
+
                   return Column(
-                    children: meds
-                        .map((m) => Padding(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (meds.isNotEmpty) ...[
+                        const _SectionHeader(emoji: '💊', title: 'Ліки'),
+                        const SizedBox(height: AppDimensions.md),
+                        ...meds.map((m) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                               child: GestureDetector(
                                 onTap: () => Navigator.push(
@@ -199,44 +462,13 @@ class _ScheduleBody extends ConsumerWidget {
                                 ),
                                 child: _MedCard(med: m),
                               ),
-                            ))
-                        .toList(),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppDimensions.xl),
-
-              // ── Активності ────────────────────────────────────────────
-              _SectionHeader(
-                emoji: '🚶',
-                title: 'Активності',
-                onAdd: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddActivityScreen(memberId: selectedMemberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.md),
-              activitiesAsync.when(
-                loading: () => const _SectionLoading(),
-                error: (e, _) => Text('$e'),
-                data: (activities) {
-                  if (activities.isEmpty) {
-                    return _EmptySection(
-                      hint: 'Немає активних занять',
-                      onAdd: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AddActivityScreen(memberId: selectedMemberId),
-                        ),
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: activities
-                        .map((a) => Padding(
+                            )),
+                        const SizedBox(height: AppDimensions.xl),
+                      ],
+                      if (activities.isNotEmpty) ...[
+                        const _SectionHeader(emoji: '🚶', title: 'Активності'),
+                        const SizedBox(height: AppDimensions.md),
+                        ...activities.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                               child: GestureDetector(
                                 onTap: () => Navigator.push(
@@ -250,89 +482,13 @@ class _ScheduleBody extends ConsumerWidget {
                                 ),
                                 child: _ActivityCard(activity: a),
                               ),
-                            ))
-                        .toList(),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppDimensions.xl),
-
-              // ── Самопочуття ───────────────────────────────────────────
-              _SectionHeader(
-                emoji: '💜',
-                title: 'Самопочуття',
-                onAdd: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.md),
-              wellbeingScheduleAsync.when(
-                loading: () => const _SectionLoading(),
-                error: (e, _) => Text('$e'),
-                data: (schedule) {
-                  if (schedule == null) {
-                    return _EmptySection(
-                      hint: 'Розклад не налаштовано',
-                      onAdd: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                        ),
-                      ),
-                    );
-                  }
-                  return GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                      ),
-                    ),
-                    child: _WellbeingScheduleCard(schedule: schedule),
-                  );
-                },
-              ),
-
-              const SizedBox(height: AppDimensions.xl),
-
-              // ── Лікарі ────────────────────────────────────────────────
-              _SectionHeader(
-                emoji: '🩺',
-                title: 'Прийоми лікарів',
-                onAdd: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        AddAppointmentScreen(memberId: selectedMemberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.md),
-              appointmentsAsync.when(
-                loading: () => const _SectionLoading(),
-                error: (e, _) => Text('$e'),
-                data: (appointments) {
-                  if (appointments.isEmpty) {
-                    return _EmptySection(
-                      hint: 'Немає запланованих прийомів',
-                      onAdd: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AddAppointmentScreen(memberId: selectedMemberId),
-                        ),
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: appointments
-                        .map((a) => Padding(
+                            )),
+                        const SizedBox(height: AppDimensions.xl),
+                      ],
+                      if (appointments.isNotEmpty) ...[
+                        const _SectionHeader(emoji: '🩺', title: 'Прийоми лікарів'),
+                        const SizedBox(height: AppDimensions.md),
+                        ...appointments.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                               child: GestureDetector(
                                 onTap: () => Navigator.push(
@@ -346,17 +502,154 @@ class _ScheduleBody extends ConsumerWidget {
                                 ),
                                 child: _AppointmentCard(appointment: a),
                               ),
-                            ))
-                        .toList(),
+                            )),
+                      ],
+                    ],
                   );
-                },
-              ),
+                }),
 
               const SizedBox(height: 100),
             ]),
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─── Category segment control ────────────────────────────────────────────────
+
+class _CategorySegmentControl extends StatelessWidget {
+  final _ScheduleCategory selected;
+  final ValueChanged<_ScheduleCategory> onChanged;
+
+  const _CategorySegmentControl({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: _ScheduleCategory.values.map((c) {
+          final active = c == selected;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(c),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: active ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(c.emoji, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(
+                      c.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                        fontSize: 10,
+                        color: active ? Colors.white : AppColors.textMuted,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── Search field ─────────────────────────────────────────────────────────────
+
+class _SearchField extends StatefulWidget {
+  final String value;
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  const _SearchField({
+    required this.value,
+    required this.hint,
+    required this.onChanged,
+  });
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.value);
+    _ctrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void didUpdateWidget(covariant _SearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _ctrl.text) {
+      _ctrl.value = _ctrl.value.copyWith(
+        text: widget.value,
+        selection: TextSelection.collapsed(offset: widget.value.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: TextField(
+        controller: _ctrl,
+        onChanged: widget.onChanged,
+        style: AppTextStyles.bodyMd,
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+          prefixIcon: const Icon(Icons.search_rounded,
+              color: AppColors.textMuted, size: 20),
+          suffixIcon: _ctrl.text.isEmpty
+              ? null
+              : GestureDetector(
+                  onTap: () {
+                    _ctrl.clear();
+                    widget.onChanged('');
+                  },
+                  child: const Icon(Icons.close_rounded,
+                      color: AppColors.textMuted, size: 18),
+                ),
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
     );
   }
 }

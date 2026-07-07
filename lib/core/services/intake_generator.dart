@@ -2,15 +2,19 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
+import '../providers/notification_settings_provider.dart';
+import '../services/notification_service.dart';
 import '../../data/db/app_database.dart';
 
 // Генерує записи intakes для конкретного дня на основі schedules і налаштувань повтору
 class IntakeGenerator {
   final AppDatabase _db;
-  IntakeGenerator(this._db);
+  final Ref _ref;
+  IntakeGenerator(this._db, this._ref);
 
   Future<void> generateForDay(DateTime date) async {
     final day = DateTime(date.year, date.month, date.day);
+    final cutoff = DateTime.now().subtract(const Duration(hours: 1));
     final meds = await _db.select(_db.medications).get();
 
     for (final med in meds) {
@@ -66,6 +70,11 @@ class IntakeGenerator {
           int.parse(parts[0]), int.parse(parts[1]),
         );
 
+        // Не створюємо записи більш ніж на годину в минулому —
+        // це заважає щойно доданим лікам одразу заповнити
+        // сьогоднішній розклад пропущеними прийомами.
+        if (scheduledAt.isBefore(cutoff)) continue;
+
         // Check duplicate using medication + scheduledAt
         final exists = await (_db.select(_db.intakes)
               ..where((t) =>
@@ -84,12 +93,24 @@ class IntakeGenerator {
                   ?.id ??
                 0;
 
-        await _db.into(_db.intakes).insert(IntakesCompanion.insert(
+        final intakeId = await _db.into(_db.intakes).insert(IntakesCompanion.insert(
           scheduleId: scheduleId,
           medicationId: med.id,
           memberId: med.memberId,
           scheduledAt: scheduledAt,
         ));
+
+        final settings = _ref.read(notificationSettingsProvider);
+        final remindAt =
+            settings.adjust(scheduledAt, memberId: med.memberId);
+        if (remindAt != null) {
+          await NotificationService.scheduleIntakeReminder(
+            intakeId: intakeId,
+            medName: med.name,
+            dose: '${med.doseAmount} ${med.doseUnit}',
+            scheduledAt: remindAt,
+          );
+        }
       }
     }
   }
@@ -166,5 +187,5 @@ class IntakeGenerator {
 }
 
 final intakeGeneratorProvider = Provider<IntakeGenerator>((ref) {
-  return IntakeGenerator(ref.watch(databaseProvider));
+  return IntakeGenerator(ref.watch(databaseProvider), ref);
 });

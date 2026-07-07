@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/services/notification_service.dart';
 
 class ActivitiesRepository {
   final AppDatabase _db;
@@ -69,16 +70,19 @@ class ActivitiesRepository {
   Future<void> markLogDone(int id) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(const ActivityLogsCompanion(status: Value('done')));
+    await NotificationService.cancelActivityReminder(id);
   }
 
   Future<void> markLogSkipped(int id) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(const ActivityLogsCompanion(status: Value('skipped')));
+    await NotificationService.cancelActivityReminder(id);
   }
 
   Future<void> snoozeLog(int id, DateTime newScheduledAt) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(ActivityLogsCompanion(scheduledAt: Value(newScheduledAt)));
+    await NotificationService.cancelActivityReminder(id);
   }
 
   Future<List<ActivityLog>> getLogsByMemberAndDateRange(
@@ -100,9 +104,17 @@ class ActivitiesRepository {
       (_db.update(_db.activities)..where((t) => t.id.equals(activity.id.value)))
           .write(activity);
 
-  Future<int> softDelete(int id) =>
-      (_db.update(_db.activities)..where((t) => t.id.equals(id)))
-          .write(const ActivitiesCompanion(isActive: Value(false)));
+  Future<int> softDelete(int id) async {
+    final pending = await (_db.select(_db.activityLogs)
+          ..where((t) => t.activityId.equals(id) & t.status.equals('pending')))
+        .get();
+    for (final log in pending) {
+      await NotificationService.cancelActivityReminder(log.id);
+    }
+
+    return (_db.update(_db.activities)..where((t) => t.id.equals(id)))
+        .write(const ActivitiesCompanion(isActive: Value(false)));
+  }
 }
 
 final activitiesRepositoryProvider = Provider<ActivitiesRepository>((ref) {

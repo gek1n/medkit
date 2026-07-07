@@ -15,4 +15,8 @@ class Symptoms extends Table {
   BoolColumn get isTracked =>
       boolean().withDefault(const Constant(false))();
   // чи обрав користувач відстежувати
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable().unique()();
+  // для family_sync — див. коментар у medications_table.dart
 }

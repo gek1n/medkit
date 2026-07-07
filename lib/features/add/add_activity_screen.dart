@@ -7,6 +7,8 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
+import '../../shared/widgets/wheel_time_picker.dart';
+import '../today/providers/today_providers.dart';
 
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -158,6 +160,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         );
       }).toList();
       await repo.replaceSlots(activityId, slots);
+
+      ref.invalidate(generateTodayActivityLogsProvider);
+      ref.invalidate(tomorrowActivityLogsProvider);
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -401,16 +406,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   }
 
   Future<void> _pickTime(int index) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _slots[index].time,
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final picked =
+        await showWheelTimePicker(context, initialTime: _slots[index].time);
     if (picked != null) {
       setState(() {
         _slots[index] = (time: picked, duration: _slots[index].duration);

@@ -14,4 +14,6 @@ class DoctorAppointments extends Table {
   TextColumn get notes => text().nullable()();
   TextColumn get pdfPath => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
 }

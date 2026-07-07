@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navProfile => 'Profile';
 
   @override
+  String get navMedCard => 'Med Card';
+
+  @override
   String todayProgressTitle(int taken, int total) {
     return '$taken of $total';
   }

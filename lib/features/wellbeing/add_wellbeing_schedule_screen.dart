@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/wheel_time_picker.dart';
+import 'wellbeing_history_screen.dart';
 
 class AddWellbeingScheduleScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -59,6 +63,7 @@ class _AddWellbeingScheduleScreenState
         final defaults = [
           const TimeOfDay(hour: 8, minute: 0),
           const TimeOfDay(hour: 13, minute: 0),
+          const TimeOfDay(hour: 17, minute: 0),
           const TimeOfDay(hour: 20, minute: 0),
         ];
         while (_slots.length < count) {
@@ -71,16 +76,8 @@ class _AddWellbeingScheduleScreenState
   }
 
   Future<void> _pickTime(int index) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _slots[index],
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final picked =
+        await showWheelTimePicker(context, initialTime: _slots[index]);
     if (picked != null) setState(() => _slots[index] = picked);
   }
 
@@ -101,6 +98,23 @@ class _AddWellbeingScheduleScreenState
               isActive: const Value(true),
             ),
           );
+
+      await NotificationService.cancelAllWellbeingForMember(widget.memberId);
+      final settings = ref.read(notificationSettingsProvider);
+      for (var i = 0; i < _slots.length; i++) {
+        final now = DateTime.now();
+        final raw = DateTime(
+            now.year, now.month, now.day, _slots[i].hour, _slots[i].minute);
+        final at = settings.adjust(raw, memberId: widget.memberId);
+        if (at == null) continue;
+        await NotificationService.scheduleWellbeingDaily(
+          memberId: widget.memberId,
+          slotIndex: i,
+          hour: at.hour,
+          minute: at.minute,
+        );
+      }
+
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -131,23 +145,49 @@ class _AddWellbeingScheduleScreenState
               color: AppColors.bg,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new,
+                              size: 16, color: AppColors.textMain),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Самопочуття', style: AppTextStyles.h3),
+                    ],
+                  ),
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            WellbeingHistoryScreen(memberId: widget.memberId),
+                      ),
+                    ),
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: const Icon(Icons.arrow_back_ios_new,
-                          size: 16, color: AppColors.textMain),
+                      child: Text('Історія',
+                          style: AppTextStyles.labelMd
+                              .copyWith(color: AppColors.textSub)),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text('Самопочуття', style: AppTextStyles.h3),
                 ],
               ),
             ),
@@ -187,7 +227,7 @@ class _AddWellbeingScheduleScreenState
                     Text('ЧАСТОТА НА ДЕНЬ', style: AppTextStyles.labelSm),
                     const SizedBox(height: 8),
                     Row(
-                      children: [1, 2, 3].map((n) {
+                      children: [1, 2, 3, 4].map((n) {
                         final sel = _timesPerDay == n;
                         return Expanded(
                           child: Padding(

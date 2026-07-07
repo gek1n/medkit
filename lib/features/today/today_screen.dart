@@ -1,9 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -11,10 +12,20 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../shared/widgets/section_label.dart';
+import '../add/add_type_sheet.dart';
 import '../analytics/analytics_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import 'providers/today_providers.dart';
 import 'widgets/family_status_strip.dart';
+
+// Час, на який приймання фактично заплановано зараз — з урахуванням
+// перенесення (snoozedUntil), а не лише вихідний scheduledAt. Використовується
+// для класифікації на "зараз/пропустили/розклад", щоб перенесений прийом не
+// одразу "стрибав" у пропущені, оминаючи "зараз", коли настає його новий час.
+extension _IntakeEffectiveDue on Intake {
+  DateTime get effectiveDue =>
+      status == 'snoozed' && snoozedUntil != null ? snoozedUntil! : scheduledAt;
+}
 
 // ─── Unified day item ─────────────────────────────────────────────────────────
 
@@ -33,7 +44,7 @@ class _DayItem {
   DoctorAppointment? get appointment => _data is DoctorAppointment ? _data : null;
 
   static _DayItem fromIntake(Intake i) =>
-      _DayItem._(type: _ItemType.intake, scheduledAt: i.scheduledAt, data: i);
+      _DayItem._(type: _ItemType.intake, scheduledAt: i.effectiveDue, data: i);
   static _DayItem fromActivity(ActivityLog l) =>
       _DayItem._(type: _ItemType.activity, scheduledAt: l.scheduledAt, data: l);
   static _DayItem fromAppointment(DoctorAppointment a) =>
@@ -94,6 +105,12 @@ class _TodayContent extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showAddTypeSheet(context, memberId: member.id),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: intakesAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
@@ -109,8 +126,8 @@ class _TodayContent extends ConsumerWidget {
           final total = intakes.length;
 
           final now = DateTime.now();
-          final oneHourAgo = now.subtract(const Duration(hours: 1));
-          final oneHourAhead = now.add(const Duration(hours: 1));
+          final activeWindowStart = now.subtract(const Duration(minutes: 15));
+          final activeWindowEnd = now.add(const Duration(minutes: 15));
 
           // ── Wellbeing slots ──────────────────────────────────────────────
           final schedule = wellbeingScheduleAsync.valueOrNull;
@@ -143,13 +160,14 @@ class _TodayContent extends ConsumerWidget {
                   l.loggedAt.isBefore(windowEnd));
               if (hasLog) {
                 doneWbSlots.add(slotDt);
+              } else if (slotDt.isBefore(activeWindowStart)) {
+                // Слоти, що настали більш ніж 15 хвилин тому, просто не
+                // показуємо — щоб щойно доданий/змінений розклад не
+                // одразу заповнював сьогодні "пропущеними" зрізами.
+                continue;
               } else if (now.isAfter(windowEnd)) {
                 missedWbSlots.add(slotDt);
-              } else if (!slotDt.isBefore(oneHourAgo) &&
-                  slotDt.isBefore(oneHourAhead)) {
-                activeWbSlots.add(slotDt);
-              } else if (slotDt.isBefore(oneHourAgo)) {
-                // Between 1h ago and window close — still active
+              } else if (slotDt.isBefore(activeWindowEnd)) {
                 activeWbSlots.add(slotDt);
               } else {
                 upcomingWbSlots.add(slotDt);
@@ -166,15 +184,16 @@ class _TodayContent extends ConsumerWidget {
           }
 
           final pendingIntakes = intakes.where(isPending).toList();
-          final missedIntakes =
-              pendingIntakes.where((i) => i.scheduledAt.isBefore(oneHourAgo)).toList();
+          final missedIntakes = pendingIntakes
+              .where((i) => i.effectiveDue.isBefore(activeWindowStart))
+              .toList();
           final activeIntakes = pendingIntakes
               .where((i) =>
-                  !i.scheduledAt.isBefore(oneHourAgo) &&
-                  i.scheduledAt.isBefore(oneHourAhead))
+                  !i.effectiveDue.isBefore(activeWindowStart) &&
+                  i.effectiveDue.isBefore(activeWindowEnd))
               .toList();
           final upcomingIntakes = pendingIntakes
-              .where((i) => !i.scheduledAt.isBefore(oneHourAhead))
+              .where((i) => !i.effectiveDue.isBefore(activeWindowEnd))
               .toList();
           final doneIntakes = intakes
               .where((i) => i.status == 'taken' || i.status == 'skipped')
@@ -183,15 +202,16 @@ class _TodayContent extends ConsumerWidget {
           // ── Activity log buckets ─────────────────────────────────────────
           final pendingLogs =
               activityLogs.where((l) => l.status == 'pending').toList();
-          final missedActivities =
-              pendingLogs.where((l) => l.scheduledAt.isBefore(oneHourAgo)).toList();
+          final missedActivities = pendingLogs
+              .where((l) => l.scheduledAt.isBefore(activeWindowStart))
+              .toList();
           final activeActivities = pendingLogs
               .where((l) =>
-                  !l.scheduledAt.isBefore(oneHourAgo) &&
-                  l.scheduledAt.isBefore(oneHourAhead))
+                  !l.scheduledAt.isBefore(activeWindowStart) &&
+                  l.scheduledAt.isBefore(activeWindowEnd))
               .toList();
           final upcomingActivities = pendingLogs
-              .where((l) => !l.scheduledAt.isBefore(oneHourAhead))
+              .where((l) => !l.scheduledAt.isBefore(activeWindowEnd))
               .toList();
           final doneActivities = activityLogs
               .where((l) => l.status == 'done' || l.status == 'skipped')
@@ -222,7 +242,7 @@ class _TodayContent extends ConsumerWidget {
           }
           for (final i in [...activeIntakes, ...upcomingIntakes]) {
             final med = meds.where((m) => m.id == i.medicationId).firstOrNull;
-            checkNext(i.scheduledAt, med?.name ?? 'Ліки');
+            checkNext(i.effectiveDue, med?.name ?? 'Ліки');
           }
           for (final l in [...activeActivities, ...upcomingActivities]) {
             final a = activities.where((a) => a.id == l.activityId).firstOrNull;
@@ -249,6 +269,10 @@ class _TodayContent extends ConsumerWidget {
           final hasActive = activeIntakes.isNotEmpty ||
               activeActivities.isNotEmpty ||
               activeWbSlots.isNotEmpty;
+          final allDoneToday = !hasMissed &&
+              !hasActive &&
+              scheduleItems.isEmpty &&
+              doneItems.isNotEmpty;
 
           return CustomScrollView(
             slivers: [
@@ -277,6 +301,10 @@ class _TodayContent extends ConsumerWidget {
                   ),
                 ),
               ),
+
+              // Все виконано на сьогодні
+              if (allDoneToday)
+                const SliverToBoxAdapter(child: _AllDoneBanner()),
 
               // 1. Сім'я
               if (members.length > 1)
@@ -486,6 +514,63 @@ class _SectionPad extends StatelessWidget {
       );
 }
 
+// ─── All Done Banner ──────────────────────────────────────────────────────────
+
+class _AllDoneBanner extends StatelessWidget {
+  const _AllDoneBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionPad(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF22C55E).withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Text('🎉', style: TextStyle(fontSize: 34)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Все виконано на сьогодні!',
+                    style: AppTextStyles.labelLg.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Чудова робота — так тримати',
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: Colors.white.withValues(alpha: 0.9)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Compact Hero ─────────────────────────────────────────────────────────────
 
 class _CompactHero extends StatelessWidget {
@@ -617,6 +702,43 @@ class _MissedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cards = <(DateTime, Widget)>[
+      for (final i in intakes)
+        (
+          i.effectiveDue,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActiveIntakeCard(
+                intake: i,
+                med: meds.where((m) => m.id == i.medicationId).firstOrNull,
+                ref: ref,
+                missed: true),
+          ),
+        ),
+      for (final l in activityLogs)
+        (
+          l.scheduledAt,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActiveActivityCard(
+                log: l,
+                ref: ref,
+                activity:
+                    activities.where((a) => a.id == l.activityId).firstOrNull,
+                missed: true),
+          ),
+        ),
+      for (final dt in wellbeingSlots)
+        (
+          dt,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActiveWellbeingCard(
+                scheduledAt: dt, memberId: memberId, missed: true),
+          ),
+        ),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
     return _SectionPad(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,29 +756,7 @@ class _MissedSection extends StatelessWidget {
                     color: Color(0xFFC2410C))),
           ]),
           const SizedBox(height: 8),
-          ...intakes.map((i) {
-            final med =
-                meds.where((m) => m.id == i.medicationId).firstOrNull;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child:
-                  _ActiveIntakeCard(intake: i, med: med, ref: ref, missed: true),
-            );
-          }),
-          ...activityLogs.map((l) {
-            final activity =
-                activities.where((a) => a.id == l.activityId).firstOrNull;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ActiveActivityCard(
-                  log: l, ref: ref, activity: activity, missed: true),
-            );
-          }),
-          ...wellbeingSlots.map((dt) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _ActiveWellbeingCard(
-                    scheduledAt: dt, memberId: memberId, missed: true),
-              )),
+          ...cards.map((c) => c.$2),
         ],
       ),
     );
@@ -686,6 +786,40 @@ class _ActiveNowSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cards = <(DateTime, Widget)>[
+      for (final i in intakes)
+        (
+          i.effectiveDue,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActiveIntakeCard(
+                intake: i,
+                med: meds.where((m) => m.id == i.medicationId).firstOrNull,
+                ref: ref),
+          ),
+        ),
+      for (final l in activityLogs)
+        (
+          l.scheduledAt,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActiveActivityCard(
+                log: l,
+                ref: ref,
+                activity:
+                    activities.where((a) => a.id == l.activityId).firstOrNull),
+          ),
+        ),
+      for (final dt in wellbeingSlots)
+        (
+          dt,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActiveWellbeingCard(scheduledAt: dt, memberId: memberId),
+          ),
+        ),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
     return _SectionPad(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -703,28 +837,7 @@ class _ActiveNowSection extends StatelessWidget {
                     color: AppColors.textMain)),
           ]),
           const SizedBox(height: 8),
-          ...intakes.map((i) {
-            final med =
-                meds.where((m) => m.id == i.medicationId).firstOrNull;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _ActiveIntakeCard(intake: i, med: med, ref: ref),
-            );
-          }),
-          ...activityLogs.map((l) {
-            final activity =
-                activities.where((a) => a.id == l.activityId).firstOrNull;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child:
-                  _ActiveActivityCard(log: l, ref: ref, activity: activity),
-            );
-          }),
-          ...wellbeingSlots.map((dt) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _ActiveWellbeingCard(
-                    scheduledAt: dt, memberId: memberId),
-              )),
+          ...cards.map((c) => c.$2),
         ],
       ),
     );
@@ -1020,6 +1133,60 @@ class _DoneAccordion extends StatelessWidget {
 
 // ─── Active Intake Card ────────────────────────────────────────────────────────
 
+const _foodRelationLabels = {
+  'any': '✓ Незалежно від їжі',
+  'before': '🕐 До їжі',
+  'after': '🍽 Після їжі',
+  'with': '🥗 Під час їжі',
+};
+
+// doseComment живе всередині відповідної фази в med.phases (json), а не в
+// самому intake — тому шукаємо активну на дату intake фазу так само, як для
+// розрахунку залишку в medication_detail_screen.
+String? _doseComment(Medication med, DateTime scheduledAt) {
+  if (med.phases == null) return null;
+  try {
+    final phases =
+        List<Map<String, dynamic>>.from(jsonDecode(med.phases!) as List);
+    final day = DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
+    final daysElapsed = day
+        .difference(DateTime(
+          med.startDate.year,
+          med.startDate.month,
+          med.startDate.day,
+        ))
+        .inDays;
+    int accumulated = 0;
+    Map<String, dynamic>? activePhase;
+    for (final phase in phases) {
+      final dur = phase['durationDays'] as int?;
+      if (dur == null) {
+        activePhase = phase;
+        break;
+      }
+      accumulated += dur;
+      if (daysElapsed < accumulated) {
+        activePhase = phase;
+        break;
+      }
+    }
+    activePhase ??= phases.isNotEmpty ? phases.last : null;
+    final comment = activePhase?['doseComment'] as String?;
+    return (comment != null && comment.isNotEmpty) ? comment : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// "Перенести" повинно рахувати нові N хвилин від часу, на який пункт зараз
+// заплановано (or від now, якщо цей час вже минув), а не від поточного
+// моменту — інакше перенесення ще не настанулого прийому "відкочує" його
+// у минуле відносно запланованого часу.
+DateTime _snoozeFrom(DateTime due) {
+  final now = DateTime.now();
+  return due.isAfter(now) ? due : now;
+}
+
 class _ActiveIntakeCard extends StatelessWidget {
   final Intake intake;
   final Medication? med;
@@ -1053,13 +1220,20 @@ class _ActiveIntakeCard extends StatelessWidget {
             child: Row(
               children: [
                 if (photoPath != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.file(File(photoPath),
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(accent)),
+                  FutureBuilder<Uint8List>(
+                    future: PhotoService.decryptedBytes(photoPath),
+                    builder: (context, snap) {
+                      if (!snap.hasData) return _placeholder(accent);
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(snap.data!,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _placeholder(accent)),
+                      );
+                    },
                   )
                 else
                   _placeholder(accent),
@@ -1078,7 +1252,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                       Row(children: [
                         Icon(Icons.access_time, size: 12, color: accent),
                         const SizedBox(width: 4),
-                        Text(_fmt(intake.scheduledAt),
+                        Text(_fmt(intake.effectiveDue),
                             style: AppTextStyles.bodySm.copyWith(
                                 color: accent, fontWeight: FontWeight.w700)),
                         if (missed) ...[
@@ -1088,6 +1262,25 @@ class _ActiveIntakeCard extends StatelessWidget {
                                   color: const Color(0xFFF97316))),
                         ],
                       ]),
+                      if (med != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _foodRelationLabels[med!.foodRelation] ??
+                              med!.foodRelation,
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.textSub),
+                        ),
+                      ],
+                      if (med != null &&
+                          _doseComment(med!, intake.scheduledAt) != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _doseComment(med!, intake.scheduledAt)!,
+                          style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textMuted,
+                              fontStyle: FontStyle.italic),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1101,7 +1294,8 @@ class _ActiveIntakeCard extends StatelessWidget {
             onSkip: () =>
                 ref.read(intakesRepositoryProvider).markSkipped(intake.id),
             onSnooze: (min) => ref.read(intakesRepositoryProvider).markSnoozed(
-                intake.id, DateTime.now().add(Duration(minutes: min))),
+                intake.id,
+                _snoozeFrom(intake.effectiveDue).add(Duration(minutes: min))),
           ),
         ],
       ),
@@ -1217,7 +1411,7 @@ class _ActiveActivityCard extends StatelessWidget {
             onSnooze: (min) => ref
                 .read(activitiesRepositoryProvider)
                 .snoozeLog(log.id,
-                    DateTime.now().add(Duration(minutes: min))),
+                    _snoozeFrom(log.scheduledAt).add(Duration(minutes: min))),
           ),
         ],
       ),

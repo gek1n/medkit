@@ -6,6 +6,7 @@
   "navMeds": "Розклад",
   "navFamily": "Сім'я",
   "navProfile": "Профіль",
+  "navMedCard": "Медкартка",
   "todayProgressTitle": "{taken} з {total}",
   "@todayProgressTitle": {
     "placeholders": {

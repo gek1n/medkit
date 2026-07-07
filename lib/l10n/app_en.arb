@@ -6,6 +6,7 @@
   "navMeds": "Schedule",
   "navFamily": "Family",
   "navProfile": "Profile",
+  "navMedCard": "Med Card",
   "todayProgressTitle": "{taken} of {total}",
   "@todayProgressTitle": {
     "placeholders": {

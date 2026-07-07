@@ -1,11 +1,24 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
+import 'package:sqlite3/open.dart' as sqlite3_open;
+import 'core/providers/database_provider.dart';
+import 'core/providers/font_scale_provider.dart';
+import 'core/services/account_service.dart';
+import 'core/services/app_lock_service.dart';
+import 'core/services/family_sync_service.dart';
+import 'core/services/notification_service.dart';
+import 'core/services/sync_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
-import 'features/add/add_type_sheet.dart';
 import 'features/family/family_screen.dart';
+import 'features/lock/app_lock_screen.dart';
+import 'features/medcard/med_card_screen.dart';
 import 'features/schedule/schedule_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/today/today_screen.dart';
@@ -15,16 +28,40 @@ import 'shared/widgets/app_bottom_nav.dart';
 
 void main() {
   runZonedGuarded(
-    () => runApp(const ProviderScope(child: MedKitApp())),
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      // sqlite3 за замовчуванням шукає звичайний libsqlite3.so на Android —
+      // це вказує йому натомість вантажити SQLCipher-збірку з
+      // sqlcipher_flutter_libs. Без цього PRAGMA key ніхто не побачить.
+      if (Platform.isAndroid) {
+        sqlite3_open.open.overrideFor(
+            sqlite3_open.OperatingSystem.android, openCipherOnAndroid);
+      }
+      try {
+        // Потрібен лише для FCM push-пробудження (relay-канал сам по собі —
+        // звичайний HTTP до власного бекенду, від Firebase не залежить).
+        // Поки google-services.json/GoogleService-Info.plist не додані в
+        // нативні проєкти, це кине виняток, який тут навмисно не фатальний.
+        await Firebase.initializeApp();
+      } catch (e) {
+        debugPrint('🔶 Firebase не налаштований: $e');
+      }
+      await NotificationService.init();
+      runApp(const ProviderScope(child: MedKitApp()));
+    },
     (error, stack) => debugPrint('🔴 MEDKIT CRASH: $error\n$stack'),
   );
 }
 
-class MedKitApp extends StatelessWidget {
+class MedKitApp extends ConsumerWidget {
   const MedKitApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fontSizeIndex = ref.watch(fontSizeIndexProvider);
+    final scale = fontScaleValues[
+        fontSizeIndex.clamp(0, fontScaleValues.length - 1)];
+
     return MaterialApp(
       title: 'MedKit',
       debugShowCheckedModeBanner: false,
@@ -37,8 +74,46 @@ class MedKitApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('uk'), Locale('en')],
       locale: const Locale('uk'),
-      home: const _RootRouter(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
+      home: const _AppLockGate(),
     );
+  }
+}
+
+class _AppLockGate extends StatefulWidget {
+  const _AppLockGate();
+
+  @override
+  State<_AppLockGate> createState() => _AppLockGateState();
+}
+
+class _AppLockGateState extends State<_AppLockGate> {
+  bool? _unlocked; // null = ще триває перша перевірка при старті
+
+  @override
+  void initState() {
+    super.initState();
+    // authenticate() сама повертає true, якщо на пристрої взагалі не
+    // налаштовано жодного способу автентифікації — див. AppLockService.
+    AppLockService.authenticate().then((ok) {
+      if (!mounted) return;
+      setState(() => _unlocked = ok);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_unlocked == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_unlocked == false) {
+      return AppLockScreen(onUnlocked: () => setState(() => _unlocked = true));
+    }
+    return const _RootRouter();
   }
 }
 
@@ -60,18 +135,22 @@ class _RootRouter extends ConsumerWidget {
   }
 }
 
-class _Shell extends StatefulWidget {
+class _Shell extends ConsumerStatefulWidget {
   const _Shell();
 
   @override
-  State<_Shell> createState() => _ShellState();
+  ConsumerState<_Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<_Shell> {
+class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   int _index = 2;
+  late final PageController _pageController;
+  bool _syncing = false;
+  bool _familySyncing = false;
+  StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   static const _screens = [
-    SizedBox.shrink(), // 0 = Додати — handled by bottom nav
+    MedCardScreen(),   // 0 = Медкартка
     ScheduleScreen(),  // 1 = Розклад
     TodayScreen(),     // 2 = Сьогодні (center)
     FamilyScreen(),    // 3 = Сім'я
@@ -79,18 +158,93 @@ class _ShellState extends State<_Shell> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _index);
+    WidgetsBinding.instance.addObserver(this);
+    _syncIfEnabled();
+    _familySyncIfNeeded();
+    // "Розбуди" push від family_sync (relay/send) приходить як data-message —
+    // поки застосунок відкритий, його треба явно підхопити тут; коли
+    // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.
+    try {
+      _fcmSubscription = FirebaseMessaging.onMessage.listen((_) => _familySyncIfNeeded());
+    } catch (_) {
+      // Firebase не налаштований на цьому білді — не критично.
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _fcmSubscription?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncIfEnabled();
+      _familySyncIfNeeded();
+    }
+  }
+
+  /// Тихо синхронізує в фоні, якщо режим не "тільки локально". Помилки
+  /// (немає інтернету, сервер недоступний тощо) навмисно проковтуються —
+  /// локальні дані завжди лишаються джерелом правди, невдала синхронізація
+  /// просто спробує ще раз наступного разу.
+  Future<void> _syncIfEnabled() async {
+    if (_syncing) return;
+    _syncing = true;
+    try {
+      final mode = await AccountService().currentMode();
+      if (mode != SyncMode.local) {
+        await SyncService(ref.read(databaseProvider)).pushChanges();
+        await SyncService(ref.read(databaseProvider)).pullChanges();
+      }
+    } catch (_) {
+      // Тиха невдача — див. коментар вище.
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  /// family_sync — незалежно від режиму account-sync вище: працює для будь-
+  /// якого профілю, привʼязаного до каналу пейрингу (SharedChannels), навіть
+  /// якщо облікова синхронізація взагалі вимкнена.
+  Future<void> _familySyncIfNeeded() async {
+    if (_familySyncing) return;
+    _familySyncing = true;
+    try {
+      await FamilySyncService(ref.read(databaseProvider)).syncAll();
+    } catch (_) {
+      // Тиха невдача — див. коментар до _syncIfEnabled.
+    } finally {
+      _familySyncing = false;
+    }
+  }
+
+  void _goToTab(int i) {
+    setState(() => _index = i);
+    _pageController.animateToPage(
+      i,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (i) => setState(() => _index = i),
+        children: _screens,
+      ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: _index,
-        onTap: (i) {
-          if (i == 0) {
-            showAddTypeSheet(context);
-          } else {
-            setState(() => _index = i);
-          }
-        },
+        onTap: _goToTab,
       ),
     );
   }

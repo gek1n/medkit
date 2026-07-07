@@ -28,6 +28,16 @@ class Medications extends Table {
   TextColumn get instructions => text().nullable()();
   TextColumn get phases => text().nullable()();
   // json: [{"times":["08:00"],"durationDays":7}, ...]
+  IntColumn get stockPercent => integer().nullable()();
+  // 0-100, для рідких форм (сироп/краплі/крем/інгалятор)
+  DateTimeColumn get openedAt => dateTime().nullable()();
+  // коли відкрито поточний флакон/тюбик
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable().unique()();
+  // глобально унікальний ідентифікатор для сімейної синхронізації (family_sync) —
+  // призначається лише коли член сім'ї прив'язаний до каналу, на відміну від
+  // локального autoincrement id, який не унікальний між пристроями
 }
