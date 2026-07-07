@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../today/providers/today_providers.dart';
@@ -87,7 +88,7 @@ class _Header extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -205,9 +206,6 @@ class _AppointmentCard extends StatelessWidget {
     '', 'СІЧ', 'ЛЮТ', 'БЕР', 'КВІ', 'ТРА', 'ЧЕР',
     'ЛИП', 'СЕР', 'ВЕР', 'ЖОВ', 'ЛИС', 'ГРУ'
   ];
-  static const _avatars = [
-    '🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'
-  ];
 
   Member? get _member =>
       members.cast<Member?>().firstWhere(
@@ -230,9 +228,6 @@ class _AppointmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final member = _member;
-    final emoji = member != null
-        ? _avatars[member.avatarIndex % _avatars.length]
-        : '👤';
     final memberName =
         member?.role == 'owner' ? 'Я' : (member?.name ?? '');
 
@@ -311,8 +306,10 @@ class _AppointmentCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      Text(emoji,
-                          style: const TextStyle(fontSize: 13)),
+                      member != null
+                          ? AvatarImage(index: member.avatarIndex, size: 14)
+                          : const Icon(Icons.person_rounded,
+                              size: 14, color: AppColors.textMuted),
                       const SizedBox(width: 4),
                       Text(
                         memberName,
@@ -357,7 +354,8 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('🗓', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.calendar_month_rounded,
+              size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('Записів ще немає', style: AppTextStyles.h3),
           const SizedBox(height: 8),

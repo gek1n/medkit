@@ -163,7 +163,7 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🔗', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.link_rounded, size: 48, color: AppColors.primary),
           const SizedBox(height: 16),
           Text('Профіль вже підключено', style: AppTextStyles.h3),
           const SizedBox(height: 8),
@@ -187,7 +187,7 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('⚠️', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.danger),
           const SizedBox(height: 16),
           Text('Не вдалося створити запрошення', style: AppTextStyles.h3),
           const SizedBox(height: 8),
@@ -257,7 +257,7 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.copy, color: AppColors.primary, size: 20),
+                  const Icon(Icons.copy_rounded, color: AppColors.primary, size: 20),
                 ],
               ),
             ),

@@ -30,7 +30,7 @@ class _WellbeingCheckScreenState
   static const _moods = [
     (1, '😣', 'Погано', Color(0xFFFEE2E2)),
     (2, '😕', 'Так собі', Color(0xFFFEF3C7)),
-    (3, '😐', 'Норм', Color(0xFFF2EEFF)),
+    (3, '😐', 'Норм', Color(0xFFE9F4EC)),
     (4, '🙂', 'Добре', Color(0xFFDCFCE7)),
     (5, '😄', 'Відмінно', Color(0xFFDCFCE7)),
   ];
@@ -555,9 +555,9 @@ class _MicIdleButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          color: const Color(0xFFFDF4FF),
+          color: const Color(0xFFF3FAF5),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+          border: Border.all(color: const Color(0xFFCBE6D3), width: 1.5),
         ),
         child: Row(
           children: [
@@ -566,12 +566,12 @@ class _MicIdleButton extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: available
-                    ? const Color(0xFF7C3AED)
+                    ? const Color(0xFF3F8F5F)
                     : AppColors.border,
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Icon(Icons.mic, color: Colors.white, size: 20),
+                child: Icon(Icons.mic_rounded, color: Colors.white, size: 20),
               ),
             ),
             const SizedBox(width: 12),
@@ -585,19 +585,19 @@ class _MicIdleButton extends StatelessWidget {
                         : 'Мікрофон недоступний',
                     style: AppTextStyles.labelMd.copyWith(
                         color: available
-                            ? const Color(0xFF4C1D95)
+                            ? const Color(0xFF2F5F41)
                             : AppColors.textMuted),
                   ),
                   if (available)
                     Text('Натисніть і говоріть',
                         style: AppTextStyles.bodySm
-                            .copyWith(color: const Color(0xFF7C3AED))),
+                            .copyWith(color: const Color(0xFF3F8F5F))),
                 ],
               ),
             ),
             if (available)
-              const Icon(Icons.chevron_right,
-                  color: Color(0xFF7C3AED), size: 20),
+              const Icon(Icons.chevron_right_rounded,
+                  color: Color(0xFF3F8F5F), size: 20),
           ],
         ),
       ),
@@ -626,9 +626,9 @@ class _RecordingBlock extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFDF4FF),
+          color: const Color(0xFFF3FAF5),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+          border: Border.all(color: const Color(0xFFCBE6D3), width: 1.5),
         ),
         child: Column(
           children: [
@@ -638,21 +638,21 @@ class _RecordingBlock extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF7C3AED),
+                    color: const Color(0xFF3F8F5F),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                          color: const Color(0xFF7C3AED).withValues(alpha: 0.25),
+                          color: const Color(0xFF3F8F5F).withValues(alpha: 0.25),
                           blurRadius: 0,
                           spreadRadius: 6),
                       BoxShadow(
-                          color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
+                          color: const Color(0xFF3F8F5F).withValues(alpha: 0.12),
                           blurRadius: 0,
                           spreadRadius: 10),
                     ],
                   ),
                   child: const Center(
-                    child: Icon(Icons.mic, color: Colors.white, size: 22),
+                    child: Icon(Icons.mic_rounded, color: Colors.white, size: 22),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -671,7 +671,7 @@ class _RecordingBlock extends StatelessWidget {
                           width: 3,
                           height: h.clamp(4.0, 36.0),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF7C3AED),
+                            color: const Color(0xFF3F8F5F),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         );
@@ -682,14 +682,14 @@ class _RecordingBlock extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(timerLabel,
                     style: AppTextStyles.labelMd
-                        .copyWith(color: const Color(0xFF7C3AED))),
+                        .copyWith(color: const Color(0xFF3F8F5F))),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               'Говоріть… натисніть щоб зупинити',
               style: AppTextStyles.bodySm
-                  .copyWith(color: const Color(0xFF7C3AED), fontWeight: FontWeight.w600),
+                  .copyWith(color: const Color(0xFF3F8F5F), fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -710,9 +710,9 @@ class _TranscribedBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF8FF),
+        color: const Color(0xFFFBF7EF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDE8FA), width: 1.5),
+        border: Border.all(color: const Color(0xFFEEE6D6), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -723,17 +723,17 @@ class _TranscribedBlock extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEDE9FE),
+                  color: Color(0xFFE3F1E7),
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Icon(Icons.mic, color: Color(0xFF7C3AED), size: 14),
+                  child: Icon(Icons.mic_rounded, color: Color(0xFF3F8F5F), size: 14),
                 ),
               ),
               const SizedBox(width: 8),
               Text('Розшифровка голосу',
                   style: AppTextStyles.labelMd
-                      .copyWith(color: const Color(0xFF4C1D95))),
+                      .copyWith(color: const Color(0xFF2F5F41))),
             ],
           ),
           const SizedBox(height: 10),
@@ -751,13 +751,20 @@ class _TranscribedBlock extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEDE9FE),
+                      color: const Color(0xFFE3F1E7),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text('✏️ Редагувати',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.labelMd
-                            .copyWith(color: const Color(0xFF7C3AED))),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.edit_rounded,
+                            size: 15, color: Color(0xFF3F8F5F)),
+                        const SizedBox(width: 4),
+                        Text('Редагувати',
+                            style: AppTextStyles.labelMd
+                                .copyWith(color: const Color(0xFF3F8F5F))),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -772,10 +779,17 @@ class _TranscribedBlock extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppColors.border),
                     ),
-                    child: Text('🎙 Записати знову',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.labelMd
-                            .copyWith(color: AppColors.textSub)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.mic_rounded,
+                            size: 15, color: AppColors.textSub),
+                        const SizedBox(width: 4),
+                        Text('Записати знову',
+                            style: AppTextStyles.labelMd
+                                .copyWith(color: AppColors.textSub)),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -840,7 +854,11 @@ class _LogCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final h = log.loggedAt.hour;
-    final timeIcon = h < 12 ? '☀️' : h < 17 ? '🕑' : '🌙';
+    final timeIcon = h < 12
+        ? Icons.wb_sunny_rounded
+        : h < 17
+            ? Icons.schedule_rounded
+            : Icons.dark_mode_rounded;
     final hh = h.toString().padLeft(2, '0');
     final mm = log.loggedAt.minute.toString().padLeft(2, '0');
 
@@ -863,9 +881,16 @@ class _LogCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$timeIcon $hh:$mm',
-                    style: AppTextStyles.caption
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(timeIcon, size: 12, color: AppColors.textMuted),
+                    const SizedBox(width: 3),
+                    Text('$hh:$mm',
+                        style: AppTextStyles.caption
+                            .copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
                 if (symptoms.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Wrap(

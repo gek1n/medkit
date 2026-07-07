@@ -156,7 +156,7 @@ class _Header extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -265,9 +265,9 @@ class _MiniChart extends StatelessWidget {
   static const _moodEmoji = ['', '😣', '😕', '😐', '🙂', '😄'];
 
   static Color _barColor(double avg) {
-    if (avg >= 4.5) return const Color(0xFF7048C4);
-    if (avg >= 3.5) return const Color(0xFFA78BFA);
-    if (avg >= 2.5) return const Color(0xFFC4B5FD);
+    if (avg >= 4.5) return const Color(0xFF4C9A6A);
+    if (avg >= 3.5) return const Color(0xFF8FCBA4);
+    if (avg >= 2.5) return const Color(0xFFB7DDC2);
     return const Color(0xFFFCA5A5);
   }
 
@@ -407,13 +407,13 @@ class _AiInsight extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('✨', style: TextStyle(fontSize: 16)),
+            const Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFF2F5F41)),
             const SizedBox(width: 10),
             Expanded(
               child: RichText(
                 text: TextSpan(
                   style: AppTextStyles.bodySm
-                      .copyWith(color: const Color(0xFF4C1D95)),
+                      .copyWith(color: const Color(0xFF2F5F41)),
                   children: const [
                     TextSpan(
                         text:
@@ -512,12 +512,18 @@ class _LogCard extends StatelessWidget {
     'fever': 'температура',
   };
 
+  IconData _timeIcon() {
+    final h = log.loggedAt.hour;
+    return h < 12
+        ? Icons.wb_sunny_rounded
+        : (h < 18 ? Icons.schedule_rounded : Icons.dark_mode_rounded);
+  }
+
   String _timeLabel() {
     final h = log.loggedAt.hour;
     final hh = h.toString().padLeft(2, '0');
     final mm = log.loggedAt.minute.toString().padLeft(2, '0');
-    final icon = h < 12 ? '☀️' : (h < 18 ? '🕑' : '🌙');
-    return '$icon $hh:$mm';
+    return '$hh:$mm';
   }
 
   bool get _isBad => log.mood <= 2;
@@ -548,10 +554,17 @@ class _LogCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _timeLabel(),
-                  style: AppTextStyles.bodySm
-                      .copyWith(color: AppColors.textSub),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_timeIcon(), size: 12, color: AppColors.textSub),
+                    const SizedBox(width: 3),
+                    Text(
+                      _timeLabel(),
+                      style: AppTextStyles.bodySm
+                          .copyWith(color: AppColors.textSub),
+                    ),
+                  ],
                 ),
                 if (symptoms.isNotEmpty) ...[
                   const SizedBox(height: 6),
@@ -577,7 +590,7 @@ class _LogCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right,
+          const Icon(Icons.chevron_right_rounded,
               size: 16, color: AppColors.textMuted),
         ],
       ),
@@ -633,7 +646,8 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(
         children: [
-          const Text('😐', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.favorite_border_rounded,
+              size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('Зрізів ще немає', style: AppTextStyles.h3),
           const SizedBox(height: 8),
@@ -682,8 +696,8 @@ class _SendToDoctorCard extends StatelessWidget {
                       BorderRadius.circular(AppDimensions.radiusMd),
                 ),
                 child: const Center(
-                  child:
-                      Text('🩺', style: TextStyle(fontSize: 18)),
+                  child: Icon(Icons.medical_services_rounded,
+                      size: 18, color: AppColors.primary),
                 ),
               ),
               const SizedBox(width: AppDimensions.md),

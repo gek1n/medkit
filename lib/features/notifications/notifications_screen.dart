@@ -4,6 +4,7 @@ import '../../core/providers/notification_settings_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../today/providers/today_providers.dart';
@@ -21,18 +22,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   bool _telegramEnabled = true;
   bool _vibrationEnabled = true;
   int _repeatIndex = 1; // 0=5хв 1=20хв 2=45хв 3=60хв
-
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-  static const _avatarBg = [
-    Color(0xFFEDE9FE),
-    Color(0xFFDCFCE7),
-    Color(0xFFFEE2E2),
-    Color(0xFFFEF9C3),
-    Color(0xFFDBEAFE),
-    Color(0xFFFFEDD5),
-    Color(0xFFF3E8FF),
-    Color(0xFFF0FDFA),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -61,21 +50,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   _SectionTitle('Основні'),
                   _SettingsCard(children: [
                     _SwitchRow(
-                      emoji: '🔔',
+                      icon: Icons.notifications_rounded,
                       label: 'Push-сповіщення',
                       sub: 'Нагадування про прийом ліків',
                       value: settings.pushEnabled,
                       onChanged: settingsNotifier.setPushEnabled,
                     ),
                     _SwitchRow(
-                      emoji: '✈️',
+                      icon: Icons.send_rounded,
                       label: 'Telegram-бот',
                       sub: '@MedKitBot підключено',
                       value: _telegramEnabled,
                       onChanged: (v) => setState(() => _telegramEnabled = v),
                     ),
                     _SwitchRow(
-                      emoji: '📳',
+                      icon: Icons.vibration_rounded,
                       label: 'Вібрація',
                       sub: 'Разом зі звуком',
                       value: _vibrationEnabled,
@@ -98,14 +87,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   _SectionTitle('Тихі години'),
                   _SettingsCard(children: [
                     _SwitchRow(
-                      emoji: '🌙',
+                      icon: Icons.dark_mode_rounded,
                       label: 'Не турбувати',
                       sub: 'Нічний режим',
                       value: settings.quietEnabled,
                       onChanged: settingsNotifier.setQuietEnabled,
                     ),
                     _TimeRow(
-                      emoji: '🔲',
+                      icon: Icons.schedule_rounded,
                       label: 'З',
                       time: quietFrom,
                       enabled: settings.quietEnabled,
@@ -113,7 +102,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           context, quietFrom, settingsNotifier.setQuietFrom),
                     ),
                     _TimeRow(
-                      emoji: '🔳',
+                      icon: Icons.schedule_rounded,
                       label: 'До',
                       time: quietTo,
                       enabled: settings.quietEnabled,
@@ -136,8 +125,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           _MemberAlertsCard(
                             members: nonOwners,
                             alerts: settings.memberAlerts,
-                            avatars: _avatars,
-                            avatarBg: _avatarBg,
                             onChanged: settingsNotifier.setMemberAlert,
                           ),
                         ],
@@ -188,7 +175,7 @@ class _BackHeader extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -264,14 +251,14 @@ class _SettingsCard extends StatelessWidget {
 // ────────────────────────────── switch row ──────────────────────────────
 
 class _SwitchRow extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String label;
   final String sub;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   const _SwitchRow({
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.sub,
     required this.value,
@@ -287,7 +274,7 @@ class _SwitchRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 20)),
+          Icon(icon, size: 20, color: AppColors.primary),
           const SizedBox(width: AppDimensions.md),
           Expanded(
             child: Column(
@@ -419,7 +406,7 @@ class _RepeatRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('🔁', style: TextStyle(fontSize: 20)),
+              const Icon(Icons.repeat_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: AppDimensions.md),
               Expanded(
                 child: Column(
@@ -476,14 +463,14 @@ class _RepeatRow extends StatelessWidget {
 // ────────────────────────────── time row ──────────────────────────────
 
 class _TimeRow extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String label;
   final TimeOfDay time;
   final bool enabled;
   final VoidCallback onTap;
 
   const _TimeRow({
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.time,
     required this.enabled,
@@ -504,10 +491,9 @@ class _TimeRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(emoji,
-                style: TextStyle(
-                    fontSize: 20,
-                    color: enabled ? null : AppColors.textMuted)),
+            Icon(icon,
+                size: 20,
+                color: enabled ? AppColors.primary : AppColors.textMuted),
             const SizedBox(width: AppDimensions.md),
             Expanded(
               child: Text(label,
@@ -552,15 +538,11 @@ class _TimeRow extends StatelessWidget {
 class _MemberAlertsCard extends StatelessWidget {
   final List<Member> members;
   final Map<int, bool> alerts;
-  final List<String> avatars;
-  final List<Color> avatarBg;
   final void Function(int id, bool value) onChanged;
 
   const _MemberAlertsCard({
     required this.members,
     required this.alerts,
-    required this.avatars,
-    required this.avatarBg,
     required this.onChanged,
   });
 
@@ -583,26 +565,13 @@ class _MemberAlertsCard extends StatelessWidget {
         child: Column(
           children: members.map((m) {
             final isLast = members.last == m;
-            final emoji = avatars[m.avatarIndex % avatars.length];
-            final bg = avatarBg[m.avatarIndex % avatarBg.length];
             return Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Row(
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: bg,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(emoji,
-                              style: const TextStyle(fontSize: 18)),
-                        ),
-                      ),
+                      AvatarImage(index: m.avatarIndex, size: 36),
                       const SizedBox(width: AppDimensions.md),
                       Expanded(
                         child: Text(m.name,

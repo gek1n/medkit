@@ -291,7 +291,7 @@ class _BackHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -330,7 +330,7 @@ class _ConsentBody extends StatelessWidget {
                   color: AppColors.primaryLighter, width: 2.5),
             ),
             child: const Center(
-              child: Icon(Icons.mic, size: 44, color: AppColors.primary),
+              child: Icon(Icons.mic_rounded, size: 44, color: AppColors.primary),
             ),
           ),
         ),
@@ -387,12 +387,12 @@ class _IdleBody extends StatelessWidget {
       {required this.sttAvailable, required this.onStart});
 
   static const _examples = [
-    ('💊', Color(0xFFF2EEFF), '"Прийняв таблетку"',
+    (Icons.medication_rounded, Color(0xFFE9F4EC), '"Прийняв таблетку"',
         'Відмітить найближчий прийом'),
-    ('⏱', Color(0xFFFFF1EB),
+    (Icons.timer_rounded, Color(0xFFFFF1EB),
         '"Додай Еналаприл 10 мг вранці та ввечері"',
         'Відкриє форму з заповненими полями'),
-    ('🗓', Color(0xFFFFFBEB),
+    (Icons.calendar_month_rounded, Color(0xFFFFFBEB),
         '"Запис до кардіолога у пʼятницю о 10"',
         'Додасть нагадування про прийом'),
   ];
@@ -417,7 +417,7 @@ class _IdleBody extends StatelessWidget {
                   color: AppColors.primaryLighter, width: 2.5),
             ),
             child: const Center(
-              child: Icon(Icons.mic,
+              child: Icon(Icons.mic_rounded,
                   size: 52, color: AppColors.primary),
             ),
           ),
@@ -465,9 +465,8 @@ class _IdleBody extends StatelessWidget {
                                 BorderRadius.circular(10),
                           ),
                           child: Center(
-                              child: Text(ex.$1,
-                                  style: const TextStyle(
-                                      fontSize: 16))),
+                              child: Icon(ex.$1,
+                                  size: 18, color: AppColors.primary)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -506,7 +505,7 @@ class _IdleBody extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: sttAvailable ? onStart : null,
-            icon: const Icon(Icons.mic, size: 20),
+            icon: const Icon(Icons.mic_rounded, size: 20),
             label: Text(
               sttAvailable
                   ? 'Утримуй і говори'
@@ -577,7 +576,7 @@ class _ListeningBody extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
-                      child: Icon(Icons.stop,
+                      child: Icon(Icons.stop_rounded,
                           size: 40, color: Colors.white),
                     ),
                   ),
@@ -809,8 +808,8 @@ class _ResultBody extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('⚡',
-                    style: TextStyle(fontSize: 16)),
+                const Icon(Icons.bolt_rounded,
+                    size: 16, color: AppColors.warning),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -985,7 +984,8 @@ class _ErrorBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('😕', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.sentiment_dissatisfied_rounded,
+              size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('Щось пішло не так',
               style: AppTextStyles.h3),

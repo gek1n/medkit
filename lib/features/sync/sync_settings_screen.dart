@@ -160,12 +160,12 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.g_mobiledata, size: 32),
+              leading: const Icon(Icons.g_mobiledata_rounded, size: 32),
               title: const Text('Google'),
               onTap: () => Navigator.of(context).pop('google'),
             ),
             ListTile(
-              leading: const Icon(Icons.apple),
+              leading: const Icon(Icons.apple_rounded),
               title: const Text('Apple'),
               onTap: () => Navigator.of(context).pop('apple'),
             ),
@@ -368,7 +368,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                       ),
                       const SizedBox(height: AppDimensions.lg),
                       _ModeCard(
-                        emoji: '📴',
+                        icon: Icons.phonelink_off_rounded,
                         title: 'Тільки локально',
                         subtitle: 'Дані лишаються лише на цьому пристрої (за замовчуванням)',
                         selected: _mode == SyncMode.local,
@@ -376,7 +376,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                       ),
                       const SizedBox(height: AppDimensions.md),
                       _ModeCard(
-                        emoji: '☁️',
+                        icon: Icons.cloud_rounded,
                         title: 'Хмара без акаунта',
                         subtitle: 'Recovery key замість email/пароля — його ніхто, крім вас, не знає',
                         selected: _mode == SyncMode.noAccount,
@@ -384,7 +384,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                       ),
                       const SizedBox(height: AppDimensions.md),
                       _ModeCard(
-                        emoji: '👤',
+                        icon: Icons.person_rounded,
                         title: 'Хмара з акаунтом (Google/Apple)',
                         subtitle: 'Вхід без пароля — на iPhone ключ підхоплюється сам через iCloud',
                         selected: _mode == SyncMode.account,
@@ -399,7 +399,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                       const SizedBox(height: AppDimensions.md),
                       OutlinedButton.icon(
                         onPressed: _restoreViaOAuth,
-                        icon: const Icon(Icons.login),
+                        icon: const Icon(Icons.login_rounded),
                         label: const Text('Відновити через Google/Apple'),
                       ),
                       if (_mode != SyncMode.local) ...[
@@ -407,7 +407,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                         OutlinedButton.icon(
                           onPressed: _deleteAccountEverywhere,
                           style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger),
-                          icon: const Icon(Icons.delete_outline),
+                          icon: const Icon(Icons.delete_outline_rounded),
                           label: const Text('Видалити акаунт і дані на сервері'),
                         ),
                       ],
@@ -419,14 +419,14 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
 }
 
 class _ModeCard extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String title;
   final String subtitle;
   final bool selected;
   final VoidCallback? onTap;
 
   const _ModeCard({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.selected,
@@ -446,7 +446,7 @@ class _ModeCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
+            Icon(icon, size: 24, color: AppColors.primary),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -458,7 +458,7 @@ class _ModeCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected) const Icon(Icons.check_circle, color: AppColors.primary),
+            if (selected) const Icon(Icons.check_circle_rounded, color: AppColors.primary),
           ],
         ),
       ),

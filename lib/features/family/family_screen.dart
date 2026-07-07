@@ -7,6 +7,7 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
@@ -111,7 +112,7 @@ class _PlanLimitBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Text('🔒', style: TextStyle(fontSize: 18)),
+          const Icon(Icons.lock_rounded, size: 18, color: Color(0xFF92400E)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(msg,
@@ -171,7 +172,7 @@ class _FamilyHeader extends StatelessWidget {
                       border: Border.all(
                           color: AppColors.primaryLighter, width: 1.5),
                     ),
-                    child: const Icon(Icons.add,
+                    child: const Icon(Icons.add_rounded,
                         color: AppColors.primary, size: 20),
                   ),
                 ),
@@ -194,8 +195,6 @@ class _FamilyHeader extends StatelessWidget {
 class _MemberCard extends ConsumerWidget {
   final Member member;
   const _MemberCard({required this.member});
-
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -231,9 +230,15 @@ class _MemberCard extends ConsumerWidget {
       _MemberStatus.idle => AppColors.border,
     };
 
+    final statusIcon = switch (status) {
+      _MemberStatus.ok => Icons.check_circle_rounded,
+      _MemberStatus.warn => Icons.error_rounded,
+      _MemberStatus.idle => null,
+    };
+
     final statusText = switch (status) {
-      _MemberStatus.ok => '✓ Всі прийнято',
-      _MemberStatus.warn => '⚠ Є пропуски',
+      _MemberStatus.ok => 'Всі прийнято',
+      _MemberStatus.warn => 'Є пропуски',
       _MemberStatus.idle =>
         total > 0 ? '$taken/$total прийнято' : 'Немає ліків на сьогодні',
     };
@@ -243,8 +248,6 @@ class _MemberCard extends ConsumerWidget {
       _MemberStatus.warn => const Color(0xFFEF4444),
       _MemberStatus.idle => AppColors.textMuted,
     };
-
-    final emoji = _avatars[member.avatarIndex % _avatars.length];
 
     return Container(
       decoration: BoxDecoration(
@@ -275,9 +278,9 @@ class _MemberCard extends ConsumerWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: ringColor, width: 2.5),
                   ),
-                  child: Center(
-                    child: Text(emoji,
-                        style: const TextStyle(fontSize: 24)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.5),
+                    child: AvatarImage(index: member.avatarIndex, size: 47),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -306,9 +309,18 @@ class _MemberCard extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      Text(statusText,
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: statusColor)),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (statusIcon != null) ...[
+                            Icon(statusIcon, size: 12, color: statusColor),
+                            const SizedBox(width: 3),
+                          ],
+                          Text(statusText,
+                              style: AppTextStyles.bodySm
+                                  .copyWith(color: statusColor)),
+                        ],
+                      ),
                       if (total > 0)
                         Text(
                           '$taken з $total прийомів',
@@ -537,7 +549,7 @@ class _AddMemberTile extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                locked ? Icons.lock_outline : Icons.add,
+                locked ? Icons.lock_outline_rounded : Icons.add_rounded,
                 color: locked ? AppColors.textMuted : AppColors.primary,
                 size: 20,
               ),
@@ -608,7 +620,7 @@ class _InviteSection extends StatelessWidget {
                     color: AppColors.primaryLight,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.qr_code_scanner,
+                  child: const Icon(Icons.qr_code_scanner_rounded,
                       color: AppColors.primary, size: 20),
                 ),
                 const SizedBox(width: 14),
@@ -626,7 +638,7 @@ class _InviteSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right,
+                const Icon(Icons.chevron_right_rounded,
                     color: AppColors.textMuted, size: 20),
               ],
             ),
@@ -676,7 +688,7 @@ class _AddMemberBackHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -754,7 +766,7 @@ class _ProfileTypeCard extends StatelessWidget {
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.circle, size: 8, color: Colors.white)
+                  ? const Icon(Icons.circle_rounded, size: 8, color: Colors.white)
                   : null,
             ),
           ],
@@ -840,7 +852,7 @@ class _TelegramHint extends StatelessWidget {
                   Icon(
                     expanded
                         ? Icons.check_box_outlined
-                        : Icons.check_box_outline_blank,
+                        : Icons.check_box_outline_blank_rounded,
                     size: 18,
                     color: AppColors.success,
                   ),
@@ -854,7 +866,7 @@ class _TelegramHint extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
+                    expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
                     size: 18,
                     color: AppColors.success,
                   ),
@@ -980,8 +992,6 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
   bool _hintExpanded = false;
   bool _saving = false;
 
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -1059,7 +1069,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: List.generate(_avatars.length, (i) {
+                        children: List.generate(avatarCount, (i) {
                           final sel = i == _avatarIndex;
                           return GestureDetector(
                             onTap: () => setState(() => _avatarIndex = i),
@@ -1079,9 +1089,9 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                                   width: sel ? 2 : 1.5,
                                 ),
                               ),
-                              child: Center(
-                                child: Text(_avatars[i],
-                                    style: const TextStyle(fontSize: 26)),
+                              child: Padding(
+                                padding: const EdgeInsets.all(1.5),
+                                child: AvatarImage(index: i, size: 49),
                               ),
                             ),
                           );
@@ -1093,7 +1103,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                     const _SectionLabel('ТИП ПРОФІЛЮ'),
                     const SizedBox(height: 8),
                     _ProfileTypeCard(
-                      icon: Icons.favorite_border,
+                      icon: Icons.favorite_border_rounded,
                       title: 'Під опікою',
                       description:
                           'Ти керуєш ліками та розкладом. Людина отримує лише нагадування.',
@@ -1102,7 +1112,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                     ),
                     const SizedBox(height: 10),
                     _ProfileTypeCard(
-                      icon: Icons.link,
+                      icon: Icons.link_rounded,
                       title: 'Автономний',
                       description:
                           'Надсилаєш інвайт. Людина сама керує своїм профілем, ти бачиш статуси.',

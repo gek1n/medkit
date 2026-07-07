@@ -90,7 +90,7 @@ class _HeroHeader extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF7048C4), Color(0xFF3B82F6)],
+              colors: [Color(0xFF4C9A6A), Color(0xFF3B82F6)],
             ),
           ),
           padding: EdgeInsets.fromLTRB(
@@ -156,7 +156,7 @@ class _HeroHeader extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: Colors.white),
             ),
           ),

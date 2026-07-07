@@ -10,6 +10,8 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
@@ -138,12 +140,8 @@ class _HeroSection extends StatelessWidget {
   final AppPlan plan;
   const _HeroSection({required this.member, required this.plan});
 
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-
   @override
   Widget build(BuildContext context) {
-    final emoji = _avatars[member.avatarIndex % _avatars.length];
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.screenPadding,
@@ -163,14 +161,13 @@ class _HeroSection extends StatelessWidget {
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
                   shape: BoxShape.circle,
                   border: Border.all(
                       color: AppColors.primaryLighter, width: 3),
                 ),
-                child: Center(
-                  child: Text(emoji,
-                      style: const TextStyle(fontSize: 44)),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: AvatarImage(index: member.avatarIndex, size: 82),
                 ),
               ),
               GestureDetector(
@@ -185,8 +182,8 @@ class _HeroSection extends StatelessWidget {
                         color: AppColors.surface, width: 2),
                   ),
                   child: const Center(
-                    child: Text('✏️',
-                        style: TextStyle(fontSize: 13)),
+                    child: Icon(Icons.edit_rounded,
+                        size: 13, color: Colors.white),
                   ),
                 ),
               ),
@@ -270,14 +267,14 @@ class _UpgradeBanner extends StatelessWidget {
         padding: const EdgeInsets.all(AppDimensions.lg),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF7048C4), Color(0xFF9B6FE8)],
+            colors: [Color(0xFF4C9A6A), Color(0xFF6FBE8C)],
           ),
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         ),
         child: Row(
           children: [
-            const Text('👨‍👩‍👧‍👦',
-                style: TextStyle(fontSize: 32)),
+            const Icon(Icons.family_restroom_rounded,
+                color: Colors.white, size: 32),
             const SizedBox(width: AppDimensions.md),
             Expanded(
               child: Column(
@@ -384,13 +381,13 @@ class _SectionCard extends StatelessWidget {
 // ────────────────────────────── row item ──────────────────────────────
 
 class _RowItem extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String label;
   final Widget? trailing;
   final VoidCallback? onTap;
 
   const _RowItem({
-    required this.emoji,
+    required this.icon,
     required this.label,
     this.trailing,
     this.onTap,
@@ -408,13 +405,13 @@ class _RowItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
+            Icon(icon, size: 20, color: AppColors.primary),
             const SizedBox(width: AppDimensions.md),
             Expanded(
               child: Text(label, style: AppTextStyles.bodyMd),
             ),
             trailing ??
-                const Icon(Icons.chevron_right,
+                const Icon(Icons.chevron_right_rounded,
                     color: AppColors.textMuted, size: 20),
           ],
         ),
@@ -458,17 +455,6 @@ class _MedsList extends ConsumerWidget {
   final int memberId;
   const _MedsList({required this.meds, required this.memberId});
 
-  static const _formEmoji = {
-    'tablet': '💊',
-    'capsule': '💊',
-    'syrup': '🍶',
-    'drops': '💧',
-    'cream': '🧴',
-    'inhaler': '💨',
-    'injection': '💉',
-    'other': '📦',
-  };
-
   String _daysLeft(Medication m) {
     if (m.endDate == null) return 'постійно';
     final diff = m.endDate!.difference(DateTime.now()).inDays;
@@ -482,7 +468,7 @@ class _MedsList extends ConsumerWidget {
       children: meds
           .map(
             (m) => _RowItem(
-              emoji: _formEmoji[m.form] ?? '💊',
+              icon: medFormIcon(m.form),
               label: m.name,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -493,7 +479,7 @@ class _MedsList extends ConsumerWidget {
                         .copyWith(color: AppColors.textSub),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right,
+                  const Icon(Icons.chevron_right_rounded,
                       color: AppColors.textMuted, size: 20),
                 ],
               ),
@@ -535,7 +521,7 @@ class _AppearanceSection extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Text('🔡', style: TextStyle(fontSize: 20)),
+              const Icon(Icons.text_fields_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: AppDimensions.md),
               Expanded(
                 child: Text('Розмір шрифту',
@@ -589,7 +575,7 @@ class _AppearanceSection extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Text('🌙', style: TextStyle(fontSize: 20)),
+              const Icon(Icons.dark_mode_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: AppDimensions.md),
               Expanded(
                 child: Text('Темна тема',
@@ -617,7 +603,7 @@ class _ConnectionsSection extends StatelessWidget {
     return _SectionCard(
       children: [
         _RowItem(
-          emoji: '✈️',
+          icon: Icons.send_rounded,
           label: 'Telegram-бот',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -643,7 +629,7 @@ class _ConnectionsSection extends StatelessWidget {
           ),
         ),
         _RowItem(
-          emoji: '🔔',
+          icon: Icons.notifications_rounded,
           label: 'Сповіщення',
           onTap: () => Navigator.push(
             context,
@@ -664,7 +650,7 @@ class _OtherSection extends StatelessWidget {
     return _SectionCard(
       children: [
         _RowItem(
-          emoji: '🔄',
+          icon: Icons.sync_rounded,
           label: 'Синхронізація та акаунт',
           onTap: () => Navigator.push(
             context,
@@ -672,7 +658,7 @@ class _OtherSection extends StatelessWidget {
           ),
         ),
         _RowItem(
-          emoji: '☁️',
+          icon: Icons.backup_rounded,
           label: 'Резервна копія',
           onTap: () => Navigator.push(
             context,
@@ -680,21 +666,21 @@ class _OtherSection extends StatelessWidget {
           ),
         ),
         _RowItem(
-          emoji: '📤',
+          icon: Icons.ios_share_rounded,
           label: 'Експорт даних',
           onTap: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Скоро...')),
           ),
         ),
         _RowItem(
-          emoji: '❓',
+          icon: Icons.help_outline_rounded,
           label: 'Допомога та FAQ',
           onTap: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Скоро...')),
           ),
         ),
         _RowItem(
-          emoji: '⭐',
+          icon: Icons.star_rounded,
           label: 'Оцінити застосунок',
           onTap: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Скоро...')),
@@ -773,8 +759,6 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
 }
 
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-
   late int _avatarIndex;
   late TextEditingController _nameCtrl;
 
@@ -828,7 +812,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             height: 64,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _avatars.length,
+              itemCount: avatarCount,
               separatorBuilder: (_, _) =>
                   const SizedBox(width: AppDimensions.md),
               itemBuilder: (_, i) {
@@ -850,9 +834,9 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                         width: selected ? 2 : 1,
                       ),
                     ),
-                    child: Center(
-                      child: Text(_avatars[i],
-                          style: const TextStyle(fontSize: 26)),
+                    child: Padding(
+                      padding: EdgeInsets.all(selected ? 2 : 1),
+                      child: AvatarImage(index: i, size: 52),
                     ),
                   ),
                 );

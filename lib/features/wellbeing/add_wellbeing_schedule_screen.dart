@@ -159,7 +159,7 @@ class _AddWellbeingScheduleScreenState
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.border),
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new,
+                          child: const Icon(Icons.arrow_back_ios_new_rounded,
                               size: 16, color: AppColors.textMain),
                         ),
                       ),
@@ -209,7 +209,7 @@ class _AddWellbeingScheduleScreenState
                       ),
                       child: Row(
                         children: [
-                          const Text('🩺', style: TextStyle(fontSize: 24)),
+                          const Icon(Icons.favorite_rounded, size: 24, color: AppColors.primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -289,7 +289,7 @@ class _AddWellbeingScheduleScreenState
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.access_time,
+                                const Icon(Icons.access_time_rounded,
                                     size: 18, color: AppColors.primary),
                                 const SizedBox(width: 10),
                                 Text(
@@ -306,7 +306,7 @@ class _AddWellbeingScheduleScreenState
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                const Icon(Icons.chevron_right,
+                                const Icon(Icons.chevron_right_rounded,
                                     size: 18, color: AppColors.textMuted),
                               ],
                             ),

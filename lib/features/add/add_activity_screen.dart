@@ -31,12 +31,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   bool _loaded = false;
 
   static const _types = [
-    ('walk', '🚶', 'Прогулянка'),
-    ('workout', '🏋️', 'Зарядка'),
-    ('gym', '💪', 'Тренування'),
-    ('yoga', '🧘', 'Йога / ЛФК'),
-    ('cycling', '🚴', 'Велосипед'),
-    ('custom', '＋', 'Своє'),
+    ('walk', Icons.directions_walk_rounded, 'Прогулянка'),
+    ('workout', Icons.fitness_center_rounded, 'Зарядка'),
+    ('gym', Icons.fitness_center_rounded, 'Тренування'),
+    ('yoga', Icons.self_improvement_rounded, 'Йога / ЛФК'),
+    ('cycling', Icons.directions_bike_rounded, 'Велосипед'),
+    ('custom', Icons.add_rounded, 'Своє'),
   ];
 
   static const _dayNames = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
@@ -240,8 +240,11 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(t.$2,
-                                    style: const TextStyle(fontSize: 22)),
+                                Icon(t.$2,
+                                    size: 22,
+                                    color: sel
+                                        ? const Color(0xFF15803D)
+                                        : AppColors.textMuted),
                                 const SizedBox(height: 4),
                                 Text(
                                   t.$3,
@@ -779,7 +782,7 @@ class _BackHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -796,7 +799,7 @@ class _BackHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFECACA)),
                 ),
-                child: const Icon(Icons.delete_outline,
+                child: const Icon(Icons.delete_outline_rounded,
                     size: 18, color: Color(0xFFDC2626)),
               ),
             ),

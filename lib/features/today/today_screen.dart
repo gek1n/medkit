@@ -8,6 +8,7 @@ import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
@@ -108,7 +109,7 @@ class _TodayContent extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => showAddTypeSheet(context, memberId: member.id),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: intakesAsync.when(
@@ -437,7 +438,7 @@ class _NextEventChip extends StatelessWidget {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('✅', style: TextStyle(fontSize: 11)),
+            Icon(Icons.check_circle_rounded, size: 11, color: Colors.white),
             SizedBox(width: 5),
             Text(
               'Все виконано',
@@ -542,7 +543,7 @@ class _AllDoneBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Text('🎉', style: TextStyle(fontSize: 34)),
+            const Icon(Icons.celebration_rounded, size: 34, color: Colors.white),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -591,8 +592,6 @@ class _CompactHero extends StatelessWidget {
     required this.onAddWellbeing,
   });
 
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -613,10 +612,7 @@ class _CompactHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Avatar
-                Text(
-                  _avatars[member.avatarIndex % _avatars.length],
-                  style: const TextStyle(fontSize: 28),
-                ),
+                AvatarImage(index: member.avatarIndex, size: 40),
                 const SizedBox(width: 12),
 
                 // Name + next event
@@ -917,7 +913,7 @@ class _ScheduleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (emoji, title, subtitle) = _info();
+    final (icon, title, subtitle) = _info();
     return Opacity(
       opacity: dimmed ? 0.45 : 1.0,
       child: Column(
@@ -949,7 +945,7 @@ class _ScheduleRow extends StatelessWidget {
                           fontWeight: FontWeight.w600),
                     ),
                   ),
-                  Text(emoji, style: const TextStyle(fontSize: 18)),
+                  Icon(icon, size: 18, color: AppColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -966,7 +962,7 @@ class _ScheduleRow extends StatelessWidget {
                     ),
                   ),
                   if (item.type == _ItemType.wellbeing && !dimmed)
-                    const Icon(Icons.chevron_right,
+                    const Icon(Icons.chevron_right_rounded,
                         size: 18, color: AppColors.textMuted),
                 ],
               ),
@@ -984,33 +980,33 @@ class _ScheduleRow extends StatelessWidget {
     );
   }
 
-  (String, String, String?) _info() {
+  (IconData, String, String?) _info() {
     switch (item.type) {
       case _ItemType.intake:
         final med =
             meds.where((m) => m.id == item.intake!.medicationId).firstOrNull;
-        return ('💊', med?.name ?? 'Ліки',
+        return (Icons.medication_rounded, med?.name ?? 'Ліки',
             med != null ? '${med.doseAmount} ${med.doseUnit}' : null);
       case _ItemType.activity:
         final a = activities
             .where((a) => a.id == item.activityLog!.activityId)
             .firstOrNull;
-        return (_actEmoji(a?.type), a?.name ?? 'Активність', null);
+        return (_actIcon(a?.type), a?.name ?? 'Активність', null);
       case _ItemType.appointment:
-        return ('👨‍⚕️', item.appointment!.doctorType,
+        return (Icons.medical_services_rounded, item.appointment!.doctorType,
             item.appointment!.location);
       case _ItemType.wellbeing:
-        return ('🩺', 'Самопочуття', null);
+        return (Icons.favorite_rounded, 'Самопочуття', null);
     }
   }
 
-  String _actEmoji(String? t) => switch (t) {
-        'walk' => '🚶',
-        'workout' => '🏋️',
-        'gym' => '💪',
-        'yoga' => '🧘',
-        'cycling' => '🚴',
-        _ => '🏃',
+  IconData _actIcon(String? t) => switch (t) {
+        'walk' => Icons.directions_walk_rounded,
+        'workout' => Icons.fitness_center_rounded,
+        'gym' => Icons.fitness_center_rounded,
+        'yoga' => Icons.self_improvement_rounded,
+        'cycling' => Icons.directions_bike_rounded,
+        _ => Icons.directions_run_rounded,
       };
 
   String _fmt(DateTime dt) =>
@@ -1103,7 +1099,7 @@ class _DoneAccordion extends StatelessWidget {
           ),
           child: ExpansionTile(
             leading:
-                const Text('✅', style: TextStyle(fontSize: 18)),
+                const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
             title: Text(
               'Виконано · ${items.length}',
               style: AppTextStyles.bodyMd
@@ -1250,7 +1246,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                             style: AppTextStyles.bodySm),
                       const SizedBox(height: 4),
                       Row(children: [
-                        Icon(Icons.access_time, size: 12, color: accent),
+                        Icon(Icons.access_time_rounded, size: 12, color: accent),
                         const SizedBox(width: 4),
                         Text(_fmt(intake.effectiveDue),
                             style: AppTextStyles.bodySm.copyWith(
@@ -1341,7 +1337,7 @@ class _ActiveActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent =
         missed ? const Color(0xFFF97316) : const Color(0xFF22C55E);
-    final emoji = _actEmoji(activity?.type);
+    final icon = _actIcon(activity?.type);
 
     return Container(
       decoration: BoxDecoration(
@@ -1369,8 +1365,7 @@ class _ActiveActivityCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                      child: Text(emoji,
-                          style: const TextStyle(fontSize: 28))),
+                      child: Icon(icon, size: 28, color: accent)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1382,7 +1377,7 @@ class _ActiveActivityCard extends StatelessWidget {
                               .copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 4),
                       Row(children: [
-                        Icon(Icons.access_time, size: 12, color: accent),
+                        Icon(Icons.access_time_rounded, size: 12, color: accent),
                         const SizedBox(width: 4),
                         Text(_fmt(log.scheduledAt),
                             style: AppTextStyles.bodySm.copyWith(
@@ -1418,13 +1413,13 @@ class _ActiveActivityCard extends StatelessWidget {
     );
   }
 
-  String _actEmoji(String? t) => switch (t) {
-        'walk' => '🚶',
-        'workout' => '🏋️',
-        'gym' => '💪',
-        'yoga' => '🧘',
-        'cycling' => '🚴',
-        _ => '🏃',
+  IconData _actIcon(String? t) => switch (t) {
+        'walk' => Icons.directions_walk_rounded,
+        'workout' => Icons.fitness_center_rounded,
+        'gym' => Icons.fitness_center_rounded,
+        'yoga' => Icons.self_improvement_rounded,
+        'cycling' => Icons.directions_bike_rounded,
+        _ => Icons.directions_run_rounded,
       };
 
   String _fmt(DateTime dt) =>
@@ -1446,7 +1441,7 @@ class _ActiveWellbeingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent =
-        missed ? const Color(0xFFF97316) : const Color(0xFF8B5CF6);
+        missed ? const Color(0xFFF97316) : const Color(0xFF5FAE7C);
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -1475,8 +1470,8 @@ class _ActiveWellbeingCard extends StatelessWidget {
                 color: accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Center(
-                  child: Text('🩺', style: TextStyle(fontSize: 28))),
+              child: Center(
+                  child: Icon(Icons.favorite_rounded, size: 28, color: accent)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1492,7 +1487,7 @@ class _ActiveWellbeingCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Row(children: [
-                    Icon(Icons.access_time, size: 12, color: accent),
+                    Icon(Icons.access_time_rounded, size: 12, color: accent),
                     const SizedBox(width: 4),
                     Text(_fmt(scheduledAt),
                         style: AppTextStyles.bodySm.copyWith(
@@ -1505,7 +1500,7 @@ class _ActiveWellbeingCard extends StatelessWidget {
                 style: AppTextStyles.bodySm
                     .copyWith(color: accent, fontWeight: FontWeight.w700)),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 18, color: accent),
+            Icon(Icons.chevron_right_rounded, size: 18, color: accent),
           ],
         ),
       ),
@@ -1580,14 +1575,21 @@ class _ActionRow extends StatelessWidget {
                 PopupMenuItem(value: 30, child: Text('30 хвилин')),
                 PopupMenuItem(value: 60, child: Text('1 година')),
               ],
-              child: const SizedBox(
+              child: SizedBox(
                 height: 44,
                 child: Center(
-                  child: Text('🕐 Перенести',
-                      style: TextStyle(
-                          color: AppColors.textSub,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.schedule_rounded,
+                          size: 14, color: AppColors.textSub),
+                      const SizedBox(width: 4),
+                      Text('Перенести',
+                          style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textSub,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1618,7 +1620,7 @@ class _SwitchBanner extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            const Text('👁', style: TextStyle(fontSize: 16)),
+            const Icon(Icons.visibility_rounded, size: 16, color: Color(0xFF92400E)),
             const SizedBox(width: 8),
             Expanded(
               child: Text('Ви дивитесь профіль: $name',
@@ -1654,7 +1656,8 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('💊', style: TextStyle(fontSize: 64)),
+            const Icon(Icons.medication_rounded,
+                size: 64, color: AppColors.primary),
             const SizedBox(height: 24),
             Text('Ласкаво просимо до MedKit',
                 style: AppTextStyles.h2, textAlign: TextAlign.center),

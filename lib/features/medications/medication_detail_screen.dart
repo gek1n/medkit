@@ -6,6 +6,7 @@ import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -719,15 +720,6 @@ class _MedAvatar extends StatelessWidget {
     }
   }
 
-  String _formEmoji(String form) => switch (form) {
-        'syrup' => '🍶',
-        'drops' => '💧',
-        'cream' => '🧴',
-        'inhaler' => '💨',
-        'injection' => '💉',
-        _ => '💊',
-      };
-
   Widget _placeholder() => Container(
         width: 56,
         height: 56,
@@ -736,7 +728,7 @@ class _MedAvatar extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Center(
-          child: Text(_formEmoji(med.form), style: const TextStyle(fontSize: 28)),
+          child: Icon(medFormIcon(med.form), size: 28, color: AppColors.primary),
         ),
       );
 
@@ -1245,12 +1237,12 @@ class _InfoBlock extends StatelessWidget {
         children: [
           Text('Деталі', style: AppTextStyles.labelLg),
           const SizedBox(height: 10),
-          _InfoRow('📅', 'Прийом', _repeatFull(med.repeatType, config)),
-          _InfoRow('🍴', 'З їжею', foodLabel),
-          _InfoRow('⏱', 'Курс',
+          _InfoRow(Icons.event_repeat_rounded, 'Прийом', _repeatFull(med.repeatType, config)),
+          _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel),
+          _InfoRow(Icons.timer_rounded, 'Курс',
               'з ${_fmt(med.startDate)} $endLabel'),
           if (med.instructions != null && med.instructions!.isNotEmpty)
-            _InfoRow('📝', 'Примітка', med.instructions!),
+            _InfoRow(Icons.edit_note_rounded, 'Примітка', med.instructions!),
         ],
       ),
     );
@@ -1288,7 +1280,7 @@ class _InfoBlock extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String label;
   final String value;
   const _InfoRow(this.icon, this.label, this.value);
@@ -1300,7 +1292,7 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 14)),
+          Icon(icon, size: 14, color: AppColors.primary),
           const SizedBox(width: 8),
           SizedBox(
             width: 86,
@@ -1327,7 +1319,7 @@ class _ActionRow extends ConsumerWidget {
       children: [
         Expanded(
           child: _ActBtn(
-            icon: '⏸',
+            icon: Icons.pause_circle_outline_rounded,
             label: 'Пауза',
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1338,7 +1330,7 @@ class _ActionRow extends ConsumerWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _ActBtn(
-            icon: '✏️',
+            icon: Icons.edit_rounded,
             label: 'Редагувати',
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1349,7 +1341,7 @@ class _ActionRow extends ConsumerWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _ActBtn(
-            icon: '🗑',
+            icon: Icons.delete_rounded,
             label: 'Зупинити',
             isDestructive: true,
             onTap: () => _confirmStop(context, ref),
@@ -1389,7 +1381,7 @@ class _ActionRow extends ConsumerWidget {
 }
 
 class _ActBtn extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String label;
   final bool isDestructive;
   final VoidCallback onTap;
@@ -1418,7 +1410,9 @@ class _ActBtn extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(icon, style: const TextStyle(fontSize: 18)),
+            Icon(icon,
+                size: 18,
+                color: isDestructive ? AppColors.danger : AppColors.primary),
             const SizedBox(height: 4),
             Text(
               label,
@@ -1456,7 +1450,7 @@ class _BackHeader extends StatelessWidget {
                 color: AppColors.bgPage,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),

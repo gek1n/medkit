@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
@@ -51,11 +53,11 @@ final _scheduleWellbeingScheduleProvider =
 enum _ScheduleCategory { meds, activities, wellbeing, appointments }
 
 extension on _ScheduleCategory {
-  String get emoji => switch (this) {
-        _ScheduleCategory.meds => '💊',
-        _ScheduleCategory.activities => '🚶',
-        _ScheduleCategory.wellbeing => '💜',
-        _ScheduleCategory.appointments => '🩺',
+  IconData get icon => switch (this) {
+        _ScheduleCategory.meds => Icons.medication_rounded,
+        _ScheduleCategory.activities => Icons.directions_walk_rounded,
+        _ScheduleCategory.wellbeing => Icons.favorite_rounded,
+        _ScheduleCategory.appointments => Icons.medical_services_rounded,
       };
 
   String get label => switch (this) {
@@ -89,7 +91,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => showAddTypeSheet(context, memberId: _selectedMemberId),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: membersAsync.when(
@@ -228,7 +230,7 @@ class _ScheduleBody extends ConsumerWidget {
               if (q.isEmpty) ...[
                 if (category == _ScheduleCategory.meds) ...[
                   _SectionHeader(
-                    emoji: '💊',
+                    icon: Icons.medication_rounded,
                     title: 'Ліки',
                     onAdd: () => Navigator.push(
                       context,
@@ -279,7 +281,7 @@ class _ScheduleBody extends ConsumerWidget {
 
                 if (category == _ScheduleCategory.activities) ...[
                   _SectionHeader(
-                    emoji: '🚶',
+                    icon: Icons.directions_walk_rounded,
                     title: 'Активності',
                     onAdd: () => Navigator.push(
                       context,
@@ -330,7 +332,7 @@ class _ScheduleBody extends ConsumerWidget {
 
                 if (category == _ScheduleCategory.wellbeing) ...[
                   _SectionHeader(
-                    emoji: '💜',
+                    icon: Icons.favorite_rounded,
                     title: 'Самопочуття',
                     onAdd: () => Navigator.push(
                       context,
@@ -373,7 +375,7 @@ class _ScheduleBody extends ConsumerWidget {
 
                 if (category == _ScheduleCategory.appointments) ...[
                   _SectionHeader(
-                    emoji: '🩺',
+                    icon: Icons.medical_services_rounded,
                     title: 'Прийоми лікарів',
                     onAdd: () => Navigator.push(
                       context,
@@ -446,7 +448,7 @@ class _ScheduleBody extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (meds.isNotEmpty) ...[
-                        const _SectionHeader(emoji: '💊', title: 'Ліки'),
+                        const _SectionHeader(icon: Icons.medication_rounded, title: 'Ліки'),
                         const SizedBox(height: AppDimensions.md),
                         ...meds.map((m) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -466,7 +468,7 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (activities.isNotEmpty) ...[
-                        const _SectionHeader(emoji: '🚶', title: 'Активності'),
+                        const _SectionHeader(icon: Icons.directions_walk_rounded, title: 'Активності'),
                         const SizedBox(height: AppDimensions.md),
                         ...activities.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -486,7 +488,7 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (appointments.isNotEmpty) ...[
-                        const _SectionHeader(emoji: '🩺', title: 'Прийоми лікарів'),
+                        const _SectionHeader(icon: Icons.medical_services_rounded, title: 'Прийоми лікарів'),
                         const SizedBox(height: AppDimensions.md),
                         ...appointments.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -550,7 +552,7 @@ class _CategorySegmentControl extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(c.emoji, style: const TextStyle(fontSize: 16)),
+                    Icon(c.icon, size: 16, color: active ? Colors.white : AppColors.textMuted),
                     const SizedBox(height: 2),
                     Text(
                       c.label,
@@ -657,17 +659,17 @@ class _SearchFieldState extends State<_SearchField> {
 // ─── Section header ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String title;
   final VoidCallback? onAdd;
 
-  const _SectionHeader({required this.emoji, required this.title, this.onAdd});
+  const _SectionHeader({required this.icon, required this.title, this.onAdd});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 18)),
+        Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 8),
         Expanded(child: SectionLabel(title)),
         if (onAdd != null)
@@ -680,7 +682,7 @@ class _SectionHeader extends StatelessWidget {
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.add, color: AppColors.primary, size: 18),
+              child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 18),
             ),
           ),
       ],
@@ -709,7 +711,7 @@ class _MedCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: Center(
-              child: Text(_formEmoji(med.form), style: const TextStyle(fontSize: 22)),
+              child: Icon(medFormIcon(med.form), size: 22, color: AppColors.primary),
             ),
           ),
           const SizedBox(width: AppDimensions.md),
@@ -728,7 +730,7 @@ class _MedCard extends StatelessWidget {
           ),
           if (med.totalCount > 0) _PillBadge(remaining: med.remainingCount, total: med.totalCount),
           const SizedBox(width: AppDimensions.sm),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
         ],
       ),
     );
@@ -746,14 +748,6 @@ class _MedCard extends StatelessWidget {
         _ => '',
       };
 
-  String _formEmoji(String form) => switch (form) {
-        'syrup' => '🍶',
-        'drops' => '💧',
-        'cream' => '🧴',
-        'inhaler' => '💨',
-        'injection' => '💉',
-        _ => '💊',
-      };
 }
 
 class _PillBadge extends StatelessWidget {
@@ -801,7 +795,7 @@ class _ActivityCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: Center(
-              child: Text(_typeEmoji(activity.type), style: const TextStyle(fontSize: 22)),
+              child: Icon(_typeIcon(activity.type), size: 22, color: AppColors.primary),
             ),
           ),
           const SizedBox(width: AppDimensions.md),
@@ -818,18 +812,18 @@ class _ActivityCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
         ],
       ),
     );
   }
 
-  String _typeEmoji(String type) => switch (type) {
-        'walk' => '🚶',
-        'workout' => '🏋️',
-        'yoga' => '🧘',
-        'cycling' => '🚴',
-        _ => '⚡',
+  IconData _typeIcon(String type) => switch (type) {
+        'walk' => Icons.directions_walk_rounded,
+        'workout' => Icons.fitness_center_rounded,
+        'yoga' => Icons.self_improvement_rounded,
+        'cycling' => Icons.directions_bike_rounded,
+        _ => Icons.bolt_rounded,
       };
 
   String _daysStr(String repeatDaysJson) {
@@ -867,7 +861,7 @@ class _AppointmentCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: const Center(
-              child: Text('🩺', style: TextStyle(fontSize: 22)),
+              child: Icon(Icons.medical_services_rounded, size: 22, color: AppColors.primary),
             ),
           ),
           const SizedBox(width: AppDimensions.md),
@@ -891,7 +885,7 @@ class _AppointmentCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
         ],
       ),
     );
@@ -923,11 +917,11 @@ class _WellbeingScheduleCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F3FF),
+              color: const Color(0xFFEFF7F1),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: const Center(
-              child: Text('💜', style: TextStyle(fontSize: 22)),
+              child: Icon(Icons.favorite_rounded, size: 22, color: AppColors.primary),
             ),
           ),
           const SizedBox(width: AppDimensions.md),
@@ -944,7 +938,7 @@ class _WellbeingScheduleCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
         ],
       ),
     );
@@ -963,8 +957,6 @@ class _MemberFilterStrip extends StatelessWidget {
     required this.selectedId,
     required this.onSelect,
   });
-
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
 
   @override
   Widget build(BuildContext context) {
@@ -992,10 +984,7 @@ class _MemberFilterStrip extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Text(
-                    _avatars[m.avatarIndex % _avatars.length],
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  AvatarImage(index: m.avatarIndex, size: 18),
                   const SizedBox(width: 6),
                   Text(
                     m.name,
@@ -1073,7 +1062,7 @@ class _EmptyMembers extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('👤', style: TextStyle(fontSize: 52)),
+          Icon(Icons.person_off_rounded, size: 52, color: AppColors.textMuted),
           SizedBox(height: 16),
           Text('Профіль не знайдено'),
         ],

@@ -18,13 +18,13 @@ ThemeData buildAppTheme() {
       onSurface: AppColors.textMain,
     ),
     scaffoldBackgroundColor: AppColors.bg,
-    textTheme: GoogleFonts.interTextTheme(),
+    textTheme: GoogleFonts.nunitoTextTheme(),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.bg,
       elevation: 0,
       scrolledUnderElevation: 0,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
-      titleTextStyle: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textMain),
+      titleTextStyle: GoogleFonts.nunito(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textMain),
       iconTheme: const IconThemeData(color: AppColors.textMain),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -34,7 +34,7 @@ ThemeData buildAppTheme() {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-      hintStyle: GoogleFonts.inter(fontSize: 14, color: AppColors.textMuted),
+      hintStyle: GoogleFonts.nunito(fontSize: 14, color: AppColors.textMuted),
     ),
   );
 }

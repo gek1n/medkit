@@ -8,6 +8,7 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
@@ -495,7 +496,7 @@ class _BackHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -535,7 +536,7 @@ class _ScanCta extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.play_arrow,
+          Icon(Icons.play_arrow_rounded,
               color: Colors.white.withValues(alpha: 0.7), size: 20),
         ],
       ),
@@ -621,16 +622,28 @@ class _FormChips extends StatelessWidget {
   const _FormChips({required this.selected, required this.onSelect});
 
   static const _forms = [
-    ('tablet',      '💊', 'Таблетка'),
-    ('capsule',     '💊', 'Капсула'),
-    ('suppository', '🕯️', 'Свічі'),
-    ('vial',        '🧪', 'Флакон'),
-    ('syrup',       '🍶', 'Сироп'),
-    ('drops',       '💧', 'Краплі'),
-    ('cream',       '🧴', 'Крем'),
-    ('inhaler',     '💨', 'Інгалятор'),
-    ('injection',   '💉', 'Ін\'єкція'),
+    'tablet',
+    'capsule',
+    'suppository',
+    'vial',
+    'syrup',
+    'drops',
+    'cream',
+    'inhaler',
+    'injection',
   ];
+
+  static const _formLabels = {
+    'tablet': 'Таблетка',
+    'capsule': 'Капсула',
+    'suppository': 'Свічі',
+    'vial': 'Флакон',
+    'syrup': 'Сироп',
+    'drops': 'Краплі',
+    'cream': 'Крем',
+    'inhaler': 'Інгалятор',
+    'injection': 'Ін\'єкція',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -639,29 +652,42 @@ class _FormChips extends StatelessWidget {
       runSpacing: 8,
       children: _forms
           .map((f) => GestureDetector(
-                onTap: () => onSelect(f.$1),
+                onTap: () => onSelect(f),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: selected == f.$1
+                    color: selected == f
                         ? AppColors.primary
                         : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: selected == f.$1
+                      color: selected == f
                           ? AppColors.primary
                           : AppColors.border,
                     ),
                   ),
-                  child: Text(
-                    '${f.$2} ${f.$3}',
-                    style: AppTextStyles.labelMd.copyWith(
-                      color: selected == f.$1
-                          ? Colors.white
-                          : AppColors.textMain,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        medFormIcon(f),
+                        size: 16,
+                        color: selected == f
+                            ? Colors.white
+                            : AppColors.textMain,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _formLabels[f]!,
+                        style: AppTextStyles.labelMd.copyWith(
+                          color: selected == f
+                              ? Colors.white
+                              : AppColors.textMain,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ))
@@ -828,7 +854,7 @@ class _PhaseCard extends StatelessWidget {
               child: DropdownButton<String>(
                 value: foodRelation,
                 isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded,
                     size: 18, color: AppColors.primary),
                 style: AppTextStyles.labelMd
                     .copyWith(color: AppColors.primary),
@@ -1023,7 +1049,7 @@ class _PhaseCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.access_time,
+                              const Icon(Icons.access_time_rounded,
                                   size: 14, color: AppColors.primary),
                               const SizedBox(width: 6),
                               Text(_fmt(e.value),
@@ -1048,7 +1074,7 @@ class _PhaseCard extends StatelessWidget {
                               intervalStart: phase.intervalStart,
                             ));
                           },
-                          child: const Icon(Icons.close,
+                          child: const Icon(Icons.close_rounded,
                               size: 18, color: AppColors.textMuted),
                         ),
                     ],
@@ -1081,7 +1107,7 @@ class _PhaseCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.add,
+                    const Icon(Icons.add_rounded,
                         size: 14, color: AppColors.textMuted),
                     const SizedBox(width: 6),
                     Text('Додати час',
@@ -1194,7 +1220,7 @@ class _PhaseCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.access_time,
+                            const Icon(Icons.access_time_rounded,
                                 size: 14, color: AppColors.primary),
                             const SizedBox(width: 6),
                             Text(_fmt(phase.intervalStart),
@@ -1595,7 +1621,7 @@ class _RepeatOption extends StatelessWidget {
                     ),
                   ),
                   child: sel
-                      ? const Icon(Icons.check, color: Colors.white, size: 12)
+                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 12)
                       : null,
                 ),
               ],
@@ -1750,7 +1776,7 @@ class _DurationSectionState extends State<_DurationSection> {
                       width: 44,
                       height: 44,
                       alignment: Alignment.center,
-                      child: Icon(Icons.remove,
+                      child: Icon(Icons.remove_rounded,
                           size: 18,
                           color: widget.isPermanent
                               ? AppColors.textMuted
@@ -1803,7 +1829,7 @@ class _DurationSectionState extends State<_DurationSection> {
                       width: 44,
                       height: 44,
                       alignment: Alignment.center,
-                      child: Icon(Icons.add,
+                      child: Icon(Icons.add_rounded,
                           size: 18,
                           color: widget.isPermanent
                               ? AppColors.textMuted
@@ -1942,7 +1968,7 @@ class _OptionalSectionState extends State<_OptionalSection> {
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down,
+                  child: const Icon(Icons.keyboard_arrow_down_rounded,
                       size: 20, color: AppColors.textMuted),
                 ),
               ],
@@ -1996,7 +2022,7 @@ class _OptionalSectionState extends State<_OptionalSection> {
                           ),
                         ),
                         child: widget.trackStock
-                            ? const Icon(Icons.check,
+                            ? const Icon(Icons.check_rounded,
                                 size: 14, color: Colors.white)
                             : null,
                       ),
@@ -2071,7 +2097,7 @@ class _OptionalSectionState extends State<_OptionalSection> {
                               Icon(
                                 toBuy > 0
                                     ? Icons.shopping_bag_outlined
-                                    : Icons.check_circle_outline,
+                                    : Icons.check_circle_outline_rounded,
                                 size: 20,
                                 color: toBuy > 0
                                     ? AppColors.primary
@@ -2317,7 +2343,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
                                 color: Colors.black54,
                                 borderRadius: BorderRadius.circular(11),
                               ),
-                              child: const Icon(Icons.close,
+                              child: const Icon(Icons.close_rounded,
                                   size: 14, color: Colors.white),
                             ),
                           ),

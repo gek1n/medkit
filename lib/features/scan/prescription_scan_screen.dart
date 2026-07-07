@@ -315,7 +315,7 @@ class _PickingBody extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
-                        child: const Icon(Icons.close, size: 14, color: Colors.white),
+                        child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
                       ),
                     ),
                   ),
@@ -513,7 +513,8 @@ class _ErrorBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('😕', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.sentiment_dissatisfied_rounded,
+              size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('Щось пішло не так', style: AppTextStyles.h3),
           const SizedBox(height: 8),

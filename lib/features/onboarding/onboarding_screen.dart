@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../data/repositories/activities_repository.dart';
@@ -300,7 +301,7 @@ class _ProgressBar extends StatelessWidget {
                   onTap: onBack,
                   child: const Padding(
                     padding: EdgeInsets.only(right: 10),
-                    child: Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textMuted),
+                    child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppColors.textMuted),
                   ),
                 ),
               ] else
@@ -360,7 +361,7 @@ class _StepWho extends StatelessWidget {
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
               ),
-              child: const Center(child: Text('👥', style: TextStyle(fontSize: 44))),
+              child: const Center(child: Icon(Icons.groups_rounded, size: 44, color: AppColors.primary)),
             ),
           ),
           const SizedBox(height: 16),
@@ -389,7 +390,7 @@ class _StepWho extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _Option(
-            emoji: '🧑',
+            icon: Icons.person_rounded,
             title: 'Себе',
             sub: 'Мої ліки та розклад',
             selected: true,
@@ -398,7 +399,7 @@ class _StepWho extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _Option(
-            emoji: '👩',
+            icon: Icons.elderly_rounded,
             title: 'Маму / Тата',
             sub: 'Стежитиму, вони отримають нагадування',
             selected: selectedRoles.contains('parent'),
@@ -406,7 +407,7 @@ class _StepWho extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _Option(
-            emoji: '👧',
+            icon: Icons.child_care_rounded,
             title: 'Дитину',
             sub: 'Дитячі ліки та активність',
             selected: selectedRoles.contains('child'),
@@ -414,7 +415,7 @@ class _StepWho extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _Option(
-            emoji: '💑',
+            icon: Icons.favorite_rounded,
             title: 'Партнера',
             sub: 'Бачимо статуси один одного',
             selected: selectedRoles.contains('partner'),
@@ -431,7 +432,7 @@ class _StepWho extends StatelessWidget {
 }
 
 class _Option extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String title;
   final String sub;
   final bool selected;
@@ -439,7 +440,7 @@ class _Option extends StatelessWidget {
   final VoidCallback onTap;
 
   const _Option({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.sub,
     required this.selected,
@@ -464,7 +465,7 @@ class _Option extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
+            Icon(icon, size: 24, color: AppColors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -490,7 +491,7 @@ class _Option extends StatelessWidget {
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check, color: Colors.white, size: 13)
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 13)
                   : null,
             ),
           ],
@@ -531,8 +532,6 @@ class _StepName extends StatelessWidget {
     required this.onNext,
   });
 
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -563,18 +562,7 @@ class _StepName extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () => _showAvatarPicker(context, avatarIndex, onAvatarChange),
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryLighter,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(_avatars[avatarIndex % _avatars.length],
-                              style: const TextStyle(fontSize: 26)),
-                        ),
-                      ),
+                      child: AvatarImage(index: avatarIndex, size: 52),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -613,7 +601,6 @@ class _StepName extends StatelessWidget {
           for (int i = 0; i < familyDrafts.length; i++) ...[
             _FamilyMemberCard(
               draft: familyDrafts[i],
-              avatars: _avatars,
               onAvatarTap: () => _showAvatarPicker(
                   context, familyDrafts[i].avatarIndex,
                   (av) => onFamilyAvatarChange(i, av)),
@@ -658,6 +645,7 @@ class _StepName extends StatelessWidget {
   void _showAvatarPicker(BuildContext context, int current, void Function(int) onSelect) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => Padding(
@@ -667,35 +655,40 @@ class _StepName extends StatelessWidget {
           children: [
             Text('Оберіть аватар', style: AppTextStyles.h3),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: List.generate(_avatars.length, (i) => GestureDetector(
-                onTap: () {
-                  onSelect(i);
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: i == current
-                        ? AppColors.primaryLight
-                        : AppColors.bgPage,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: i == current
-                          ? AppColors.primary
-                          : Colors.transparent,
-                      width: 2,
+            SizedBox(
+              height: 320,
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: List.generate(avatarCount, (i) => GestureDetector(
+                    onTap: () {
+                      onSelect(i);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: i == current
+                            ? AppColors.primaryLight
+                            : AppColors.bgPage,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: i == current
+                              ? AppColors.primary
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: AvatarImage(index: i, size: 52),
+                      ),
                     ),
-                  ),
-                  child: Center(
-                    child: Text(_avatars[i],
-                        style: const TextStyle(fontSize: 28)),
-                  ),
+                  )),
                 ),
-              )),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -707,13 +700,11 @@ class _StepName extends StatelessWidget {
 
 class _FamilyMemberCard extends StatelessWidget {
   final _FamilyMemberDraft draft;
-  final List<String> avatars;
   final VoidCallback onAvatarTap;
   final VoidCallback onRemove;
 
   const _FamilyMemberCard({
     required this.draft,
-    required this.avatars,
     required this.onAvatarTap,
     required this.onRemove,
   });
@@ -731,16 +722,7 @@ class _FamilyMemberCard extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: onAvatarTap,
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: const BoxDecoration(
-                  color: AppColors.bgPage, shape: BoxShape.circle),
-              child: Center(
-                child: Text(avatars[draft.avatarIndex % avatars.length],
-                    style: const TextStyle(fontSize: 24)),
-              ),
-            ),
+            child: AvatarImage(index: draft.avatarIndex, size: 48),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -761,7 +743,7 @@ class _FamilyMemberCard extends StatelessWidget {
             onTap: onRemove,
             child: const Padding(
               padding: EdgeInsets.all(4),
-              child: Icon(Icons.close, size: 18, color: AppColors.textMuted),
+              child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
             ),
           ),
         ],
@@ -823,7 +805,7 @@ class _StepMedications extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward,
+                  Icon(Icons.arrow_forward_rounded,
                       color: Colors.white.withValues(alpha: 0.7)),
                 ],
               ),
@@ -842,7 +824,7 @@ class _StepMedications extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('✨', style: TextStyle(fontSize: 16)),
+                const Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFF78350F)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -893,7 +875,7 @@ class _StepSchedule extends StatelessWidget {
             ),
             child: Column(
               children: [
-                const Text('📅', style: TextStyle(fontSize: 48)),
+                const Icon(Icons.calendar_month_rounded, size: 48, color: AppColors.primary),
                 const SizedBox(height: 12),
                 Text(
                   'Розклад з\'явиться після додавання ліків',
@@ -954,7 +936,7 @@ class _StepActivities extends StatelessWidget {
           const SizedBox(height: 10),
 
           _ToggleRow(
-            emoji: '🚶',
+            icon: Icons.directions_walk_rounded,
             title: 'Прогулянка',
             sub: '30 хв · щодня · 08:30',
             value: walkEnabled,
@@ -966,12 +948,12 @@ class _StepActivities extends StatelessWidget {
           const SizedBox(height: 10),
 
           _ToggleRow(
-            emoji: '💜',
+            icon: Icons.favorite_rounded,
             title: 'Зрізи самопочуття',
             sub: '2–3 рази на день · 08:00, 14:00, 20:00',
             value: wellbeingEnabled,
             onChanged: onWellbeingToggle,
-            activeColor: const Color(0xFF7C3AED),
+            activeColor: const Color(0xFF3F8F5F),
           ),
           const SizedBox(height: 12),
 
@@ -985,7 +967,7 @@ class _StepActivities extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('✨', style: TextStyle(fontSize: 14)),
+                const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFF78350F)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1024,7 +1006,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _ToggleRow extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String title;
   final String sub;
   final bool value;
@@ -1032,7 +1014,7 @@ class _ToggleRow extends StatelessWidget {
   final Color activeColor;
 
   const _ToggleRow({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.sub,
     required this.value,
@@ -1059,7 +1041,7 @@ class _ToggleRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 18))),
+                child: Icon(icon, size: 18, color: AppColors.primary)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1101,7 +1083,7 @@ class _StepDone extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 16),
-          const Text('🎉', style: TextStyle(fontSize: 64)),
+          const Icon(Icons.celebration_rounded, size: 64, color: AppColors.primary),
           const SizedBox(height: 16),
           Text('Готово!', style: AppTextStyles.h1),
           const SizedBox(height: 8),
