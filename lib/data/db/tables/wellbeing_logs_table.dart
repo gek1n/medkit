@@ -12,6 +12,10 @@ class WellbeingLogs extends Table {
   // json: ["nausea","headache"] — name_key з symptoms
   TextColumn get comment => text().nullable()();
   TextColumn get voiceNotePath => text().nullable()();
+  BoolColumn get skipped => boolean().withDefault(const Constant(false))();
+  // true — користувач натиснув "Пропустити", реальних даних немає;
+  // виключається з аналітики/історії, але враховується як "оброблено" в
+  // перевірці today_screen.dart, щоб слот не висів вічно активним
   DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально

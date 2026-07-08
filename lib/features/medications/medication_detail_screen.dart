@@ -7,10 +7,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
-import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
+import 'add_medication_screen.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -21,30 +22,6 @@ final _medWatchProvider = StreamProvider.family<Medication?, int>(
 final _schedWatchProvider = StreamProvider.family<List<Schedule>, int>(
   (ref, medId) =>
       ref.watch(schedulesRepositoryProvider).watchByMedication(medId),
-);
-
-typedef _MK = ({int medId, int memberId});
-
-final _todayMedIntakesProvider = StreamProvider.family<List<Intake>, _MK>(
-  (ref, k) {
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-    final end = start.add(const Duration(days: 1));
-    return ref
-        .watch(intakesRepositoryProvider)
-        .watchByMedicationAndDateRange(k.medId, k.memberId, start, end);
-  },
-);
-
-final _monthIntakesProvider = StreamProvider.family<List<Intake>, _MK>(
-  (ref, k) {
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final end = DateTime(now.year, now.month + 1, 1);
-    return ref
-        .watch(intakesRepositoryProvider)
-        .watchByMedicationAndDateRange(k.medId, k.memberId, start, end);
-  },
 );
 
 // ── Фази курсу ────────────────────────────────────────────────────────────────
@@ -124,6 +101,15 @@ String _stockUnitLabel(String form) => switch (form) {
       _ => 'ЗАЛИШОК',
     };
 
+String _daysWordUk(int n) {
+  final mod10 = n % 10;
+  final mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'днів';
+  if (mod10 == 1) return 'день';
+  if (mod10 >= 2 && mod10 <= 4) return 'дні';
+  return 'днів';
+}
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 class MedicationDetailScreen extends ConsumerWidget {
@@ -140,7 +126,7 @@ class MedicationDetailScreen extends ConsumerWidget {
     final medAsync = ref.watch(_medWatchProvider(medicationId));
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: medAsync.when(
           loading: () => const Center(
@@ -169,12 +155,8 @@ class _DetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mk = (medId: med.id, memberId: memberId);
     final schedules = ref.watch(_schedWatchProvider(med.id)).valueOrNull ?? [];
-    final todayIntakes =
-        ref.watch(_todayMedIntakesProvider(mk)).valueOrNull ?? [];
-    final monthIntakes =
-        ref.watch(_monthIntakesProvider(mk)).valueOrNull ?? [];
+    final accent = colorFromHex(med.color) ?? AppColors.primary;
 
     return CustomScrollView(
       slivers: [
@@ -182,11 +164,7 @@ class _DetailBody extends ConsumerWidget {
           child: _BackHeader(onBack: () => Navigator.pop(context)),
         ),
         SliverToBoxAdapter(
-          child: _HeroSection(
-            med: med,
-            schedules: schedules,
-            monthIntakes: monthIntakes,
-          ),
+          child: _HeroSection(med: med, accent: accent),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
@@ -197,25 +175,17 @@ class _DetailBody extends ConsumerWidget {
           ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              if (med.totalCount > 0 || med.stockPercent != null) ...[
-                _StockSection(med: med, schedules: schedules),
-                const SizedBox(height: AppDimensions.xl),
-              ],
-              if (schedules.isNotEmpty)
-                _TodayScheduleSection(
-                  schedules: schedules,
-                  todayIntakes: todayIntakes,
-                  ref: ref,
-                ),
-              const SizedBox(height: AppDimensions.xl),
-              _CalendarSection(intakes: monthIntakes),
               if (_parsePhases(med.phases).isNotEmpty) ...[
-                _PhasesSection(med: med),
+                _PhasesSection(med: med, accent: accent),
                 const SizedBox(height: AppDimensions.xl),
               ],
-              _InfoBlock(med: med),
+              _InfoBlock(med: med, accent: accent),
               const SizedBox(height: AppDimensions.xl),
-              _ActionRow(med: med),
+              if (med.totalCount > 0 || med.stockPercent != null) ...[
+                _StockSection(med: med, schedules: schedules, accent: accent),
+                const SizedBox(height: AppDimensions.xl),
+              ],
+              _ActionRow(med: med, accent: accent),
               const SizedBox(height: 40),
             ]),
           ),
@@ -229,28 +199,34 @@ class _DetailBody extends ConsumerWidget {
 
 class _HeroSection extends StatelessWidget {
   final Medication med;
-  final List<Schedule> schedules;
-  final List<Intake> monthIntakes;
-  const _HeroSection({
-    required this.med,
-    required this.schedules,
-    required this.monthIntakes,
-  });
+  final Color accent;
+  const _HeroSection({required this.med, required this.accent});
 
   @override
   Widget build(BuildContext context) {
-    final taken = monthIntakes.where((i) => i.status == 'taken').length;
-    final completed = monthIntakes
-        .where((i) => i.status == 'taken' || i.status == 'skipped')
-        .length;
-    final pct = completed > 0 ? (taken / completed * 100).round() : 0;
+    final phases = _parsePhases(med.phases);
+    final idx = _activePhaseIndex(med, phases, DateTime.now());
+    final activePhase = idx != null ? phases[idx] : null;
 
-    final dailyConsumption = _dailyConsumption(med, schedules);
-    final daysLeft = (dailyConsumption != null &&
-            dailyConsumption > 0 &&
-            med.remainingCount > 0)
-        ? (med.remainingCount / dailyConsumption).floor()
+    final doseAmount = activePhase != null
+        ? ((activePhase['doseAmount'] as num?)?.toDouble() ?? med.doseAmount)
+        : med.doseAmount;
+    final doseAmountStr = doseAmount == doseAmount.roundToDouble()
+        ? doseAmount.toInt().toString()
+        : doseAmount.toStringAsFixed(1);
+
+    final timesPerDay = activePhase != null
+        ? (activePhase['times'] as List? ?? const []).length
+        : 1;
+
+    final daysLeftInCourse = med.endDate != null
+        ? med.endDate!.difference(DateTime.now()).inDays + 1
         : null;
+    final courseLabel = daysLeftInCourse != null
+        ? (daysLeftInCourse > 0
+            ? '$daysLeftInCourse ${_daysWordUk(daysLeftInCourse)} курсу'
+            : 'курс завершено')
+        : 'постійний курс';
 
     return Container(
       color: AppColors.surface,
@@ -261,79 +237,79 @@ class _HeroSection extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _MedAvatar(med: med),
-              const SizedBox(width: 14),
+              Icon(medFormIcon(med.form), size: 22, color: accent),
+              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(med.name,
-                        style: AppTextStyles.h2,
-                        overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${_doseStr(med)}  ·  ${_repeatShort(med)}',
-                      style: AppTextStyles.bodyMd
-                          .copyWith(color: AppColors.textSub),
-                    ),
-                  ],
-                ),
+                child: Text(med.name,
+                    style: AppTextStyles.h2,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: _StatTile(
-                  value: '$pct%',
-                  label: 'Виконання',
-                  danger: false,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatTile(
-                  value: daysLeft != null ? '$daysLeft д' : '∞',
-                  label: 'Залишилось',
-                  danger: daysLeft != null && daysLeft < 5,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _StatTile(
-                  value: med.totalCount > 0 ? '${med.remainingCount}' : '∞',
-                  label: 'Таблеток',
-                  danger: false,
-                ),
-              ),
+              _FactChip(
+                  icon: Icons.medication_outlined,
+                  label: '$doseAmountStr ${med.doseUnit} на прийом',
+                  accent: accent),
+              _FactChip(
+                  icon: Icons.repeat_rounded,
+                  label: '$timesPerDay ${_timesWordUk(timesPerDay)}/день',
+                  accent: accent),
+              _FactChip(
+                  icon: Icons.timer_outlined,
+                  label: courseLabel,
+                  accent: accent),
             ],
           ),
+          _MedPhotoBlock(med: med, accent: accent),
         ],
       ),
     );
   }
 
-  String _doseStr(Medication m) {
-    final phases = _parsePhases(m.phases);
-    final idx = _activePhaseIndex(m, phases, DateTime.now());
-    final amount = idx != null
-        ? ((phases[idx]['doseAmount'] as num?)?.toDouble() ?? m.doseAmount)
-        : m.doseAmount;
-    final amountStr = amount == amount.roundToDouble()
-        ? amount.toInt().toString()
-        : amount.toStringAsFixed(1);
-    return '$amountStr ${m.doseUnit}';
+  String _timesWordUk(int n) {
+    final mod10 = n % 10;
+    final mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 14) return 'разів';
+    if (mod10 == 1) return 'раз';
+    if (mod10 >= 2 && mod10 <= 4) return 'рази';
+    return 'разів';
   }
+}
 
-  String _repeatShort(Medication m) => switch (m.repeatType) {
-        'daily' => 'щодня',
-        'alternate' => 'через день',
-        'weekdays' => 'певні дні',
-        'every_n' => 'кожні N днів',
-        'cycle' => 'циклом',
-        _ => '',
-      };
+class _FactChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color accent;
+  const _FactChip(
+      {required this.icon, required this.label, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: accent),
+          const SizedBox(width: 6),
+          Text(label,
+              style: AppTextStyles.bodySm.copyWith(
+                  fontWeight: FontWeight.w700, color: AppColors.textMain)),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Залишок ────────────────────────────────────────────────────────────────────
@@ -341,14 +317,17 @@ class _HeroSection extends StatelessWidget {
 class _StockSection extends ConsumerWidget {
   final Medication med;
   final List<Schedule> schedules;
-  const _StockSection({required this.med, required this.schedules});
+  final Color accent;
+  const _StockSection(
+      {required this.med, required this.schedules, required this.accent});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Залишок', style: AppTextStyles.labelLg),
+        _SectionTitle(
+            icon: Icons.inventory_2_outlined, label: 'Залишок', accent: accent),
         const SizedBox(height: 10),
         isPercentTrackedForm(med.form)
             ? _buildPercentCard(context, ref)
@@ -392,9 +371,9 @@ class _StockSection extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryLighter),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +408,7 @@ class _StockSection extends ConsumerWidget {
                 Text(
                   'на ${daysLeft.toStringAsFixed(1)} дн.',
                   style: AppTextStyles.bodyMd.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w700),
+                      color: accent, fontWeight: FontWeight.w700),
                 ),
             ],
           ),
@@ -451,12 +430,12 @@ class _StockSection extends ConsumerWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.4)),
+                    color: accent.withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.shopping_bag_outlined,
-                      size: 18, color: AppColors.primary),
+                  Icon(Icons.shopping_bag_outlined,
+                      size: 18, color: accent),
                   const SizedBox(width: 8),
                   Expanded(
                     child: RichText(
@@ -467,7 +446,7 @@ class _StockSection extends ConsumerWidget {
                           TextSpan(
                             text: '$toBuy ${med.doseUnit}',
                             style: AppTextStyles.labelMd
-                                .copyWith(color: AppColors.primary),
+                                .copyWith(color: accent),
                           ),
                           TextSpan(
                             text: ' ($toBuyPeriodLabel)',
@@ -488,15 +467,14 @@ class _StockSection extends ConsumerWidget {
             child: OutlinedButton(
               onPressed: () => _showRefillDialog(context, ref),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primaryLighter),
+                foregroundColor: accent,
+                side: BorderSide(color: accent.withValues(alpha: 0.4)),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
               child: Text('+ Поповнити упаковку',
-                  style:
-                      AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
+                  style: AppTextStyles.labelMd.copyWith(color: accent)),
             ),
           ),
         ],
@@ -554,9 +532,9 @@ class _StockSection extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primaryLighter),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -643,19 +621,19 @@ class _StockSection extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: selected ? AppColors.primary : Colors.white,
+                        color: selected ? accent : Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                             color: selected
-                                ? AppColors.primary
-                                : AppColors.primaryLighter),
+                                ? accent
+                                : accent.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         '~$p%',
                         textAlign: TextAlign.center,
                         style: AppTextStyles.labelSm.copyWith(
                           fontSize: 11,
-                          color: selected ? Colors.white : AppColors.primary,
+                          color: selected ? Colors.white : accent,
                         ),
                       ),
                     ),
@@ -672,15 +650,14 @@ class _StockSection extends ConsumerWidget {
                   .read(medicationsRepositoryProvider)
                   .openNewContainer(med.id),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primaryLighter),
+                foregroundColor: accent,
+                side: BorderSide(color: accent.withValues(alpha: 0.4)),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
               child: Text('+ Відкрив новий флакон',
-                  style:
-                      AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
+                  style: AppTextStyles.labelMd.copyWith(color: accent)),
             ),
           ),
         ],
@@ -691,24 +668,16 @@ class _StockSection extends ConsumerWidget {
   String _openedAgoLabel(DateTime openedAt) {
     final days = DateTime.now().difference(openedAt).inDays;
     if (days <= 0) return 'Відкрито сьогодні';
-    return 'Відкрито $days ${_daysWord(days)} тому';
-  }
-
-  String _daysWord(int n) {
-    final mod10 = n % 10;
-    final mod100 = n % 100;
-    if (mod100 >= 11 && mod100 <= 14) return 'днів';
-    if (mod10 == 1) return 'день';
-    if (mod10 >= 2 && mod10 <= 4) return 'дні';
-    return 'днів';
+    return 'Відкрито $days ${_daysWordUk(days)} тому';
   }
 }
 
-// ── Medication avatar (photo or emoji) ────────────────────────────────────────
+// ── Medication photo (big) or icon (small) ────────────────────────────────────
 
-class _MedAvatar extends StatelessWidget {
+class _MedPhotoBlock extends StatelessWidget {
   final Medication med;
-  const _MedAvatar({required this.med});
+  final Color accent;
+  const _MedPhotoBlock({required this.med, required this.accent});
 
   String? _firstPhoto(String? json) {
     if (json == null || json == '[]') return null;
@@ -720,367 +689,34 @@ class _MedAvatar extends StatelessWidget {
     }
   }
 
-  Widget _placeholder() => Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Center(
-          child: Icon(medFormIcon(med.form), size: 28, color: AppColors.primary),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) {
     final photoPath = _firstPhoto(med.photoPaths);
-    if (photoPath == null) return _placeholder();
+    if (photoPath == null) return const SizedBox.shrink();
 
     return FutureBuilder<Uint8List>(
       future: PhotoService.decryptedBytes(photoPath),
       builder: (context, snap) {
-        if (!snap.hasData) return _placeholder();
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image.memory(
-            snap.data!,
-            width: 56,
-            height: 56,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _placeholder(),
+        if (!snap.hasData) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                  color: accent.withValues(alpha: 0.35), width: 1.5),
+            ),
+            child: Image.memory(
+              snap.data!,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
           ),
         );
       },
-    );
-  }
-}
-
-// ── Today Schedule ────────────────────────────────────────────────────────────
-
-class _TodayScheduleSection extends StatelessWidget {
-  final List<Schedule> schedules;
-  final List<Intake> todayIntakes;
-  final WidgetRef ref;
-  const _TodayScheduleSection({
-    required this.schedules,
-    required this.todayIntakes,
-    required this.ref,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Сьогодні', style: AppTextStyles.labelLg),
-        const SizedBox(height: 10),
-        ...schedules.map((s) {
-          final intake =
-              todayIntakes.where((i) => i.scheduleId == s.id).firstOrNull;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _SlotRow(schedule: s, intake: intake, ref: ref),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-class _SlotRow extends StatelessWidget {
-  final Schedule schedule;
-  final Intake? intake;
-  final WidgetRef ref;
-  const _SlotRow({
-    required this.schedule,
-    required this.intake,
-    required this.ref,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isTaken = intake?.status == 'taken';
-    final isSkipped = intake?.status == 'skipped';
-    final isDone = isTaken || isSkipped;
-
-    Color bg = AppColors.surface;
-    Color border = AppColors.border;
-    if (isTaken) {
-      bg = AppColors.successLight;
-      border = AppColors.success;
-    }
-    if (isSkipped) {
-      bg = AppColors.bgPage;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Text(
-            schedule.timeOfDay,
-            style: AppTextStyles.labelLg.copyWith(
-              color: isSkipped ? AppColors.textMuted : AppColors.textMain,
-              decoration:
-                  isSkipped ? TextDecoration.lineThrough : null,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: isDone
-                ? Text(
-                    isTaken ? '✓ Прийнято' : '✕ Пропущено',
-                    style: AppTextStyles.bodySm.copyWith(
-                      color:
-                          isTaken ? AppColors.success : AppColors.textMuted,
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          if (!isDone && intake != null) ...[
-            _SlotBtn(
-              label: '✓',
-              color: AppColors.success,
-              bg: AppColors.successLight,
-              onTap: () => ref
-                  .read(intakesRepositoryProvider)
-                  .markTaken(intake!.id),
-            ),
-            const SizedBox(width: 6),
-            _SlotBtn(
-              label: '✕',
-              color: AppColors.textMuted,
-              bg: AppColors.bgPage,
-              onTap: () => ref
-                  .read(intakesRepositoryProvider)
-                  .markSkipped(intake!.id),
-            ),
-          ] else if (isDone) ...[
-            _SlotBtn(
-              label: '↩',
-              color: AppColors.textMuted,
-              bg: AppColors.surface,
-              onTap: () => ref
-                  .read(intakesRepositoryProvider)
-                  .markPending(intake!.id),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SlotBtn extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color bg;
-  final VoidCallback onTap;
-  const _SlotBtn({
-    required this.label,
-    required this.color,
-    required this.bg,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.4)),
-        ),
-        child: Center(
-          child: Text(label,
-              style: AppTextStyles.labelMd.copyWith(color: color)),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Calendar ──────────────────────────────────────────────────────────────────
-
-class _CalendarSection extends StatelessWidget {
-  final List<Intake> intakes;
-  const _CalendarSection({required this.intakes});
-
-  static const _dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
-  static const _monthNames = [
-    '', 'Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень',
-    'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final firstDay = DateTime(now.year, now.month, 1);
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    final startPad = firstDay.weekday - 1; // Mon=1→0 pad, Sun=7→6 pad
-
-    // Group intakes by day number
-    final byDay = <int, List<Intake>>{};
-    for (final i in intakes) {
-      byDay.putIfAbsent(i.scheduledAt.day, () => []).add(i);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Календар', style: AppTextStyles.labelLg),
-            Text(
-              '${_monthNames[now.month]} ${now.year}',
-              style:
-                  AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: _dayNames
-              .map((d) => SizedBox(
-                    width: 36,
-                    child: Text(
-                      d,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.textMuted),
-                    ),
-                  ))
-              .toList(),
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 3,
-          runSpacing: 3,
-          children: [
-            ...List.generate(startPad,
-                (_) => const SizedBox(width: 36, height: 28)),
-            ...List.generate(daysInMonth, (i) {
-              final day = i + 1;
-              final dayIntakes = byDay[day] ?? [];
-              final isFuture = day > now.day;
-              final isToday = day == now.day;
-
-              _CalStatus status;
-              if (isFuture || dayIntakes.isEmpty) {
-                status = _CalStatus.empty;
-              } else {
-                final taken =
-                    dayIntakes.where((x) => x.status == 'taken').length;
-                if (taken == dayIntakes.length) {
-                  status = _CalStatus.green;
-                } else if (taken > 0) {
-                  status = _CalStatus.yellow;
-                } else {
-                  status = _CalStatus.red;
-                }
-              }
-
-              return _CalCell(day: day, status: status, isToday: isToday);
-            }),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 14,
-          runSpacing: 4,
-          children: const [
-            _Legend(color: Color(0xFFDCFCE7), label: 'Всі прийняті'),
-            _Legend(color: Color(0xFFFEF9C3), label: 'Частково'),
-            _Legend(color: Color(0xFFFEE2E2), label: 'Пропущено'),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-enum _CalStatus { green, yellow, red, empty }
-
-class _CalCell extends StatelessWidget {
-  final int day;
-  final _CalStatus status;
-  final bool isToday;
-  const _CalCell({
-    required this.day,
-    required this.status,
-    required this.isToday,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final (bg, fg) = switch (status) {
-      _CalStatus.green =>
-        (const Color(0xFFDCFCE7), const Color(0xFF15803D)),
-      _CalStatus.yellow =>
-        (const Color(0xFFFEF9C3), const Color(0xFF854D0E)),
-      _CalStatus.red =>
-        (const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
-      _CalStatus.empty =>
-        (const Color(0xFFF1F5F9), const Color(0xFFCBD5E1)),
-    };
-
-    return Container(
-      width: 36,
-      height: 28,
-      decoration: BoxDecoration(
-        color: isToday ? AppColors.primaryLight : bg,
-        borderRadius: BorderRadius.circular(6),
-        border: isToday
-            ? Border.all(color: AppColors.primary, width: 1.5)
-            : null,
-      ),
-      child: Center(
-        child: Text(
-          '$day',
-          style: AppTextStyles.caption.copyWith(
-            color: isToday ? AppColors.primary : fg,
-            fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Legend extends StatelessWidget {
-  final Color color;
-  final String label;
-  const _Legend({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(label,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSub)),
-      ],
     );
   }
 }
@@ -1089,7 +725,8 @@ class _Legend extends StatelessWidget {
 
 class _PhasesSection extends StatelessWidget {
   final Medication med;
-  const _PhasesSection({required this.med});
+  final Color accent;
+  const _PhasesSection({required this.med, required this.accent});
 
   @override
   Widget build(BuildContext context) {
@@ -1120,11 +757,11 @@ class _PhasesSection extends StatelessWidget {
       rows.add(Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.primaryLight : AppColors.bg,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isActive
-                ? AppColors.primary.withValues(alpha: 0.4)
+                ? accent.withValues(alpha: 0.4)
                 : AppColors.border,
           ),
         ),
@@ -1136,8 +773,7 @@ class _PhasesSection extends StatelessWidget {
                 Text(
                   'Етап ${i + 1}',
                   style: AppTextStyles.labelMd.copyWith(
-                      color:
-                          isActive ? AppColors.primary : AppColors.textMain),
+                      color: isActive ? accent : AppColors.textMain),
                 ),
                 if (isActive) ...[
                   const SizedBox(width: 6),
@@ -1145,11 +781,11 @@ class _PhasesSection extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: accent,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text('зараз',
-                        style: TextStyle(
+                    child: Text('зараз',
+                        style: AppTextStyles.caption.copyWith(
                             fontSize: 10,
                             color: Colors.white,
                             fontWeight: FontWeight.w700)),
@@ -1185,12 +821,12 @@ class _PhasesSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Етапи курсу', style: AppTextStyles.labelLg),
+          _SectionTitle(icon: Icons.timeline_rounded, label: 'Етапи курсу', accent: accent),
           const SizedBox(height: 10),
           ...rows,
         ],
@@ -1211,7 +847,8 @@ class _PhasesSection extends StatelessWidget {
 
 class _InfoBlock extends StatelessWidget {
   final Medication med;
-  const _InfoBlock({required this.med});
+  final Color accent;
+  const _InfoBlock({required this.med, required this.accent});
 
   @override
   Widget build(BuildContext context) {
@@ -1230,19 +867,19 @@ class _InfoBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Деталі', style: AppTextStyles.labelLg),
+          _SectionTitle(icon: Icons.info_outline_rounded, label: 'Деталі', accent: accent),
           const SizedBox(height: 10),
-          _InfoRow(Icons.event_repeat_rounded, 'Прийом', _repeatFull(med.repeatType, config)),
-          _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel),
+          _InfoRow(Icons.event_repeat_rounded, 'Прийом', _repeatFull(med.repeatType, config), accent),
+          _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel, accent),
           _InfoRow(Icons.timer_rounded, 'Курс',
-              'з ${_fmt(med.startDate)} $endLabel'),
+              'з ${_fmt(med.startDate)} $endLabel', accent),
           if (med.instructions != null && med.instructions!.isNotEmpty)
-            _InfoRow(Icons.edit_note_rounded, 'Примітка', med.instructions!),
+            _InfoRow(Icons.edit_note_rounded, 'Примітка', med.instructions!, accent),
         ],
       ),
     );
@@ -1283,7 +920,8 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _InfoRow(this.icon, this.label, this.value);
+  final Color accent;
+  const _InfoRow(this.icon, this.label, this.value, this.accent);
 
   @override
   Widget build(BuildContext context) {
@@ -1292,7 +930,7 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 14, color: AppColors.primary),
+          Icon(icon, size: 14, color: accent),
           const SizedBox(width: 8),
           SizedBox(
             width: 86,
@@ -1307,11 +945,31 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color accent;
+  const _SectionTitle(
+      {required this.icon, required this.label, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: accent),
+        const SizedBox(width: 8),
+        Text(label, style: AppTextStyles.labelLg),
+      ],
+    );
+  }
+}
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 class _ActionRow extends ConsumerWidget {
   final Medication med;
-  const _ActionRow({required this.med});
+  final Color accent;
+  const _ActionRow({required this.med, required this.accent});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1321,6 +979,7 @@ class _ActionRow extends ConsumerWidget {
           child: _ActBtn(
             icon: Icons.pause_circle_outline_rounded,
             label: 'Пауза',
+            accent: accent,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                   content: Text('Функція призупинення скоро буде доступна')),
@@ -1332,9 +991,13 @@ class _ActionRow extends ConsumerWidget {
           child: _ActBtn(
             icon: Icons.edit_rounded,
             label: 'Редагувати',
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Редагування скоро буде доступне')),
+            accent: accent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AddMedicationScreen(
+                    memberId: med.memberId, existing: med),
+              ),
             ),
           ),
         ),
@@ -1368,7 +1031,7 @@ class _ActionRow extends ConsumerWidget {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Зупинити',
-                style: TextStyle(color: AppColors.danger)),
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger)),
           ),
         ],
       ),
@@ -1384,11 +1047,13 @@ class _ActBtn extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isDestructive;
+  final Color accent;
   final VoidCallback onTap;
   const _ActBtn({
     required this.icon,
     required this.label,
     this.isDestructive = false,
+    this.accent = AppColors.primary,
     required this.onTap,
   });
 
@@ -1399,12 +1064,12 @@ class _ActBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isDestructive ? AppColors.dangerLight : AppColors.surface,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isDestructive
                 ? const Color(0xFFFECACA)
-                : AppColors.border,
+                : accent.withValues(alpha: 0.35),
             width: 1.5,
           ),
         ),
@@ -1412,13 +1077,13 @@ class _ActBtn extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 18,
-                color: isDestructive ? AppColors.danger : AppColors.primary),
+                color: isDestructive ? AppColors.danger : accent),
             const SizedBox(height: 4),
             Text(
               label,
               style: AppTextStyles.caption.copyWith(
-                color: isDestructive ? AppColors.danger : AppColors.textMain,
-                fontWeight: FontWeight.w600,
+                color: isDestructive ? AppColors.danger : accent,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -1460,43 +1125,3 @@ class _BackHeader extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
-  final String value;
-  final String label;
-  final bool danger;
-  const _StatTile({
-    required this.value,
-    required this.label,
-    required this.danger,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = danger ? AppColors.danger : AppColors.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: BoxDecoration(
-        color: danger ? AppColors.dangerLight : AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: danger
-              ? const Color(0xFFFECACA)
-              : AppColors.primaryLighter,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(value,
-              style: AppTextStyles.h2.copyWith(color: color, fontSize: 20)),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style:
-                AppTextStyles.caption.copyWith(color: AppColors.textSub),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-}

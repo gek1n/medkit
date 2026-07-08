@@ -191,7 +191,7 @@ class _BackupScreenState extends State<BackupScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Ліки, розклад і фото зберігаються у вашому особистому '
-                      '$_targetName вже зашифрованими. MedKit і хмара не бачать '
+                      '$_targetName вже зашифрованими. Elly і хмара не бачать '
                       'ваші дані — розшифрувати їх можна лише паролем, який '
                       'знаєте тільки ви.',
                       style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),

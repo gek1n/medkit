@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -118,6 +118,36 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.createTable(sharedChannels);
+            } catch (_) {}
+          }
+          if (from < 7) {
+            try {
+              await m.addColumn(activities, activities.youtubeUrl);
+            } catch (_) {}
+          }
+          if (from < 8) {
+            // Кастомний колір картки — окремо для кожного типу завдання.
+            try {
+              await m.addColumn(medications, medications.color);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.color);
+            } catch (_) {}
+            try {
+              await m.addColumn(doctorAppointments, doctorAppointments.color);
+            } catch (_) {}
+            try {
+              await m.addColumn(wellbeingSchedules, wellbeingSchedules.color);
+            } catch (_) {}
+          }
+          if (from < 9) {
+            // Статус запису до лікаря (Зараз/Пропущено на головному екрані) і
+            // позначка "пропущено" для зрізу самопочуття.
+            try {
+              await m.addColumn(doctorAppointments, doctorAppointments.status);
+            } catch (_) {}
+            try {
+              await m.addColumn(wellbeingLogs, wellbeingLogs.skipped);
             } catch (_) {}
           }
         },

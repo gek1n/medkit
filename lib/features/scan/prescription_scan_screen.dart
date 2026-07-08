@@ -239,8 +239,9 @@ class _ConsentBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
             ),
-            child: const Text('Зрозуміло, погоджуюсь',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            child: Text('Зрозуміло, погоджуюсь',
+                style: AppTextStyles.bodyMd
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
           ),
         ),
       ],
@@ -337,7 +338,8 @@ class _PickingBody extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
             ),
             child: Text('Сканувати${images.isNotEmpty ? ' (${images.length})' : ''}',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                style: AppTextStyles.bodyMd
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ),
       ],
@@ -392,7 +394,9 @@ class _ResultsBodyState extends State<_ResultsBody> {
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
               ),
-              child: const Text('Додати обрані', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              child: Text('Додати обрані',
+                  style: AppTextStyles.bodyMd
+                      .copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
             ),
           ),
         ),

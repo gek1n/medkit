@@ -827,7 +827,7 @@ class _TelegramHint extends StatelessWidget {
   const _TelegramHint({required this.expanded, required this.onToggle});
 
   static const _steps = [
-    'Відкрийте Telegram і знайдіть @MedKitBot',
+    'Відкрийте Telegram і знайдіть @EllyBot',
     'Натисніть «Start» у чаті з ботом',
     'Введіть код, який зʼявиться на екрані профілю',
   ];
@@ -895,7 +895,7 @@ class _TelegramHint extends StatelessWidget {
                           ),
                           child: Center(
                             child: Text('${i + 1}',
-                                style: const TextStyle(
+                                style: AppTextStyles.bodyMd.copyWith(
                                     fontSize: 10,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700)),
@@ -949,7 +949,7 @@ class _FontSizeRow extends StatelessWidget {
               child: Column(
                 children: [
                   Text('Аа',
-                      style: TextStyle(
+                      style: AppTextStyles.bodyMd.copyWith(
                         fontSize: _sizes[i],
                         color: selected
                             ? AppColors.primary

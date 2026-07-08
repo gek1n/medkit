@@ -65,7 +65,7 @@ class _TodayCenter extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.today_rounded, color: Colors.white, size: 20),
+                const Icon(Icons.home_rounded, color: Colors.white, size: 20),
                 const SizedBox(height: 1),
                 Text(
                   label,

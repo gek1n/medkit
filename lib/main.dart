@@ -14,6 +14,8 @@ import 'core/services/app_lock_service.dart';
 import 'core/services/family_sync_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/sync_service.dart';
+import 'core/theme/app_colors.dart';
+import 'core/theme/app_text_styles.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
 import 'features/family/family_screen.dart';
@@ -63,7 +65,7 @@ class MedKitApp extends ConsumerWidget {
         fontSizeIndex.clamp(0, fontScaleValues.length - 1)];
 
     return MaterialApp(
-      title: 'MedKit',
+      title: 'Elly',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       localizationsDelegates: const [
@@ -108,12 +110,40 @@ class _AppLockGateState extends State<_AppLockGate> {
   @override
   Widget build(BuildContext context) {
     if (_unlocked == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const _LoadingScreen();
     }
     if (_unlocked == false) {
       return AppLockScreen(onUnlocked: () => setState(() => _unlocked = true));
     }
     return const _RootRouter();
+  }
+}
+
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Завантажую...', style: AppTextStyles.labelLg),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -125,9 +155,7 @@ class _RootRouter extends ConsumerWidget {
     final memberAsync = ref.watch(currentMemberProvider);
 
     return memberAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () => const _LoadingScreen(),
       error: (_, _) => const OnboardingScreen(),
       data: (member) =>
           member == null ? const OnboardingScreen() : const _Shell(),

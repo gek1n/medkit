@@ -9,6 +9,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import 'wellbeing_history_screen.dart';
 
@@ -28,6 +29,7 @@ class _AddWellbeingScheduleScreenState
     const TimeOfDay(hour: 8, minute: 0),
     const TimeOfDay(hour: 20, minute: 0),
   ];
+  String? _colorHex;
   bool _isSaving = false;
   bool _loaded = false;
 
@@ -49,6 +51,7 @@ class _AddWellbeingScheduleScreenState
           final parts = t.split(':');
           return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }).toList();
+        _colorHex = existing.color;
         _loaded = true;
       });
     } else {
@@ -96,6 +99,7 @@ class _AddWellbeingScheduleScreenState
               timesPerDay: Value(_timesPerDay),
               times: Value(timesJson),
               isActive: const Value(true),
+              color: Value(_colorHex),
             ),
           );
 
@@ -314,6 +318,12 @@ class _AddWellbeingScheduleScreenState
                         ),
                       );
                     }),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    TaskColorPicker(
+                      selectedHex: _colorHex,
+                      onChanged: (hex) => setState(() => _colorHex = hex),
+                    ),
                     const SizedBox(height: 32),
 
                     SizedBox(

@@ -42,6 +42,27 @@ class DoctorAppointmentsRepository {
 
   Future<int> delete(int id) =>
       (_db.delete(_db.doctorAppointments)..where((t) => t.id.equals(id))).go();
+
+  Future<void> markAttended(int id) =>
+      (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
+          .write(DoctorAppointmentsCompanion(
+        status: const Value('attended'),
+        updatedAt: Value(DateTime.now()),
+      ));
+
+  Future<void> markSkipped(int id) =>
+      (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
+          .write(DoctorAppointmentsCompanion(
+        status: const Value('skipped'),
+        updatedAt: Value(DateTime.now()),
+      ));
+
+  Future<void> reschedule(int id, DateTime newTime) =>
+      (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
+          .write(DoctorAppointmentsCompanion(
+        scheduledAt: Value(newTime),
+        updatedAt: Value(DateTime.now()),
+      ));
 }
 
 final doctorAppointmentsRepositoryProvider =

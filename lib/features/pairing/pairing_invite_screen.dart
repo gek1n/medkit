@@ -15,6 +15,7 @@ import '../../core/services/relay_api_client.dart';
 import '../../core/services/shared_channel_key_storage.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 
 /// Генерує одноразовий пейринг-код: шифрує невеликий envelope (channelId +
@@ -76,10 +77,12 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
       final code = PairingCryptoService.generateCode();
       final channelId = const Uuid().v4();
       final syncKey = _randomBytes(32);
+      final inviter = await ref.read(membersRepositoryProvider).getOwner();
       final envelope = utf8.encode(jsonEncode({
         'v': 2,
         'channelId': channelId,
         'name': widget.ownerName,
+        'inviterName': inviter?.name,
         'syncKey': base64Encode(syncKey),
       }));
 

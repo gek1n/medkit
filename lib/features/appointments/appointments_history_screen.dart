@@ -266,7 +266,7 @@ class _AppointmentCard extends StatelessWidget {
                 children: [
                   Text(
                     '${apt.scheduledAt.day}',
-                    style: TextStyle(
+                    style: AppTextStyles.bodyMd.copyWith(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: _badgeText,
@@ -275,7 +275,7 @@ class _AppointmentCard extends StatelessWidget {
                   ),
                   Text(
                     _monthsShort[apt.scheduledAt.month],
-                    style: TextStyle(
+                    style: AppTextStyles.bodyMd.copyWith(
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
                       color: _badgeText.withValues(alpha: 0.8),

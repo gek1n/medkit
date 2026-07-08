@@ -29,6 +29,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   speech_to_text: ^7.0.0
   http: ^1.2.2
+  youtube_player_iframe: ^5.2.0
   image_picker: ^1.1.2
   flutter_local_notifications: ^19.2.1
   timezone: ^0.10.1
@@ -47,6 +48,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.23.1
   build_runner: ^2.4.15
+  flutter_native_splash: ^2.4.4
 
 dependency_overrides:
   path_provider_android: ^2.2.12
@@ -56,3 +58,11 @@ flutter:
   generate: true
   assets:
     - assets/avatars/
+    - assets/illustrations/
+
+flutter_native_splash:
+  color: "#F9EDE1"
+  image: assets/illustrations/splash-logo.png
+  android_12:
+    color: "#F9EDE1"
+    image: assets/illustrations/splash-icon-android12.png

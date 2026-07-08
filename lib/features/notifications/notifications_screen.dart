@@ -59,7 +59,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     _SwitchRow(
                       icon: Icons.send_rounded,
                       label: 'Telegram-бот',
-                      sub: '@MedKitBot підключено',
+                      sub: '@EllyBot підключено',
                       value: _telegramEnabled,
                       onChanged: (v) => setState(() => _telegramEnabled = v),
                     ),

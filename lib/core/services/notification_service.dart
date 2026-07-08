@@ -12,7 +12,7 @@ class NotificationService {
   static bool _initialized = false;
 
   static const _channelId = 'medkit_reminders';
-  static const _channelName = 'Нагадування MedKit';
+  static const _channelName = 'Нагадування Elly';
   static const _channelDesc =
       'Нагадування про ліки, активності, візити та самопочуття';
 

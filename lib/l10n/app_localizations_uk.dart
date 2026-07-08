@@ -9,7 +9,7 @@ class AppLocalizationsUk extends AppLocalizations {
   AppLocalizationsUk([String locale = 'uk']) : super(locale);
 
   @override
-  String get appName => 'MedKit';
+  String get appName => 'Elly';
 
   @override
   String get navAdd => 'Додати';

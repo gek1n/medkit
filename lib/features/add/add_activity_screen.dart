@@ -7,6 +7,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
+import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../today/providers/today_providers.dart';
 
@@ -24,6 +25,8 @@ typedef _Slot = ({TimeOfDay time, int? duration});
 class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   String? _type;
   late final TextEditingController _nameController;
+  late final TextEditingController _youtubeController;
+  String? _colorHex;
   List<_Slot> _slots = [(time: const TimeOfDay(hour: 8, minute: 30), duration: null)];
   Set<int> _weekdays = {1, 2, 3, 4, 5};
   bool _reminder = true;
@@ -46,6 +49,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     super.initState();
     final ex = widget.existing;
     _nameController = TextEditingController(text: ex?.name ?? '');
+    _youtubeController = TextEditingController(text: ex?.youtubeUrl ?? '');
+    _colorHex = ex?.color;
     if (ex != null) {
       _type = ex.type;
       _reminder = (ex.reminderBeforeMin ?? 0) > 0;
@@ -85,6 +90,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _youtubeController.dispose();
     super.dispose();
   }
 
@@ -100,8 +106,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
               child: const Text('Скасувати')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Видалити',
-                  style: TextStyle(color: Colors.red))),
+              child: Text('Видалити',
+                  style: AppTextStyles.bodyMd.copyWith(color: Colors.red))),
         ],
       ),
     );
@@ -128,6 +134,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     try {
       final repo = ref.read(activitiesRepositoryProvider);
       final repeatDays = jsonEncode(_weekdays.toList()..sort());
+      final youtubeUrl = _youtubeController.text.trim();
       final int activityId;
 
       if (widget.existing != null) {
@@ -137,6 +144,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
           type: Value(_type!),
           repeatDays: Value(repeatDays),
           reminderBeforeMin: Value(_reminder ? 10 : 0),
+          youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
+          color: Value(_colorHex),
         ));
         activityId = widget.existing!.id;
       } else {
@@ -146,6 +155,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
           type: Value(_type!),
           repeatDays: Value(repeatDays),
           reminderBeforeMin: Value(_reminder ? 10 : 0),
+          youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
+          color: Value(_colorHex),
         ));
       }
 
@@ -272,6 +283,20 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     _Input(controller: _nameController, hint: 'Назва активності'),
                     const SizedBox(height: AppDimensions.lg),
 
+                    // YouTube link
+                    _Label('Посилання на YouTube'),
+                    const SizedBox(height: 6),
+                    _Input(
+                      controller: _youtubeController,
+                      hint: 'https://youtube.com/watch?v=...',
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Відео тренування чи клип — прев\'ю показуватиметься у картці на сьогодні',
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
                     // Slots
                     _Label('Розклад'),
                     const SizedBox(height: 8),
@@ -374,6 +399,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    TaskColorPicker(
+                      selectedHex: _colorHex,
+                      onChanged: (hex) => setState(() => _colorHex = hex),
                     ),
                     const SizedBox(height: 32),
 
@@ -900,8 +931,9 @@ class _DashedAdd extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('＋',
-              style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
+          Text('＋',
+              style: AppTextStyles.bodyMd
+                  .copyWith(fontSize: 16, color: AppColors.textMuted)),
           const SizedBox(width: 6),
           Text(label,
               style: AppTextStyles.bodyMd.copyWith(

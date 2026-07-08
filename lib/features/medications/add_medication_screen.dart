@@ -11,6 +11,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
+import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../scan/prescription_scan_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -25,7 +26,9 @@ TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
 
 class AddMedicationScreen extends ConsumerStatefulWidget {
   final int memberId;
-  const AddMedicationScreen({super.key, required this.memberId});
+  final Medication? existing;
+  const AddMedicationScreen(
+      {super.key, required this.memberId, this.existing});
 
   @override
   ConsumerState<AddMedicationScreen> createState() =>
@@ -87,17 +90,77 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   // Photos
   List<String> _photoPaths = [];
 
+  // Card color (null = дефолтний колір типу завдання)
+  String? _colorHex;
+
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _phases = [
-      _MedPhase(
-        times: [const TimeOfDay(hour: 6, minute: 0)],
-        durationDays: 7,
-      ),
-    ];
+    final ex = widget.existing;
+    if (ex == null) {
+      _phases = [
+        _MedPhase(
+          times: [const TimeOfDay(hour: 6, minute: 0)],
+          durationDays: 7,
+        ),
+      ];
+      return;
+    }
+
+    _nameController.text = ex.name;
+    _form = ex.form;
+    _foodRelation = ex.foodRelation;
+    _repeatType = ex.repeatType;
+    _colorHex = ex.color;
+    _trackStock = ex.stockPercent != null;
+    _availableCount = ex.remainingCount;
+    try {
+      _photoPaths = List<String>.from(jsonDecode(ex.photoPaths) as List);
+    } catch (_) {}
+
+    try {
+      final cfg = jsonDecode(ex.repeatConfig) as Map<String, dynamic>;
+      switch (ex.repeatType) {
+        case 'weekdays':
+          _weekdays
+            ..clear()
+            ..addAll(List<int>.from(cfg['days'] as List));
+          break;
+        case 'every_n':
+          _everyNDays = cfg['n'] as int;
+          break;
+        case 'cycle':
+          _cycleOn = cfg['on'] as int;
+          _cycleOff = cfg['off'] as int;
+          break;
+      }
+    } catch (_) {}
+
+    try {
+      final rawPhases =
+          List<Map<String, dynamic>>.from(jsonDecode(ex.phases ?? '[]') as List);
+      if (rawPhases.isNotEmpty) {
+        _phases = rawPhases.map((p) {
+          final times = List<String>.from(p['times'] as List).map((t) {
+            final parts = t.split(':');
+            return TimeOfDay(
+                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+          }).toList();
+          return _MedPhase(
+            times: times,
+            durationDays: p['durationDays'] as int?,
+            doseAmount: (p['doseAmount'] as num).toDouble(),
+            doseComment: p['doseComment'] as String? ?? '',
+          );
+        }).toList();
+      } else {
+        _phases = [_MedPhase(times: [const TimeOfDay(hour: 6, minute: 0)])];
+      }
+    } catch (_) {
+      _phases = [_MedPhase(times: [const TimeOfDay(hour: 6, minute: 0)])];
+    }
   }
 
   @override
@@ -146,7 +209,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     // Use first phase dose as the top-level doseAmount for legacy display
     final doseAmount = _phases.isNotEmpty ? _phases.first.doseAmount : 1.0;
 
-    // Compute endDate from phases
+    // Compute endDate from phases — при редагуванні відлічуємо від
+    // оригінальної дати початку курсу, а не від моменту збереження.
+    final baseStart = widget.existing?.startDate ?? now;
     DateTime? endDate;
     int totalDays = 0;
     bool hasPermanent = false;
@@ -158,7 +223,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       totalDays += p.durationDays!;
     }
     if (!hasPermanent) {
-      endDate = DateTime(now.year, now.month, now.day)
+      endDate = DateTime(baseStart.year, baseStart.month, baseStart.day)
           .add(Duration(days: totalDays));
     }
 
@@ -167,26 +232,54 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       final medRepo = ref.read(medicationsRepositoryProvider);
 
       final isPercentForm = isPercentTrackedForm(_form);
+      final ex = widget.existing;
 
-      await medRepo.insert(MedicationsCompanion.insert(
-        memberId: widget.memberId,
-        name: name,
-        form: Value(_form),
-        doseAmount: doseAmount,
-        doseUnit: Value(doseUnit),
-        foodRelation: Value(_foodRelation),
-        repeatType: Value(_repeatType),
-        repeatConfig: Value(jsonEncode(repeatConfig)),
-        startDate: now,
-        endDate: Value(endDate),
-        totalCount: Value(isPercentForm ? 0 : _availableCount),
-        remainingCount: Value(isPercentForm ? 0 : _availableCount),
-        stockPercent:
-            Value(_trackStock && isPercentForm ? 100 : null),
-        openedAt: Value(_trackStock && isPercentForm ? now : null),
-        photoPaths: Value(jsonEncode(_photoPaths)),
-        phases: Value(phasesJson),
-      ));
+      if (ex != null) {
+        await medRepo.update(MedicationsCompanion(
+          id: Value(ex.id),
+          memberId: Value(ex.memberId),
+          name: Value(name),
+          form: Value(_form),
+          doseAmount: Value(doseAmount),
+          doseUnit: Value(doseUnit),
+          foodRelation: Value(_foodRelation),
+          repeatType: Value(_repeatType),
+          repeatConfig: Value(jsonEncode(repeatConfig)),
+          startDate: Value(baseStart),
+          endDate: Value(endDate),
+          totalCount: Value(isPercentForm ? 0 : _availableCount),
+          remainingCount: Value(isPercentForm ? 0 : _availableCount),
+          stockPercent: Value(_trackStock && isPercentForm
+              ? (ex.stockPercent ?? 100)
+              : null),
+          openedAt: Value(
+              _trackStock && isPercentForm ? (ex.openedAt ?? now) : null),
+          photoPaths: Value(jsonEncode(_photoPaths)),
+          phases: Value(phasesJson),
+          color: Value(_colorHex),
+        ));
+      } else {
+        await medRepo.insert(MedicationsCompanion.insert(
+          memberId: widget.memberId,
+          name: name,
+          form: Value(_form),
+          doseAmount: doseAmount,
+          doseUnit: Value(doseUnit),
+          foodRelation: Value(_foodRelation),
+          repeatType: Value(_repeatType),
+          repeatConfig: Value(jsonEncode(repeatConfig)),
+          startDate: now,
+          endDate: Value(endDate),
+          totalCount: Value(isPercentForm ? 0 : _availableCount),
+          remainingCount: Value(isPercentForm ? 0 : _availableCount),
+          stockPercent:
+              Value(_trackStock && isPercentForm ? 100 : null),
+          openedAt: Value(_trackStock && isPercentForm ? now : null),
+          photoPaths: Value(jsonEncode(_photoPaths)),
+          phases: Value(phasesJson),
+          color: Value(_colorHex),
+        ));
+      }
 
       ref.invalidate(generateTodayIntakesProvider);
       ref.invalidate(tomorrowIntakesProvider);
@@ -202,6 +295,32 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     }
   }
 
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Видалити ліки?'),
+        content: const Text('Ліки будуть вилучені з розкладу.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Скасувати')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Видалити',
+                  style: AppTextStyles.bodyMd.copyWith(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await ref
+        .read(medicationsRepositoryProvider)
+        .softDelete(widget.existing!.id);
+    ref.invalidate(generateTodayIntakesProvider);
+    ref.invalidate(tomorrowIntakesProvider);
+    if (mounted) Navigator.pop(context);
+  }
+
   Map<String, dynamic> _buildRepeatConfig() => switch (_repeatType) {
         'weekdays' => {'days': _weekdays.toList()..sort()},
         'every_n' => {'n': _everyNDays},
@@ -211,12 +330,17 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEdit = widget.existing != null;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
-            _BackHeader(title: 'Ліки', onBack: () => Navigator.pop(context)),
+            _BackHeader(
+              title: isEdit ? 'Редагувати ліки' : 'Ліки',
+              onBack: () => Navigator.pop(context),
+              onDelete: isEdit ? _delete : null,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -224,12 +348,14 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Scan CTA
-                    GestureDetector(
-                      onTap: _isSaving ? null : _openScan,
-                      child: _ScanCta(),
-                    ),
-                    const _OrDivider(),
+                    if (!isEdit) ...[
+                      // Scan CTA
+                      GestureDetector(
+                        onTap: _isSaving ? null : _openScan,
+                        child: _ScanCta(),
+                      ),
+                      const _OrDivider(),
+                    ],
 
                     // Name
                     _FormLabel('Назва'),
@@ -339,6 +465,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                       photoPaths: _photoPaths,
                       onPhotosChanged: (paths) =>
                           setState(() => _photoPaths = paths),
+                      colorHex: _colorHex,
+                      onColorChanged: (hex) =>
+                          setState(() => _colorHex = hex),
                     ),
                     const SizedBox(height: 32),
 
@@ -359,7 +488,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                         child: Text(
                           _isSaving
                               ? 'Зберігаємо...'
-                              : 'Зберегти та переглянути розклад →',
+                              : (isEdit
+                                  ? 'Зберегти зміни'
+                                  : 'Зберегти та переглянути розклад →'),
                           style: AppTextStyles.labelLg
                               .copyWith(color: Colors.white),
                         ),
@@ -476,7 +607,8 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 class _BackHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
-  const _BackHeader({required this.title, required this.onBack});
+  final VoidCallback? onDelete;
+  const _BackHeader({required this.title, required this.onBack, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -501,7 +633,22 @@ class _BackHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(title, style: AppTextStyles.h3),
+          Expanded(child: Text(title, style: AppTextStyles.h3)),
+          if (onDelete != null)
+            GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: const Icon(Icons.delete_outline_rounded,
+                    size: 18, color: Color(0xFFDC2626)),
+              ),
+            ),
         ],
       ),
     );
@@ -712,8 +859,9 @@ class _DashedAdd extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('＋',
-              style: TextStyle(fontSize: 16, color: AppColors.textMuted)),
+          Text('＋',
+              style: AppTextStyles.bodyMd
+                  .copyWith(fontSize: 16, color: AppColors.textMuted)),
           const SizedBox(width: 6),
           Text(label,
               style: AppTextStyles.bodyMd
@@ -829,46 +977,66 @@ class _PhaseCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Dose per intake
-          Text('КІЛЬКІСТЬ НА ПРИЙОМ',
-              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
-          const SizedBox(height: 6),
-          _DoseRow(
-            value: phase.doseAmount,
-            onChanged: (v) => onChanged(_copyPhase(phase, doseAmount: v)),
-          ),
-          const SizedBox(height: 10),
-
-          // Відносно їжі
-          Text('ВІДНОСНО ЇЖІ',
-              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
-          const SizedBox(height: 6),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.primary, width: 1.5),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: foodRelation,
-                isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                    size: 18, color: AppColors.primary),
-                style: AppTextStyles.labelMd
-                    .copyWith(color: AppColors.primary),
-                items: _foodRelationLabels.entries
-                    .map((e) => DropdownMenuItem(
-                          value: e.key,
-                          child: Text(e.value),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) onFoodRelationChanged(v);
-                },
+          // Dose per intake + Відносно їжі — в один рядок двома колонками
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('КІЛЬКІСТЬ НА ПРИЙОМ',
+                        style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    const SizedBox(height: 6),
+                    _DoseRow(
+                      value: phase.doseAmount,
+                      onChanged: (v) =>
+                          onChanged(_copyPhase(phase, doseAmount: v)),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('ВІДНОСНО ЇЖІ',
+                        style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    const SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border:
+                            Border.all(color: AppColors.primary, width: 1.5),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: foodRelation,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                              size: 18, color: AppColors.primary),
+                          style: AppTextStyles.labelMd
+                              .copyWith(color: AppColors.primary, fontSize: 12),
+                          items: _foodRelationLabels.entries
+                              .map((e) => DropdownMenuItem(
+                                    value: e.key,
+                                    child: Text(e.value,
+                                        overflow: TextOverflow.ellipsis),
+                                  ))
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) onFoodRelationChanged(v);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           _DoseCommentField(
@@ -1891,11 +2059,13 @@ class _OptionalSection extends StatefulWidget {
   final String doseUnit;
   final String form;
   final List<String> photoPaths;
+  final String? colorHex;
   final void Function(bool) onTrackToggle;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final void Function(int) onEdit;
   final void Function(List<String>) onPhotosChanged;
+  final void Function(String) onColorChanged;
 
   const _OptionalSection({
     required this.trackStock,
@@ -1905,11 +2075,13 @@ class _OptionalSection extends StatefulWidget {
     required this.doseUnit,
     required this.form,
     required this.photoPaths,
+    required this.colorHex,
     required this.onTrackToggle,
     required this.onDecrement,
     required this.onIncrement,
     required this.onEdit,
     required this.onPhotosChanged,
+    required this.onColorChanged,
   });
 
   @override
@@ -2148,6 +2320,16 @@ class _OptionalSectionState extends State<_OptionalSection> {
                       : CrossFadeState.showFirst,
                   duration: const Duration(milliseconds: 200),
                 ),
+
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 16),
+
+                // Кастомний колір картки
+                TaskColorPicker(
+                  selectedHex: widget.colorHex,
+                  onChanged: widget.onColorChanged,
+                ),
               ],
             ),
           ),
@@ -2272,6 +2454,59 @@ class _PhotoSectionState extends State<_PhotoSection> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.paths.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Фото упаковки', style: AppTextStyles.labelMd),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _loading ? null : _add,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 22),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.primary, width: 1.5),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_loading)
+                    const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.primary))
+                  else ...[
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt_outlined,
+                          color: AppColors.primary, size: 22),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Додати фото',
+                        style: AppTextStyles.labelMd
+                            .copyWith(color: AppColors.primary)),
+                    const SizedBox(height: 2),
+                    Text('щоб не переплутати ліки',
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.textMuted)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2293,69 +2528,60 @@ class _PhotoSectionState extends State<_PhotoSection> {
               ),
           ],
         ),
-        if (widget.paths.isEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            'Допоможе не переплутати ліки',
-            style:
-                AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-          ),
-        ] else ...[
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 80,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.paths.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (ctx, i) {
-                final rel = widget.paths[i];
-                return FutureBuilder<Uint8List>(
-                  future: _decrypted(rel),
-                  builder: (ctx, snap) {
-                    final bytes = snap.data;
-                    return Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: bytes != null
-                              ? Image.memory(
-                                  bytes,
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
-                                )
-                              : Container(
-                                  width: 80,
-                                  height: 80,
-                                  color: AppColors.primaryLight,
-                                ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () => _remove(rel),
-                            child: Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: Colors.black54,
-                                borderRadius: BorderRadius.circular(11),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 80,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: widget.paths.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (ctx, i) {
+              final rel = widget.paths[i];
+              return FutureBuilder<Uint8List>(
+                future: _decrypted(rel),
+                builder: (ctx, snap) {
+                  final bytes = snap.data;
+                  return Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: bytes != null
+                            ? Image.memory(
+                                bytes,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                width: 80,
+                                height: 80,
+                                color: AppColors.primaryLight,
                               ),
-                              child: const Icon(Icons.close_rounded,
-                                  size: 14, color: Colors.white),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () => _remove(rel),
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(11),
                             ),
+                            child: const Icon(Icons.close_rounded,
+                                size: 14, color: Colors.white),
                           ),
                         ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
-        ],
+        ),
       ],
     );
   }
@@ -2385,7 +2611,7 @@ class _CountBtn extends StatelessWidget {
         child: Center(
           child: Text(
             icon,
-            style: TextStyle(
+            style: AppTextStyles.bodyMd.copyWith(
               fontSize: 18,
               color: onTap != null ? AppColors.primary : AppColors.textMuted,
             ),

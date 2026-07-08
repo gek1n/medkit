@@ -710,9 +710,9 @@ class _TranscribedBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBF7EF),
+        color: AppColors.bg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEE6D6), width: 1.5),
+        border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -15,6 +15,10 @@ class Activities extends Table {
   // json: [1-7] де 1=Пн
   IntColumn get reminderBeforeMin =>
       integer().withDefault(const Constant(10))();
+  TextColumn get youtubeUrl => text().nullable()();
+  // посилання на відео тренування/клип — прев'ю показується у картці "Зараз"
+  TextColumn get color => text().nullable()();
+  // hex "#RRGGBB" — кастомний колір картки, null = дефолтний колір типу
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

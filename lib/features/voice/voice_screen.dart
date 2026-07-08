@@ -369,8 +369,9 @@ class _ConsentBody extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               ),
             ),
-            child: const Text('Зрозуміло, погоджуюсь',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            child: Text('Зрозуміло, погоджуюсь',
+                style: AppTextStyles.bodyMd
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
           ),
         ),
       ],

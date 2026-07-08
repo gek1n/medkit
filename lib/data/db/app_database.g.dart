@@ -977,6 +977,15 @@ class $MedicationsTable extends Medications
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1001,6 +1010,7 @@ class $MedicationsTable extends Medications
     createdAt,
     updatedAt,
     syncUuid,
+    color,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1166,6 +1176,12 @@ class $MedicationsTable extends Medications
         syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
       );
     }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
     return context;
   }
 
@@ -1263,6 +1279,10 @@ class $MedicationsTable extends Medications
         DriftSqlType.string,
         data['${effectivePrefix}sync_uuid'],
       ),
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      ),
     );
   }
 
@@ -1295,6 +1315,7 @@ class Medication extends DataClass implements Insertable<Medication> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? syncUuid;
+  final String? color;
   const Medication({
     required this.id,
     required this.memberId,
@@ -1318,6 +1339,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     required this.createdAt,
     required this.updatedAt,
     this.syncUuid,
+    this.color,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1355,6 +1377,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || syncUuid != null) {
       map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<String>(color);
     }
     return map;
   }
@@ -1395,6 +1420,9 @@ class Medication extends DataClass implements Insertable<Medication> {
       syncUuid: syncUuid == null && nullToAbsent
           ? const Value.absent()
           : Value(syncUuid),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
     );
   }
 
@@ -1426,6 +1454,7 @@ class Medication extends DataClass implements Insertable<Medication> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      color: serializer.fromJson<String?>(json['color']),
     );
   }
   @override
@@ -1454,6 +1483,7 @@ class Medication extends DataClass implements Insertable<Medication> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
+      'color': serializer.toJson<String?>(color),
     };
   }
 
@@ -1480,6 +1510,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
+    Value<String?> color = const Value.absent(),
   }) => Medication(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -1503,6 +1534,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    color: color.present ? color.value : this.color,
   );
   Medication copyWithCompanion(MedicationsCompanion data) {
     return Medication(
@@ -1546,6 +1578,7 @@ class Medication extends DataClass implements Insertable<Medication> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      color: data.color.present ? data.color.value : this.color,
     );
   }
 
@@ -1573,7 +1606,8 @@ class Medication extends DataClass implements Insertable<Medication> {
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('color: $color')
           ..write(')'))
         .toString();
   }
@@ -1602,6 +1636,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     createdAt,
     updatedAt,
     syncUuid,
+    color,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1628,7 +1663,8 @@ class Medication extends DataClass implements Insertable<Medication> {
           other.isActive == this.isActive &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.syncUuid == this.syncUuid);
+          other.syncUuid == this.syncUuid &&
+          other.color == this.color);
 }
 
 class MedicationsCompanion extends UpdateCompanion<Medication> {
@@ -1654,6 +1690,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
+  final Value<String?> color;
   const MedicationsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -1677,6 +1714,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.color = const Value.absent(),
   });
   MedicationsCompanion.insert({
     this.id = const Value.absent(),
@@ -1701,6 +1739,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.color = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name),
        doseAmount = Value(doseAmount),
@@ -1728,6 +1767,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
+    Expression<String>? color,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1752,6 +1792,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (color != null) 'color': color,
     });
   }
 
@@ -1778,6 +1819,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
+    Value<String?>? color,
   }) {
     return MedicationsCompanion(
       id: id ?? this.id,
@@ -1802,6 +1844,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
+      color: color ?? this.color,
     );
   }
 
@@ -1874,6 +1917,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     if (syncUuid.present) {
       map['sync_uuid'] = Variable<String>(syncUuid.value);
     }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
     return map;
   }
 
@@ -1901,7 +1947,8 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('color: $color')
           ..write(')'))
         .toString();
   }
@@ -3506,6 +3553,21 @@ class $WellbeingLogsTable extends WellbeingLogs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _skippedMeta = const VerificationMeta(
+    'skipped',
+  );
+  @override
+  late final GeneratedColumn<bool> skipped = GeneratedColumn<bool>(
+    'skipped',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("skipped" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _loggedAtMeta = const VerificationMeta(
     'loggedAt',
   );
@@ -3538,6 +3600,7 @@ class $WellbeingLogsTable extends WellbeingLogs
     symptomsJson,
     comment,
     voiceNotePath,
+    skipped,
     loggedAt,
     updatedAt,
   ];
@@ -3596,6 +3659,12 @@ class $WellbeingLogsTable extends WellbeingLogs
         ),
       );
     }
+    if (data.containsKey('skipped')) {
+      context.handle(
+        _skippedMeta,
+        skipped.isAcceptableOrUnknown(data['skipped']!, _skippedMeta),
+      );
+    }
     if (data.containsKey('logged_at')) {
       context.handle(
         _loggedAtMeta,
@@ -3641,6 +3710,10 @@ class $WellbeingLogsTable extends WellbeingLogs
         DriftSqlType.string,
         data['${effectivePrefix}voice_note_path'],
       ),
+      skipped: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}skipped'],
+      )!,
       loggedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}logged_at'],
@@ -3665,6 +3738,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
   final String symptomsJson;
   final String? comment;
   final String? voiceNotePath;
+  final bool skipped;
   final DateTime loggedAt;
   final DateTime updatedAt;
   const WellbeingLog({
@@ -3674,6 +3748,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     required this.symptomsJson,
     this.comment,
     this.voiceNotePath,
+    required this.skipped,
     required this.loggedAt,
     required this.updatedAt,
   });
@@ -3690,6 +3765,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     if (!nullToAbsent || voiceNotePath != null) {
       map['voice_note_path'] = Variable<String>(voiceNotePath);
     }
+    map['skipped'] = Variable<bool>(skipped);
     map['logged_at'] = Variable<DateTime>(loggedAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -3707,6 +3783,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       voiceNotePath: voiceNotePath == null && nullToAbsent
           ? const Value.absent()
           : Value(voiceNotePath),
+      skipped: Value(skipped),
       loggedAt: Value(loggedAt),
       updatedAt: Value(updatedAt),
     );
@@ -3724,6 +3801,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       symptomsJson: serializer.fromJson<String>(json['symptomsJson']),
       comment: serializer.fromJson<String?>(json['comment']),
       voiceNotePath: serializer.fromJson<String?>(json['voiceNotePath']),
+      skipped: serializer.fromJson<bool>(json['skipped']),
       loggedAt: serializer.fromJson<DateTime>(json['loggedAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -3738,6 +3816,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       'symptomsJson': serializer.toJson<String>(symptomsJson),
       'comment': serializer.toJson<String?>(comment),
       'voiceNotePath': serializer.toJson<String?>(voiceNotePath),
+      'skipped': serializer.toJson<bool>(skipped),
       'loggedAt': serializer.toJson<DateTime>(loggedAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -3750,6 +3829,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     String? symptomsJson,
     Value<String?> comment = const Value.absent(),
     Value<String?> voiceNotePath = const Value.absent(),
+    bool? skipped,
     DateTime? loggedAt,
     DateTime? updatedAt,
   }) => WellbeingLog(
@@ -3761,6 +3841,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     voiceNotePath: voiceNotePath.present
         ? voiceNotePath.value
         : this.voiceNotePath,
+    skipped: skipped ?? this.skipped,
     loggedAt: loggedAt ?? this.loggedAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -3776,6 +3857,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       voiceNotePath: data.voiceNotePath.present
           ? data.voiceNotePath.value
           : this.voiceNotePath,
+      skipped: data.skipped.present ? data.skipped.value : this.skipped,
       loggedAt: data.loggedAt.present ? data.loggedAt.value : this.loggedAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -3790,6 +3872,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
           ..write('symptomsJson: $symptomsJson, ')
           ..write('comment: $comment, ')
           ..write('voiceNotePath: $voiceNotePath, ')
+          ..write('skipped: $skipped, ')
           ..write('loggedAt: $loggedAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -3804,6 +3887,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     symptomsJson,
     comment,
     voiceNotePath,
+    skipped,
     loggedAt,
     updatedAt,
   );
@@ -3817,6 +3901,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
           other.symptomsJson == this.symptomsJson &&
           other.comment == this.comment &&
           other.voiceNotePath == this.voiceNotePath &&
+          other.skipped == this.skipped &&
           other.loggedAt == this.loggedAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -3828,6 +3913,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
   final Value<String> symptomsJson;
   final Value<String?> comment;
   final Value<String?> voiceNotePath;
+  final Value<bool> skipped;
   final Value<DateTime> loggedAt;
   final Value<DateTime> updatedAt;
   const WellbeingLogsCompanion({
@@ -3837,6 +3923,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     this.symptomsJson = const Value.absent(),
     this.comment = const Value.absent(),
     this.voiceNotePath = const Value.absent(),
+    this.skipped = const Value.absent(),
     this.loggedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -3847,6 +3934,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     this.symptomsJson = const Value.absent(),
     this.comment = const Value.absent(),
     this.voiceNotePath = const Value.absent(),
+    this.skipped = const Value.absent(),
     this.loggedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : memberId = Value(memberId),
@@ -3858,6 +3946,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     Expression<String>? symptomsJson,
     Expression<String>? comment,
     Expression<String>? voiceNotePath,
+    Expression<bool>? skipped,
     Expression<DateTime>? loggedAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -3868,6 +3957,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
       if (symptomsJson != null) 'symptoms_json': symptomsJson,
       if (comment != null) 'comment': comment,
       if (voiceNotePath != null) 'voice_note_path': voiceNotePath,
+      if (skipped != null) 'skipped': skipped,
       if (loggedAt != null) 'logged_at': loggedAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -3880,6 +3970,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     Value<String>? symptomsJson,
     Value<String?>? comment,
     Value<String?>? voiceNotePath,
+    Value<bool>? skipped,
     Value<DateTime>? loggedAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -3890,6 +3981,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
       symptomsJson: symptomsJson ?? this.symptomsJson,
       comment: comment ?? this.comment,
       voiceNotePath: voiceNotePath ?? this.voiceNotePath,
+      skipped: skipped ?? this.skipped,
       loggedAt: loggedAt ?? this.loggedAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -3916,6 +4008,9 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     if (voiceNotePath.present) {
       map['voice_note_path'] = Variable<String>(voiceNotePath.value);
     }
+    if (skipped.present) {
+      map['skipped'] = Variable<bool>(skipped.value);
+    }
     if (loggedAt.present) {
       map['logged_at'] = Variable<DateTime>(loggedAt.value);
     }
@@ -3934,6 +4029,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
           ..write('symptomsJson: $symptomsJson, ')
           ..write('comment: $comment, ')
           ..write('voiceNotePath: $voiceNotePath, ')
+          ..write('skipped: $skipped, ')
           ..write('loggedAt: $loggedAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4008,6 +4104,15 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -4027,6 +4132,7 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
     timesPerDay,
     times,
     isActive,
+    color,
     updatedAt,
   ];
   @override
@@ -4073,6 +4179,12 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -4108,6 +4220,10 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -4128,6 +4244,7 @@ class WellbeingSchedule extends DataClass
   final int timesPerDay;
   final String times;
   final bool isActive;
+  final String? color;
   final DateTime updatedAt;
   const WellbeingSchedule({
     required this.id,
@@ -4135,6 +4252,7 @@ class WellbeingSchedule extends DataClass
     required this.timesPerDay,
     required this.times,
     required this.isActive,
+    this.color,
     required this.updatedAt,
   });
   @override
@@ -4145,6 +4263,9 @@ class WellbeingSchedule extends DataClass
     map['times_per_day'] = Variable<int>(timesPerDay);
     map['times'] = Variable<String>(times);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<String>(color);
+    }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -4156,6 +4277,9 @@ class WellbeingSchedule extends DataClass
       timesPerDay: Value(timesPerDay),
       times: Value(times),
       isActive: Value(isActive),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
       updatedAt: Value(updatedAt),
     );
   }
@@ -4171,6 +4295,7 @@ class WellbeingSchedule extends DataClass
       timesPerDay: serializer.fromJson<int>(json['timesPerDay']),
       times: serializer.fromJson<String>(json['times']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      color: serializer.fromJson<String?>(json['color']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -4183,6 +4308,7 @@ class WellbeingSchedule extends DataClass
       'timesPerDay': serializer.toJson<int>(timesPerDay),
       'times': serializer.toJson<String>(times),
       'isActive': serializer.toJson<bool>(isActive),
+      'color': serializer.toJson<String?>(color),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -4193,6 +4319,7 @@ class WellbeingSchedule extends DataClass
     int? timesPerDay,
     String? times,
     bool? isActive,
+    Value<String?> color = const Value.absent(),
     DateTime? updatedAt,
   }) => WellbeingSchedule(
     id: id ?? this.id,
@@ -4200,6 +4327,7 @@ class WellbeingSchedule extends DataClass
     timesPerDay: timesPerDay ?? this.timesPerDay,
     times: times ?? this.times,
     isActive: isActive ?? this.isActive,
+    color: color.present ? color.value : this.color,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   WellbeingSchedule copyWithCompanion(WellbeingSchedulesCompanion data) {
@@ -4211,6 +4339,7 @@ class WellbeingSchedule extends DataClass
           : this.timesPerDay,
       times: data.times.present ? data.times.value : this.times,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      color: data.color.present ? data.color.value : this.color,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -4223,6 +4352,7 @@ class WellbeingSchedule extends DataClass
           ..write('timesPerDay: $timesPerDay, ')
           ..write('times: $times, ')
           ..write('isActive: $isActive, ')
+          ..write('color: $color, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -4230,7 +4360,7 @@ class WellbeingSchedule extends DataClass
 
   @override
   int get hashCode =>
-      Object.hash(id, memberId, timesPerDay, times, isActive, updatedAt);
+      Object.hash(id, memberId, timesPerDay, times, isActive, color, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4240,6 +4370,7 @@ class WellbeingSchedule extends DataClass
           other.timesPerDay == this.timesPerDay &&
           other.times == this.times &&
           other.isActive == this.isActive &&
+          other.color == this.color &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -4249,6 +4380,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   final Value<int> timesPerDay;
   final Value<String> times;
   final Value<bool> isActive;
+  final Value<String?> color;
   final Value<DateTime> updatedAt;
   const WellbeingSchedulesCompanion({
     this.id = const Value.absent(),
@@ -4256,6 +4388,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     this.timesPerDay = const Value.absent(),
     this.times = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.color = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   WellbeingSchedulesCompanion.insert({
@@ -4264,6 +4397,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     this.timesPerDay = const Value.absent(),
     this.times = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.color = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : memberId = Value(memberId);
   static Insertable<WellbeingSchedule> custom({
@@ -4272,6 +4406,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     Expression<int>? timesPerDay,
     Expression<String>? times,
     Expression<bool>? isActive,
+    Expression<String>? color,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -4280,6 +4415,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
       if (timesPerDay != null) 'times_per_day': timesPerDay,
       if (times != null) 'times': times,
       if (isActive != null) 'is_active': isActive,
+      if (color != null) 'color': color,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -4290,6 +4426,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     Value<int>? timesPerDay,
     Value<String>? times,
     Value<bool>? isActive,
+    Value<String?>? color,
     Value<DateTime>? updatedAt,
   }) {
     return WellbeingSchedulesCompanion(
@@ -4298,6 +4435,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
       timesPerDay: timesPerDay ?? this.timesPerDay,
       times: times ?? this.times,
       isActive: isActive ?? this.isActive,
+      color: color ?? this.color,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -4320,6 +4458,9 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -4334,6 +4475,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
           ..write('timesPerDay: $timesPerDay, ')
           ..write('times: $times, ')
           ..write('isActive: $isActive, ')
+          ..write('color: $color, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -4429,6 +4571,26 @@ class $ActivitiesTable extends Activities
     requiredDuringInsert: false,
     defaultValue: const Constant(10),
   );
+  static const VerificationMeta _youtubeUrlMeta = const VerificationMeta(
+    'youtubeUrl',
+  );
+  @override
+  late final GeneratedColumn<String> youtubeUrl = GeneratedColumn<String>(
+    'youtube_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isActiveMeta = const VerificationMeta(
     'isActive',
   );
@@ -4477,6 +4639,8 @@ class $ActivitiesTable extends Activities
     durationMin,
     repeatDays,
     reminderBeforeMin,
+    youtubeUrl,
+    color,
     isActive,
     createdAt,
     updatedAt,
@@ -4542,6 +4706,18 @@ class $ActivitiesTable extends Activities
         ),
       );
     }
+    if (data.containsKey('youtube_url')) {
+      context.handle(
+        _youtubeUrlMeta,
+        youtubeUrl.isAcceptableOrUnknown(data['youtube_url']!, _youtubeUrlMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
     if (data.containsKey('is_active')) {
       context.handle(
         _isActiveMeta,
@@ -4597,6 +4773,14 @@ class $ActivitiesTable extends Activities
         DriftSqlType.int,
         data['${effectivePrefix}reminder_before_min'],
       )!,
+      youtubeUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}youtube_url'],
+      ),
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      ),
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
@@ -4626,6 +4810,8 @@ class Activity extends DataClass implements Insertable<Activity> {
   final int durationMin;
   final String repeatDays;
   final int reminderBeforeMin;
+  final String? youtubeUrl;
+  final String? color;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -4637,6 +4823,8 @@ class Activity extends DataClass implements Insertable<Activity> {
     required this.durationMin,
     required this.repeatDays,
     required this.reminderBeforeMin,
+    this.youtubeUrl,
+    this.color,
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
@@ -4651,6 +4839,12 @@ class Activity extends DataClass implements Insertable<Activity> {
     map['duration_min'] = Variable<int>(durationMin);
     map['repeat_days'] = Variable<String>(repeatDays);
     map['reminder_before_min'] = Variable<int>(reminderBeforeMin);
+    if (!nullToAbsent || youtubeUrl != null) {
+      map['youtube_url'] = Variable<String>(youtubeUrl);
+    }
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<String>(color);
+    }
     map['is_active'] = Variable<bool>(isActive);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -4666,6 +4860,12 @@ class Activity extends DataClass implements Insertable<Activity> {
       durationMin: Value(durationMin),
       repeatDays: Value(repeatDays),
       reminderBeforeMin: Value(reminderBeforeMin),
+      youtubeUrl: youtubeUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(youtubeUrl),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
       isActive: Value(isActive),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -4685,6 +4885,8 @@ class Activity extends DataClass implements Insertable<Activity> {
       durationMin: serializer.fromJson<int>(json['durationMin']),
       repeatDays: serializer.fromJson<String>(json['repeatDays']),
       reminderBeforeMin: serializer.fromJson<int>(json['reminderBeforeMin']),
+      youtubeUrl: serializer.fromJson<String?>(json['youtubeUrl']),
+      color: serializer.fromJson<String?>(json['color']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -4701,6 +4903,8 @@ class Activity extends DataClass implements Insertable<Activity> {
       'durationMin': serializer.toJson<int>(durationMin),
       'repeatDays': serializer.toJson<String>(repeatDays),
       'reminderBeforeMin': serializer.toJson<int>(reminderBeforeMin),
+      'youtubeUrl': serializer.toJson<String?>(youtubeUrl),
+      'color': serializer.toJson<String?>(color),
       'isActive': serializer.toJson<bool>(isActive),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -4715,6 +4919,8 @@ class Activity extends DataClass implements Insertable<Activity> {
     int? durationMin,
     String? repeatDays,
     int? reminderBeforeMin,
+    Value<String?> youtubeUrl = const Value.absent(),
+    Value<String?> color = const Value.absent(),
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -4726,6 +4932,8 @@ class Activity extends DataClass implements Insertable<Activity> {
     durationMin: durationMin ?? this.durationMin,
     repeatDays: repeatDays ?? this.repeatDays,
     reminderBeforeMin: reminderBeforeMin ?? this.reminderBeforeMin,
+    youtubeUrl: youtubeUrl.present ? youtubeUrl.value : this.youtubeUrl,
+    color: color.present ? color.value : this.color,
     isActive: isActive ?? this.isActive,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4745,6 +4953,10 @@ class Activity extends DataClass implements Insertable<Activity> {
       reminderBeforeMin: data.reminderBeforeMin.present
           ? data.reminderBeforeMin.value
           : this.reminderBeforeMin,
+      youtubeUrl: data.youtubeUrl.present
+          ? data.youtubeUrl.value
+          : this.youtubeUrl,
+      color: data.color.present ? data.color.value : this.color,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -4761,6 +4973,8 @@ class Activity extends DataClass implements Insertable<Activity> {
           ..write('durationMin: $durationMin, ')
           ..write('repeatDays: $repeatDays, ')
           ..write('reminderBeforeMin: $reminderBeforeMin, ')
+          ..write('youtubeUrl: $youtubeUrl, ')
+          ..write('color: $color, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -4777,6 +4991,8 @@ class Activity extends DataClass implements Insertable<Activity> {
     durationMin,
     repeatDays,
     reminderBeforeMin,
+    youtubeUrl,
+    color,
     isActive,
     createdAt,
     updatedAt,
@@ -4792,6 +5008,8 @@ class Activity extends DataClass implements Insertable<Activity> {
           other.durationMin == this.durationMin &&
           other.repeatDays == this.repeatDays &&
           other.reminderBeforeMin == this.reminderBeforeMin &&
+          other.youtubeUrl == this.youtubeUrl &&
+          other.color == this.color &&
           other.isActive == this.isActive &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -4805,6 +5023,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   final Value<int> durationMin;
   final Value<String> repeatDays;
   final Value<int> reminderBeforeMin;
+  final Value<String?> youtubeUrl;
+  final Value<String?> color;
   final Value<bool> isActive;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -4816,6 +5036,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.durationMin = const Value.absent(),
     this.repeatDays = const Value.absent(),
     this.reminderBeforeMin = const Value.absent(),
+    this.youtubeUrl = const Value.absent(),
+    this.color = const Value.absent(),
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4828,6 +5050,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.durationMin = const Value.absent(),
     this.repeatDays = const Value.absent(),
     this.reminderBeforeMin = const Value.absent(),
+    this.youtubeUrl = const Value.absent(),
+    this.color = const Value.absent(),
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4841,6 +5065,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Expression<int>? durationMin,
     Expression<String>? repeatDays,
     Expression<int>? reminderBeforeMin,
+    Expression<String>? youtubeUrl,
+    Expression<String>? color,
     Expression<bool>? isActive,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -4853,6 +5079,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       if (durationMin != null) 'duration_min': durationMin,
       if (repeatDays != null) 'repeat_days': repeatDays,
       if (reminderBeforeMin != null) 'reminder_before_min': reminderBeforeMin,
+      if (youtubeUrl != null) 'youtube_url': youtubeUrl,
+      if (color != null) 'color': color,
       if (isActive != null) 'is_active': isActive,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4867,6 +5095,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Value<int>? durationMin,
     Value<String>? repeatDays,
     Value<int>? reminderBeforeMin,
+    Value<String?>? youtubeUrl,
+    Value<String?>? color,
     Value<bool>? isActive,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -4879,6 +5109,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       durationMin: durationMin ?? this.durationMin,
       repeatDays: repeatDays ?? this.repeatDays,
       reminderBeforeMin: reminderBeforeMin ?? this.reminderBeforeMin,
+      youtubeUrl: youtubeUrl ?? this.youtubeUrl,
+      color: color ?? this.color,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4909,6 +5141,12 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     if (reminderBeforeMin.present) {
       map['reminder_before_min'] = Variable<int>(reminderBeforeMin.value);
     }
+    if (youtubeUrl.present) {
+      map['youtube_url'] = Variable<String>(youtubeUrl.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
@@ -4931,6 +5169,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
           ..write('durationMin: $durationMin, ')
           ..write('repeatDays: $repeatDays, ')
           ..write('reminderBeforeMin: $reminderBeforeMin, ')
+          ..write('youtubeUrl: $youtubeUrl, ')
+          ..write('color: $color, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -5836,6 +6076,25 @@ class $DoctorAppointmentsTable extends DoctorAppointments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -5870,6 +6129,8 @@ class $DoctorAppointmentsTable extends DoctorAppointments
     remindBeforeMin,
     notes,
     pdfPath,
+    color,
+    status,
     createdAt,
     updatedAt,
   ];
@@ -5942,6 +6203,18 @@ class $DoctorAppointmentsTable extends DoctorAppointments
         pdfPath.isAcceptableOrUnknown(data['pdf_path']!, _pdfPathMeta),
       );
     }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -5995,6 +6268,14 @@ class $DoctorAppointmentsTable extends DoctorAppointments
         DriftSqlType.string,
         data['${effectivePrefix}pdf_path'],
       ),
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -6022,6 +6303,8 @@ class DoctorAppointment extends DataClass
   final int remindBeforeMin;
   final String? notes;
   final String? pdfPath;
+  final String? color;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
   const DoctorAppointment({
@@ -6033,6 +6316,8 @@ class DoctorAppointment extends DataClass
     required this.remindBeforeMin,
     this.notes,
     this.pdfPath,
+    this.color,
+    required this.status,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -6053,6 +6338,10 @@ class DoctorAppointment extends DataClass
     if (!nullToAbsent || pdfPath != null) {
       map['pdf_path'] = Variable<String>(pdfPath);
     }
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<String>(color);
+    }
+    map['status'] = Variable<String>(status);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -6074,6 +6363,10 @@ class DoctorAppointment extends DataClass
       pdfPath: pdfPath == null && nullToAbsent
           ? const Value.absent()
           : Value(pdfPath),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
+      status: Value(status),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -6093,6 +6386,8 @@ class DoctorAppointment extends DataClass
       remindBeforeMin: serializer.fromJson<int>(json['remindBeforeMin']),
       notes: serializer.fromJson<String?>(json['notes']),
       pdfPath: serializer.fromJson<String?>(json['pdfPath']),
+      color: serializer.fromJson<String?>(json['color']),
+      status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -6109,6 +6404,8 @@ class DoctorAppointment extends DataClass
       'remindBeforeMin': serializer.toJson<int>(remindBeforeMin),
       'notes': serializer.toJson<String?>(notes),
       'pdfPath': serializer.toJson<String?>(pdfPath),
+      'color': serializer.toJson<String?>(color),
+      'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -6123,6 +6420,8 @@ class DoctorAppointment extends DataClass
     int? remindBeforeMin,
     Value<String?> notes = const Value.absent(),
     Value<String?> pdfPath = const Value.absent(),
+    Value<String?> color = const Value.absent(),
+    String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => DoctorAppointment(
@@ -6134,6 +6433,8 @@ class DoctorAppointment extends DataClass
     remindBeforeMin: remindBeforeMin ?? this.remindBeforeMin,
     notes: notes.present ? notes.value : this.notes,
     pdfPath: pdfPath.present ? pdfPath.value : this.pdfPath,
+    color: color.present ? color.value : this.color,
+    status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -6153,6 +6454,8 @@ class DoctorAppointment extends DataClass
           : this.remindBeforeMin,
       notes: data.notes.present ? data.notes.value : this.notes,
       pdfPath: data.pdfPath.present ? data.pdfPath.value : this.pdfPath,
+      color: data.color.present ? data.color.value : this.color,
+      status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -6169,6 +6472,8 @@ class DoctorAppointment extends DataClass
           ..write('remindBeforeMin: $remindBeforeMin, ')
           ..write('notes: $notes, ')
           ..write('pdfPath: $pdfPath, ')
+          ..write('color: $color, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -6185,6 +6490,8 @@ class DoctorAppointment extends DataClass
     remindBeforeMin,
     notes,
     pdfPath,
+    color,
+    status,
     createdAt,
     updatedAt,
   );
@@ -6200,6 +6507,8 @@ class DoctorAppointment extends DataClass
           other.remindBeforeMin == this.remindBeforeMin &&
           other.notes == this.notes &&
           other.pdfPath == this.pdfPath &&
+          other.color == this.color &&
+          other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -6213,6 +6522,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
   final Value<int> remindBeforeMin;
   final Value<String?> notes;
   final Value<String?> pdfPath;
+  final Value<String?> color;
+  final Value<String> status;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const DoctorAppointmentsCompanion({
@@ -6224,6 +6535,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     this.remindBeforeMin = const Value.absent(),
     this.notes = const Value.absent(),
     this.pdfPath = const Value.absent(),
+    this.color = const Value.absent(),
+    this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -6236,6 +6549,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     this.remindBeforeMin = const Value.absent(),
     this.notes = const Value.absent(),
     this.pdfPath = const Value.absent(),
+    this.color = const Value.absent(),
+    this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : memberId = Value(memberId),
@@ -6250,6 +6565,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     Expression<int>? remindBeforeMin,
     Expression<String>? notes,
     Expression<String>? pdfPath,
+    Expression<String>? color,
+    Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -6262,6 +6579,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
       if (remindBeforeMin != null) 'remind_before_min': remindBeforeMin,
       if (notes != null) 'notes': notes,
       if (pdfPath != null) 'pdf_path': pdfPath,
+      if (color != null) 'color': color,
+      if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -6276,6 +6595,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     Value<int>? remindBeforeMin,
     Value<String?>? notes,
     Value<String?>? pdfPath,
+    Value<String?>? color,
+    Value<String>? status,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -6288,6 +6609,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
       remindBeforeMin: remindBeforeMin ?? this.remindBeforeMin,
       notes: notes ?? this.notes,
       pdfPath: pdfPath ?? this.pdfPath,
+      color: color ?? this.color,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -6320,6 +6643,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     if (pdfPath.present) {
       map['pdf_path'] = Variable<String>(pdfPath.value);
     }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -6340,6 +6669,8 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
           ..write('remindBeforeMin: $remindBeforeMin, ')
           ..write('notes: $notes, ')
           ..write('pdfPath: $pdfPath, ')
+          ..write('color: $color, ')
+          ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))

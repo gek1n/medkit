@@ -551,7 +551,7 @@ class _AppearanceSection extends StatelessWidget {
                       ),
                       child: Text(
                         labels[i],
-                        style: TextStyle(
+                        style: AppTextStyles.bodyMd.copyWith(
                           fontSize: sizes[i],
                           color: selected
                               ? AppColors.primary

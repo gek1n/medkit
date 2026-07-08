@@ -19,7 +19,8 @@ final _wellbeingHistoryProvider =
   final logs = await ref
       .watch(wellbeingRepositoryProvider)
       .getByMemberAndDateRange(k.memberId, from, to);
-  return logs.reversed.toList(); // descending
+  // "Пропустити" не несе реальних даних про настрій — не показуємо в історії.
+  return logs.reversed.where((l) => !l.skipped).toList(); // descending
 });
 
 // ────────────────────────────── screen ──────────────────────────────

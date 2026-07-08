@@ -29,10 +29,12 @@ final _periodMedsProvider =
 });
 
 final _periodWellbeingProvider =
-    FutureProvider.family<List<WellbeingLog>, _PK>((ref, k) {
-  return ref
+    FutureProvider.family<List<WellbeingLog>, _PK>((ref, k) async {
+  final logs = await ref
       .watch(wellbeingRepositoryProvider)
       .getByMemberAndDateRange(k.memberId, k.from, k.to);
+  // "Пропустити" не несе реальних даних про настрій — не враховуємо в статистиці.
+  return logs.where((l) => !l.skipped).toList();
 });
 
 final _periodActivityLogsProvider =
