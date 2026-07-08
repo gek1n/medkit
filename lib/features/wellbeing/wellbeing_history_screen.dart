@@ -6,6 +6,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import 'wellbeing_check_screen.dart';
 
 // ────────────────────────────── provider ──────────────────────────────
@@ -147,20 +148,7 @@ class _Header extends StatelessWidget {
       ),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: AppColors.textMain),
-            ),
-          ),
+          MkBackButton(onTap: () => Navigator.pop(context)),
           const SizedBox(width: AppDimensions.md),
           Expanded(
             child: Column(

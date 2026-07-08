@@ -4,6 +4,7 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_back_button.dart';
 
 class PlansScreen extends ConsumerStatefulWidget {
   const PlansScreen({super.key});
@@ -147,19 +148,7 @@ class _HeroHeader extends StatelessWidget {
         Positioned(
           top: MediaQuery.of(context).padding.top + 8,
           left: 12,
-          child: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: Colors.white),
-            ),
-          ),
+          child: MkBackButton(onTap: () => Navigator.pop(context)),
         ),
       ],
     );
