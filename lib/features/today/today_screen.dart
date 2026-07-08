@@ -780,7 +780,8 @@ class _MissedSection extends StatelessWidget {
             Text('Ви пропустили',
                 style: AppTextStyles.bodyMd.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFC2410C))),
+                    color: const Color(0xFFC2410C))),
+            _CountBadge(count: cards.length, color: const Color(0xFFF97316)),
           ]),
           const SizedBox(height: 8),
           ...cards.map((c) => c.$2),
@@ -871,12 +872,13 @@ class _ActiveNowSection extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                    color: Colors.red, shape: BoxShape.circle)),
+                    color: AppColors.primary, shape: BoxShape.circle)),
             const SizedBox(width: 6),
-            Text('Зараз',
+            Text('Зараз потрібно',
                 style: AppTextStyles.bodyMd.copyWith(
                     fontWeight: FontWeight.w700,
                     color: AppColors.textMain)),
+            _CountBadge(count: cards.length, color: AppColors.primary),
           ]),
           const SizedBox(height: 8),
           ...cards.map((c) => c.$2),
@@ -1564,6 +1566,19 @@ DateTime _snoozeFrom(DateTime due) {
   return due.isAfter(now) ? due : now;
 }
 
+// Спільний вигляд картки завдання: біла поверхня, м'яка тінь, нейтральна
+// обводка. Стан "пропущено" сигналізується заголовком секції та підписом під
+// часом, а не кольоровою рамкою — картка лишається чистою.
+BoxDecoration get _cardDecoration => BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppColors.border),
+      boxShadow: const [
+        BoxShadow(
+            color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+      ],
+    );
+
 String? _firstMedPhoto(String? json) {
   if (json == null || json == '[]') return null;
   try {
@@ -1585,10 +1600,8 @@ class _ActiveIntakeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = missed ? const Color(0xFFF97316) : AppColors.primary;
-    // Іконка/шапка завжди зберігають кастомний колір препарату (обраний
-    // користувачем) — перефарбовується лише обводка картки, час і кнопка
-    // "Виконано" (через accent).
+    // Іконка/шапка/смужка завжди зберігають кастомний колір препарату (обраний
+    // користувачем при створенні). Основна кнопка "Виконати" — фірмовий зелений.
     final iconColor = colorFromHex(med?.color) ?? AppColors.primary;
     final photoPath = _firstMedPhoto(med?.photoPaths);
     final comment =
@@ -1596,17 +1609,7 @@ class _ActiveIntakeCard extends StatelessWidget {
 
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: accent.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      decoration: _cardDecoration,
       child: Column(
         children: [
           if (photoPath != null)
@@ -1635,18 +1638,10 @@ class _ActiveIntakeCard extends StatelessWidget {
                               .copyWith(fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(width: 8),
-                    Text(_fmt(intake.effectiveDue),
-                        style: AppTextStyles.h3.copyWith(
-                            color: accent, fontWeight: FontWeight.w800)),
+                    _TimeStamp(
+                        time: _fmt(intake.effectiveDue), missed: missed),
                   ],
                 ),
-                if (missed) ...[
-                  const SizedBox(height: 2),
-                  Text('пропущено',
-                      style: AppTextStyles.bodyMd.copyWith(
-                          color: const Color(0xFFF97316),
-                          fontWeight: FontWeight.w700)),
-                ],
                 if (med != null) ...[
                   const SizedBox(height: 10),
                   Wrap(
@@ -1674,7 +1669,8 @@ class _ActiveIntakeCard extends StatelessWidget {
             ),
           ),
           _ActionRow(
-            accent: accent,
+            doneColor: AppColors.primary,
+            skipLabel: 'Пропустити прийом',
             onDone: () =>
                 ref.read(intakesRepositoryProvider).markTaken(intake.id),
             onSkip: () =>
@@ -1715,49 +1711,39 @@ class _MediaHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        FutureBuilder<Uint8List>(
-          future: PhotoService.decryptedBytes(photoPath),
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return Container(
-                width: double.infinity,
-                height: 220,
-                color: accent.withValues(alpha: 0.1),
-              );
-            }
-            return Image.memory(
-              snap.data!,
-              width: double.infinity,
-              height: 220,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: double.infinity,
-                height: 220,
-                color: accent.withValues(alpha: 0.1),
-              ),
-            );
-          },
-        ),
-        Positioned(
-          top: 10,
-          right: 10,
-          child: GestureDetector(
-            onTap: onZoom,
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.45),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.search_rounded,
-                  color: Colors.white, size: 18),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            FutureBuilder<Uint8List>(
+              future: PhotoService.decryptedBytes(photoPath),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return Container(
+                    width: double.infinity,
+                    height: 190,
+                    color: accent.withValues(alpha: 0.1),
+                  );
+                }
+                return Image.memory(
+                  snap.data!,
+                  width: double.infinity,
+                  height: 190,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: double.infinity,
+                    height: 190,
+                    color: accent.withValues(alpha: 0.1),
+                  ),
+                );
+              },
             ),
-          ),
+            Positioned(top: 10, right: 10, child: _ZoomButton(onTap: onZoom)),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -1774,33 +1760,39 @@ class _VideoMediaHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Image.network(
-            thumbnailUrl,
-            width: double.infinity,
-            height: 220,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              width: double.infinity,
-              height: 220,
-              color: accent.withValues(alpha: 0.1),
-            ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: GestureDetector(
+          onTap: onTap,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.network(
+                thumbnailUrl,
+                width: double.infinity,
+                height: 190,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: double.infinity,
+                  height: 190,
+                  color: accent.withValues(alpha: 0.1),
+                ),
+              ),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 32),
+              ),
+            ],
           ),
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.play_arrow_rounded,
-                color: Colors.white, size: 32),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1817,33 +1809,24 @@ class _IconHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: 72,
-          color: accent.withValues(alpha: 0.08),
-          child: Center(child: Icon(icon, size: 32, color: accent)),
-        ),
-        if (onZoom != null)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: GestureDetector(
-              onTap: onZoom,
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.search_rounded,
-                    color: Colors.white, size: 15),
-              ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            Container(
+              width: double.infinity,
+              height: 64,
+              color: accent.withValues(alpha: 0.14),
+              child: Center(child: Icon(icon, size: 30, color: accent)),
             ),
-          ),
-      ],
+            if (onZoom != null)
+              Positioned(
+                  top: 8, right: 8, child: _ZoomButton(onTap: onZoom!)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1887,29 +1870,91 @@ class _CommentNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.sticky_note_2_outlined,
-              size: 16, color: AppColors.textSub),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(text,
-                style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub)),
-          ),
-        ],
+    return Text(text,
+        style: AppTextStyles.bodyMd
+            .copyWith(color: AppColors.textSub, height: 1.35));
+  }
+}
+
+// ─── Zoom button (light lupa in media corner) ────────────────────────────────
+
+class _ZoomButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ZoomButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          shape: BoxShape.circle,
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x1A000000), blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        child: const Icon(Icons.search_rounded,
+            color: AppColors.textSub, size: 17),
       ),
     );
   }
 }
 
+// ─── Time + "пропущено" caption (right side of card header) ───────────────────
+
+class _TimeStamp extends StatelessWidget {
+  final String time;
+  final bool missed;
+  const _TimeStamp({required this.time, this.missed = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(time,
+            style: AppTextStyles.h3.copyWith(
+                color: AppColors.textMain, fontWeight: FontWeight.w800)),
+        if (missed)
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text('пропущено',
+                style: AppTextStyles.bodySm.copyWith(
+                    color: const Color(0xFFF97316),
+                    fontWeight: FontWeight.w700)),
+          ),
+      ],
+    );
+  }
+}
+
+
+// ─── Section count badge (пігулка з числом біля заголовка секції) ─────────────
+
+class _CountBadge extends StatelessWidget {
+  final int count;
+  final Color color;
+  const _CountBadge({required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text('$count',
+          style: AppTextStyles.bodySm.copyWith(
+              color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+    );
+  }
+}
 
 // ─── Active Activity Card ─────────────────────────────────────────────────────
 
@@ -1935,8 +1980,6 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        widget.missed ? const Color(0xFFF97316) : const Color(0xFF22C55E);
     final iconColor =
         colorFromHex(widget.activity?.color) ?? const Color(0xFF22C55E);
     final icon = _actIcon(widget.activity?.type);
@@ -1945,17 +1988,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
 
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: accent.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      decoration: _cardDecoration,
       child: Column(
         children: [
           if (videoId != null)
@@ -1967,11 +2000,17 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                     onTap: () => setState(() => _playing = true),
                   )
           else
-            Container(
-              width: double.infinity,
-              height: 72,
-              color: iconColor.withValues(alpha: 0.08),
-              child: Center(child: Icon(icon, size: 32, color: iconColor)),
+            _IconHeader(
+              icon: icon,
+              accent: iconColor,
+              onZoom: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => _ScheduleItemDetailsSheet(
+                    item: _DayItem.fromActivity(widget.log),
+                    activity: widget.activity),
+              ),
             ),
           Padding(
             padding: const EdgeInsets.all(14),
@@ -1987,18 +2026,11 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                               .copyWith(fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(width: 8),
-                    Text(_fmt(widget.log.scheduledAt),
-                        style: AppTextStyles.h3.copyWith(
-                            color: accent, fontWeight: FontWeight.w800)),
+                    _TimeStamp(
+                        time: _fmt(widget.log.scheduledAt),
+                        missed: widget.missed),
                   ],
                 ),
-                if (widget.missed) ...[
-                  const SizedBox(height: 2),
-                  Text('пропущено',
-                      style: AppTextStyles.bodyMd.copyWith(
-                          color: const Color(0xFFF97316),
-                          fontWeight: FontWeight.w700)),
-                ],
                 if (widget.activity != null &&
                     widget.activity!.durationMin > 0) ...[
                   const SizedBox(height: 10),
@@ -2009,7 +2041,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
             ),
           ),
           _ActionRow(
-            accent: accent,
+            doneColor: const Color(0xFF22C55E),
             onDone: () {
               _stopVideo();
               widget.ref
@@ -2122,27 +2154,10 @@ class _ActiveWellbeingCard extends ConsumerWidget {
       ),
       child: Container(
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-                color: accent.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4)),
-          ],
-        ),
+        decoration: _cardDecoration,
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
-              height: 72,
-              color: iconColor.withValues(alpha: 0.08),
-              child: Center(
-                  child: Icon(Icons.favorite_rounded,
-                      size: 32, color: iconColor)),
-            ),
+            _IconHeader(icon: Icons.favorite_rounded, accent: iconColor),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -2161,18 +2176,9 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(_fmt(scheduledAt),
-                          style: AppTextStyles.h3.copyWith(
-                              color: accent, fontWeight: FontWeight.w800)),
+                      _TimeStamp(time: _fmt(scheduledAt), missed: missed),
                     ],
                   ),
-                  if (missed) ...[
-                    const SizedBox(height: 2),
-                    Text('пропущено',
-                        style: AppTextStyles.bodyMd.copyWith(
-                            color: const Color(0xFFF97316),
-                            fontWeight: FontWeight.w700)),
-                  ],
                 ],
               ),
             ),
@@ -2237,24 +2243,11 @@ class _ActiveAppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = missed
-        ? const Color(0xFFF97316)
-        : (colorFromHex(appointment.color) ?? const Color(0xFF72A8C7));
     final iconColor = colorFromHex(appointment.color) ?? const Color(0xFF72A8C7);
 
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: accent.withValues(alpha: 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4)),
-        ],
-      ),
+      decoration: _cardDecoration,
       child: Column(
         children: [
           _IconHeader(
@@ -2282,18 +2275,10 @@ class _ActiveAppointmentCard extends StatelessWidget {
                               .copyWith(fontWeight: FontWeight.w800)),
                     ),
                     const SizedBox(width: 8),
-                    Text(_fmt(appointment.scheduledAt),
-                        style: AppTextStyles.h3.copyWith(
-                            color: accent, fontWeight: FontWeight.w800)),
+                    _TimeStamp(
+                        time: _fmt(appointment.scheduledAt), missed: missed),
                   ],
                 ),
-                if (missed) ...[
-                  const SizedBox(height: 2),
-                  Text('пропущено',
-                      style: AppTextStyles.bodyMd.copyWith(
-                          color: const Color(0xFFF97316),
-                          fontWeight: FontWeight.w700)),
-                ],
                 if (appointment.location != null &&
                     appointment.location!.isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -2304,7 +2289,7 @@ class _ActiveAppointmentCard extends StatelessWidget {
             ),
           ),
           _ActionRow(
-            accent: accent,
+            doneColor: iconColor,
             onDone: () => ref
                 .read(doctorAppointmentsRepositoryProvider)
                 .markAttended(appointment.id),
@@ -2329,83 +2314,77 @@ class _ActiveAppointmentCard extends StatelessWidget {
 
 // ─── Action Row ───────────────────────────────────────────────────────────────
 
+// Дві дії: квадратна вторинна кнопка "годинник" (усередині — перенести + окремим
+// пунктом "пропустити", те що раніше було третьою кнопкою) і велика основна
+// кнопка "Виконати".
 class _ActionRow extends StatelessWidget {
   final VoidCallback onDone;
   final VoidCallback onSkip;
   final void Function(int minutes) onSnooze;
-  final Color accent;
+  final Color doneColor;
+  final String skipLabel;
 
   const _ActionRow({
     required this.onDone,
     required this.onSkip,
     required this.onSnooze,
-    required this.accent,
+    required this.doneColor,
+    this.skipLabel = 'Пропустити',
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-          border:
-              Border(top: BorderSide(color: AppColors.border, width: 1))),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 2, 14, 14),
       child: Row(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: onSkip,
-              child: SizedBox(
-                height: 44,
-                child: Center(
-                  child: Text('✕ Пропустити',
-                      style: AppTextStyles.bodyMd.copyWith(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                ),
+          PopupMenuButton<int>(
+            onSelected: (v) => v == -1 ? onSkip() : onSnooze(v),
+            offset: const Offset(0, -8),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                  value: 10, child: Text('Перенести на 10 хв')),
+              const PopupMenuItem(
+                  value: 30, child: Text('Перенести на 30 хв')),
+              const PopupMenuItem(
+                  value: 60, child: Text('Перенести на 1 год')),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: -1,
+                child: Text(skipLabel,
+                    style: const TextStyle(color: AppColors.danger)),
               ),
+            ],
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.bgPage,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.schedule_rounded,
+                  size: 22, color: AppColors.textSub),
             ),
           ),
-          Container(width: 1, height: 44, color: AppColors.border),
-          Expanded(
-            child: PopupMenuButton<int>(
-              onSelected: onSnooze,
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 10, child: Text('10 хвилин')),
-                PopupMenuItem(value: 30, child: Text('30 хвилин')),
-                PopupMenuItem(value: 60, child: Text('1 година')),
-              ],
-              child: SizedBox(
-                height: 44,
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.schedule_rounded,
-                          size: 14, color: AppColors.textSub),
-                      const SizedBox(width: 4),
-                      Text('Перенести',
-                          style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.textSub,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Container(width: 1, height: 44, color: AppColors.border),
+          const SizedBox(width: 10),
           Expanded(
             child: GestureDetector(
               onTap: onDone,
               child: Container(
-                height: 44,
-                color: accent.withValues(alpha: 0.08),
+                height: 52,
+                decoration: BoxDecoration(
+                  color: doneColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Center(
-                  child: Text('✓ Виконано',
+                  child: Text('Виконати',
                       style: AppTextStyles.bodyMd.copyWith(
-                          color: accent,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700)),
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800)),
                 ),
               ),
             ),
