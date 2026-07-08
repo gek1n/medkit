@@ -185,12 +185,13 @@ class _TodayContent extends ConsumerWidget {
           }
 
           // ── Intake buckets ───────────────────────────────────────────────
-          bool isPending(Intake i) {
-            if (i.status == 'snoozed' &&
-                i.snoozedUntil != null &&
-                i.snoozedUntil!.isAfter(now)) return false;
-            return i.status == 'pending' || i.status == 'snoozed';
-          }
+          // effectiveDue вже враховує snoozedUntil для статусу 'snoozed' —
+          // перенесений прийом коректно потрапляє в missed/active/upcoming
+          // за НОВИМ часом, без додаткового виключення тут (раніше воно
+          // ховало перенесений прийом з розкладу взагалі, аж доки не
+          // наставав його новий час).
+          bool isPending(Intake i) =>
+              i.status == 'pending' || i.status == 'snoozed';
 
           final pendingIntakes = intakes.where(isPending).toList();
           final missedIntakes = pendingIntakes
@@ -779,7 +780,8 @@ class _MissedSection extends StatelessWidget {
             const SizedBox(width: 6),
             Text('Ви пропустили',
                 style: AppTextStyles.bodyMd.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     color: const Color(0xFFC2410C))),
             _CountBadge(count: cards.length, color: const Color(0xFFF97316)),
           ]),
@@ -876,7 +878,8 @@ class _ActiveNowSection extends StatelessWidget {
             const SizedBox(width: 6),
             Text('Зараз потрібно',
                 style: AppTextStyles.bodyMd.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     color: AppColors.textMain)),
             _CountBadge(count: cards.length, color: AppColors.primary),
           ]),
@@ -1036,9 +1039,9 @@ class _ScheduleCard extends StatelessWidget {
           child: Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 34, 12),
+                padding: const EdgeInsets.fromLTRB(12, 14, 66, 14),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
                       width: 40,
@@ -1054,21 +1057,11 @@ class _ScheduleCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(title,
-                                    style: AppTextStyles.bodyMd
-                                        .copyWith(fontWeight: FontWeight.w700)),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(_fmt(item.scheduledAt),
-                                  style: AppTextStyles.bodySm.copyWith(
-                                      color: AppColors.textSub,
-                                      fontWeight: FontWeight.w700)),
-                            ],
-                          ),
+                          Text(title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.bodyMd.copyWith(
+                                  fontSize: 15, fontWeight: FontWeight.w800)),
                           if (subtitle != null) ...[
                             const SizedBox(height: 2),
                             Text(subtitle,
@@ -1081,21 +1074,36 @@ class _ScheduleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!dimmed)
-                Positioned(
-                  right: 8,
-                  top: 0,
-                  bottom: 0,
-                  child: Center(
-                    child: Icon(Icons.chevron_right_rounded,
-                        size: 18, color: AppColors.textMuted),
+              // Час і шеврон — окрема група, завжди по центру всієї висоти
+              // картки (а не прив'язана до заголовка, який спливає вгору,
+              // коли є підзаголовок).
+              Positioned(
+                right: 8,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_fmt(item.scheduledAt),
+                          style: AppTextStyles.bodySm.copyWith(
+                              fontSize: 13,
+                              color: AppColors.textMain,
+                              fontWeight: FontWeight.w800)),
+                      if (!dimmed) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded,
+                            size: 18, color: AppColors.textMuted),
+                      ],
+                    ],
                   ),
                 ),
+              ),
               Positioned(
                 left: 0,
                 top: 0,
                 bottom: 0,
-                child: Container(width: 3, color: color),
+                child: Container(width: 4, color: color),
               ),
             ],
           ),
@@ -2140,18 +2148,18 @@ class _ActiveWellbeingCard extends ConsumerWidget {
         );
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final accent =
-        missed ? const Color(0xFFF97316) : const Color(0xFF5FAE7C);
-    final iconColor =
-        colorFromHex(wellbeingSchedule?.color) ?? const Color(0xFF5FAE7C);
-    return GestureDetector(
-      onTap: () => Navigator.push(
+  void _open(BuildContext context) => Navigator.push(
         context,
         MaterialPageRoute(
             builder: (_) => WellbeingCheckScreen(memberId: memberId)),
-      ),
+      );
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final iconColor =
+        colorFromHex(wellbeingSchedule?.color) ?? const Color(0xFF5FAE7C);
+    return GestureDetector(
+      onTap: () => _open(context),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: _cardDecoration,
@@ -2179,47 +2187,20 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                       _TimeStamp(time: _fmt(scheduledAt), missed: missed),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  const _InfoChip(
+                      icon: Icons.favorite_rounded, label: 'Самопочуття'),
+                  const SizedBox(height: 8),
+                  const _CommentNote(
+                      text:
+                          'Оцініть настрій і, за потреби, опишіть симптоми'),
                 ],
               ),
             ),
-            Container(
-              decoration: const BoxDecoration(
-                  border: Border(
-                      top: BorderSide(color: AppColors.border, width: 1))),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _skip(ref),
-                      child: SizedBox(
-                        height: 44,
-                        child: Center(
-                          child: Text('✕ Пропустити',
-                              style: AppTextStyles.bodyMd.copyWith(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(width: 1, height: 44, color: AppColors.border),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: Center(
-                        child: Text(
-                          missed ? 'Заповнити' : 'Відкрити',
-                          style: AppTextStyles.bodyMd.copyWith(
-                              color: accent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            _ActionRow(
+              doneColor: const Color(0xFF5FAE7C),
+              onDone: () => _open(context),
+              onSkip: () => _skip(ref),
             ),
           ],
         ),
@@ -2320,37 +2301,43 @@ class _ActiveAppointmentCard extends StatelessWidget {
 class _ActionRow extends StatelessWidget {
   final VoidCallback onDone;
   final VoidCallback onSkip;
-  final void Function(int minutes) onSnooze;
+  final void Function(int minutes)? onSnooze;
   final Color doneColor;
   final String skipLabel;
 
   const _ActionRow({
     required this.onDone,
     required this.onSkip,
-    required this.onSnooze,
+    this.onSnooze,
     required this.doneColor,
     this.skipLabel = 'Пропустити',
   });
 
   @override
   Widget build(BuildContext context) {
+    // Перенесення на N хвилин доступне не для всіх типів завдань (напр.
+    // самопочуття прив'язане до фіксованого слоту розкладу, а не до
+    // довільного часу) — тоді меню містить лише "Пропустити".
+    final canSnooze = onSnooze != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 2, 14, 14),
       child: Row(
         children: [
           PopupMenuButton<int>(
-            onSelected: (v) => v == -1 ? onSkip() : onSnooze(v),
+            onSelected: (v) => v == -1 ? onSkip() : onSnooze!(v),
             offset: const Offset(0, -8),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                  value: 10, child: Text('Перенести на 10 хв')),
-              const PopupMenuItem(
-                  value: 30, child: Text('Перенести на 30 хв')),
-              const PopupMenuItem(
-                  value: 60, child: Text('Перенести на 1 год')),
-              const PopupMenuDivider(),
+              if (canSnooze) ...[
+                const PopupMenuItem(
+                    value: 10, child: Text('Перенести на 10 хв')),
+                const PopupMenuItem(
+                    value: 30, child: Text('Перенести на 30 хв')),
+                const PopupMenuItem(
+                    value: 60, child: Text('Перенести на 1 год')),
+                const PopupMenuDivider(),
+              ],
               PopupMenuItem(
                 value: -1,
                 child: Text(skipLabel,

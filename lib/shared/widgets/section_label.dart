@@ -13,7 +13,9 @@ class SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(text.toUpperCase(), style: AppTextStyles.labelSm),
+        Text(text,
+            style: AppTextStyles.bodyMd.copyWith(
+                fontSize: 15, fontWeight: FontWeight.w800)),
         const Spacer(),
         if (action != null)
           GestureDetector(
