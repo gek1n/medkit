@@ -19,6 +19,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
 
 enum _JoinStage { entering, working, review }
 
@@ -163,19 +164,8 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: working ? null : () => Navigator.of(context).pop(),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textMain),
-            ),
-          ),
+          MkBackButton(
+              onTap: working ? null : () => Navigator.of(context).pop()),
           const SizedBox(height: 20),
           Text('Підключення до сім\'ї', style: AppTextStyles.h2),
           const SizedBox(height: 6),

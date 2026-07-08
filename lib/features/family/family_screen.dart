@@ -12,6 +12,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../pairing/pairing_invite_screen.dart';
 import '../pairing/pairing_join_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -678,20 +679,7 @@ class _AddMemberBackHeader extends StatelessWidget {
           horizontal: AppDimensions.screenPadding, vertical: 12),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: AppColors.textMain),
-            ),
-          ),
+          MkBackButton(onTap: onBack),
           const SizedBox(width: 12),
           Text(title, style: AppTextStyles.h3),
         ],

@@ -7,6 +7,7 @@ import '../../core/services/sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
 
 /// Онбординг-варіант "Відновити акаунт" — вхід через Google/Apple, щоб
@@ -111,19 +112,8 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
-                onTap: _busy ? null : () => Navigator.of(context).pop(),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textMain),
-                ),
-              ),
+              MkBackButton(
+                  onTap: _busy ? null : () => Navigator.of(context).pop()),
               const SizedBox(height: 20),
               Text('Відновити акаунт', style: AppTextStyles.h2),
               const SizedBox(height: 6),

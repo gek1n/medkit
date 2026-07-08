@@ -9,6 +9,7 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
 
 // ── Provider key type ─────────────────────────────────────────────────────────
 
@@ -172,19 +173,7 @@ class _AnalyticsHeader extends StatelessWidget {
           // Back button row
           Row(
             children: [
-              GestureDetector(
-                onTap: onBack,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.bgPage,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 16, color: AppColors.textMain),
-                ),
-              ),
+              MkBackButton(onTap: onBack),
               const SizedBox(width: 12),
               Text('Аналітика', style: AppTextStyles.h3),
             ],

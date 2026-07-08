@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/plan_provider.dart';
+import '../../core/services/ai_usage_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -11,8 +13,10 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../plans/plans_screen.dart';
 import '../scan/prescription_scan_screen.dart';
 import '../today/providers/today_providers.dart';
 
@@ -95,9 +99,21 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
   bool _isSaving = false;
 
+  // null = ще завантажується; true/false — чи лишились безкоштовні спроби
+  // скану (завжди true для платних планів).
+  bool? _canScan;
+
+  Future<void> _refreshScanAvailability() async {
+    final plan = ref.read(planProvider);
+    final canScan =
+        plan.isPaid ? true : await AiUsageService.canPhotoScan();
+    if (mounted) setState(() => _canScan = canScan);
+  }
+
   @override
   void initState() {
     super.initState();
+    _refreshScanAvailability();
     final ex = widget.existing;
     if (ex == null) {
       _phases = [
@@ -352,7 +368,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                       // Scan CTA
                       GestureDetector(
                         onTap: _isSaving ? null : _openScan,
-                        child: _ScanCta(),
+                        child: _ScanCta(locked: _canScan == false),
                       ),
                       const _OrDivider(),
                     ],
@@ -516,11 +532,22 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   }
 
   Future<void> _openScan() async {
+    if (_canScan == false) {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const PlansScreen()));
+      return;
+    }
+
     final results = await Navigator.push<List<ScannedMedication>>(
       context,
       MaterialPageRoute(builder: (_) => const PrescriptionScanScreen()),
     );
     if (results == null || results.isEmpty || !mounted) return;
+
+    if (!ref.read(planProvider).isPaid) {
+      await AiUsageService.recordPhotoScan();
+      await _refreshScanAvailability();
+    }
 
     if (results.length == 1) {
       _prefillFrom(results.first);
@@ -618,20 +645,7 @@ class _BackHeader extends StatelessWidget {
           horizontal: AppDimensions.screenPadding, vertical: 12),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: AppColors.textMain),
-            ),
-          ),
+          MkBackButton(onTap: onBack),
           const SizedBox(width: 12),
           Expanded(child: Text(title, style: AppTextStyles.h3)),
           if (onDelete != null)
@@ -656,35 +670,80 @@ class _BackHeader extends StatelessWidget {
 }
 
 class _ScanCta extends StatelessWidget {
+  final bool locked;
+  const _ScanCta({this.locked = false});
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      clipBehavior: Clip.hardEdge,
+      constraints: const BoxConstraints(minHeight: 110),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4C9A6A), Color(0xFF3B7A56)],
+        ),
+        borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 26),
-          const SizedBox(width: 12),
-          Expanded(
+          Positioned(
+            right: -8,
+            bottom: -6,
+            child: Image.asset('assets/illustrations/elly-telling.png',
+                height: 116),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 96, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Сканувати рецепт',
-                    style: AppTextStyles.labelLg
-                        .copyWith(color: Colors.white)),
-                const SizedBox(height: 2),
-                Text('AI заповнить все автоматично по фото',
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: locked
+                        ? [
+                            const Icon(Icons.lock_rounded,
+                                size: 12, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text('Більше в Elly+',
+                                style: AppTextStyles.bodySm.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11)),
+                          ]
+                        : [
+                            const Icon(Icons.auto_awesome_rounded,
+                                size: 12, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text('AI',
+                                style: AppTextStyles.bodySm.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11)),
+                          ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text('Розпізнати рецепт за фото',
+                    style: AppTextStyles.labelLg.copyWith(
+                        color: Colors.white, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
+                Text('Еллі внесе ліки у розклад',
                     style: AppTextStyles.bodySm
-                        .copyWith(
-                            color: Colors.white.withValues(alpha: 0.8))),
+                        .copyWith(color: Colors.white.withValues(alpha: 0.85))),
               ],
             ),
           ),
-          Icon(Icons.play_arrow_rounded,
-              color: Colors.white.withValues(alpha: 0.7), size: 20),
         ],
       ),
     );

@@ -8,6 +8,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/task_color.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
@@ -110,6 +111,44 @@ String _daysWordUk(int n) {
   return 'днів';
 }
 
+String _timesWordUk(int n) {
+  final mod10 = n % 10;
+  final mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'разів';
+  if (mod10 == 1) return 'раз';
+  if (mod10 >= 2 && mod10 <= 4) return 'рази';
+  return 'разів';
+}
+
+// Підпис під назвою в шапці: "10 мг на прийом · 2 рази на день".
+String _doseSubtitle(Medication med) {
+  final phases = _parsePhases(med.phases);
+  final idx = _activePhaseIndex(med, phases, DateTime.now());
+  final activePhase = idx != null ? phases[idx] : null;
+  final doseAmount = activePhase != null
+      ? ((activePhase['doseAmount'] as num?)?.toDouble() ?? med.doseAmount)
+      : med.doseAmount;
+  final doseAmountStr = doseAmount == doseAmount.roundToDouble()
+      ? doseAmount.toInt().toString()
+      : doseAmount.toStringAsFixed(1);
+  final timesPerDay = activePhase != null
+      ? (activePhase['times'] as List? ?? const []).length
+      : 1;
+  return '$doseAmountStr ${med.doseUnit} на прийом · $timesPerDay ${_timesWordUk(timesPerDay)} на день';
+}
+
+// Спільний вигляд секцій-карток на кремовому фоні екрана: біла поверхня,
+// м'яка тінь (як у медіа-картках "Сьогодні"), акцентна обводка кольору ліків.
+BoxDecoration _softCard(Color accent) => BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: accent.withValues(alpha: 0.25)),
+      boxShadow: const [
+        BoxShadow(
+            color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+      ],
+    );
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 class MedicationDetailScreen extends ConsumerWidget {
@@ -126,7 +165,7 @@ class MedicationDetailScreen extends ConsumerWidget {
     final medAsync = ref.watch(_medWatchProvider(medicationId));
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: medAsync.when(
           loading: () => const Center(
@@ -161,7 +200,11 @@ class _DetailBody extends ConsumerWidget {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
-          child: _BackHeader(onBack: () => Navigator.pop(context)),
+          child: _BackHeader(
+            title: med.name,
+            subtitle: _doseSubtitle(med),
+            onBack: () => Navigator.pop(context),
+          ),
         ),
         SliverToBoxAdapter(
           child: _HeroSection(med: med, accent: accent),
@@ -185,7 +228,7 @@ class _DetailBody extends ConsumerWidget {
                 _StockSection(med: med, schedules: schedules, accent: accent),
                 const SizedBox(height: AppDimensions.xl),
               ],
-              _ActionRow(med: med, accent: accent),
+              _ActionRow(med: med),
               const SizedBox(height: 40),
             ]),
           ),
@@ -229,25 +272,12 @@ class _HeroSection extends StatelessWidget {
         : 'постійний курс';
 
     return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(medFormIcon(med.form), size: 22, color: accent),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(med.name,
-                    style: AppTextStyles.h2,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
+          _MedPhotoBlock(med: med, accent: accent),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -266,19 +296,9 @@ class _HeroSection extends StatelessWidget {
                   accent: accent),
             ],
           ),
-          _MedPhotoBlock(med: med, accent: accent),
         ],
       ),
     );
-  }
-
-  String _timesWordUk(int n) {
-    final mod10 = n % 10;
-    final mod100 = n % 100;
-    if (mod100 >= 11 && mod100 <= 14) return 'разів';
-    if (mod10 == 1) return 'раз';
-    if (mod10 >= 2 && mod10 <= 4) return 'рази';
-    return 'разів';
   }
 }
 
@@ -370,11 +390,7 @@ class _StockSection extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
+      decoration: _softCard(accent),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -531,11 +547,7 @@ class _StockSection extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
+      decoration: _softCard(accent),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -692,27 +704,61 @@ class _MedPhotoBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photoPath = _firstPhoto(med.photoPaths);
-    if (photoPath == null) return const SizedBox.shrink();
+
+    // Без фото — вузька кольорова смужка з іконкою форми ліків (не порожнеча).
+    if (photoPath == null) {
+      return Container(
+        width: double.infinity,
+        height: 64,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
+        ),
+        child: Center(
+            child: Icon(medFormIcon(med.form), size: 28, color: accent)),
+      );
+    }
 
     return FutureBuilder<Uint8List>(
       future: PhotoService.decryptedBytes(photoPath),
       builder: (context, snap) {
-        if (!snap.hasData) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Container(
-            clipBehavior: Clip.antiAlias,
+        if (!snap.hasData) {
+          return Container(
+            width: double.infinity,
+            height: 190,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                  color: accent.withValues(alpha: 0.35), width: 1.5),
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Image.memory(
-              snap.data!,
+          );
+        }
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6)),
+            ],
+          ),
+          child: Image.memory(
+            snap.data!,
+            width: double.infinity,
+            height: 190,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
               width: double.infinity,
-              height: 200,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              height: 190,
+              color: accent.withValues(alpha: 0.1),
             ),
           ),
         );
@@ -816,21 +862,19 @@ class _PhasesSection extends StatelessWidget {
       ));
     }
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionTitle(icon: Icons.timeline_rounded, label: 'Етапи курсу', accent: accent),
-          const SizedBox(height: 10),
-          ...rows,
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.timeline_rounded, label: 'Етапи курсу', accent: accent),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: _softCard(accent),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: rows,
+          ),
+        ),
+      ],
     );
   }
 
@@ -862,26 +906,26 @@ class _InfoBlock extends StatelessWidget {
     final endLabel =
         med.endDate != null ? 'до ${_fmt(med.endDate!)}' : 'постійно';
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionTitle(icon: Icons.info_outline_rounded, label: 'Деталі', accent: accent),
-          const SizedBox(height: 10),
-          _InfoRow(Icons.event_repeat_rounded, 'Прийом', _repeatFull(med.repeatType, config), accent),
-          _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel, accent),
-          _InfoRow(Icons.timer_rounded, 'Курс',
-              'з ${_fmt(med.startDate)} $endLabel', accent),
-          if (med.instructions != null && med.instructions!.isNotEmpty)
-            _InfoRow(Icons.edit_note_rounded, 'Примітка', med.instructions!, accent),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(icon: Icons.info_outline_rounded, label: 'Деталі', accent: accent),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: _softCard(accent),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _InfoRow(Icons.event_repeat_rounded, 'Прийом', _repeatFull(med.repeatType, config), accent),
+              _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel, accent),
+              _InfoRow(Icons.timer_rounded, 'Курс',
+                  'з ${_fmt(med.startDate)} $endLabel', accent),
+              if (med.instructions != null && med.instructions!.isNotEmpty)
+                _InfoRow(Icons.edit_note_rounded, 'Примітка', med.instructions!, accent),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -954,12 +998,16 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: accent),
-        const SizedBox(width: 8),
-        Text(label, style: AppTextStyles.labelLg),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: accent),
+          const SizedBox(width: 6),
+          Text(label.toUpperCase(), style: AppTextStyles.labelSm),
+        ],
+      ),
     );
   }
 }
@@ -968,8 +1016,7 @@ class _SectionTitle extends StatelessWidget {
 
 class _ActionRow extends ConsumerWidget {
   final Medication med;
-  final Color accent;
-  const _ActionRow({required this.med, required this.accent});
+  const _ActionRow({required this.med});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -977,9 +1024,15 @@ class _ActionRow extends ConsumerWidget {
       children: [
         Expanded(
           child: _ActBtn(
-            icon: Icons.pause_circle_outline_rounded,
+            label: 'Зупинити',
+            isDestructive: true,
+            onTap: () => _confirmStop(context, ref),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _ActBtn(
             label: 'Пауза',
-            accent: accent,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                   content: Text('Функція призупинення скоро буде доступна')),
@@ -989,9 +1042,7 @@ class _ActionRow extends ConsumerWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _ActBtn(
-            icon: Icons.edit_rounded,
             label: 'Редагувати',
-            accent: accent,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -999,15 +1050,6 @@ class _ActionRow extends ConsumerWidget {
                     memberId: med.memberId, existing: med),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActBtn(
-            icon: Icons.delete_rounded,
-            label: 'Зупинити',
-            isDestructive: true,
-            onTap: () => _confirmStop(context, ref),
           ),
         ),
       ],
@@ -1043,17 +1085,15 @@ class _ActionRow extends ConsumerWidget {
   }
 }
 
+// Нейтральні текстові кнопки без тіні (навмисно — щоб не з'являлась кольорова
+// підсвітка під кнопками, як у референсі).
 class _ActBtn extends StatelessWidget {
-  final IconData icon;
   final String label;
   final bool isDestructive;
-  final Color accent;
   final VoidCallback onTap;
   const _ActBtn({
-    required this.icon,
     required this.label,
     this.isDestructive = false,
-    this.accent = AppColors.primary,
     required this.onTap,
   });
 
@@ -1062,31 +1102,24 @@ class _ActBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isDestructive
                 ? const Color(0xFFFECACA)
-                : accent.withValues(alpha: 0.35),
-            width: 1.5,
+                : AppColors.border,
           ),
         ),
-        child: Column(
-          children: [
-            Icon(icon,
-                size: 18,
-                color: isDestructive ? AppColors.danger : accent),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: AppTextStyles.caption.copyWith(
-                color: isDestructive ? AppColors.danger : accent,
-                fontWeight: FontWeight.w700,
-              ),
+        child: Center(
+          child: Text(
+            label,
+            style: AppTextStyles.bodyMd.copyWith(
+              color: isDestructive ? AppColors.danger : AppColors.textMain,
+              fontWeight: FontWeight.w700,
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -1096,27 +1129,36 @@ class _ActBtn extends StatelessWidget {
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 class _BackHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
   final VoidCallback onBack;
-  const _BackHeader({required this.onBack});
+  const _BackHeader(
+      {required this.title, required this.subtitle, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.surface,
+      color: AppColors.bg,
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.bgPage,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: AppColors.textMain),
+          MkBackButton(onTap: onBack),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: AppTextStyles.h2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                Text(subtitle,
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: AppColors.textSub),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ],
             ),
           ),
         ],

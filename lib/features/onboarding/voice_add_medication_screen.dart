@@ -7,6 +7,7 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_back_button.dart';
 
 enum _VoiceStage { checkingConsent, needsConsent, idle, listening, analyzing, error }
 
@@ -226,19 +227,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textMain),
-            ),
-          ),
+          MkBackButton(onTap: onBack),
           const SizedBox(width: 12),
           Text('Додати голосом', style: AppTextStyles.h3),
         ],

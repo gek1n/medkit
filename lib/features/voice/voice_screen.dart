@@ -7,6 +7,7 @@ import '../../core/services/nlu_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../medications/add_medication_screen.dart';
 import '../today/providers/today_providers.dart';
 
@@ -281,20 +282,7 @@ class _BackHeader extends StatelessWidget {
           const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: onBack,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 16, color: AppColors.textMain),
-            ),
-          ),
+          MkBackButton(onTap: onBack),
           const SizedBox(width: 12),
           Text('Голосове управління',
               style: AppTextStyles.h3),

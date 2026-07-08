@@ -12,6 +12,7 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
 import 'join_family_screen.dart';
 import 'restore_account_screen.dart';
@@ -372,24 +373,7 @@ class _ProgressBar extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              if (onBack != null)
-                GestureDetector(
-                  onTap: onBack,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 16,
-                      color: AppColors.textMain,
-                    ),
-                  ),
-                ),
+              if (onBack != null) MkBackButton(onTap: onBack),
               const Spacer(),
               Text(
                 'Крок ${step + 1} з $total',
