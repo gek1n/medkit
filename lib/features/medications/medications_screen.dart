@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/avatars.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
@@ -189,7 +191,7 @@ class _MedicationsBody extends ConsumerWidget {
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 22),
+                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
                 ),
               ),
             ],
@@ -217,8 +219,6 @@ class _MemberFilterStrip extends StatelessWidget {
     required this.selectedId,
     required this.onSelect,
   });
-
-  static const _avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
 
   @override
   Widget build(BuildContext context) {
@@ -248,10 +248,7 @@ class _MemberFilterStrip extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Text(
-                    _avatars[m.avatarIndex % _avatars.length],
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  AvatarImage(index: m.avatarIndex, size: 18),
                   const SizedBox(width: 6),
                   Text(
                     m.name,
@@ -296,9 +293,10 @@ class _MedCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
               child: Center(
-                child: Text(
-                  _formEmoji(med.form),
-                  style: const TextStyle(fontSize: 24),
+                child: Icon(
+                  medFormIcon(med.form),
+                  size: 24,
+                  color: dimmed ? AppColors.textMuted : AppColors.primary,
                 ),
               ),
             ),
@@ -320,7 +318,7 @@ class _MedCard extends StatelessWidget {
               _PillBadge(
                   remaining: med.remainingCount, total: med.totalCount),
             const SizedBox(width: AppDimensions.sm),
-            const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 20),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
           ],
         ),
       ),
@@ -339,14 +337,6 @@ class _MedCard extends StatelessWidget {
         _ => '',
       };
 
-  String _formEmoji(String form) => switch (form) {
-        'syrup' => '🍶',
-        'drops' => '💧',
-        'cream' => '🧴',
-        'inhaler' => '💨',
-        'injection' => '💉',
-        _ => '💊',
-      };
 }
 
 class _PillBadge extends StatelessWidget {
@@ -388,7 +378,7 @@ class _EmptyMeds extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         children: [
-          const Text('💊', style: TextStyle(fontSize: 52)),
+          const Icon(Icons.medication_rounded, size: 52, color: AppColors.primary),
           const SizedBox(height: 16),
           Text('Ліків ще немає', style: AppTextStyles.h3),
           const SizedBox(height: 8),
@@ -402,7 +392,7 @@ class _EmptyMeds extends StatelessWidget {
             onPressed: () => Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => AddMedicationScreen(memberId: memberId),
             )),
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add_rounded),
             label: const Text('Додати лікарство'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -429,7 +419,7 @@ class _EmptyMembers extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('👤', style: TextStyle(fontSize: 52)),
+          const Icon(Icons.person_off_rounded, size: 52, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('Профіль не знайдено', style: AppTextStyles.h3),
         ],

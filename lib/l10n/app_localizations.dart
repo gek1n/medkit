@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In uk, this message translates to:
-  /// **'MedKit'**
+  /// **'Elly'**
   String get appName;
 
   /// No description provided for @navAdd.

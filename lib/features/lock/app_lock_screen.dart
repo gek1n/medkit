@@ -60,11 +60,11 @@ class _AppLockScreenState extends State<AppLockScreen> {
                     color: AppColors.primaryLight,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.lock_outline,
+                  child: const Icon(Icons.lock_outline_rounded,
                       size: 40, color: AppColors.primary),
                 ),
                 const SizedBox(height: AppDimensions.xl),
-                Text('MedKit заблоковано', style: AppTextStyles.h3),
+                Text('Elly заблоковано', style: AppTextStyles.h3),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
                   _failedOnce

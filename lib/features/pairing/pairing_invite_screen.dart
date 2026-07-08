@@ -15,6 +15,7 @@ import '../../core/services/relay_api_client.dart';
 import '../../core/services/shared_channel_key_storage.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 
 /// Генерує одноразовий пейринг-код: шифрує невеликий envelope (channelId +
@@ -76,10 +77,12 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
       final code = PairingCryptoService.generateCode();
       final channelId = const Uuid().v4();
       final syncKey = _randomBytes(32);
+      final inviter = await ref.read(membersRepositoryProvider).getOwner();
       final envelope = utf8.encode(jsonEncode({
         'v': 2,
         'channelId': channelId,
         'name': widget.ownerName,
+        'inviterName': inviter?.name,
         'syncKey': base64Encode(syncKey),
       }));
 
@@ -163,7 +166,7 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🔗', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.link_rounded, size: 48, color: AppColors.primary),
           const SizedBox(height: 16),
           Text('Профіль вже підключено', style: AppTextStyles.h3),
           const SizedBox(height: 8),
@@ -187,7 +190,7 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('⚠️', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.danger),
           const SizedBox(height: 16),
           Text('Не вдалося створити запрошення', style: AppTextStyles.h3),
           const SizedBox(height: 8),
@@ -257,7 +260,7 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.copy, color: AppColors.primary, size: 20),
+                  const Icon(Icons.copy_rounded, color: AppColors.primary, size: 20),
                 ],
               ),
             ),

@@ -16,7 +16,7 @@ class AppLockService {
   static Future<bool> authenticate() async {
     try {
       return await _auth.authenticate(
-        localizedReason: 'Підтвердіть, що це ви, щоб відкрити MedKit',
+        localizedReason: 'Підтвердіть, що це ви, щоб відкрити Elly',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,

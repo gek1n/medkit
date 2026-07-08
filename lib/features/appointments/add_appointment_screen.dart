@@ -8,6 +8,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import 'appointments_history_screen.dart';
 
@@ -30,6 +31,7 @@ class _AddAppointmentScreenState
   late DateTime _date;
   late TimeOfDay _time;
   int _remindBeforeMin = 1440;
+  String? _colorHex;
   bool _isSaving = false;
 
   static const _remindOptions = [
@@ -45,6 +47,7 @@ class _AddAppointmentScreenState
     _doctorController = TextEditingController(text: ex?.doctorType ?? '');
     _locationController = TextEditingController(text: ex?.location ?? '');
     _notesController = TextEditingController(text: ex?.notes ?? '');
+    _colorHex = ex?.color;
     if (ex != null) {
       _date = ex.scheduledAt;
       _time = TimeOfDay(hour: ex.scheduledAt.hour, minute: ex.scheduledAt.minute);
@@ -75,8 +78,8 @@ class _AddAppointmentScreenState
               child: const Text('Скасувати')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Видалити',
-                  style: TextStyle(color: Colors.red))),
+              child: Text('Видалити',
+                  style: AppTextStyles.bodyMd.copyWith(color: Colors.red))),
         ],
       ),
     );
@@ -140,6 +143,7 @@ class _AddAppointmentScreenState
                 location: Value(locationVal),
                 remindBeforeMin: Value(_remindBeforeMin),
                 notes: Value(notesVal),
+                color: Value(_colorHex),
               ),
             );
       } else {
@@ -152,6 +156,7 @@ class _AddAppointmentScreenState
                     location: Value(locationVal),
                     remindBeforeMin: Value(_remindBeforeMin),
                     notes: Value(notesVal),
+                    color: Value(_colorHex),
                   ),
                 );
       }
@@ -331,14 +336,14 @@ class _AddAppointmentScreenState
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F3FF),
+                        color: const Color(0xFFEFF7F1),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: const Color(0xFFDDD6FE), width: 1.5),
+                            color: const Color(0xFFCBE6D3), width: 1.5),
                       ),
                       child: Row(
                         children: [
-                          const Text('📄', style: TextStyle(fontSize: 16)),
+                          const Icon(Icons.description_rounded, size: 16, color: AppColors.primary),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -346,21 +351,27 @@ class _AddAppointmentScreenState
                               children: [
                                 Text('Додати виписку',
                                     style: AppTextStyles.labelMd.copyWith(
-                                        color: const Color(0xFF4C1D95))),
+                                        color: const Color(0xFF2F5F41))),
                                 const SizedBox(height: 3),
                                 Text(
                                   'Сформувати PDF з ліками та симптомами за 30 днів',
                                   style: AppTextStyles.bodySm.copyWith(
-                                      color: const Color(0xFF5B21B6)),
+                                      color: const Color(0xFF2F6F49)),
                                 ),
                               ],
                             ),
                           ),
                           const Text('→',
                               style: TextStyle(
-                                  fontSize: 18, color: Color(0xFF7C3AED))),
+                                  fontSize: 18, color: Color(0xFF3F8F5F))),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    TaskColorPicker(
+                      selectedHex: _colorHex,
+                      onChanged: (hex) => setState(() => _colorHex = hex),
                     ),
                     const SizedBox(height: 32),
 
@@ -467,7 +478,7 @@ class _BackHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: AppColors.textMain),
             ),
           ),
@@ -493,7 +504,7 @@ class _BackHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFECACA)),
                 ),
-                child: const Icon(Icons.delete_outline,
+                child: const Icon(Icons.delete_outline_rounded,
                     size: 18, color: Color(0xFFDC2626)),
               ),
             ),

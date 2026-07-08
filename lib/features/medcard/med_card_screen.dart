@@ -16,7 +16,8 @@ class MedCardScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('🗂️', style: TextStyle(fontSize: 64)),
+                const Icon(Icons.folder_shared_rounded,
+                    size: 64, color: AppColors.primary),
                 const SizedBox(height: 24),
                 Text('Медкартка', style: AppTextStyles.h2),
                 const SizedBox(height: 12),

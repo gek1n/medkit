@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/avatars.dart';
 import '../../../data/db/app_database.dart';
 import '../providers/today_providers.dart';
 
@@ -70,8 +71,6 @@ class _MemberChip extends StatelessWidget {
     // wrapped in GestureDetector below
     final allDone = total > 0 && taken == total;
     final color = allDone ? AppColors.success : AppColors.primary;
-    final avatars = ['🧑', '👩', '👨', '👧', '👦', '👴', '👵', '🧒'];
-    final emoji = avatars[member.avatarIndex % avatars.length];
 
     return GestureDetector(
       onTap: onTap,
@@ -97,24 +96,14 @@ class _MemberChip extends StatelessWidget {
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                    child: Text(emoji,
-                        style: const TextStyle(fontSize: 20))),
-              ),
+              AvatarImage(index: member.avatarIndex, size: 40),
               if (allDone)
                 Container(
                   width: 16,
                   height: 16,
                   decoration: const BoxDecoration(
                       color: AppColors.success, shape: BoxShape.circle),
-                  child: const Icon(Icons.check,
+                  child: const Icon(Icons.check_rounded,
                       color: Colors.white, size: 10),
                 ),
             ],

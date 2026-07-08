@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
@@ -28,10 +29,12 @@ final _periodMedsProvider =
 });
 
 final _periodWellbeingProvider =
-    FutureProvider.family<List<WellbeingLog>, _PK>((ref, k) {
-  return ref
+    FutureProvider.family<List<WellbeingLog>, _PK>((ref, k) async {
+  final logs = await ref
       .watch(wellbeingRepositoryProvider)
       .getByMemberAndDateRange(k.memberId, k.from, k.to);
+  // "Пропустити" не несе реальних даних про настрій — не враховуємо в статистиці.
+  return logs.where((l) => !l.skipped).toList();
 });
 
 final _periodActivityLogsProvider =
@@ -178,7 +181,7 @@ class _AnalyticsHeader extends StatelessWidget {
                     color: AppColors.bgPage,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new,
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
                       size: 16, color: AppColors.textMain),
                 ),
               ),
@@ -404,15 +407,6 @@ class _MedStatCard extends StatelessWidget {
       barColor = const Color(0xFFF87171);
     }
 
-    final emoji = switch (med.form) {
-      'syrup' => '🍶',
-      'drops' => '💧',
-      'cream' => '🧴',
-      'inhaler' => '💨',
-      'injection' => '💉',
-      _ => '💊',
-    };
-
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
@@ -430,7 +424,7 @@ class _MedStatCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Text(emoji, style: const TextStyle(fontSize: 18)),
+              child: Icon(medFormIcon(med.form), size: 18, color: AppColors.primary),
             ),
           ),
           const SizedBox(width: 12),
@@ -479,8 +473,8 @@ class _WellbeingMiniChart extends StatelessWidget {
   const _WellbeingMiniChart({required this.logs, required this.days});
 
   static Color _moodBarColor(int mood) {
-    if (mood >= 4) return const Color(0xFF7C3AED);
-    if (mood >= 3) return const Color(0xFFA78BFA);
+    if (mood >= 4) return const Color(0xFF3F8F5F);
+    if (mood >= 3) return const Color(0xFF8FCBA4);
     return const Color(0xFFF87171);
   }
 
@@ -533,7 +527,7 @@ class _WellbeingMiniChart extends StatelessWidget {
                               top: Radius.circular(4)),
                           border: isToday
                               ? Border.all(
-                                  color: const Color(0xFF4C1D95), width: 1.5)
+                                  color: const Color(0xFF2F5F41), width: 1.5)
                               : null,
                         ),
                       ),
@@ -543,7 +537,7 @@ class _WellbeingMiniChart extends StatelessWidget {
                           '${(now.subtract(Duration(days: days - 1 - i))).day}',
                           style: AppTextStyles.caption.copyWith(
                             color: isToday
-                                ? const Color(0xFF7C3AED)
+                                ? const Color(0xFF3F8F5F)
                                 : AppColors.textMuted,
                             fontSize: 9,
                           ),
@@ -559,8 +553,8 @@ class _WellbeingMiniChart extends StatelessWidget {
         Wrap(
           spacing: 14,
           children: const [
-            _WbLegendItem(color: Color(0xFF7C3AED), label: 'Добре'),
-            _WbLegendItem(color: Color(0xFFA78BFA), label: 'Нормально'),
+            _WbLegendItem(color: Color(0xFF3F8F5F), label: 'Добре'),
+            _WbLegendItem(color: Color(0xFF8FCBA4), label: 'Нормально'),
             _WbLegendItem(color: Color(0xFFF87171), label: 'Погано'),
           ],
         ),
@@ -607,9 +601,9 @@ class _ActivitySummary extends StatelessWidget {
     final pct = total > 0 ? (done / total * 100).round() : 0;
 
     final tiles = [
-      ('✅', '$done', 'виконано'),
-      ('⏭', '$skipped', 'пропущено'),
-      ('🔥', '$pct%', 'успішність'),
+      (Icons.check_circle_rounded, '$done', 'виконано'),
+      (Icons.skip_next_rounded, '$skipped', 'пропущено'),
+      (Icons.local_fire_department_rounded, '$pct%', 'успішність'),
     ];
 
     return Row(
@@ -626,7 +620,7 @@ class _ActivitySummary extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Text(t.$1, style: const TextStyle(fontSize: 22)),
+                      Icon(t.$1, size: 22, color: AppColors.primary),
                       const SizedBox(height: 4),
                       Text(t.$2,
                           style: AppTextStyles.h3.copyWith(fontSize: 18)),
@@ -658,7 +652,7 @@ class _PdfHint extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Text('📄', style: TextStyle(fontSize: 22)),
+          const Icon(Icons.description_rounded, size: 22, color: AppColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/med_form_icons.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/repositories/intakes_repository.dart';
 import '../../../data/repositories/medications_repository.dart';
@@ -79,9 +80,10 @@ class _MedCardContent extends StatelessWidget {
                   isDone ? Border.all(color: AppColors.borderLight) : null,
             ),
             child: Center(
-              child: Text(
-                _formEmoji(med.form),
-                style: const TextStyle(fontSize: 22),
+              child: Icon(
+                medFormIcon(med.form),
+                size: 22,
+                color: isDone ? AppColors.textMuted : AppColors.primary,
               ),
             ),
           ),
@@ -172,15 +174,6 @@ class _MedCardContent extends StatelessWidget {
       ),
     );
   }
-
-  String _formEmoji(String form) => switch (form) {
-        'syrup' => '🍶',
-        'drops' => '💧',
-        'cream' => '🧴',
-        'inhaler' => '💨',
-        'injection' => '💉',
-        _ => '💊',
-      };
 }
 
 class _ActionButton extends StatelessWidget {

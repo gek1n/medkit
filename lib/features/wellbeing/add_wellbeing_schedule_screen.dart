@@ -9,6 +9,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import 'wellbeing_history_screen.dart';
 
@@ -28,6 +29,7 @@ class _AddWellbeingScheduleScreenState
     const TimeOfDay(hour: 8, minute: 0),
     const TimeOfDay(hour: 20, minute: 0),
   ];
+  String? _colorHex;
   bool _isSaving = false;
   bool _loaded = false;
 
@@ -49,6 +51,7 @@ class _AddWellbeingScheduleScreenState
           final parts = t.split(':');
           return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }).toList();
+        _colorHex = existing.color;
         _loaded = true;
       });
     } else {
@@ -96,6 +99,7 @@ class _AddWellbeingScheduleScreenState
               timesPerDay: Value(_timesPerDay),
               times: Value(timesJson),
               isActive: const Value(true),
+              color: Value(_colorHex),
             ),
           );
 
@@ -159,7 +163,7 @@ class _AddWellbeingScheduleScreenState
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.border),
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new,
+                          child: const Icon(Icons.arrow_back_ios_new_rounded,
                               size: 16, color: AppColors.textMain),
                         ),
                       ),
@@ -209,7 +213,7 @@ class _AddWellbeingScheduleScreenState
                       ),
                       child: Row(
                         children: [
-                          const Text('🩺', style: TextStyle(fontSize: 24)),
+                          const Icon(Icons.favorite_rounded, size: 24, color: AppColors.primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -289,7 +293,7 @@ class _AddWellbeingScheduleScreenState
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.access_time,
+                                const Icon(Icons.access_time_rounded,
                                     size: 18, color: AppColors.primary),
                                 const SizedBox(width: 10),
                                 Text(
@@ -306,7 +310,7 @@ class _AddWellbeingScheduleScreenState
                                   ),
                                 ),
                                 const SizedBox(width: 6),
-                                const Icon(Icons.chevron_right,
+                                const Icon(Icons.chevron_right_rounded,
                                     size: 18, color: AppColors.textMuted),
                               ],
                             ),
@@ -314,6 +318,12 @@ class _AddWellbeingScheduleScreenState
                         ),
                       );
                     }),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    TaskColorPicker(
+                      selectedHex: _colorHex,
+                      onChanged: (hex) => setState(() => _colorHex = hex),
+                    ),
                     const SizedBox(height: 32),
 
                     SizedBox(

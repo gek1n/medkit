@@ -12,6 +12,8 @@ class WellbeingSchedules extends Table {
       text().withDefault(const Constant('["08:00","20:00"]'))();
   // json: ["08:00","13:00","20:00"]
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  TextColumn get color => text().nullable()();
+  // hex "#RRGGBB" — кастомний колір картки, null = дефолтний колір типу
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
 }

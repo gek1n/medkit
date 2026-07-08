@@ -37,6 +37,8 @@ class Medications extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
   TextColumn get syncUuid => text().nullable().unique()();
+  TextColumn get color => text().nullable()();
+  // hex "#RRGGBB" — кастомний колір картки, null = дефолтний колір типу
   // глобально унікальний ідентифікатор для сімейної синхронізації (family_sync) —
   // призначається лише коли член сім'ї прив'язаний до каналу, на відміну від
   // локального autoincrement id, який не унікальний між пристроями

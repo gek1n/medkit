@@ -1,0 +1,306 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/providers/database_provider.dart';
+import '../../core/services/family_sync_service.dart';
+import '../../core/services/pairing_api_client.dart';
+import '../../core/services/pairing_crypto_service.dart';
+import '../../core/services/push_token_service.dart';
+import '../../core/services/relay_api_client.dart';
+import '../../core/services/shared_channel_key_storage.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../data/db/app_database.dart';
+import '../../data/repositories/medications_repository.dart';
+import '../../data/repositories/members_repository.dart';
+import '../../data/repositories/shared_channels_repository.dart';
+
+enum _JoinStage { entering, working, review }
+
+/// Онбординг-варіант "Підключитися до сім'ї" — вводимо код доступу, який
+/// хтось із родини вже видав для ЦЬОГО профілю (див. `PairingInviteScreen`).
+/// На відміну від `PairingJoinScreen` (використовується з екрану "Сім'я" для
+/// прив'язки чужого пристрою до вже наявного локального профілю), тут
+/// локального профілю ще не існує — ми створюємо його самі з іменем із
+/// envelope і одразу підтягуємо розклад, який родич міг уже скласти.
+class JoinFamilyScreen extends ConsumerStatefulWidget {
+  const JoinFamilyScreen({super.key});
+
+  @override
+  ConsumerState<JoinFamilyScreen> createState() => _JoinFamilyScreenState();
+}
+
+class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
+  final _pairingApi = const PairingApiClient();
+  final _relayApi = const RelayApiClient();
+  final _codeController = TextEditingController();
+
+  _JoinStage _stage = _JoinStage.entering;
+  String? _error;
+  String? _profileName;
+  String? _inviterName;
+  int? _memberId;
+  bool _consentChecked = false;
+  bool _finishing = false;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _redeem() async {
+    final code = _codeController.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+    setState(() {
+      _stage = _JoinStage.working;
+      _error = null;
+    });
+
+    try {
+      final codeHash = PairingCryptoService.codeHash(code);
+      final blob = await _pairingApi.redeem(codeHash: codeHash);
+      final plain = await PairingCryptoService.decrypt(
+        code,
+        salt: blob.salt,
+        nonce: blob.nonce,
+        cipherTextAndMac: blob.ciphertext,
+      );
+      final envelope = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
+      final channelId = envelope['channelId'] as String;
+      final profileName = envelope['name'] as String? ?? 'Профіль';
+      final inviterName = envelope['inviterName'] as String?;
+      final syncKeyB64 = envelope['syncKey'] as String?;
+      if (syncKeyB64 == null) {
+        throw StateError('Цей код не підтримує підключення профілю');
+      }
+
+      final db = ref.read(databaseProvider);
+      final memberId = await ref.read(membersRepositoryProvider).insert(
+            MembersCompanion.insert(name: profileName, role: const Value('owner')),
+          );
+
+      await ref
+          .read(sharedChannelsRepositoryProvider)
+          .bind(channelId: channelId, memberId: memberId);
+      await SharedChannelKeyStorage.store(channelId, base64Decode(syncKeyB64));
+
+      try {
+        final token = await PushTokenService.getToken();
+        if (token != null) {
+          await _relayApi.register(
+            channelId: channelId,
+            pushToken: token,
+            platform: Platform.isIOS ? 'ios' : 'android',
+          );
+        }
+      } catch (_) {
+        // Не критично — реєстрацію push-токена можна повторити пізніше.
+      }
+
+      await FamilySyncService(db).syncChannelForMember(memberId);
+
+      final existingMeds = await ref.read(medicationsRepositoryProvider).getByMember(memberId);
+
+      if (!mounted) return;
+      if (existingMeds.isNotEmpty) {
+        setState(() {
+          _profileName = profileName;
+          _inviterName = inviterName;
+          _memberId = memberId;
+          _stage = _JoinStage.review;
+        });
+      } else {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _stage = _JoinStage.entering;
+        _error = 'Не вдалося приєднатись: перевірте код';
+      });
+    }
+  }
+
+  void _acceptSchedule() {
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _declineSchedule() async {
+    if (_memberId == null || _finishing) return;
+    setState(() => _finishing = true);
+    final medsRepo = ref.read(medicationsRepositoryProvider);
+    final meds = await medsRepo.getByMember(_memberId!);
+    for (final m in meds) {
+      await medsRepo.softDelete(m.id);
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: _stage != _JoinStage.review,
+      child: Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(
+          child: _stage == _JoinStage.review ? _buildReview() : _buildEntry(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEntry() {
+    final working = _stage == _JoinStage.working;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: working ? null : () => Navigator.of(context).pop(),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textMain),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Підключення до сім\'ї', style: AppTextStyles.h2),
+          const SizedBox(height: 6),
+          Text(
+            'Введіть код доступу, який вам надіслали рідні',
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+          ),
+          const SizedBox(height: 32),
+          TextField(
+            controller: _codeController,
+            textAlign: TextAlign.center,
+            textCapitalization: TextCapitalization.characters,
+            enabled: !working,
+            style: AppTextStyles.h2.copyWith(color: AppColors.primary, letterSpacing: 4),
+            decoration: InputDecoration(
+              hintText: '________',
+              filled: true,
+              fillColor: AppColors.primaryLight,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: AppColors.primaryLighter, width: 2),
+              ),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: AppTextStyles.bodySm.copyWith(color: AppColors.danger)),
+          ],
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: working ? null : _redeem,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusMd)),
+                elevation: 0,
+              ),
+              child: Text(
+                working ? 'Перевірка...' : 'Приєднатись',
+                style: AppTextStyles.labelLg.copyWith(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReview() {
+    final name = _inviterName ?? _profileName ?? 'Родина';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.family_restroom_rounded, size: 48, color: AppColors.primary),
+          const SizedBox(height: 16),
+          Text('Розклад уже готовий', style: AppTextStyles.h2),
+          const SizedBox(height: 8),
+          Text(
+            '$name уже склав(-ла) для вас розклад прийому ліків. Ви зможете відредагувати його будь-коли після підключення.',
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: () => setState(() => _consentChecked = !_consentChecked),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: _consentChecked ? AppColors.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _consentChecked ? AppColors.primary : AppColors.border,
+                      width: 2,
+                    ),
+                  ),
+                  child: _consentChecked
+                      ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Я погоджуюсь використати розклад, складений моєю сім\'єю',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: (_consentChecked && !_finishing) ? _acceptSchedule : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusMd)),
+                elevation: 0,
+              ),
+              child: Text('Почати', style: AppTextStyles.labelLg.copyWith(color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: GestureDetector(
+              onTap: _finishing ? null : _declineSchedule,
+              child: Text(
+                _finishing ? 'Створюємо...' : 'Не згоден, створити свій розклад',
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

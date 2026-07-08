@@ -184,13 +184,14 @@ class _BackupScreenState extends State<BackupScreen> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('☁️', style: const TextStyle(fontSize: 48)),
+                    const Icon(Icons.backup_rounded,
+                        size: 48, color: AppColors.primary),
                     const SizedBox(height: 16),
                     Text('Резервна копія в $_targetName', style: AppTextStyles.h2),
                     const SizedBox(height: 8),
                     Text(
                       'Ліки, розклад і фото зберігаються у вашому особистому '
-                      '$_targetName вже зашифрованими. MedKit і хмара не бачать '
+                      '$_targetName вже зашифрованими. Elly і хмара не бачать '
                       'ваші дані — розшифрувати їх можна лише паролем, який '
                       'знаєте тільки ви.',
                       style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),

@@ -61,7 +61,7 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 20),
 
           _TypeCard(
-            icon: '💊',
+            icon: Icons.medication_rounded,
             title: 'Ліки',
             sub: 'Розклад, дозування, AI-скан рецепта',
             onTap: () {
@@ -79,7 +79,7 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
-            icon: '🚶',
+            icon: Icons.directions_walk_rounded,
             title: 'Активність',
             sub: 'Прогулянка, зарядка, вправи, ЛФК',
             onTap: () {
@@ -97,7 +97,7 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
-            icon: '💜',
+            icon: Icons.favorite_rounded,
             title: 'Самопочуття',
             sub: 'Зробити зріз — настрій, симптоми, коментар',
             onTap: () {
@@ -115,7 +115,7 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
-            icon: '🩺',
+            icon: Icons.medical_services_rounded,
             title: 'Запис до лікаря',
             sub: 'Обрати спеціаліста, час та отримати нагадування',
             onTap: () {
@@ -159,7 +159,7 @@ class _AddTypeSheet extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    plan.limits.voiceCommands ? Icons.mic : Icons.lock_outline,
+                    plan.limits.voiceCommands ? Icons.mic_rounded : Icons.lock_outline_rounded,
                     size: 18,
                     color: plan.limits.voiceCommands
                         ? AppColors.primary
@@ -199,7 +199,7 @@ void _showUpgradeSnack(BuildContext context) {
 }
 
 class _TypeCard extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String title;
   final String sub;
   final VoidCallback onTap;
@@ -232,7 +232,7 @@ class _TypeCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
-                  child: Text(icon, style: const TextStyle(fontSize: 26))),
+                  child: Icon(icon, size: 26, color: AppColors.primary)),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -247,7 +247,7 @@ class _TypeCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20, color: AppColors.textMuted),
+            const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textMuted),
           ],
         ),
       ),

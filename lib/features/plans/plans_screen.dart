@@ -90,7 +90,7 @@ class _HeroHeader extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF7048C4), Color(0xFF3B82F6)],
+              colors: [Color(0xFF4C9A6A), Color(0xFF3B82F6)],
             ),
           ),
           padding: EdgeInsets.fromLTRB(
@@ -156,7 +156,7 @@ class _HeroHeader extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
                   size: 16, color: Colors.white),
             ),
           ),
@@ -193,7 +193,7 @@ class _ToggleChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: AppTextStyles.bodyMd.copyWith(
             fontSize: 12,
             fontWeight:
                 selected ? FontWeight.w700 : FontWeight.w600,
@@ -448,7 +448,8 @@ class _CareCard extends StatelessWidget {
                   ),
                   child: Text(
                     isCurrent ? '✓ Поточний план' : 'Спробувати 7 днів безкоштовно',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    style: AppTextStyles.bodyMd
+                        .copyWith(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                 ),
               ),
@@ -573,7 +574,8 @@ class _FamilyCard extends StatelessWidget {
               ),
               child: Text(
                 isCurrent ? '✓ Поточний план' : "Обрати «Сімʼя»",
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                style: AppTextStyles.bodyMd
+                    .copyWith(fontWeight: FontWeight.w800, fontSize: 14),
               ),
             ),
           ),

@@ -239,8 +239,9 @@ class _ConsentBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
             ),
-            child: const Text('Зрозуміло, погоджуюсь',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            child: Text('Зрозуміло, погоджуюсь',
+                style: AppTextStyles.bodyMd
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
           ),
         ),
       ],
@@ -315,7 +316,7 @@ class _PickingBody extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle),
-                        child: const Icon(Icons.close, size: 14, color: Colors.white),
+                        child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
                       ),
                     ),
                   ),
@@ -337,7 +338,8 @@ class _PickingBody extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
             ),
             child: Text('Сканувати${images.isNotEmpty ? ' (${images.length})' : ''}',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                style: AppTextStyles.bodyMd
+                    .copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ),
       ],
@@ -392,7 +394,9 @@ class _ResultsBodyState extends State<_ResultsBody> {
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
               ),
-              child: const Text('Додати обрані', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              child: Text('Додати обрані',
+                  style: AppTextStyles.bodyMd
+                      .copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
             ),
           ),
         ),
@@ -513,7 +517,8 @@ class _ErrorBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('😕', style: TextStyle(fontSize: 48)),
+          const Icon(Icons.sentiment_dissatisfied_rounded,
+              size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text('Щось пішло не так', style: AppTextStyles.h3),
           const SizedBox(height: 8),
