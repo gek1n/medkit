@@ -7,13 +7,13 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
-import '../../shared/widgets/mk_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../add/add_activity_screen.dart';
 import '../add/add_type_sheet.dart';
@@ -50,10 +50,11 @@ final _scheduleWellbeingScheduleProvider =
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-enum _ScheduleCategory { meds, activities, wellbeing, appointments }
+enum _ScheduleCategory { all, meds, appointments, activities, wellbeing }
 
 extension on _ScheduleCategory {
   IconData get icon => switch (this) {
+        _ScheduleCategory.all => Icons.grid_view_rounded,
         _ScheduleCategory.meds => Icons.medication_rounded,
         _ScheduleCategory.activities => Icons.directions_walk_rounded,
         _ScheduleCategory.wellbeing => Icons.favorite_rounded,
@@ -61,6 +62,7 @@ extension on _ScheduleCategory {
       };
 
   String get label => switch (this) {
+        _ScheduleCategory.all => 'Усі',
         _ScheduleCategory.meds => 'Ліки',
         _ScheduleCategory.activities => 'Активності',
         _ScheduleCategory.wellbeing => 'Самопочуття',
@@ -79,7 +81,7 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int? _selectedMemberId;
-  _ScheduleCategory _category = _ScheduleCategory.meds;
+  _ScheduleCategory _category = _ScheduleCategory.all;
   String _search = '';
 
   @override
@@ -168,30 +170,23 @@ class _ScheduleBody extends ConsumerWidget {
                   AppDimensions.screenPadding,
                   AppDimensions.md,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text('Розклад', style: AppTextStyles.h2),
-                    Text(
-                      member.name,
-                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+                    Expanded(
+                      child: Text('Розклад', style: AppTextStyles.h2),
                     ),
+                    if (members.length > 1)
+                      _MemberSwitcherPill(
+                        members: members,
+                        selected: member,
+                        onSelect: onMemberChanged,
+                      ),
                   ],
                 ),
               ),
             ),
           ),
         ),
-
-        // Member filter
-        if (members.length > 1)
-          SliverToBoxAdapter(
-            child: _MemberFilterStrip(
-              members: members,
-              selectedId: selectedMemberId,
-              onSelect: onMemberChanged,
-            ),
-          ),
 
         SliverToBoxAdapter(
           child: Padding(
@@ -209,11 +204,8 @@ class _ScheduleBody extends ConsumerWidget {
 
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.screenPadding, AppDimensions.sm,
-              AppDimensions.screenPadding, 0,
-            ),
-            child: _CategorySegmentControl(
+            padding: const EdgeInsets.only(top: AppDimensions.sm),
+            child: _CategoryChipsRow(
               selected: category,
               onChanged: onCategoryChanged,
             ),
@@ -228,16 +220,11 @@ class _ScheduleBody extends ConsumerWidget {
               const SizedBox(height: AppDimensions.lg),
 
               if (q.isEmpty) ...[
-                if (category == _ScheduleCategory.meds) ...[
-                  _SectionHeader(
+                if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.meds) ...[
+                  const _SectionHeader(
                     icon: Icons.medication_rounded,
                     title: 'Ліки',
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddMedicationScreen(memberId: selectedMemberId),
-                      ),
-                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   medsAsync.when(
@@ -277,18 +264,14 @@ class _ScheduleBody extends ConsumerWidget {
                       );
                     },
                   ),
+                  const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.activities) ...[
-                  _SectionHeader(
+                if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.activities) ...[
+                  const _SectionHeader(
                     icon: Icons.directions_walk_rounded,
                     title: 'Активності',
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddActivityScreen(memberId: selectedMemberId),
-                      ),
-                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
@@ -328,19 +311,14 @@ class _ScheduleBody extends ConsumerWidget {
                       );
                     },
                   ),
+                  const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.wellbeing) ...[
-                  _SectionHeader(
+                if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.wellbeing) ...[
+                  const _SectionHeader(
                     icon: Icons.favorite_rounded,
                     title: 'Самопочуття',
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                      ),
-                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   wellbeingScheduleAsync.when(
@@ -371,19 +349,14 @@ class _ScheduleBody extends ConsumerWidget {
                       );
                     },
                   ),
+                  const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.appointments) ...[
-                  _SectionHeader(
+                if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.appointments) ...[
+                  const _SectionHeader(
                     icon: Icons.medical_services_rounded,
                     title: 'Прийоми лікарів',
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AddAppointmentScreen(memberId: selectedMemberId),
-                      ),
-                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   appointmentsAsync.when(
@@ -519,58 +492,56 @@ class _ScheduleBody extends ConsumerWidget {
   }
 }
 
-// ─── Category segment control ────────────────────────────────────────────────
+// ─── Category chips row ──────────────────────────────────────────────────────
 
-class _CategorySegmentControl extends StatelessWidget {
+class _CategoryChipsRow extends StatelessWidget {
   final _ScheduleCategory selected;
   final ValueChanged<_ScheduleCategory> onChanged;
 
-  const _CategorySegmentControl({required this.selected, required this.onChanged});
+  const _CategoryChipsRow({required this.selected, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: _ScheduleCategory.values.map((c) {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.screenPadding),
+        itemCount: _ScheduleCategory.values.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final c = _ScheduleCategory.values[i];
           final active = c == selected;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onChanged(c),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                decoration: BoxDecoration(
-                  color: active ? AppColors.primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(c.icon, size: 16, color: active ? Colors.white : AppColors.textMuted),
-                    const SizedBox(height: 2),
-                    Text(
-                      c.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.caption.copyWith(
-                        fontSize: 10,
-                        color: active ? Colors.white : AppColors.textMuted,
-                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+          return GestureDetector(
+            onTap: () => onChanged(c),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: active ? AppColors.primary : AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                border: Border.all(
+                    color: active ? AppColors.primary : AppColors.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(c.icon,
+                      size: 16,
+                      color: active ? Colors.white : AppColors.textSub),
+                  const SizedBox(width: 6),
+                  Text(
+                    c.label,
+                    style: AppTextStyles.labelMd.copyWith(
+                        color: active ? Colors.white : AppColors.textMain),
+                  ),
+                ],
               ),
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -627,6 +598,10 @@ class _SearchFieldState extends State<_SearchField> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: TextField(
         controller: _ctrl,
@@ -661,9 +636,8 @@ class _SearchFieldState extends State<_SearchField> {
 class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
-  final VoidCallback? onAdd;
 
-  const _SectionHeader({required this.icon, required this.title, this.onAdd});
+  const _SectionHeader({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -672,22 +646,125 @@ class _SectionHeader extends StatelessWidget {
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 8),
         Expanded(child: SectionLabel(title)),
-        if (onAdd != null)
-          GestureDetector(
-            onTap: onAdd,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.add_rounded, color: AppColors.primary, size: 18),
-            ),
-          ),
       ],
     );
   }
+}
+
+// Спільне тло для рядків розкладу: біла картка з тінню + кольорова смужка
+// зліва (колір самого завдання, як на "Сьогодні") + опційний блок праворуч
+// від шеврону (залишок/дата), по центру висоти картки.
+BoxDecoration _taskCardDecoration() => BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      border: Border.all(color: AppColors.border, width: 1.5),
+      boxShadow: const [
+        BoxShadow(
+            color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+      ],
+    );
+
+class _TaskCardShell extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? extraLine;
+  final Widget? trailing;
+
+  const _TaskCardShell({
+    required this.color,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.extraLine,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: _taskCardDecoration(),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 60, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                  ),
+                  child: Center(child: Icon(icon, size: 22, color: color)),
+                ),
+                const SizedBox(width: AppDimensions.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: AppTextStyles.labelLg,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.textSub),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      if (extraLine != null) ...[
+                        const SizedBox(height: 2),
+                        Text(extraLine!,
+                            style: AppTextStyles.bodySm
+                                .copyWith(color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (trailing != null) ...[trailing!, const SizedBox(width: 4)],
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.textMuted, size: 18),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(width: 4, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _daysWordUk(int n) {
+  final mod10 = n % 10;
+  final mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'днів';
+  if (mod10 == 1) return 'день';
+  if (mod10 >= 2 && mod10 <= 4) return 'дні';
+  return 'днів';
 }
 
 // ─── Med card ─────────────────────────────────────────────────────────────────
@@ -698,41 +775,16 @@ class _MedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MkCard(
-      color: AppColors.surface,
-      borderColor: AppColors.border,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            ),
-            child: Center(
-              child: Icon(medFormIcon(med.form), size: 22, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(med.name, style: AppTextStyles.labelLg),
-                const SizedBox(height: 2),
-                Text(
-                  '${_doseStr(med)} · ${_repeatStr(med)}',
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                ),
-              ],
-            ),
-          ),
-          if (med.totalCount > 0) _PillBadge(remaining: med.remainingCount, total: med.totalCount),
-          const SizedBox(width: AppDimensions.sm),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
-        ],
-      ),
+    final color = colorFromHex(med.color) ?? AppColors.primary;
+    return _TaskCardShell(
+      color: color,
+      icon: medFormIcon(med.form),
+      title: med.name,
+      subtitle: '${_doseStr(med)} · ${_repeatStr(med)}',
+      extraLine: _daysLeftStr(med),
+      trailing: med.totalCount > 0
+          ? _PillBadge(remaining: med.remainingCount, total: med.totalCount)
+          : null,
     );
   }
 
@@ -748,6 +800,12 @@ class _MedCard extends StatelessWidget {
         _ => '',
       };
 
+  String _daysLeftStr(Medication m) {
+    if (m.endDate == null) return 'постійний курс';
+    final diff = m.endDate!.difference(DateTime.now()).inDays + 1;
+    if (diff <= 0) return 'курс завершено';
+    return '$diff ${_daysWordUk(diff)} курсу';
+  }
 }
 
 class _PillBadge extends StatelessWidget {
@@ -782,39 +840,12 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MkCard(
-      color: AppColors.surface,
-      borderColor: AppColors.border,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            ),
-            child: Center(
-              child: Icon(_typeIcon(activity.type), size: 22, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(activity.name, style: AppTextStyles.labelLg),
-                const SizedBox(height: 2),
-                Text(
-                  '${activity.durationMin} хв · ${_daysStr(activity.repeatDays)}',
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
-        ],
-      ),
+    final color = colorFromHex(activity.color) ?? AppColors.primary;
+    return _TaskCardShell(
+      color: color,
+      icon: _typeIcon(activity.type),
+      title: activity.name,
+      subtitle: '${activity.durationMin} хв · ${_daysStr(activity.repeatDays)}',
     );
   }
 
@@ -847,45 +878,26 @@ class _AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('d MMM, HH:mm', 'uk');
-    return MkCard(
-      color: AppColors.surface,
-      borderColor: AppColors.border,
-      child: Row(
+    final color = colorFromHex(appointment.color) ?? AppColors.primary;
+    final fmt = DateFormat('d MMM', 'uk');
+    final hh = appointment.scheduledAt.hour.toString().padLeft(2, '0');
+    final mm = appointment.scheduledAt.minute.toString().padLeft(2, '0');
+    final hasLocation =
+        appointment.location != null && appointment.location!.isNotEmpty;
+    return _TaskCardShell(
+      color: color,
+      icon: Icons.medical_services_rounded,
+      title: appointment.doctorType,
+      subtitle: hasLocation ? appointment.location! : 'Без місця проведення',
+      trailing: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0FDFA),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            ),
-            child: const Center(
-              child: Icon(Icons.medical_services_rounded, size: 22, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(appointment.doctorType, style: AppTextStyles.labelLg),
-                const SizedBox(height: 2),
-                Text(
-                  fmt.format(appointment.scheduledAt),
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                ),
-                if (appointment.location != null && appointment.location!.isNotEmpty)
-                  Text(
-                    appointment.location!,
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
+          Text(fmt.format(appointment.scheduledAt),
+              style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub)),
+          Text('$hh:$mm',
+              style: AppTextStyles.bodySm
+                  .copyWith(color: AppColors.textMuted, fontSize: 10)),
         ],
       ),
     );
@@ -907,52 +919,71 @@ class _WellbeingScheduleCard extends StatelessWidget {
 
     final timesStr = times.isEmpty ? '—' : times.join(', ');
     final freqStr = '${schedule.timesPerDay} раз${schedule.timesPerDay == 1 ? '' : schedule.timesPerDay < 5 ? 'и' : 'ів'} на день';
+    final color = colorFromHex(schedule.color) ?? AppColors.primary;
 
-    return MkCard(
-      color: AppColors.surface,
-      borderColor: AppColors.border,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF7F1),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            ),
-            child: const Center(
-              child: Icon(Icons.favorite_rounded, size: 22, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: AppDimensions.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(freqStr, style: AppTextStyles.labelLg),
-                const SizedBox(height: 2),
-                Text(
-                  timesStr,
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
-        ],
+    return _TaskCardShell(
+      color: color,
+      icon: Icons.favorite_rounded,
+      title: freqStr,
+      subtitle: timesStr,
+    );
+  }
+}
+
+// ─── Member switcher pill ─────────────────────────────────────────────────────
+
+class _MemberSwitcherPill extends StatelessWidget {
+  final List<Member> members;
+  final Member selected;
+  final void Function(int) onSelect;
+
+  const _MemberSwitcherPill({
+    required this.members,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _MemberPickerSheet(
+          members: members,
+          selectedId: selected.id,
+          onSelect: onSelect,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AvatarImage(index: selected.avatarIndex, size: 20),
+            const SizedBox(width: 6),
+            Text(selected.name, style: AppTextStyles.labelMd),
+            const SizedBox(width: 2),
+            const Icon(Icons.expand_more_rounded,
+                size: 16, color: AppColors.textMuted),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ─── Member filter strip ──────────────────────────────────────────────────────
-
-class _MemberFilterStrip extends StatelessWidget {
+class _MemberPickerSheet extends StatelessWidget {
   final List<Member> members;
   final int selectedId;
   final void Function(int) onSelect;
 
-  const _MemberFilterStrip({
+  const _MemberPickerSheet({
     required this.members,
     required this.selectedId,
     required this.onSelect,
@@ -960,43 +991,41 @@ class _MemberFilterStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
-        itemCount: members.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final m = members[i];
-          final selected = m.id == selectedId;
-          return GestureDetector(
-            onTap: () => onSelect(m.id),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primary : AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: selected ? AppColors.primary : AppColors.border,
-                ),
-              ),
-              child: Row(
-                children: [
-                  AvatarImage(index: m.avatarIndex, size: 18),
-                  const SizedBox(width: 6),
-                  Text(
-                    m.name,
-                    style: AppTextStyles.labelMd.copyWith(
-                      color: selected ? Colors.white : AppColors.textMain,
-                    ),
-                  ),
-                ],
-              ),
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SectionLabel('Оберіть профіль'),
             ),
-          );
-        },
+            ...members.map((m) {
+              final sel = m.id == selectedId;
+              return ListTile(
+                onTap: () {
+                  onSelect(m.id);
+                  Navigator.pop(context);
+                },
+                leading: AvatarImage(index: m.avatarIndex, size: 36),
+                title: Text(m.name,
+                    style: AppTextStyles.bodyMd.copyWith(
+                        fontWeight:
+                            sel ? FontWeight.w700 : FontWeight.w400)),
+                trailing: sel
+                    ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                    : null,
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
