@@ -10,6 +10,8 @@ import '../../data/repositories/activities_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../../core/utils/plan_access.dart';
+import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 
 class AddActivityScreen extends ConsumerStatefulWidget {
@@ -189,6 +191,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isMemberBlockedByPlan(ref, widget.memberId)) {
+      return const EllyDeniedScreen();
+    }
     if (!_loaded) {
       return const Scaffold(
         backgroundColor: AppColors.bg,

@@ -2,20 +2,25 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/ai_usage_service.dart';
+import '../../core/services/camera_permission_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../plans/elly_denied_screen.dart';
 import '../plans/plans_screen.dart';
 import '../scan/prescription_scan_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -346,6 +351,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isMemberBlockedByPlan(ref, widget.memberId)) {
+      return const EllyDeniedScreen();
+    }
     final isEdit = widget.existing != null;
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -2495,9 +2503,29 @@ class _PhotoSectionState extends State<_PhotoSection> {
   Future<void> _add() async {
     setState(() => _loading = true);
     try {
-      final path = await PhotoService.showPickerDialog(context);
+      // Якщо дозвіл вже перманентно відхилений — новий виклик pickImage лише
+      // мовчки провалиться (ОС не показує діалог вдруге), тож перевіряємо
+      // заздалегідь і ведемо одразу в налаштування застосунку замість цього.
+      final granted = await CameraPermissionService.ensureGranted();
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Немає доступу до камери. Дозвольте його в налаштуваннях телефону.'),
+            ),
+          );
+        }
+        return;
+      }
+      final path = await PhotoService.pickAndSave(ImageSource.camera);
       if (path != null) {
         widget.onChanged([...widget.paths, path]);
+      }
+    } on PlatformException catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не вдалося відкрити камеру')),
+        );
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -2524,9 +2552,15 @@ class _PhotoSectionState extends State<_PhotoSection> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 22),
               decoration: BoxDecoration(
-                color: AppColors.primaryLight.withValues(alpha: 0.4),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.primary, width: 1.5),
+                border: Border.all(color: AppColors.border, width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x0F000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 6)),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2542,7 +2576,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
                       width: 44,
                       height: 44,
                       decoration: const BoxDecoration(
-                        color: AppColors.surface,
+                        color: AppColors.primaryLight,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.camera_alt_outlined,

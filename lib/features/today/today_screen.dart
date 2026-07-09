@@ -20,6 +20,7 @@ import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_type_sheet.dart';
 import '../analytics/analytics_screen.dart';
 import '../medications/medication_detail_screen.dart';
@@ -300,7 +301,7 @@ class _TodayContent extends ConsumerWidget {
           return CustomScrollView(
             slivers: [
               if (showSwitchBanner)
-                SliverToBoxAdapter(child: _SwitchBanner(name: member.name)),
+                SliverToBoxAdapter(child: SwitchProfileBanner(name: member.name)),
 
               // Hero
               SliverToBoxAdapter(
@@ -425,7 +426,8 @@ class _TodayContent extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('✅', style: TextStyle(fontSize: 48)),
+                        Image.asset('assets/illustrations/elly-calendar.png',
+                            height: 140),
                         const SizedBox(height: 16),
                         Text('На сьогодні нічого немає',
                             style: AppTextStyles.bodyMd.copyWith(
@@ -1628,7 +1630,7 @@ class _ActiveIntakeCard extends StatelessWidget {
             )
           else
             _IconHeader(
-              icon: medFormIcon(med?.form ?? 'tablet'),
+              illustration: 'assets/illustrations/elly-its-time.png',
               accent: iconColor,
               onZoom: med != null ? () => _openDetails(context) : null,
             ),
@@ -1809,11 +1811,11 @@ class _VideoMediaHeader extends StatelessWidget {
 // ─── Icon header (no photo/video variant) ────────────────────────────────────
 
 class _IconHeader extends StatelessWidget {
-  final IconData icon;
+  final String illustration;
   final Color accent;
   final VoidCallback? onZoom;
 
-  const _IconHeader({required this.icon, required this.accent, this.onZoom});
+  const _IconHeader({required this.illustration, required this.accent, this.onZoom});
 
   @override
   Widget build(BuildContext context) {
@@ -1825,9 +1827,10 @@ class _IconHeader extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              height: 64,
+              height: 115,
               color: accent.withValues(alpha: 0.14),
-              child: Center(child: Icon(icon, size: 30, color: accent)),
+              child: Center(
+                  child: Image.asset(illustration, height: 115, fit: BoxFit.contain)),
             ),
             if (onZoom != null)
               Positioned(
@@ -2009,7 +2012,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                   )
           else
             _IconHeader(
-              icon: icon,
+              illustration: 'assets/illustrations/elly-sport.png',
               accent: iconColor,
               onZoom: () => showModalBottomSheet(
                 context: context,
@@ -2165,7 +2168,9 @@ class _ActiveWellbeingCard extends ConsumerWidget {
         decoration: _cardDecoration,
         child: Column(
           children: [
-            _IconHeader(icon: Icons.favorite_rounded, accent: iconColor),
+            _IconHeader(
+                illustration: 'assets/illustrations/elly-hospital.png',
+                accent: iconColor),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -2232,7 +2237,7 @@ class _ActiveAppointmentCard extends StatelessWidget {
       child: Column(
         children: [
           _IconHeader(
-            icon: Icons.medical_services_rounded,
+            illustration: 'assets/illustrations/elly-doctor.png',
             accent: iconColor,
             onZoom: () => showModalBottomSheet(
               context: context,
@@ -2382,48 +2387,6 @@ class _ActionRow extends StatelessWidget {
   }
 }
 
-// ─── Switch Banner ─────────────────────────────────────────────────────────────
-
-class _SwitchBanner extends ConsumerWidget {
-  final String name;
-  const _SwitchBanner({required this.name});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return SafeArea(
-      bottom: false,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF7ED),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFFED7AA), width: 1.5),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.visibility_rounded, size: 16, color: Color(0xFF92400E)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('Ви дивитесь профіль: $name',
-                  style: AppTextStyles.bodySm.copyWith(
-                      color: const Color(0xFF92400E),
-                      fontWeight: FontWeight.w600)),
-            ),
-            GestureDetector(
-              onTap: () =>
-                  ref.read(activeMemberIdProvider.notifier).state = null,
-              child: Text('Повернутись',
-                  style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ─── Empty State ───────────────────────────────────────────────────────────────
 

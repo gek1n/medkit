@@ -61,6 +61,70 @@ class FamilySyncService {
     }
   }
 
+  /// Викликати ДО `MembersRepository.delete(memberId)` — коли профіль
+  /// прив'язаний до family_sync-каналу (пейринг з іншим пристроєм тієї ж
+  /// людини), інший пристрій сам ніколи не дізнається про видалення, якщо не
+  /// надіслати tombstone на кожну його сутність. Локальний каскад (FK
+  /// `onDelete: cascade`) видаляє рядки одразу після цього виклику, тому
+  /// syncUuid-и потрібно зібрати саме тут, поки рядки ще існують.
+  Future<void> deleteMemberEverywhere(int memberId) async {
+    final channel = await (_db.select(_db.sharedChannels)..where((t) => t.memberId.equals(memberId)))
+        .getSingleOrNull();
+    if (channel == null) return; // немає прив'язки — нема кому повідомляти на сервері
+
+    await _assignMissingMedicationUuids(memberId);
+    await _assignMissingScheduleUuids(memberId);
+    await _assignMissingIntakeUuids(memberId);
+    await _assignMissingSymptomUuids(memberId);
+
+    final medications = await (_db.select(_db.medications)..where((t) => t.memberId.equals(memberId))).get();
+    for (final m in medications) {
+      if (m.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'medication', syncUuid: m.syncUuid!);
+      }
+    }
+
+    final scheduleRows = await (_db.select(_db.schedules).join([
+      innerJoin(_db.medications, _db.medications.id.equalsExp(_db.schedules.medicationId)),
+    ])
+          ..where(_db.medications.memberId.equals(memberId)))
+        .get();
+    for (final r in scheduleRows) {
+      final s = r.readTable(_db.schedules);
+      if (s.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'schedule', syncUuid: s.syncUuid!);
+      }
+    }
+
+    final intakes = await (_db.select(_db.intakes)..where((t) => t.memberId.equals(memberId))).get();
+    for (final i in intakes) {
+      if (i.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'intake', syncUuid: i.syncUuid!);
+      }
+    }
+
+    final symptomRows = await (_db.select(_db.symptoms).join([
+      innerJoin(_db.medications, _db.medications.id.equalsExp(_db.symptoms.medicationId)),
+    ])
+          ..where(_db.medications.memberId.equals(memberId)))
+        .get();
+    for (final r in symptomRows) {
+      final s = r.readTable(_db.symptoms);
+      if (s.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'symptom', syncUuid: s.syncUuid!);
+      }
+    }
+
+    try {
+      await _syncChannel(channel);
+    } catch (_) {
+      // Найкращий можливий варіант без мережі — tombstone-и лишаються в черзі,
+      // але канал буде видалений каскадом разом з member нижче, тож наступного
+      // разу їх вже нікому буде відправити. Прийнятний компроміс: локальне
+      // видалення не можна блокувати відсутністю мережі.
+    }
+  }
+
   Future<void> _syncChannel(SharedChannel channel) async {
     final keyBytes = await SharedChannelKeyStorage.read(channel.channelId);
     if (keyBytes == null) return; // канал без ключа — не мали б трапитись, ігноруємо безпечно

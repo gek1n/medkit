@@ -6,11 +6,37 @@ import '../../core/theme/app_text_styles.dart';
 import '../../features/today/providers/today_providers.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
+import '../plans/elly_denied_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import 'add_activity_screen.dart';
 import '../voice/voice_screen.dart';
 
 void showAddTypeSheet(BuildContext context, {int? memberId}) {
+  final container = ProviderScope.containerOf(context);
+  final plan = container.read(planProvider);
+  final members = container.read(allMembersProvider).valueOrNull ?? [];
+  final localCount = members.where((m) => m.role != 'member').length;
+  final overLocalLimit =
+      plan.limits.maxLocalMembers != 0 && localCount > plan.limits.maxLocalMembers;
+
+  // Ліміт локальних профілів обмежує лише створення завдань ДЛЯ цих
+  // "зайвих" локальних профілів — власнику завжди можна створювати собі.
+  var targetIsLocalDependent = false;
+  if (memberId != null) {
+    for (final m in members) {
+      if (m.id == memberId) {
+        targetIsLocalDependent = m.role == 'dependent';
+        break;
+      }
+    }
+  }
+
+  if (overLocalLimit && targetIsLocalDependent) {
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const EllyDeniedScreen()));
+    return;
+  }
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -27,7 +53,6 @@ class _AddTypeSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fallbackMemberAsync = ref.watch(currentMemberProvider);
     final memberId = this.memberId ?? fallbackMemberAsync.valueOrNull?.id;
-    final plan = ref.watch(planProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -132,49 +157,31 @@ class _AddTypeSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
           GestureDetector(
-            onTap: plan.limits.voiceCommands
-                ? () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const VoiceScreen()),
-                    );
-                  }
-                : () => _showUpgradeSnack(context),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const VoiceScreen()),
+              );
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: plan.limits.voiceCommands
-                    ? AppColors.primaryLight
-                    : const Color(0xFFF1F5F9),
+                color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: plan.limits.voiceCommands
-                      ? AppColors.primaryLighter
-                      : AppColors.border,
-                ),
+                border: Border.all(color: AppColors.primaryLighter),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    plan.limits.voiceCommands ? Icons.mic_rounded : Icons.lock_outline_rounded,
-                    size: 18,
-                    color: plan.limits.voiceCommands
-                        ? AppColors.primary
-                        : AppColors.textMuted,
-                  ),
+                  const Icon(Icons.mic_rounded,
+                      size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
-                    plan.limits.voiceCommands
-                        ? 'Голосова команда'
-                        : 'Голосова команда (Турбота+)',
-                    style: AppTextStyles.labelMd.copyWith(
-                      color: plan.limits.voiceCommands
-                          ? AppColors.primary
-                          : AppColors.textMuted,
-                    ),
+                    'Голосова команда',
+                    style: AppTextStyles.labelMd
+                        .copyWith(color: AppColors.primary),
                   ),
                 ],
               ),
@@ -184,18 +191,6 @@ class _AddTypeSheet extends ConsumerWidget {
       ),
     );
   }
-}
-
-void _showUpgradeSnack(BuildContext context) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: const Text('Голосові команди доступні з плану Турбота'),
-      action: SnackBarAction(
-        label: 'Плани',
-        onPressed: () {},
-      ),
-    ),
-  );
 }
 
 class _TypeCard extends StatelessWidget {

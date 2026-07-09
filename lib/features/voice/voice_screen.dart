@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../core/providers/plan_provider.dart';
 import '../../core/services/ai_consent_service.dart';
+import '../../core/services/ai_usage_service.dart';
 import '../../core/services/drug_info_service.dart';
 import '../../core/services/nlu_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -9,6 +11,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../medications/add_medication_screen.dart';
+import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
 
 // ────────────────────────────── state ──────────────────────────────
@@ -91,6 +94,13 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
       _setError('Розпізнавання мови недоступне на цьому пристрої');
       return;
     }
+    final plan = ref.read(planProvider);
+    if (!plan.isPaid && !await AiUsageService.canUseVoiceCommand()) {
+      if (!mounted) return;
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const PlansScreen()));
+      return;
+    }
     setState(() {
       _state = _VoiceState.listening;
       _transcript = '';
@@ -129,6 +139,9 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
   Future<void> _runNlu(String text) async {
     try {
       final result = await NluService().parse(text);
+      if (!ref.read(planProvider).isPaid) {
+        await AiUsageService.recordVoiceCommand();
+      }
       if (mounted) {
         final fr = result.foodRelation;
         setState(() {

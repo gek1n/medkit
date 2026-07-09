@@ -14,4 +14,15 @@ class AiConsentService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('$_prefix$kind', DateTime.now().toIso8601String());
   }
+
+  static Future<DateTime?> consentDate(String kind) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('$_prefix$kind');
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  static Future<void> revokeConsent(String kind) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_prefix$kind');
+  }
 }

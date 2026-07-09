@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../core/services/ai_consent_service.dart';
+import '../../core/services/ai_usage_service.dart';
 import '../../core/services/nlu_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -92,6 +93,13 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
       _setError('Розпізнавання мови недоступне на цьому пристрої');
       return;
     }
+    // Онбординг завжди відбувається до вибору платного плану, тому тут
+    // безумовно діє безкоштовний ліміт (як і для сканування рецепта).
+    if (!await AiUsageService.canUseVoiceCommand()) {
+      _setError(
+          'Безкоштовний ліміт голосових команд вичерпано. Можна оновити план пізніше в Профілі.');
+      return;
+    }
     setState(() {
       _stage = _VoiceStage.listening;
       _transcript = '';
@@ -137,6 +145,7 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
     setState(() => _stage = _VoiceStage.analyzing);
     try {
       final result = await NluService().parse(text);
+      await AiUsageService.recordVoiceCommand();
       if (result.drugName == null) {
         _setError('Не вдалося розпізнати назву ліків. Спробуйте ще раз.');
         return;

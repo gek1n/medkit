@@ -1,39 +1,53 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum AppPlan { free, care, family }
+enum AppPlan { free, plus, family }
 
 class PlanLimits {
-  final int maxMembers;
-  final int maxHistoryDays; // 0 = unlimited
-  final bool voiceCommands;
-  final bool aiInsights;
+  /// 0 = необмежено.
+  final int maxLocalMembers;
+  /// 0 = автономні профілі недоступні на цьому плані.
+  final int maxAutonomousMembers;
+  /// null = необмежено.
+  final int? photoScanLimit;
+  /// null = необмежено.
+  final int? voiceCommandLimit;
+  final bool serverSync;
+  final double price;
 
   const PlanLimits({
-    required this.maxMembers,
-    required this.maxHistoryDays,
-    required this.voiceCommands,
-    required this.aiInsights,
+    required this.maxLocalMembers,
+    required this.maxAutonomousMembers,
+    required this.photoScanLimit,
+    required this.voiceCommandLimit,
+    required this.serverSync,
+    required this.price,
   });
 }
 
 const planLimits = {
   AppPlan.free: PlanLimits(
-    maxMembers: 1,
-    maxHistoryDays: 7,
-    voiceCommands: false,
-    aiInsights: false,
+    maxLocalMembers: 1,
+    maxAutonomousMembers: 0,
+    photoScanLimit: 3,
+    voiceCommandLimit: 5,
+    serverSync: false,
+    price: 0,
   ),
-  AppPlan.care: PlanLimits(
-    maxMembers: 1,
-    maxHistoryDays: 0,
-    voiceCommands: true,
-    aiInsights: true,
+  AppPlan.plus: PlanLimits(
+    maxLocalMembers: 0,
+    maxAutonomousMembers: 0,
+    photoScanLimit: null,
+    voiceCommandLimit: null,
+    serverSync: true,
+    price: 2.99,
   ),
   AppPlan.family: PlanLimits(
-    maxMembers: 10,
-    maxHistoryDays: 0,
-    voiceCommands: true,
-    aiInsights: true,
+    maxLocalMembers: 0,
+    maxAutonomousMembers: 8,
+    photoScanLimit: null,
+    voiceCommandLimit: null,
+    serverSync: true,
+    price: 5.99,
   ),
 };
 
@@ -42,14 +56,8 @@ extension AppPlanExt on AppPlan {
 
   String get displayName => switch (this) {
         AppPlan.free => 'Безкоштовний',
-        AppPlan.care => 'Турбота',
-        AppPlan.family => 'Сімʼя',
-      };
-
-  String get badge => switch (this) {
-        AppPlan.free => '⭐ Безкоштовний план',
-        AppPlan.care => '💜 Турбота',
-        AppPlan.family => '👑 Сімʼя',
+        AppPlan.plus => 'Elly Plus',
+        AppPlan.family => 'Elly Family',
       };
 
   bool get isPaid => this != AppPlan.free;

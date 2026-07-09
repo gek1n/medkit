@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/services/ai_consent_service.dart';
+import '../../core/services/camera_permission_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -96,6 +97,15 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
   }
 
   Future<void> _addFromCamera() async {
+    final granted = await CameraPermissionService.ensureGranted();
+    if (!granted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Немає доступу до камери. Дозвольте його в налаштуваннях телефону.')),
+        );
+      }
+      return;
+    }
     final photo = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
     if (photo != null) setState(() => _pickedImages.add(File(photo.path)));
   }

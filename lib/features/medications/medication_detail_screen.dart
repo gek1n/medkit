@@ -7,11 +7,13 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
+import '../plans/elly_denied_screen.dart';
 import 'add_medication_screen.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
@@ -1018,6 +1020,15 @@ class _ActionRow extends ConsumerWidget {
   final Medication med;
   const _ActionRow({required this.med});
 
+  void _openIfAllowed(BuildContext context, WidgetRef ref, VoidCallback action) {
+    if (isMemberBlockedByPlan(ref, med.memberId)) {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const EllyDeniedScreen()));
+      return;
+    }
+    action();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
@@ -1026,16 +1037,22 @@ class _ActionRow extends ConsumerWidget {
           child: _ActBtn(
             label: 'Зупинити',
             isDestructive: true,
-            onTap: () => _confirmStop(context, ref),
+            onTap: () => _openIfAllowed(
+                context, ref, () => _confirmStop(context, ref)),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: _ActBtn(
             label: 'Пауза',
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Функція призупинення скоро буде доступна')),
+            onTap: () => _openIfAllowed(
+              context,
+              ref,
+              () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content:
+                        Text('Функція призупинення скоро буде доступна')),
+              ),
             ),
           ),
         ),
