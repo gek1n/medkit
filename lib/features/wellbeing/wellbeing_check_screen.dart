@@ -9,6 +9,8 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/section_label.dart';
 import 'wellbeing_history_screen.dart';
 
 class WellbeingCheckScreen extends ConsumerStatefulWidget {
@@ -101,60 +103,42 @@ class _WellbeingCheckScreenState
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Самопочуття', style: AppTextStyles.h2),
-                        Text(
-                          '${_formatDate(now)} · $timeLabel',
-                          style: AppTextStyles.bodySm,
-                        ),
-                      ],
+                    MkBackButton(onTap: () => Navigator.pop(context)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Самопочуття', style: AppTextStyles.h2),
+                          Text(
+                            '${_formatDate(now)} · $timeLabel',
+                            style: AppTextStyles.bodySm,
+                          ),
+                        ],
+                      ),
                     ),
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WellbeingHistoryScreen(
-                                  memberId: widget.memberId),
-                            ),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.bg,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Text('Історія',
-                                style: AppTextStyles.labelMd
-                                    .copyWith(color: AppColors.textSub)),
-                          ),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WellbeingHistoryScreen(
+                              memberId: widget.memberId),
                         ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: AppColors.primary
-                                      .withValues(alpha: 0.3)),
-                            ),
-                            child: Text('Закрити',
-                                style: AppTextStyles.labelMd
-                                    .copyWith(color: AppColors.primary)),
-                          ),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.border),
                         ),
-                      ],
+                        child: Text('Історія',
+                            style: AppTextStyles.labelMd
+                                .copyWith(color: AppColors.textSub)),
+                      ),
                     ),
                   ],
                 ),
@@ -168,8 +152,7 @@ class _WellbeingCheckScreenState
                   const SizedBox(height: 28),
 
                   // ── Step 1: Mood ──
-                  Text('Як ви себе почуваєте?',
-                      style: AppTextStyles.labelLg),
+                  SectionLabel('Як ви себе почуваєте?'),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -226,7 +209,7 @@ class _WellbeingCheckScreenState
                   ),
 
                   // ── Step 2: Symptoms ──
-                  Text('Є симптоми?', style: AppTextStyles.labelLg),
+                  SectionLabel('Є симптоми?'),
                   const SizedBox(height: 4),
                   Text(
                     'З побічок ваших ліків + часто зустрічаються у вас',
@@ -304,7 +287,9 @@ class _WellbeingCheckScreenState
                   // ── Step 3: Comment ──
                   Row(
                     children: [
-                      Text('Коментар', style: AppTextStyles.labelLg),
+                      Text('Коментар',
+                          style: AppTextStyles.bodyMd.copyWith(
+                              fontSize: 15, fontWeight: FontWeight.w800)),
                       const SizedBox(width: 6),
                       Text('· необов\'язково',
                           style: AppTextStyles.bodySm
@@ -710,9 +695,13 @@ class _TranscribedBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bg,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -819,7 +808,7 @@ class _TodayLogsSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Сьогодні', style: AppTextStyles.labelLg),
+            SectionLabel('Сьогодні'),
             const SizedBox(height: 12),
             ...logs.map((log) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -870,6 +859,10 @@ class _LogCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

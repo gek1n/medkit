@@ -8,6 +8,7 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_screen_header.dart';
 
 const _consentKind = 'scan';
 
@@ -143,29 +144,37 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        title: Text('Сканувати рецепт', style: AppTextStyles.h3),
-      ),
       body: SafeArea(
-        child: switch (_state) {
-          _ScanState.checkingConsent || _ScanState.scanning =>
-            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-          _ScanState.needsConsent => _ConsentBody(onAgree: _onConsentGiven),
-          _ScanState.pickingPhotos => _PickingBody(
-              images: _pickedImages,
-              onCamera: _addFromCamera,
-              onGallery: _addFromGallery,
-              onRemove: (i) => setState(() => _pickedImages.removeAt(i)),
-              onScan: _pickedImages.isEmpty ? null : _runScan,
+        child: Column(
+          children: [
+            const MkScreenHeader(title: 'Сканувати рецепт'),
+            Expanded(
+              child: switch (_state) {
+                _ScanState.checkingConsent || _ScanState.scanning =>
+                  const Center(
+                      child: CircularProgressIndicator(
+                          color: AppColors.primary)),
+                _ScanState.needsConsent =>
+                  _ConsentBody(onAgree: _onConsentGiven),
+                _ScanState.pickingPhotos => _PickingBody(
+                    images: _pickedImages,
+                    onCamera: _addFromCamera,
+                    onGallery: _addFromGallery,
+                    onRemove: (i) =>
+                        setState(() => _pickedImages.removeAt(i)),
+                    onScan: _pickedImages.isEmpty ? null : _runScan,
+                  ),
+                _ScanState.results =>
+                  _ResultsBody(drafts: _drafts, onConfirm: _confirm),
+                _ScanState.error => _ErrorBody(
+                    message: _errorMsg,
+                    onRetry: () =>
+                        setState(() => _state = _ScanState.pickingPhotos),
+                  ),
+              },
             ),
-          _ScanState.results => _ResultsBody(drafts: _drafts, onConfirm: _confirm),
-          _ScanState.error => _ErrorBody(
-              message: _errorMsg,
-              onRetry: () => setState(() => _state = _ScanState.pickingPhotos),
-            ),
-        },
+          ],
+        ),
       ),
     );
   }
@@ -413,6 +422,12 @@ class _ResultsBodyState extends State<_ResultsBody> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

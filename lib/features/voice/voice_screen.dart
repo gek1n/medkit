@@ -427,10 +427,16 @@ class _IdleBody extends StatelessWidget {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.bg,
+            color: AppColors.surface,
             borderRadius:
                 BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6)),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
@@ -750,6 +756,12 @@ class _ResultBody extends StatelessWidget {
             borderRadius:
                 BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6)),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(

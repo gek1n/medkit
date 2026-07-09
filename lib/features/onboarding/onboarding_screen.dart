@@ -13,6 +13,7 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/section_label.dart';
 import '../today/providers/today_providers.dart';
 import 'join_family_screen.dart';
 import 'restore_account_screen.dart';
@@ -473,6 +474,12 @@ class _AccountChoiceCard extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.border, width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Row(
           children: [
@@ -771,6 +778,10 @@ class _FamilyMemberCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Row(
         children: [
@@ -956,7 +967,7 @@ class _StepActivities extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          _SectionLabel('Активність'),
+          SectionLabel('Активність'),
           const SizedBox(height: 10),
 
           _ToggleRow(
@@ -968,7 +979,7 @@ class _StepActivities extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          _SectionLabel('Щоденник самопочуття'),
+          SectionLabel('Щоденник самопочуття'),
           const SizedBox(height: 6),
           Text(
             'Короткі відмітки самопочуття допоможуть побачити звʼязок між прийомом ліків і тим, як ви почуваєтесь',
@@ -993,22 +1004,6 @@ class _StepActivities extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label.toUpperCase(),
-      style: AppTextStyles.bodySm.copyWith(
-        color: AppColors.textMuted,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.8,
-      ),
-    );
-  }
-}
 
 class _ToggleRow extends StatelessWidget {
   final IconData icon;
@@ -1035,6 +1030,10 @@ class _ToggleRow extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Row(
         children: [

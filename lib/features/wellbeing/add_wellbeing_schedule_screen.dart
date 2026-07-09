@@ -278,6 +278,12 @@ class _AddWellbeingScheduleScreenState
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: AppColors.border),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Color(0x0F000000),
+                                    blurRadius: 16,
+                                    offset: Offset(0, 6)),
+                              ],
                             ),
                             child: Row(
                               children: [

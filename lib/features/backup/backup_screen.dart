@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_screen_header.dart';
 
 /// На Android — Google Drive (appDataFolder), на iOS — iCloud. Обидва
 /// зберігають лише вже зашифровані на пристрої дані (SQLCipher БД +
@@ -171,45 +172,49 @@ class _BackupScreenState extends State<BackupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        title: Text('Резервна копія', style: AppTextStyles.h3),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: _busy
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.backup_rounded,
-                        size: 48, color: AppColors.primary),
-                    const SizedBox(height: 16),
-                    Text('Резервна копія в $_targetName', style: AppTextStyles.h2),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Ліки, розклад і фото зберігаються у вашому особистому '
-                      '$_targetName вже зашифрованими. Elly і хмара не бачать '
-                      'ваші дані — розшифрувати їх можна лише паролем, який '
-                      'знаєте тільки ви.',
-                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-                    ),
-                    const SizedBox(height: 28),
-                    FilledButton.icon(
-                      onPressed: _createBackup,
-                      icon: const Icon(Icons.cloud_upload_outlined),
-                      label: const Text('Створити резервну копію'),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _restoreBackup,
-                      icon: const Icon(Icons.cloud_download_outlined),
-                      label: const Text('Відновити з резервної копії'),
-                    ),
-                  ],
-                ),
+        child: Column(
+          children: [
+            const MkScreenHeader(title: 'Резервна копія'),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _busy
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.backup_rounded,
+                              size: 48, color: AppColors.primary),
+                          const SizedBox(height: 16),
+                          Text('Резервна копія в $_targetName',
+                              style: AppTextStyles.h2),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ліки, розклад і фото зберігаються у вашому особистому '
+                            '$_targetName вже зашифрованими. Elly і хмара не бачать '
+                            'ваші дані — розшифрувати їх можна лише паролем, який '
+                            'знаєте тільки ви.',
+                            style: AppTextStyles.bodyMd
+                                .copyWith(color: AppColors.textSub),
+                          ),
+                          const SizedBox(height: 28),
+                          FilledButton.icon(
+                            onPressed: _createBackup,
+                            icon: const Icon(Icons.cloud_upload_outlined),
+                            label: const Text('Створити резервну копію'),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: _restoreBackup,
+                            icon: const Icon(Icons.cloud_download_outlined),
+                            label: const Text('Відновити з резервної копії'),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -383,6 +383,12 @@ class _IdleBody extends StatelessWidget {
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6)),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
