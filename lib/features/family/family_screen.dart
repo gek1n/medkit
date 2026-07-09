@@ -13,8 +13,10 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/section_label.dart';
 import '../pairing/pairing_invite_screen.dart';
 import '../pairing/pairing_join_screen.dart';
+import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
@@ -74,15 +76,15 @@ class _FamilyBody extends ConsumerWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               const SizedBox(height: AppDimensions.lg),
-              if (limitReached)
-                _PlanLimitBanner(plan: plan),
-              const SizedBox(height: AppDimensions.md),
               ...members.map((m) => Padding(
                     padding:
                         const EdgeInsets.only(bottom: AppDimensions.md),
                     child: _MemberCard(member: m),
                   )),
-              _AddMemberTile(locked: limitReached),
+              if (limitReached)
+                const _FamilyUpgradeBanner()
+              else
+                const _AddMemberTile(),
               const SizedBox(height: AppDimensions.xl),
               const _InviteSection(),
               const SizedBox(height: 100),
@@ -90,38 +92,6 @@ class _FamilyBody extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PlanLimitBanner extends StatelessWidget {
-  final AppPlan plan;
-  const _PlanLimitBanner({required this.plan});
-
-  @override
-  Widget build(BuildContext context) {
-    final nextPlanName = plan == AppPlan.free ? 'Сімʼя' : 'Сімʼя';
-    final msg = plan == AppPlan.free
-        ? 'Безкоштовний план — 1 профіль. Перейдіть на «$nextPlanName» щоб додати більше.'
-        : 'Plan «Турбота» — 1 профіль. Перейдіть на «$nextPlanName» для до 10 профілів.';
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_rounded, size: 18, color: Color(0xFF92400E)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(msg,
-                style: AppTextStyles.bodySm
-                    .copyWith(color: const Color(0xFF92400E))),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -257,9 +227,9 @@ class _MemberCard extends ConsumerWidget {
         border: Border.all(color: AppColors.border, width: 1.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: Color(0x0F000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -455,7 +425,7 @@ class _MemberCard extends ConsumerWidget {
                         const SizedBox(width: 6),
                         Text(
                           med.name,
-                          style: AppTextStyles.caption.copyWith(
+                          style: AppTextStyles.bodyMd.copyWith(
                               fontWeight: FontWeight.w600,
                               color: AppColors.textMain),
                         ),
@@ -463,7 +433,7 @@ class _MemberCard extends ConsumerWidget {
                           const SizedBox(width: 4),
                           Text(
                             '$medTaken/$medTotal',
-                            style: AppTextStyles.caption
+                            style: AppTextStyles.bodySm
                                 .copyWith(color: AppColors.textMuted),
                           ),
                         ],
@@ -506,8 +476,8 @@ class _RemindBtn extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: AppTextStyles.caption
-              .copyWith(color: color, fontWeight: FontWeight.w700),
+          style: AppTextStyles.bodyMd
+              .copyWith(color: color, fontWeight: FontWeight.w600, fontSize: 13),
         ),
       ),
     );
@@ -517,60 +487,130 @@ class _RemindBtn extends StatelessWidget {
 // ── Add member tile ───────────────────────────────────────────────────────────
 
 class _AddMemberTile extends StatelessWidget {
-  final bool locked;
-  const _AddMemberTile({this.locked = false});
+  const _AddMemberTile();
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: locked
-          ? () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text(
-                        'Ліміт профілів досягнуто. Перейдіть на план «Сімʼя»')),
-              )
-          : () => _openAddMemberScreen(context),
+      onTap: () => _openAddMemberScreen(context),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: locked ? const Color(0xFFF8FAFC) : AppColors.surface,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: locked ? AppColors.border : AppColors.border,
-              style: BorderStyle.solid,
-              width: 1.5),
+          border: Border.all(color: AppColors.border, width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Row(
           children: [
             Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(
-                color: locked ? const Color(0xFFF1F5F9) : AppColors.primaryLight,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                locked ? Icons.lock_outline_rounded : Icons.add_rounded,
-                color: locked ? AppColors.textMuted : AppColors.primary,
-                size: 20,
-              ),
+              child: const Icon(Icons.add_rounded,
+                  color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  locked ? 'Ліміт профілів' : 'Додати члена сімʼї',
-                  style: AppTextStyles.labelLg.copyWith(
-                    color: locked ? AppColors.textMuted : AppColors.primary,
-                  ),
-                ),
+                Text('Додати члена сімʼї',
+                    style:
+                        AppTextStyles.labelLg.copyWith(color: AppColors.primary)),
                 const SizedBox(height: 2),
-                Text(
-                  locked ? 'Оновіть план щоб додати більше' : 'Батьки, діти, партнер…',
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                ),
+                Text('Батьки, діти, партнер…',
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: AppColors.textMuted)),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Показується замість "Додати члена сімʼї", коли ліміт профілів поточного
+// плану вже вичерпано — той самий градієнтний стиль, що й AI-банер сканування
+// рецепта в add_medication_screen.dart, з ілюстрацією родини.
+class _FamilyUpgradeBanner extends StatelessWidget {
+  const _FamilyUpgradeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PlansScreen()),
+      ),
+      child: Container(
+        width: double.infinity,
+        clipBehavior: Clip.hardEdge,
+        constraints: const BoxConstraints(minHeight: 110),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF4C9A6A), Color(0xFF3B7A56)],
+          ),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -10,
+              bottom: 0,
+              child: Image.asset('assets/illustrations/family.png',
+                  height: 92, fit: BoxFit.contain),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.family_restroom_rounded,
+                            size: 12, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text('Сімʼя',
+                            style: AppTextStyles.bodySm.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text('Ліміт профілів досягнуто',
+                      style: AppTextStyles.labelLg.copyWith(
+                          color: Colors.white, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  SizedBox(
+                    width: 190,
+                    child: Text('Перейдіть на план «Сімʼя» — до 10 профілів',
+                        style: AppTextStyles.bodySm.copyWith(
+                            color: Colors.white.withValues(alpha: 0.85))),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -592,7 +632,7 @@ class _InviteSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Спільний доступ', style: AppTextStyles.labelLg),
+        SectionLabel('Спільний доступ'),
         const SizedBox(height: AppDimensions.md),
         GestureDetector(
           onTap: () async {
@@ -611,6 +651,12 @@ class _InviteSection extends StatelessWidget {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border, width: 1.5),
+              boxShadow: const [
+                BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 6)),
+              ],
             ),
             child: Row(
               children: [

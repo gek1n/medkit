@@ -15,6 +15,7 @@ import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../shared/widgets/mk_button.dart';
 import '../medications/medication_detail_screen.dart';
 import '../today/providers/today_providers.dart';
 
@@ -255,63 +256,79 @@ class _PlanBadge extends StatelessWidget {
 class _UpgradeBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PlansScreen()),
-      ),
-      child: Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.screenPadding),
-      child: Container(
-        padding: const EdgeInsets.all(AppDimensions.lg),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4C9A6A), Color(0xFF6FBE8C)],
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const PlansScreen()),
+        ),
+        child: Container(
+          width: double.infinity,
+          clipBehavior: Clip.hardEdge,
+          constraints: const BoxConstraints(minHeight: 110),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF4C9A6A), Color(0xFF3B7A56)],
+            ),
+            borderRadius: BorderRadius.circular(18),
           ),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.family_restroom_rounded,
-                color: Colors.white, size: 32),
-            const SizedBox(width: AppDimensions.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Підключіть Family',
-                    style: AppTextStyles.h3
-                        .copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Відстежуйте ліки всієї родини',
-                    style: AppTextStyles.bodySm.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85)),
-                  ),
-                ],
+          child: Stack(
+            children: [
+              Positioned(
+                right: -10,
+                bottom: 0,
+                child: Image.asset('assets/illustrations/family.png',
+                    height: 92, fit: BoxFit.contain),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusFull),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.family_restroom_rounded,
+                              size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text('Сімʼя',
+                              style: AppTextStyles.bodySm.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text('Підключіть Сім\'я',
+                        style: AppTextStyles.labelLg.copyWith(
+                            color: Colors.white, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 3),
+                    SizedBox(
+                      width: 190,
+                      child: Text('Турбуйтесь про всю родину',
+                          style: AppTextStyles.bodySm.copyWith(
+                              color: Colors.white.withValues(alpha: 0.85))),
+                    ),
+                  ],
+                ),
               ),
-              child: Text(
-                '\$4/міс',
-                style: AppTextStyles.labelMd
-                    .copyWith(color: AppColors.primary),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -334,8 +351,8 @@ class _ProfileSectionHeader extends StatelessWidget {
       ),
       child: Text(
         title,
-        style:
-            AppTextStyles.labelMd.copyWith(color: AppColors.textSub),
+        style: AppTextStyles.bodyMd
+            .copyWith(fontSize: 15, fontWeight: FontWeight.w800),
       ),
     );
   }
@@ -358,6 +375,12 @@ class _SectionCard extends StatelessWidget {
           borderRadius:
               BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Column(
           children: children
@@ -437,6 +460,12 @@ class _EmptyMeds extends StatelessWidget {
           borderRadius:
               BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Center(
           child: Text(
@@ -808,69 +837,63 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
           const SizedBox(height: AppDimensions.lg),
           Text('Редагувати профіль', style: AppTextStyles.h3),
           const SizedBox(height: AppDimensions.xl),
-          SizedBox(
-            height: 64,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: avatarCount,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(width: AppDimensions.md),
-              itemBuilder: (_, i) {
-                final selected = _avatarIndex == i;
-                return GestureDetector(
-                  onTap: () => setState(() => _avatarIndex = i),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? AppColors.primaryLight
-                          : AppColors.bg,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.border,
-                        width: selected ? 2 : 1,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(selected ? 2 : 1),
-                      child: AvatarImage(index: i, size: 52),
-                    ),
-                  ),
-                );
-              },
+          Center(child: AvatarImage(index: _avatarIndex, size: 96)),
+          const SizedBox(height: AppDimensions.lg),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: TextField(
+              controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                hintText: "Ваше ім'я",
+                hintStyle:
+                    AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 13),
+              ),
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMain),
             ),
           ),
           const SizedBox(height: AppDimensions.lg),
-          TextField(
-            controller: _nameCtrl,
-            decoration: InputDecoration(
-              labelText: "Ім'я",
-              border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusMd),
-              ),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: avatarCount,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1,
             ),
+            itemBuilder: (_, i) {
+              final selected = _avatarIndex == i;
+              return GestureDetector(
+                onTap: () => setState(() => _avatarIndex = i),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color:
+                        selected ? AppColors.primaryLight : AppColors.bgPage,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected ? AppColors.primary : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: AvatarImage(index: i, size: 52),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: AppDimensions.xl),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusLg),
-                ),
-              ),
-              child: const Text('Зберегти'),
-            ),
-          ),
+          MkButton(label: 'Зберегти', onTap: _save),
         ],
       ),
     );
