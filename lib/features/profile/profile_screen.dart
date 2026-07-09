@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../backup/backup_screen.dart';
+import '../export/export_data_screen.dart';
+import '../help/help_faq_screen.dart';
+import '../legal/privacy_policy_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_settings_screen.dart';
@@ -749,16 +752,27 @@ class _OtherSection extends StatelessWidget {
           icon: Icons.help_outline_rounded,
           label: 'Допомога та FAQ',
           color: AppColors.info,
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Скоро...')),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HelpFaqScreen()),
+          ),
+        ),
+        _RowItem(
+          icon: Icons.privacy_tip_outlined,
+          label: 'Політика конфіденційності',
+          color: AppColors.info,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
           ),
         ),
         _RowItem(
           icon: Icons.ios_share_rounded,
           label: 'Експорт даних',
           color: AppColors.info,
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Скоро...')),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ExportDataScreen()),
           ),
         ),
       ],

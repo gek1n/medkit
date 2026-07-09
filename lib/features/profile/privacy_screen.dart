@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/ai_consent_service.dart';
 import '../../core/services/family_sync_service.dart';
+import '../../core/services/privacy_consent_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../legal/privacy_policy_screen.dart';
 import '../today/providers/today_providers.dart';
 
 class _ConsentInfo {
@@ -45,6 +47,8 @@ class PrivacyScreen extends ConsumerStatefulWidget {
 
 class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   final Map<String, DateTime?> _dates = {};
+  DateTime? _policyAcceptedAt;
+  String? _policyAcceptedVersion;
   bool _loading = true;
 
   @override
@@ -57,6 +61,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
     for (final c in _consents) {
       _dates[c.kind] = await AiConsentService.consentDate(c.kind);
     }
+    _policyAcceptedAt = await PrivacyConsentService.acceptedAt();
+    _policyAcceptedVersion = await PrivacyConsentService.acceptedVersion();
     if (mounted) setState(() => _loading = false);
   }
 
@@ -141,6 +147,15 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                         AppDimensions.xl,
                       ),
                       children: [
+                        Text('Політика конфіденційності',
+                            style: AppTextStyles.bodyMd.copyWith(
+                                fontSize: 15, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: AppDimensions.md),
+                        _PolicyConsentTile(
+                          acceptedAt: _policyAcceptedAt,
+                          acceptedVersion: _policyAcceptedVersion,
+                        ),
+                        const SizedBox(height: AppDimensions.xl),
                         Text('Згоди на обробку даних AI-функціями',
                             style: AppTextStyles.bodyMd.copyWith(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
@@ -231,6 +246,86 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PolicyConsentTile extends StatelessWidget {
+  final DateTime? acceptedAt;
+  final String? acceptedVersion;
+
+  const _PolicyConsentTile({required this.acceptedAt, required this.acceptedVersion});
+
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    final accepted = acceptedAt != null;
+    final isCurrent = acceptedVersion == PrivacyConsentService.currentVersion;
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (accepted && isCurrent ? AppColors.primary : AppColors.warning)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                ),
+                child: Center(
+                  child: Icon(Icons.privacy_tip_rounded,
+                      size: 20,
+                      color: accepted && isCurrent ? AppColors.primary : AppColors.warning),
+                ),
+              ),
+              const SizedBox(width: AppDimensions.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Політика конфіденційності', style: AppTextStyles.labelLg),
+                    const SizedBox(height: 2),
+                    Text(
+                      accepted
+                          ? (isCurrent
+                              ? 'Прийнято ${_formatDate(acceptedAt!)} · версія $acceptedVersion'
+                              : 'Прийнято стару версію ($acceptedVersion) — буде запропоновано погодитись знову')
+                          : 'Ще не прийнято',
+                      style: AppTextStyles.bodySm.copyWith(
+                          color: accepted && isCurrent ? AppColors.primary : AppColors.warning),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.sm),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              ),
+              child: const Text('Переглянути повний текст'),
+            ),
+          ),
+        ],
       ),
     );
   }

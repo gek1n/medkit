@@ -16,6 +16,7 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
 import '../today/providers/today_providers.dart';
 import 'join_family_screen.dart';
+import 'privacy_gate_screen.dart';
 import 'restore_account_screen.dart';
 import 'voice_add_medication_screen.dart';
 
@@ -289,11 +290,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         onWellbeingToggle: (v) => setState(() => _wellbeingEnabled = v),
         onNext: _next,
       ),
-      _ => _StepDone(
+      _ => PrivacyGateStep(
         key: const ValueKey(5),
-        isSaving: _isSaving,
+        isBusy: _isSaving,
         hasMedications: _scannedMedDrafts.isNotEmpty,
-        onFinish: _finish,
+        onConfirm: _finish,
       ),
     };
   }
@@ -1069,103 +1070,6 @@ class _ToggleRow extends StatelessWidget {
             onChanged: onChanged,
             activeThumbColor: activeColor,
             activeTrackColor: activeColor.withValues(alpha: 0.4),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Step 6: Done ─────────────────────────────────────────────────────────────
-
-class _StepDone extends StatelessWidget {
-  final bool isSaving;
-  final bool hasMedications;
-  final VoidCallback onFinish;
-
-  const _StepDone({
-    super.key,
-    required this.isSaving,
-    required this.hasMedications,
-    required this.onFinish,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Column(
-        children: [
-          const SizedBox(height: 16),
-          Image.asset('assets/illustrations/done-hero.png', height: 180),
-          const SizedBox(height: 16),
-          Text('Готово!', style: AppTextStyles.h1),
-          const SizedBox(height: 8),
-          Text(
-            'Все налаштовано. Відкрийте дашборд і почніть стежити за здоров\'ям.',
-            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.notifications_outlined,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasMedications
-                            ? 'Перше нагадування — сьогодні'
-                            : 'Нагадувань поки немає',
-                        style: AppTextStyles.labelMd.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Text(
-                        hasMedications
-                            ? 'Нагадування прийде за розкладом, який ви щойно додали'
-                            : 'Налаштуйте ліки щоб активувати нагадування',
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: AppColors.textSub,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 32),
-          _NextButton(
-            label: isSaving ? 'Зберігаємо...' : 'Відкрити дашборд →',
-            onTap: isSaving ? () {} : onFinish,
           ),
         ],
       ),

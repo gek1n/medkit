@@ -20,6 +20,7 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import 'privacy_gate_screen.dart';
 
 enum _JoinStage { entering, working, review }
 
@@ -117,7 +118,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
           _stage = _JoinStage.review;
         });
       } else {
-        Navigator.of(context).pop();
+        _goToDashboard(hasMedications: false);
       }
     } catch (e) {
       if (!mounted) return;
@@ -129,7 +130,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   }
 
   void _acceptSchedule() {
-    Navigator.of(context).pop();
+    _goToDashboard(hasMedications: true);
   }
 
   Future<void> _declineSchedule() async {
@@ -141,7 +142,15 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       await medsRepo.softDelete(m.id);
     }
     if (!mounted) return;
-    Navigator.of(context).pop();
+    _goToDashboard(hasMedications: false);
+  }
+
+  void _goToDashboard({required bool hasMedications}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PrivacyGateScreen(hasMedications: hasMedications),
+      ),
+    );
   }
 
   @override
