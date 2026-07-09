@@ -754,33 +754,6 @@ class _OtherSection extends StatelessWidget {
           ),
         ),
         _RowItem(
-          icon: Icons.send_rounded,
-          label: 'Telegram-бот',
-          color: AppColors.info,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusFull),
-                ),
-                child: Text(
-                  '✓ Активний',
-                  style: AppTextStyles.bodySm
-                      .copyWith(color: AppColors.success),
-                ),
-              ),
-            ],
-          ),
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Скоро...')),
-          ),
-        ),
-        _RowItem(
           icon: Icons.ios_share_rounded,
           label: 'Експорт даних',
           color: AppColors.info,

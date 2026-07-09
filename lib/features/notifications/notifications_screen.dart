@@ -19,11 +19,6 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  // ── Не прив'язані до реальної логіки (поки що суто UI) ──
-  bool _telegramEnabled = true;
-  bool _vibrationEnabled = true;
-  int _repeatIndex = 1; // 0=5хв 1=20хв 2=45хв 3=60хв
-
   @override
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(allMembersProvider);
@@ -58,18 +53,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       onChanged: settingsNotifier.setPushEnabled,
                     ),
                     _SwitchRow(
-                      icon: Icons.send_rounded,
-                      label: 'Telegram-бот',
-                      sub: '@EllyBot підключено',
-                      value: _telegramEnabled,
-                      onChanged: (v) => setState(() => _telegramEnabled = v),
-                    ),
-                    _SwitchRow(
                       icon: Icons.vibration_rounded,
                       label: 'Вібрація',
                       sub: 'Разом зі звуком',
-                      value: _vibrationEnabled,
-                      onChanged: (v) => setState(() => _vibrationEnabled = v),
+                      value: settings.vibrationEnabled,
+                      onChanged: settingsNotifier.setVibrationEnabled,
                     ),
                   ]),
                   const SizedBox(height: AppDimensions.xl),
@@ -80,8 +68,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       onChanged: settingsNotifier.setOffsetMinutes,
                     ),
                     _RepeatRow(
-                      index: _repeatIndex,
-                      onChanged: (v) => setState(() => _repeatIndex = v),
+                      minutes: settings.repeatMinutes,
+                      onChanged: settingsNotifier.setRepeatMinutes,
                     ),
                   ]),
                   const SizedBox(height: AppDimensions.xl),
@@ -316,7 +304,7 @@ class _OffsetRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('⏱', style: TextStyle(fontSize: 20)),
+              const Icon(Icons.update_rounded, size: 20, color: AppColors.primary),
               const SizedBox(width: AppDimensions.md),
               Expanded(
                 child: Column(
@@ -334,38 +322,37 @@ class _OffsetRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppDimensions.md),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: _options.map((opt) {
               final selected = current == opt;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () => onChanged(opt),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
+              return GestureDetector(
+                onTap: () => onChanged(opt),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primaryLight
+                        : AppColors.bg,
+                    borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusFull),
+                    border: Border.all(
                       color: selected
-                          ? AppColors.primaryLight
-                          : AppColors.bg,
-                      borderRadius: BorderRadius.circular(
-                          AppDimensions.radiusFull),
-                      border: Border.all(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.border,
-                      ),
+                          ? AppColors.primary
+                          : AppColors.border,
                     ),
-                    child: Text(
-                      opt == 0 ? 'без зсуву' : '−$opt хв',
-                      style: AppTextStyles.bodySm.copyWith(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.textMain,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
+                  ),
+                  child: Text(
+                    opt == 0 ? 'без зсуву' : '−$opt хв',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.textMain,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                 ),
@@ -381,15 +368,17 @@ class _OffsetRow extends StatelessWidget {
 // ────────────────────────────── repeat row ──────────────────────────────
 
 class _RepeatRow extends StatelessWidget {
-  final int index;
+  final int minutes;
   final ValueChanged<int> onChanged;
 
-  const _RepeatRow({required this.index, required this.onChanged});
+  const _RepeatRow({required this.minutes, required this.onChanged});
 
+  static const _values = [5, 20, 45, 60];
   static const _labels = ['5 хв', '20 хв', '45 хв', '1 год'];
 
   @override
   Widget build(BuildContext context) {
+    final index = _values.indexOf(minutes).clamp(0, _values.length - 1);
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.screenPadding,
@@ -434,7 +423,7 @@ class _RepeatRow extends StatelessWidget {
               min: 0,
               max: 3,
               divisions: 3,
-              onChanged: (v) => onChanged(v.round()),
+              onChanged: (v) => onChanged(_values[v.round()]),
             ),
           ),
           Padding(

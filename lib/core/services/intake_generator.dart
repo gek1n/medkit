@@ -109,6 +109,8 @@ class IntakeGenerator {
             medName: med.name,
             dose: '${med.doseAmount} ${med.doseUnit}',
             scheduledAt: remindAt,
+            vibrationEnabled: settings.vibrationEnabled,
+            repeatMinutes: settings.repeatMinutes,
           );
         }
       }

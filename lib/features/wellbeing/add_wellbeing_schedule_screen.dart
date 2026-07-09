@@ -7,6 +7,7 @@ import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
@@ -119,6 +120,7 @@ class _AddWellbeingScheduleScreenState
           slotIndex: i,
           hour: at.hour,
           minute: at.minute,
+          vibrationEnabled: settings.vibrationEnabled,
         );
       }
 
@@ -161,7 +163,10 @@ class _AddWellbeingScheduleScreenState
                     children: [
                       MkBackButton(onTap: () => Navigator.pop(context)),
                       const SizedBox(width: 12),
-                      Text('Самопочуття', style: AppTextStyles.h3),
+                      Text(
+                        'Самопочуття${memberNameSuffix(ref, widget.memberId)}',
+                        style: AppTextStyles.h3,
+                      ),
                     ],
                   ),
                   GestureDetector(

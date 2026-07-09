@@ -64,6 +64,8 @@ class ActivityLogGenerator {
             logId: logId,
             activityName: activity.name,
             scheduledAt: remindAt,
+            vibrationEnabled: settings.vibrationEnabled,
+            repeatMinutes: settings.repeatMinutes,
           );
         }
       }

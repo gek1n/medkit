@@ -57,16 +57,19 @@ class NotificationService {
     }
   }
 
-  static NotificationDetails _details() => const NotificationDetails(
+  static NotificationDetails _details({bool vibrationEnabled = true}) =>
+      NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
           channelDescription: _channelDesc,
           importance: Importance.high,
           priority: Priority.high,
-          color: Color(0xFF4C9A6A),
+          color: const Color(0xFF4C9A6A),
+          enableVibration: vibrationEnabled,
+          playSound: true,
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: DarwinNotificationDetails(presentSound: true),
       );
 
   static Future<void> _zonedSchedule({
@@ -75,6 +78,7 @@ class NotificationService {
     required String body,
     required DateTime at,
     DateTimeComponents? matchDateTimeComponents,
+    bool vibrationEnabled = true,
   }) async {
     if (matchDateTimeComponents == null && at.isBefore(DateTime.now())) return;
     await _plugin.zonedSchedule(
@@ -82,7 +86,7 @@ class NotificationService {
       title,
       body,
       tz.TZDateTime.from(at, tz.local),
-      _details(),
+      _details(vibrationEnabled: vibrationEnabled),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: matchDateTimeComponents,
     );
@@ -93,23 +97,44 @@ class NotificationService {
   // ── Ліки ──────────────────────────────────────────────────────────────
 
   static int intakeNotificationId(int intakeId) => 1000000 + intakeId;
+  static int intakeRepeatNotificationId(int intakeId) => 6000000 + intakeId;
 
+  /// [repeatMinutes] — якщо > 0, планує ще одне нагадування через N хвилин
+  /// після основного (лише прийом ліків: у нього є чіткий стан
+  /// "прийнято/пропущено", тож "повторити, якщо нема відповіді" тут
+  /// однозначне). Друге нагадування скасовується разом з основним у
+  /// [cancelIntakeReminder] — якщо користувач вже відповів, воно просто
+  /// ніколи не спрацює.
   static Future<void> scheduleIntakeReminder({
     required int intakeId,
     required String medName,
     required String dose,
     required DateTime scheduledAt,
-  }) {
-    return _zonedSchedule(
+    bool vibrationEnabled = true,
+    int repeatMinutes = 0,
+  }) async {
+    await _zonedSchedule(
       id: intakeNotificationId(intakeId),
       title: '💊 Час прийняти ліки',
       body: '$medName — $dose',
       at: scheduledAt,
+      vibrationEnabled: vibrationEnabled,
     );
+    if (repeatMinutes > 0) {
+      await _zonedSchedule(
+        id: intakeRepeatNotificationId(intakeId),
+        title: '🔔 Ви ще не відмітили прийом',
+        body: '$medName — $dose',
+        at: scheduledAt.add(Duration(minutes: repeatMinutes)),
+        vibrationEnabled: vibrationEnabled,
+      );
+    }
   }
 
-  static Future<void> cancelIntakeReminder(int intakeId) =>
-      cancel(intakeNotificationId(intakeId));
+  static Future<void> cancelIntakeReminder(int intakeId) async {
+    await cancel(intakeNotificationId(intakeId));
+    await cancel(intakeRepeatNotificationId(intakeId));
+  }
 
   // ── Залишок ліків ─────────────────────────────────────────────────────
 
@@ -121,39 +146,57 @@ class NotificationService {
     required String medName,
     required int remaining,
     required String unit,
+    bool vibrationEnabled = true,
   }) {
     return _plugin.show(
       lowStockNotificationId(medicationId),
       '⚠️ Закінчуються ліки',
       '$medName — залишилось $remaining $unit',
-      _details(),
+      _details(vibrationEnabled: vibrationEnabled),
     );
   }
 
   // ── Активності ────────────────────────────────────────────────────────
 
   static int activityNotificationId(int logId) => 2000000 + logId;
+  static int activityRepeatNotificationId(int logId) => 7000000 + logId;
 
   static Future<void> scheduleActivityReminder({
     required int logId,
     required String activityName,
     required DateTime scheduledAt,
-  }) {
-    return _zonedSchedule(
+    bool vibrationEnabled = true,
+    int repeatMinutes = 0,
+  }) async {
+    await _zonedSchedule(
       id: activityNotificationId(logId),
       title: '🚶 Час для активності',
       body: activityName,
       at: scheduledAt,
+      vibrationEnabled: vibrationEnabled,
     );
+    if (repeatMinutes > 0) {
+      await _zonedSchedule(
+        id: activityRepeatNotificationId(logId),
+        title: '🔔 Ви ще не відмітили активність',
+        body: activityName,
+        at: scheduledAt.add(Duration(minutes: repeatMinutes)),
+        vibrationEnabled: vibrationEnabled,
+      );
+    }
   }
 
-  static Future<void> cancelActivityReminder(int logId) =>
-      cancel(activityNotificationId(logId));
+  static Future<void> cancelActivityReminder(int logId) async {
+    await cancel(activityNotificationId(logId));
+    await cancel(activityRepeatNotificationId(logId));
+  }
 
   // ── Лікарі ────────────────────────────────────────────────────────────
 
   static int appointmentNotificationId(int appointmentId) =>
       3000000 + appointmentId;
+  static int appointmentRepeatNotificationId(int appointmentId) =>
+      8000000 + appointmentId;
 
   static Future<void> scheduleAppointmentReminder({
     required int appointmentId,
@@ -161,20 +204,35 @@ class NotificationService {
     String? location,
     required DateTime scheduledAt,
     required int remindBeforeMin,
-  }) {
+    bool vibrationEnabled = true,
+    int repeatMinutes = 0,
+  }) async {
     final at = scheduledAt.subtract(Duration(minutes: remindBeforeMin));
-    return _zonedSchedule(
+    final body = (location != null && location.isNotEmpty)
+        ? '$doctorType · $location'
+        : doctorType;
+    await _zonedSchedule(
       id: appointmentNotificationId(appointmentId),
       title: '🩺 Прийом лікаря',
-      body: (location != null && location.isNotEmpty)
-          ? '$doctorType · $location'
-          : doctorType,
+      body: body,
       at: at,
+      vibrationEnabled: vibrationEnabled,
     );
+    if (repeatMinutes > 0) {
+      await _zonedSchedule(
+        id: appointmentRepeatNotificationId(appointmentId),
+        title: '🔔 Не забудьте про прийом лікаря',
+        body: body,
+        at: at.add(Duration(minutes: repeatMinutes)),
+        vibrationEnabled: vibrationEnabled,
+      );
+    }
   }
 
-  static Future<void> cancelAppointmentReminder(int appointmentId) =>
-      cancel(appointmentNotificationId(appointmentId));
+  static Future<void> cancelAppointmentReminder(int appointmentId) async {
+    await cancel(appointmentNotificationId(appointmentId));
+    await cancel(appointmentRepeatNotificationId(appointmentId));
+  }
 
   // ── Самопочуття (щоденний повтор за часом) ───────────────────────────
 
@@ -186,6 +244,7 @@ class NotificationService {
     required int slotIndex,
     required int hour,
     required int minute,
+    bool vibrationEnabled = true,
   }) async {
     final now = DateTime.now();
     var at = DateTime(now.year, now.month, now.day, hour, minute);
@@ -196,6 +255,7 @@ class NotificationService {
       body: 'Як ви себе почуваєте?',
       at: at,
       matchDateTimeComponents: DateTimeComponents.time,
+      vibrationEnabled: vibrationEnabled,
     );
   }
 

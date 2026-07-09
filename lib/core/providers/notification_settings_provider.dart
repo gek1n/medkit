@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class NotificationSettings {
   final bool pushEnabled;
   final int offsetMinutes; // 0/5/10/15/30 — нагадати за N хв до часу
+  final bool vibrationEnabled;
+  final int repeatMinutes; // 5/20/45/60 — повторити, якщо нема відповіді
   final bool quietEnabled;
   final int quietFromMinutes; // хвилин з півночі
   final int quietToMinutes;
@@ -14,6 +16,8 @@ class NotificationSettings {
   const NotificationSettings({
     this.pushEnabled = true,
     this.offsetMinutes = 0,
+    this.vibrationEnabled = true,
+    this.repeatMinutes = 20,
     this.quietEnabled = false,
     this.quietFromMinutes = 23 * 60,
     this.quietToMinutes = 7 * 60,
@@ -51,6 +55,8 @@ class NotificationSettings {
   NotificationSettings copyWith({
     bool? pushEnabled,
     int? offsetMinutes,
+    bool? vibrationEnabled,
+    int? repeatMinutes,
     bool? quietEnabled,
     int? quietFromMinutes,
     int? quietToMinutes,
@@ -59,6 +65,8 @@ class NotificationSettings {
     return NotificationSettings(
       pushEnabled: pushEnabled ?? this.pushEnabled,
       offsetMinutes: offsetMinutes ?? this.offsetMinutes,
+      vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
+      repeatMinutes: repeatMinutes ?? this.repeatMinutes,
       quietEnabled: quietEnabled ?? this.quietEnabled,
       quietFromMinutes: quietFromMinutes ?? this.quietFromMinutes,
       quietToMinutes: quietToMinutes ?? this.quietToMinutes,
@@ -69,6 +77,8 @@ class NotificationSettings {
   Map<String, dynamic> toJson() => {
         'pushEnabled': pushEnabled,
         'offsetMinutes': offsetMinutes,
+        'vibrationEnabled': vibrationEnabled,
+        'repeatMinutes': repeatMinutes,
         'quietEnabled': quietEnabled,
         'quietFromMinutes': quietFromMinutes,
         'quietToMinutes': quietToMinutes,
@@ -81,6 +91,8 @@ class NotificationSettings {
     return NotificationSettings(
       pushEnabled: json['pushEnabled'] as bool? ?? true,
       offsetMinutes: json['offsetMinutes'] as int? ?? 0,
+      vibrationEnabled: json['vibrationEnabled'] as bool? ?? true,
+      repeatMinutes: json['repeatMinutes'] as int? ?? 20,
       quietEnabled: json['quietEnabled'] as bool? ?? false,
       quietFromMinutes: json['quietFromMinutes'] as int? ?? 23 * 60,
       quietToMinutes: json['quietToMinutes'] as int? ?? 7 * 60,
@@ -120,6 +132,16 @@ class NotificationSettingsNotifier
 
   Future<void> setOffsetMinutes(int v) async {
     state = state.copyWith(offsetMinutes: v);
+    await _save();
+  }
+
+  Future<void> setVibrationEnabled(bool v) async {
+    state = state.copyWith(vibrationEnabled: v);
+    await _save();
+  }
+
+  Future<void> setRepeatMinutes(int v) async {
+    state = state.copyWith(repeatMinutes: v);
     await _save();
   }
 

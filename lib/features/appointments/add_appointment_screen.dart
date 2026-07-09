@@ -6,6 +6,7 @@ import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
@@ -176,6 +177,8 @@ class _AddAppointmentScreenState
           location: locationVal,
           scheduledAt: remindAt,
           remindBeforeMin: 0,
+          vibrationEnabled: settings.vibrationEnabled,
+          repeatMinutes: settings.repeatMinutes,
         );
       } else {
         await NotificationService.cancelAppointmentReminder(appointmentId);
@@ -207,7 +210,8 @@ class _AddAppointmentScreenState
         child: Column(
           children: [
             _BackHeader(
-              title: isEdit ? 'Редагувати запис' : 'Запис до лікаря',
+              title: (isEdit ? 'Редагувати запис' : 'Запис до лікаря') +
+                  memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               trailingLabel: isEdit ? null : 'Список',
               onTrailing: isEdit ? null : () => Navigator.push(
