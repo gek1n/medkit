@@ -20,6 +20,10 @@ class MkCard extends StatelessWidget {
         color: color ?? AppColors.surface,
         borderRadius: BorderRadius.circular(borderRadius ?? AppDimensions.radiusLg),
         border: Border.all(color: borderColor ?? AppColors.border, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: child,
     );

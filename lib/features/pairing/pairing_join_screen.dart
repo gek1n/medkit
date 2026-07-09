@@ -14,6 +14,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/shared_channels_repository.dart';
+import '../../shared/widgets/mk_screen_header.dart';
 import '../today/providers/today_providers.dart';
 
 class PairingResult {
@@ -148,14 +149,10 @@ class _PairingJoinScreenState extends ConsumerState<PairingJoinScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        title: Text('Ввести код запрошення', style: AppTextStyles.h3),
-      ),
       body: SafeArea(
         child: Column(
           children: [
+            const MkScreenHeader(title: 'Ввести код запрошення'),
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: SizedBox(

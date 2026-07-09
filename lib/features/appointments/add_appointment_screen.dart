@@ -430,14 +430,14 @@ class _DateTimeBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary, width: 1.5),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.labelSm.copyWith(color: AppColors.primary)),
+          Text(label, style: AppTextStyles.labelSm),
           const SizedBox(height: 4),
           Text(value,
               style: AppTextStyles.h3.copyWith(

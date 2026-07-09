@@ -7,6 +7,7 @@ import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/section_label.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
@@ -129,7 +130,7 @@ class _AppointmentsList extends StatelessWidget {
       ),
       children: [
         if (upcoming.isNotEmpty) ...[
-          _SectionLabel('Майбутні'),
+          SectionLabel('Майбутні'),
           const SizedBox(height: AppDimensions.md),
           ...upcoming.asMap().entries.map((e) => Padding(
                 padding: const EdgeInsets.only(
@@ -144,7 +145,7 @@ class _AppointmentsList extends StatelessWidget {
           const SizedBox(height: AppDimensions.lg),
         ],
         if (past.isNotEmpty) ...[
-          _SectionLabel('Минулі'),
+          SectionLabel('Минулі'),
           const SizedBox(height: AppDimensions.md),
           ...past.map((a) => Padding(
                 padding: const EdgeInsets.only(
@@ -160,19 +161,6 @@ class _AppointmentsList extends StatelessWidget {
       ],
     );
   }
-}
-
-// ────────────────────────────── section label ──────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) => Text(
-        text.toUpperCase(),
-        style: AppTextStyles.labelSm,
-      );
 }
 
 // ────────────────────────────── appointment card ──────────────────────────────
@@ -236,6 +224,12 @@ class _AppointmentCard extends StatelessWidget {
                 ? AppColors.primary
                 : AppColors.border,
           ),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -321,11 +321,11 @@ class _FactChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: accent),
+          Icon(icon, size: 16, color: accent),
           const SizedBox(width: 6),
           Text(label,
-              style: AppTextStyles.bodySm.copyWith(
-                  fontWeight: FontWeight.w700, color: AppColors.textMain)),
+              style: AppTextStyles.bodyMd.copyWith(
+                  fontWeight: FontWeight.w600, color: AppColors.textMain)),
         ],
       ),
     );

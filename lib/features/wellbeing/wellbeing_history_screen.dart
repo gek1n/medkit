@@ -468,8 +468,9 @@ class _DayGroup extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _dateLabel().toUpperCase(),
-            style: AppTextStyles.labelSm,
+            _dateLabel(),
+            style: AppTextStyles.bodyMd
+                .copyWith(fontSize: 15, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           ...logs.map((log) => Padding(

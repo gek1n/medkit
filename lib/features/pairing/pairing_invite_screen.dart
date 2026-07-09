@@ -17,6 +17,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
+import '../../shared/widgets/mk_screen_header.dart';
 
 /// Генерує одноразовий пейринг-код: шифрує невеликий envelope (channelId +
 /// ім'я + ключ family_sync) цим кодом і завантажує на сервер
@@ -141,21 +142,24 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        title: Text('Запросити ${widget.ownerName}', style: AppTextStyles.h3),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _alreadyBound
-                  ? _buildAlreadyBound(context)
-                  : _error != null
-                      ? _buildError(context)
-                      : _buildCode(context),
+        child: Column(
+          children: [
+            MkScreenHeader(title: 'Запросити ${widget.ownerName}'),
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _alreadyBound
+                        ? _buildAlreadyBound(context)
+                        : _error != null
+                            ? _buildError(context)
+                            : _buildCode(context),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -218,6 +222,12 @@ class _PairingInviteScreenState extends ConsumerState<PairingInviteScreen> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.border),
+              boxShadow: const [
+                BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 6)),
+              ],
             ),
             child: QrImageView(
               data: code,

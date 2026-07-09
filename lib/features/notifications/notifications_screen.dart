@@ -192,8 +192,8 @@ class _SectionTitle extends StatelessWidget {
       ),
       child: Text(
         title,
-        style:
-            AppTextStyles.labelMd.copyWith(color: AppColors.textSub),
+        style: AppTextStyles.bodyMd
+            .copyWith(fontSize: 15, fontWeight: FontWeight.w800),
       ),
     );
   }
@@ -216,6 +216,12 @@ class _SettingsCard extends StatelessWidget {
           borderRadius:
               BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Column(
           children: children
@@ -549,6 +555,12 @@ class _MemberAlertsCard extends StatelessWidget {
           borderRadius:
               BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
         ),
         child: Column(
           children: members.map((m) {

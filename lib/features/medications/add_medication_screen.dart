@@ -1067,8 +1067,7 @@ class _PhaseCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
-                        border:
-                            Border.all(color: AppColors.primary, width: 1.5),
+                        border: Border.all(color: AppColors.border),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: DropdownButtonHideUnderline(
@@ -1076,9 +1075,9 @@ class _PhaseCard extends StatelessWidget {
                           value: foodRelation,
                           isExpanded: true,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                              size: 18, color: AppColors.primary),
+                              size: 18, color: AppColors.textMuted),
                           style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.primary, fontSize: 12),
+                              .copyWith(color: AppColors.textMain, fontSize: 12),
                           items: _foodRelationLabels.entries
                               .map((e) => DropdownMenuItem(
                                     value: e.key,
@@ -1615,17 +1614,17 @@ class _DoseRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary, width: 1.5),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _fmt(value),
-              style: AppTextStyles.labelLg.copyWith(color: AppColors.primary),
+              style: AppTextStyles.labelLg,
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.edit_outlined, size: 14, color: AppColors.primary),
+            const Icon(Icons.edit_outlined, size: 14, color: AppColors.textMuted),
           ],
         ),
       ),

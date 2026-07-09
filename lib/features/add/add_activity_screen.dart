@@ -506,6 +506,10 @@ class _ActivitySlot extends StatelessWidget {
         color: AppColors.primaryLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.primary, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -891,12 +895,11 @@ class _SlotField extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
-              border:
-                  Border.all(color: AppColors.primary, width: 1.5),
+              border: Border.all(color: AppColors.border),
             ),
             child: Text(value,
                 style: AppTextStyles.labelMd.copyWith(
-                    color: hint ? AppColors.textMuted : AppColors.primary)),
+                    color: hint ? AppColors.textMuted : AppColors.textMain)),
           ),
         ],
       ),

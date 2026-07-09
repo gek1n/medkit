@@ -8,6 +8,7 @@ import '../../core/services/sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/mk_screen_header.dart';
 
 /// Опційна зашифрована синхронізація з сервером — окремо від "Резервної
 /// копії" (Google Drive/iCloud). Тут дані ще й лишаються на нашому сервері
@@ -347,19 +348,19 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        title: Text('Синхронізація та акаунт', style: AppTextStyles.h3),
-      ),
       body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _busy
-                ? const Center(child: CircularProgressIndicator())
-                : ListView(
-                    padding: const EdgeInsets.all(AppDimensions.screenPadding),
-                    children: [
+        child: Column(
+          children: [
+            const MkScreenHeader(title: 'Синхронізація та акаунт'),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _busy
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView(
+                          padding:
+                              const EdgeInsets.all(AppDimensions.screenPadding),
+                          children: [
                       Text(
                         'За замовчуванням усі дані лишаються тільки на пристрої. '
                         'Синхронізація — опційна: дані шифруються ще на пристрої, '
@@ -413,6 +414,9 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                       ],
                     ],
                   ),
+            ),
+          ],
+        ),
       ),
     );
   }

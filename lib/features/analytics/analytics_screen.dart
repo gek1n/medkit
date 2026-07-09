@@ -402,6 +402,10 @@ class _MedStatCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Row(
         children: [
@@ -606,6 +610,12 @@ class _ActivitySummary extends StatelessWidget {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border, width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Color(0x0F000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 6)),
+                    ],
                   ),
                   child: Column(
                     children: [
@@ -674,6 +684,7 @@ class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.title);
 
   @override
-  Widget build(BuildContext context) =>
-      Text(title, style: AppTextStyles.labelLg);
+  Widget build(BuildContext context) => Text(title,
+      style: AppTextStyles.bodyMd
+          .copyWith(fontSize: 15, fontWeight: FontWeight.w800));
 }

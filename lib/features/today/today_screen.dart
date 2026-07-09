@@ -2049,7 +2049,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
             ),
           ),
           _ActionRow(
-            doneColor: const Color(0xFF22C55E),
+            doneColor: AppColors.primary,
             onDone: () {
               _stopVideo();
               widget.ref
@@ -2198,7 +2198,7 @@ class _ActiveWellbeingCard extends ConsumerWidget {
               ),
             ),
             _ActionRow(
-              doneColor: const Color(0xFF5FAE7C),
+              doneColor: AppColors.primary,
               onDone: () => _open(context),
               onSkip: () => _skip(ref),
             ),
@@ -2270,7 +2270,7 @@ class _ActiveAppointmentCard extends StatelessWidget {
             ),
           ),
           _ActionRow(
-            doneColor: iconColor,
+            doneColor: AppColors.primary,
             onDone: () => ref
                 .read(doctorAppointmentsRepositoryProvider)
                 .markAttended(appointment.id),
