@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -23,7 +25,7 @@ class NotificationService {
     tz_data.initializeTimeZones();
     _setLocalTimeZone();
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@drawable/ic_stat_leaf');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -62,6 +64,7 @@ class NotificationService {
           channelDescription: _channelDesc,
           importance: Importance.high,
           priority: Priority.high,
+          color: Color(0xFF4C9A6A),
         ),
         iOS: DarwinNotificationDetails(),
       );
