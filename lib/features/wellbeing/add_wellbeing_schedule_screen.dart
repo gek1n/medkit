@@ -7,11 +7,13 @@ import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../plans/elly_denied_screen.dart';
 import 'wellbeing_history_screen.dart';
 
 class AddWellbeingScheduleScreen extends ConsumerStatefulWidget {
@@ -133,6 +135,9 @@ class _AddWellbeingScheduleScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (isMemberBlockedByPlan(ref, widget.memberId)) {
+      return const EllyDeniedScreen();
+    }
     if (!_loaded) {
       return const Scaffold(
         backgroundColor: AppColors.bg,

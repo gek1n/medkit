@@ -5,15 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/services/camera_permission_service.dart';
 import '../../core/services/pairing_api_client.dart';
 import '../../core/services/pairing_crypto_service.dart';
 import '../../core/services/push_token_service.dart';
 import '../../core/services/relay_api_client.dart';
 import '../../core/services/shared_channel_key_storage.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/shared_channels_repository.dart';
+import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 import '../today/providers/today_providers.dart';
 
@@ -46,6 +49,24 @@ class _PairingJoinScreenState extends ConsumerState<PairingJoinScreen> {
   bool _submitting = false;
   String? _error;
   bool _handledScan = false;
+  bool _scannerStarted = false;
+
+  // Якщо дозвіл вже перманентно відхилений — новий запит до ОС однаково
+  // нічого не покаже, тож одразу ведемо в системні налаштування замість
+  // марної спроби змонтувати камеру.
+  Future<void> _startScanner() async {
+    if (await CameraPermissionService.openSettingsIfPermanentlyDenied()) return;
+    setState(() => _scannerStarted = true);
+  }
+
+  // Виклик під час першого монтування MobileScanner робить autoStart сам,
+  // але коли попередня спроба впала через відмову в дозволі — камера вже
+  // змонтована й повторний запит треба ініціювати вручну. Той самий нюанс з
+  // перманентною відмовою, що і в _startScanner().
+  Future<void> _retryScanner() async {
+    if (await CameraPermissionService.openSettingsIfPermanentlyDenied()) return;
+    await _scannerController.start();
+  }
 
   @override
   void dispose() {
@@ -153,22 +174,34 @@ class _PairingJoinScreenState extends ConsumerState<PairingJoinScreen> {
         child: Column(
           children: [
             const MkScreenHeader(title: 'Ввести код запрошення'),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: SizedBox(
-                height: 260,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    MobileScanner(controller: _scannerController, onDetect: _onDetect),
-                    if (_submitting)
-                      Container(
-                        color: Colors.black45,
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        ),
-                      ),
-                  ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SizedBox(
+                  height: 260,
+                  child: _scannerStarted
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            MobileScanner(
+                              controller: _scannerController,
+                              onDetect: _onDetect,
+                              errorBuilder: (context, error, child) =>
+                                  _ScannerError(
+                                      error: error, onRetry: _retryScanner),
+                            ),
+                            if (_submitting)
+                              Container(
+                                color: Colors.black45,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white),
+                                ),
+                              ),
+                          ],
+                        )
+                      : _ScannerPlaceholder(onTap: _startScanner),
                 ),
               ),
             ),
@@ -182,18 +215,22 @@ class _PairingJoinScreenState extends ConsumerState<PairingJoinScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  TextField(
-                    controller: _manualController,
-                    textAlign: TextAlign.center,
-                    textCapitalization: TextCapitalization.characters,
-                    style: AppTextStyles.h2.copyWith(color: AppColors.primary, letterSpacing: 4),
-                    decoration: InputDecoration(
-                      hintText: '________',
-                      filled: true,
-                      fillColor: AppColors.primaryLight,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: AppColors.primaryLighter, width: 2),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: TextField(
+                      controller: _manualController,
+                      textAlign: TextAlign.center,
+                      textCapitalization: TextCapitalization.characters,
+                      style: AppTextStyles.h2.copyWith(color: AppColors.primary, letterSpacing: 4),
+                      decoration: InputDecoration(
+                        hintText: '________',
+                        hintStyle: AppTextStyles.h2.copyWith(color: AppColors.textMuted, letterSpacing: 4),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                       ),
                     ),
                   ),
@@ -202,15 +239,103 @@ class _PairingJoinScreenState extends ConsumerState<PairingJoinScreen> {
                     Text(_error!, style: AppTextStyles.bodySm.copyWith(color: AppColors.danger)),
                   ],
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _submitting ? null : () => _redeem(_manualController.text),
-                      child: Text(_submitting ? 'Перевірка…' : 'Приєднатись'),
-                    ),
+                  MkButton(
+                    label: _submitting ? 'Перевірка…' : 'Приєднатись',
+                    isLoading: _submitting,
+                    onTap: () => _redeem(_manualController.text),
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScannerPlaceholder extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ScannerPlaceholder({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        color: AppColors.surface,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.qr_code_scanner_rounded,
+                    color: AppColors.primary, size: 26),
+              ),
+              const SizedBox(height: 10),
+              Text('Сканувати QR-код',
+                  style: AppTextStyles.labelLg
+                      .copyWith(color: AppColors.primary)),
+              const SizedBox(height: 2),
+              Text('Натисніть, щоб увімкнути камеру',
+                  style: AppTextStyles.bodySm
+                      .copyWith(color: AppColors.textMuted)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScannerError extends StatelessWidget {
+  final MobileScannerException error;
+  final VoidCallback onRetry;
+  const _ScannerError({required this.error, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final deniedPermission =
+        error.errorCode == MobileScannerErrorCode.permissionDenied;
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+                deniedPermission
+                    ? Icons.no_photography_rounded
+                    : Icons.error_outline_rounded,
+                color: AppColors.danger,
+                size: 28),
+            const SizedBox(height: 10),
+            Text(
+              deniedPermission
+                  ? 'Немає доступу до камери'
+                  : 'Не вдалося увімкнути камеру',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.labelLg,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              deniedPermission
+                  ? 'Дозвольте доступ до камери, щоб сканувати QR-код'
+                  : error.errorCode.message,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('Спробувати ще'),
             ),
           ],
         ),

@@ -1,29 +1,32 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:in_app_review/in_app_review.dart';
 import '../backup/backup_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_settings_screen.dart';
-import '../../core/providers/font_scale_provider.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
-import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
-import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_button.dart';
-import '../medications/medication_detail_screen.dart';
+import '../../shared/widgets/switch_profile_banner.dart';
 import '../today/providers/today_providers.dart';
+import '../wellbeing/wellbeing_history_screen.dart';
+import 'anti_stress/anti_stress_picker_screen.dart';
+import 'family_visibility_screen.dart';
+import 'privacy_screen.dart';
 
-// ────────────────────────────── providers ──────────────────────────────
-
-final _profileMedsProvider =
-    StreamProvider.family<List<Medication>, int>((ref, memberId) {
-  return ref.watch(medicationsRepositoryProvider).watchByMember(memberId);
+/// Чи дозволив автономний профіль (subjectId) редагування viewer'у —
+/// зокрема, чи можна змінювати розмір шрифту, дивлячись на нього через
+/// "Переглянути як X" (не власний природний контекст).
+final _editAllowedProvider = FutureProvider.family<bool, (int, int)>((ref, ids) {
+  return FamilyVisibilityService.isAllowed(ids.$1, ids.$2, FamilyPermission.edit);
 });
 
 // ────────────────────────────── screen ──────────────────────────────
@@ -39,7 +42,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final memberAsync = ref.watch(currentMemberProvider);
-    final fontSizeIndex = ref.watch(fontSizeIndexProvider);
 
     return memberAsync.when(
       loading: () => const Scaffold(
@@ -55,9 +57,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (member == null) return const SizedBox.shrink();
         return _ProfileBody(
           member: member,
-          fontSizeIndex: fontSizeIndex,
-          onFontSizeChanged: (i) =>
-              ref.read(fontSizeIndexProvider.notifier).setIndex(i),
+          onFontSizeChanged: (i) => ref.read(membersRepositoryProvider).update(
+                MembersCompanion(id: Value(member.id), fontSize: Value(i + 1)),
+              ),
         );
       },
     );
@@ -68,58 +70,85 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
 class _ProfileBody extends ConsumerWidget {
   final Member member;
-  final int fontSizeIndex;
   final ValueChanged<int> onFontSizeChanged;
 
   const _ProfileBody({
     required this.member,
-    required this.fontSizeIndex,
     required this.onFontSizeChanged,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final medsAsync = ref.watch(_profileMedsProvider(member.id));
     final plan = ref.watch(planProvider);
+    final fontSizeIndex = member.fontSize - 1;
+    final activeId = ref.watch(activeMemberIdProvider);
+    final showSwitchBanner = activeId != null && member.role != 'owner';
+
+    // Автономний профіль, переглянутий через "Переглянути як X" (не свій
+    // природний контекст) — розмір шрифту можна міняти лише якщо сам
+    // профіль дозволив редагування.
+    var canEditFontSize = true;
+    if (member.role == 'member' && activeId != null) {
+      final members = ref.watch(allMembersProvider).valueOrNull;
+      int? ownerId;
+      if (members != null) {
+        for (final m in members) {
+          if (m.role == 'owner') {
+            ownerId = m.id;
+            break;
+          }
+        }
+      }
+      canEditFontSize = ownerId == null
+          ? false
+          : ref.watch(_editAllowedProvider((member.id, ownerId))).valueOrNull ??
+              false;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: CustomScrollView(
         slivers: [
+          if (showSwitchBanner)
+            SliverToBoxAdapter(child: SwitchProfileBanner(name: member.name)),
           SliverToBoxAdapter(
             child: SafeArea(
               bottom: false,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimensions.screenPadding,
+                      AppDimensions.lg,
+                      AppDimensions.screenPadding,
+                      AppDimensions.md,
+                    ),
+                    child: Text('Профіль', style: AppTextStyles.h2),
+                  ),
                   _HeroSection(member: member, plan: plan),
                   const SizedBox(height: AppDimensions.lg),
                   if (!plan.isPaid) _UpgradeBanner(),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Мої ліки'),
-                  medsAsync.when(
-                    loading: () => const Padding(
-                      padding: EdgeInsets.all(AppDimensions.lg),
-                      child: Center(
-                          child: CircularProgressIndicator(
-                              color: AppColors.primary)),
-                    ),
-                    error: (_, _) => const SizedBox.shrink(),
-                    data: (meds) => meds.isEmpty
-                        ? _EmptyMeds()
-                        : _MedsList(meds: meds, memberId: member.id),
-                  ),
+                  _ProfileSectionHeader("Здоров'я та вправи",
+                      icon: Icons.favorite_rounded, color: AppColors.primary),
+                  _HealthSection(memberId: member.id),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Вигляд'),
-                  _AppearanceSection(
+                  _ProfileSectionHeader('Налаштування додатку',
+                      icon: Icons.tune_rounded, color: AppColors.accent),
+                  _AppSettingsSection(
+                    isLocalProfile: member.role == 'dependent',
+                    canEditFontSize: canEditFontSize,
                     fontSizeIndex: fontSizeIndex,
                     onFontSizeChanged: onFontSizeChanged,
                   ),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Підключення'),
-                  _ConnectionsSection(),
+                  _ProfileSectionHeader('Акаунт',
+                      icon: Icons.person_rounded, color: AppColors.warning),
+                  _AccountSection(memberId: member.id),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Інше'),
+                  _ProfileSectionHeader('Інше',
+                      icon: Icons.more_horiz_rounded, color: AppColors.info),
                   _OtherSection(),
                   const SizedBox(height: AppDimensions.xl),
                   _LogoutButton(member: member),
@@ -146,69 +175,68 @@ class _HeroSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.screenPadding,
-        AppDimensions.xl,
+        AppDimensions.md,
         AppDimensions.screenPadding,
         0,
       ),
-      child: SizedBox(
-        width: double.infinity,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: AppColors.primaryLighter, width: 3),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: AvatarImage(index: member.avatarIndex, size: 82),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _showEditSheet(context),
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: AppColors.surface, width: 2),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.edit_rounded,
-                        size: 13, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
           GestureDetector(
             onTap: () => _showEditSheet(context),
-            child: Text(
-              member.name,
-              style: AppTextStyles.h2,
-              textAlign: TextAlign.center,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppDimensions.md),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                border: Border.all(color: AppColors.border),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x0F000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 6)),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AvatarImage(index: member.avatarIndex, size: 64),
+                  const SizedBox(width: AppDimensions.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(member.name, style: AppTextStyles.h3),
+                        const SizedBox(height: 2),
+                        Text(
+                          'sgek1n@gmail.com',
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.textSub),
+                        ),
+                        const SizedBox(height: 8),
+                        _PlanBadge(plan: plan),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius:
+                          BorderRadius.circular(AppDimensions.radiusMd),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.edit_rounded,
+                          size: 16, color: AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'sgek1n@gmail.com',
-            style:
-                AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-          ),
-          const SizedBox(height: AppDimensions.md),
-          _PlanBadge(plan: plan),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -231,21 +259,30 @@ class _PlanBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (bg, border, textColor) = switch (plan) {
-      AppPlan.free => (AppColors.warningLight, AppColors.warning, AppColors.warning),
-      AppPlan.care => (AppColors.primaryLight, AppColors.primaryLighter, AppColors.primary),
-      AppPlan.family => (const Color(0xFFFFFBEB), const Color(0xFFFDE68A), const Color(0xFF92400E)),
+    final (icon, label, color) = switch (plan) {
+      AppPlan.free => (Icons.star_outline_rounded, 'Безкоштовний план',
+          AppColors.textSub),
+      AppPlan.plus => (Icons.favorite_rounded, 'Elly Plus', AppColors.primary),
+      AppPlan.family => (Icons.diversity_3_rounded, 'Elly Family', AppColors.accent),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: bg,
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-        border: Border.all(color: border),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(
-        plan.badge,
-        style: AppTextStyles.bodySm.copyWith(color: textColor),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: AppTextStyles.bodySm
+                .copyWith(fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
       ),
     );
   }
@@ -338,7 +375,10 @@ class _UpgradeBanner extends StatelessWidget {
 
 class _ProfileSectionHeader extends StatelessWidget {
   final String title;
-  const _ProfileSectionHeader(this.title);
+  final IconData icon;
+  final Color color;
+  const _ProfileSectionHeader(this.title,
+      {required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -349,10 +389,12 @@ class _ProfileSectionHeader extends StatelessWidget {
         AppDimensions.screenPadding,
         AppDimensions.sm,
       ),
-      child: Text(
-        title,
-        style: AppTextStyles.bodyMd
-            .copyWith(fontSize: 15, fontWeight: FontWeight.w800),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 6),
+          Text(title.toUpperCase(), style: AppTextStyles.labelSm),
+        ],
       ),
     );
   }
@@ -403,15 +445,34 @@ class _SectionCard extends StatelessWidget {
 
 // ────────────────────────────── row item ──────────────────────────────
 
+class _SectionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  const _SectionIcon(this.icon, {required this.color});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        ),
+        child: Center(child: Icon(icon, size: 18, color: color)),
+      );
+}
+
 class _RowItem extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color color;
   final Widget? trailing;
   final VoidCallback? onTap;
 
   const _RowItem({
     required this.icon,
     required this.label,
+    this.color = AppColors.primary,
     this.trailing,
     this.onTap,
   });
@@ -424,11 +485,11 @@ class _RowItem extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppDimensions.screenPadding,
-          vertical: 14,
+          vertical: 10,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: AppColors.primary),
+            _SectionIcon(icon, color: color),
             const SizedBox(width: AppDimensions.md),
             Expanded(
               child: Text(label, style: AppTextStyles.bodyMd),
@@ -443,98 +504,52 @@ class _RowItem extends StatelessWidget {
   }
 }
 
-// ────────────────────────────── my meds ──────────────────────────────
+// ────────────────────────────── health & reminders ──────────────────────────────
 
-class _EmptyMeds extends StatelessWidget {
+class _HealthSection extends StatelessWidget {
+  final int memberId;
+  const _HealthSection({required this.memberId});
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.screenPadding,
-        vertical: AppDimensions.lg,
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(AppDimensions.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius:
-              BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6)),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            'Ліків ще немає',
-            style: AppTextStyles.bodyMd
-                .copyWith(color: AppColors.textSub),
+    return _SectionCard(
+      children: [
+        _RowItem(
+          icon: Icons.history_rounded,
+          label: 'Історія самопочуття',
+          color: AppColors.primary,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WellbeingHistoryScreen(memberId: memberId),
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MedsList extends ConsumerWidget {
-  final List<Medication> meds;
-  final int memberId;
-  const _MedsList({required this.meds, required this.memberId});
-
-  String _daysLeft(Medication m) {
-    if (m.endDate == null) return 'постійно';
-    final diff = m.endDate!.difference(DateTime.now()).inDays;
-    if (diff < 0) return 'завершено';
-    return 'залишилось $diff д';
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return _SectionCard(
-      children: meds
-          .map(
-            (m) => _RowItem(
-              icon: medFormIcon(m.form),
-              label: m.name,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _daysLeft(m),
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: AppColors.textSub),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: AppColors.textMuted, size: 20),
-                ],
-              ),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MedicationDetailScreen(
-                    medicationId: m.id,
-                    memberId: memberId,
-                  ),
-                ),
-              ),
-            ),
-          )
-          .toList(),
+        _RowItem(
+          icon: Icons.self_improvement_rounded,
+          label: 'Антистрес-вправи',
+          color: AppColors.primary,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AntiStressPickerScreen()),
+          ),
+        ),
+      ],
     );
   }
 }
 
 // ────────────────────────────── appearance ──────────────────────────────
 
-class _AppearanceSection extends StatelessWidget {
+class _AppSettingsSection extends StatelessWidget {
+  final bool isLocalProfile;
+  final bool canEditFontSize;
   final int fontSizeIndex;
   final ValueChanged<int> onFontSizeChanged;
 
-  const _AppearanceSection({
+  const _AppSettingsSection({
+    required this.isLocalProfile,
+    this.canEditFontSize = true,
     required this.fontSizeIndex,
     required this.onFontSizeChanged,
   });
@@ -543,80 +558,91 @@ class _AppearanceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.screenPadding,
-            vertical: 14,
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.text_fields_rounded, size: 20, color: AppColors.primary),
-              const SizedBox(width: AppDimensions.md),
-              Expanded(
-                child: Text('Розмір шрифту',
-                    style: AppTextStyles.bodyMd),
+        // Локальні профілі не мають власного пристрою/акаунту — розмір
+        // шрифту й сповіщення налаштовуються лише для owner/автономних.
+        if (!isLocalProfile) ...[
+          Opacity(
+            opacity: canEditFontSize ? 1 : 0.5,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.screenPadding,
+                vertical: 14,
               ),
-              Row(
-                children: List.generate(4, (i) {
-                  final sizes = [12.0, 14.0, 16.0, 18.0];
-                  final labels = ['Аа', 'Аа', 'Аа', 'Аа'];
-                  final selected = fontSizeIndex == i;
-                  return GestureDetector(
-                    onTap: () => onFontSizeChanged(i),
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.primaryLight
-                            : AppColors.bg,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.border,
+              child: Row(
+                children: [
+                  const _SectionIcon(Icons.text_fields_rounded,
+                      color: AppColors.accent),
+                  const SizedBox(width: AppDimensions.md),
+                  Expanded(
+                    child: Text('Розмір шрифту',
+                        style: AppTextStyles.bodyMd),
+                  ),
+                  Row(
+                    children: List.generate(4, (i) {
+                      final sizes = [12.0, 14.0, 16.0, 18.0];
+                      final labels = ['Аа', 'Аа', 'Аа', 'Аа'];
+                      final selected = fontSizeIndex == i;
+                      return GestureDetector(
+                        onTap: canEditFontSize
+                            ? () => onFontSizeChanged(i)
+                            : null,
+                        child: Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppColors.primaryLight
+                                : AppColors.bg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.border,
+                            ),
+                          ),
+                          child: Text(
+                            labels[i],
+                            style: AppTextStyles.bodyMd.copyWith(
+                              fontSize: sizes[i],
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.textMain,
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        labels[i],
-                        style: AppTextStyles.bodyMd.copyWith(
-                          fontSize: sizes[i],
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.textMain,
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+                      );
+                    }),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.screenPadding,
-            vertical: 10,
+          _RowItem(
+            icon: Icons.notifications_rounded,
+            label: 'Сповіщення',
+            color: AppColors.accent,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen()),
+            ),
           ),
-          child: Row(
-            children: [
-              const Icon(Icons.dark_mode_rounded, size: 20, color: AppColors.primary),
-              const SizedBox(width: AppDimensions.md),
-              Expanded(
-                child: Text('Темна тема',
-                    style: AppTextStyles.bodyMd),
-              ),
-              Switch(
-                value: false,
-                onChanged: (_) {},
-                activeThumbColor: AppColors.primary,
-                activeTrackColor: AppColors.primaryLight,
-              ),
-            ],
+        ],
+        _RowItem(
+          icon: Icons.language_rounded,
+          label: 'Мова',
+          color: AppColors.accent,
+          trailing: Text('Українська',
+              style:
+                  AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content:
+                    Text('Вибір мови буде доступний після перекладів')),
           ),
         ),
       ],
@@ -624,16 +650,113 @@ class _AppearanceSection extends StatelessWidget {
   }
 }
 
-// ────────────────────────────── connections ──────────────────────────────
+// ────────────────────────────── account ──────────────────────────────
 
-class _ConnectionsSection extends StatelessWidget {
+class _AccountSection extends ConsumerWidget {
+  final int memberId;
+  const _AccountSection({required this.memberId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plan = ref.watch(planProvider);
+    return _SectionCard(
+      children: [
+        _RowItem(
+          icon: Icons.workspace_premium_rounded,
+          label: 'Тарифи',
+          color: AppColors.warning,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(plan.displayName,
+                  style: AppTextStyles.bodySm
+                      .copyWith(color: AppColors.textMuted)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textMuted, size: 20),
+            ],
+          ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PlansScreen()),
+          ),
+        ),
+        _RowItem(
+          icon: Icons.visibility_rounded,
+          label: 'Видимість для сім\'ї',
+          color: AppColors.warning,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  FamilyVisibilityScreen(subjectMemberId: memberId),
+            ),
+          ),
+        ),
+        _RowItem(
+          icon: Icons.sync_rounded,
+          label: 'Синхронізація',
+          color: AppColors.warning,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SyncSettingsScreen()),
+          ),
+        ),
+        _RowItem(
+          icon: Icons.backup_rounded,
+          label: 'Резервна копія',
+          color: AppColors.warning,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BackupScreen()),
+          ),
+        ),
+        _RowItem(
+          icon: Icons.privacy_tip_rounded,
+          label: 'Конфіденційність',
+          color: AppColors.warning,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ────────────────────────────── other ──────────────────────────────
+
+class _OtherSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
       children: [
         _RowItem(
+          icon: Icons.star_rounded,
+          label: 'Оцінити застосунок',
+          color: AppColors.info,
+          onTap: () async {
+            final inAppReview = InAppReview.instance;
+            if (await inAppReview.isAvailable()) {
+              inAppReview.requestReview();
+            } else {
+              inAppReview.openStoreListing();
+            }
+          },
+        ),
+        _RowItem(
+          icon: Icons.help_outline_rounded,
+          label: 'Допомога та FAQ',
+          color: AppColors.info,
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Скоро...')),
+          ),
+        ),
+        _RowItem(
           icon: Icons.send_rounded,
           label: 'Telegram-бот',
+          color: AppColors.info,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -658,59 +781,9 @@ class _ConnectionsSection extends StatelessWidget {
           ),
         ),
         _RowItem(
-          icon: Icons.notifications_rounded,
-          label: 'Сповіщення',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => const NotificationsScreen()),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ────────────────────────────── other ──────────────────────────────
-
-class _OtherSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      children: [
-        _RowItem(
-          icon: Icons.sync_rounded,
-          label: 'Синхронізація та акаунт',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SyncSettingsScreen()),
-          ),
-        ),
-        _RowItem(
-          icon: Icons.backup_rounded,
-          label: 'Резервна копія',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const BackupScreen()),
-          ),
-        ),
-        _RowItem(
           icon: Icons.ios_share_rounded,
           label: 'Експорт даних',
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Скоро...')),
-          ),
-        ),
-        _RowItem(
-          icon: Icons.help_outline_rounded,
-          label: 'Допомога та FAQ',
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Скоро...')),
-          ),
-        ),
-        _RowItem(
-          icon: Icons.star_rounded,
-          label: 'Оцінити застосунок',
+          color: AppColors.info,
           onTap: () => ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Скоро...')),
           ),
@@ -806,95 +879,102 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
       padding: EdgeInsets.only(
-        left: AppDimensions.screenPadding,
-        right: AppDimensions.screenPadding,
-        top: AppDimensions.lg,
-        bottom: MediaQuery.of(context).viewInsets.bottom +
-            AppDimensions.xl,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(
-            top: Radius.circular(AppDimensions.radiusXl)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusFull),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppDimensions.lg),
-          Text('Редагувати профіль', style: AppTextStyles.h3),
-          const SizedBox(height: AppDimensions.xl),
-          Center(child: AvatarImage(index: _avatarIndex, size: 96)),
-          const SizedBox(height: AppDimensions.lg),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: _nameCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(
-                hintText: "Ваше ім'я",
-                hintStyle:
-                    AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 13),
-              ),
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMain),
-            ),
-          ),
-          const SizedBox(height: AppDimensions.lg),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: avatarCount,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1,
-            ),
-            itemBuilder: (_, i) {
-              final selected = _avatarIndex == i;
-              return GestureDetector(
-                onTap: () => setState(() => _avatarIndex = i),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color:
-                        selected ? AppColors.primaryLight : AppColors.bgPage,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: selected ? AppColors.primary : Colors.transparent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: AvatarImage(index: i, size: 52),
-                  ),
+          bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.screenPadding),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppDimensions.radiusXl)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: AppDimensions.lg),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius:
+                      BorderRadius.circular(AppDimensions.radiusFull),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: AppDimensions.xl),
-          MkButton(label: 'Зберегти', onTap: _save),
-        ],
+              ),
+            ),
+            const SizedBox(height: AppDimensions.lg),
+            Text('Редагувати профіль', style: AppTextStyles.h3),
+            const SizedBox(height: AppDimensions.lg),
+            Center(child: AvatarImage(index: _avatarIndex, size: 96)),
+            const SizedBox(height: AppDimensions.lg),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: TextField(
+                controller: _nameCtrl,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  hintText: "Ваше ім'я",
+                  hintStyle: AppTextStyles.bodyMd
+                      .copyWith(color: AppColors.textMuted),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 13),
+                ),
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMain),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.lg),
+            Expanded(
+              child: GridView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: avatarCount,
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1,
+                ),
+                itemBuilder: (_, i) {
+                  final selected = _avatarIndex == i;
+                  return GestureDetector(
+                    onTap: () => setState(() => _avatarIndex = i),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.primaryLight
+                            : AppColors.bgPage,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color:
+                              selected ? AppColors.primary : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: AvatarImage(index: i, size: 52),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppDimensions.lg),
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppDimensions.lg),
+              child: MkButton(label: 'Зберегти', onTap: _save),
+            ),
+          ],
+        ),
       ),
     );
   }

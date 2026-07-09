@@ -15,10 +15,12 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_activity_screen.dart';
 import '../add/add_type_sheet.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
+import '../today/providers/today_providers.dart' show activeMemberIdProvider;
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
 
@@ -86,6 +88,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Якщо десь у застосунку активовано перегляд "від імені" іншого члена
+    // сім'ї — Розклад теж підхоплює цей вибір (доки користувач сам не
+    // перемкне когось локально через _MemberSwitcherPill).
+    ref.listen<int?>(activeMemberIdProvider, (prev, next) {
+      if (next != prev) setState(() => _selectedMemberId = next);
+    });
+    final activeId = ref.watch(activeMemberIdProvider);
     final membersAsync = ref.watch(_scheduleAllMembersProvider);
 
     return Scaffold(
@@ -104,7 +113,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           if (members.isEmpty) {
             return const _EmptyMembers();
           }
-          final memberId = _selectedMemberId ?? members.first.id;
+          final memberId = _selectedMemberId ?? activeId ?? members.first.id;
           return _ScheduleBody(
             members: members,
             selectedMemberId: memberId,
@@ -154,9 +163,20 @@ class _ScheduleBody extends ConsumerWidget {
     );
 
     final q = search.trim().toLowerCase();
+    final owner = members.firstWhere(
+      (m) => m.role == 'owner',
+      orElse: () => members.first,
+    );
 
     return CustomScrollView(
       slivers: [
+        if (member.role != 'owner')
+          SliverToBoxAdapter(
+            child: SwitchProfileBanner(
+              name: member.name,
+              onReturn: () => onMemberChanged(owner.id),
+            ),
+          ),
         // Header
         SliverToBoxAdapter(
           child: Container(
@@ -268,6 +288,53 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.appointments) ...[
+                  const _SectionHeader(
+                    icon: Icons.medical_services_rounded,
+                    title: 'Прийоми лікарів',
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  appointmentsAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text('$e'),
+                    data: (appointments) {
+                      if (appointments.isEmpty) {
+                        return _EmptySection(
+                          hint: 'Немає запланованих прийомів',
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddAppointmentScreen(memberId: selectedMemberId),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: appointments
+                            .map((a) => Padding(
+                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => AddAppointmentScreen(
+                                          memberId: selectedMemberId,
+                                          existing: a,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _AppointmentCard(appointment: a),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppDimensions.xl),
+                ],
+
+                if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.activities) ...[
                   const _SectionHeader(
                     icon: Icons.directions_walk_rounded,
@@ -350,52 +417,6 @@ class _ScheduleBody extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(height: AppDimensions.xl),
-                ],
-
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.appointments) ...[
-                  const _SectionHeader(
-                    icon: Icons.medical_services_rounded,
-                    title: 'Прийоми лікарів',
-                  ),
-                  const SizedBox(height: AppDimensions.md),
-                  appointmentsAsync.when(
-                    loading: () => const _SectionLoading(),
-                    error: (e, _) => Text('$e'),
-                    data: (appointments) {
-                      if (appointments.isEmpty) {
-                        return _EmptySection(
-                          hint: 'Немає запланованих прийомів',
-                          onAdd: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  AddAppointmentScreen(memberId: selectedMemberId),
-                            ),
-                          ),
-                        );
-                      }
-                      return Column(
-                        children: appointments
-                            .map((a) => Padding(
-                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => AddAppointmentScreen(
-                                          memberId: selectedMemberId,
-                                          existing: a,
-                                        ),
-                                      ),
-                                    ),
-                                    child: _AppointmentCard(appointment: a),
-                                  ),
-                                ))
-                            .toList(),
-                      );
-                    },
-                  ),
                 ],
               ] else
                 Builder(builder: (context) {

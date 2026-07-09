@@ -60,9 +60,9 @@ class MedKitApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fontSizeIndex = ref.watch(fontSizeIndexProvider);
+    final dbFontSize = ref.watch(effectiveFontSizeProvider); // 1..4, default 2=normal
     final scale = fontScaleValues[
-        fontSizeIndex.clamp(0, fontScaleValues.length - 1)];
+        (dbFontSize - 1).clamp(0, fontScaleValues.length - 1)];
 
     return MaterialApp(
       title: 'Elly',
@@ -171,16 +171,16 @@ class _Shell extends ConsumerStatefulWidget {
 }
 
 class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
-  int _index = 2;
+  int _index = 0;
   late final PageController _pageController;
   bool _syncing = false;
   bool _familySyncing = false;
   StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   static const _screens = [
-    MedCardScreen(),   // 0 = Медкартка
+    TodayScreen(),     // 0 = Сьогодні
     ScheduleScreen(),  // 1 = Розклад
-    TodayScreen(),     // 2 = Сьогодні (center)
+    MedCardScreen(),   // 2 = Медкартка
     FamilyScreen(),    // 3 = Сім'я
     ProfileScreen(),   // 4 = Профіль
   ];
@@ -264,6 +264,13 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int?>(requestedTabIndexProvider, (previous, next) {
+      if (next != null) {
+        _goToTab(next);
+        Future.microtask(
+            () => ref.read(requestedTabIndexProvider.notifier).state = null);
+      }
+    });
     return Scaffold(
       body: PageView(
         controller: _pageController,

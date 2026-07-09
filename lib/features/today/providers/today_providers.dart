@@ -12,6 +12,11 @@ import '../../../core/services/activity_log_generator.dart';
 // Активний профіль (null = власник за замовчуванням)
 final activeMemberIdProvider = StateProvider<int?>((_) => null);
 
+// Запит на перемикання вкладки нижньої навігації з екрана, що не є _Shell
+// (напр. "Переглянути як X" з Сім'ї одразу відкриває Сьогодні). _Shell в
+// main.dart слухає цей провайдер і скидає його в null одразу після переходу.
+final requestedTabIndexProvider = StateProvider<int?>((_) => null);
+
 // Поточний власник (перший запуск — null)
 final currentMemberProvider = StreamProvider<Member?>((ref) {
   final activeId = ref.watch(activeMemberIdProvider);
@@ -33,6 +38,21 @@ final currentMemberProvider = StreamProvider<Member?>((ref) {
           );
         },
       );
+});
+
+// Розмір шрифту, який реально застосовується для поточного профілю:
+// у локальних (dependent) профілів немає власного налаштування — вони
+// завжди успадковують розмір шрифту власника пристрою.
+final effectiveFontSizeProvider = Provider<int>((ref) {
+  final current = ref.watch(currentMemberProvider).valueOrNull;
+  if (current == null) return 2;
+  if (current.role != 'dependent') return current.fontSize;
+  final members = ref.watch(allMembersProvider).valueOrNull;
+  if (members == null) return current.fontSize;
+  for (final m in members) {
+    if (m.role == 'owner') return m.fontSize;
+  }
+  return current.fontSize;
 });
 
 // Всі члени сім'ї

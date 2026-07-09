@@ -170,7 +170,13 @@ LazyDatabase _openConnection() {
       },
       // key вже прийде у форматі SQLCipher raw-key: x'64-hex-символи',
       // тому саме значення оточуємо подвійними лапками, а не одинарними.
-      setup: (db) => db.execute('PRAGMA key = "$key";'),
+      setup: (db) {
+        db.execute('PRAGMA key = "$key";');
+        // SQLite не застосовує ON DELETE CASCADE (всюди прописаний у
+        // таблицях) без цього — без нього видалення профілю лишало б
+        // "осиротілі" ліки/розклади/прийоми в базі.
+        db.execute('PRAGMA foreign_keys = ON;');
+      },
     );
   });
 }

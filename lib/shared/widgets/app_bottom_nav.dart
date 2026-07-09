@@ -23,61 +23,12 @@ class AppBottomNav extends StatelessWidget {
           height: 60,
           child: Row(
             children: [
-              _NavItem(icon: Icons.medical_information_rounded, label: l10n.navMedCard, index: 0, current: currentIndex, onTap: onTap),
+              _NavItem(icon: Icons.wb_sunny_rounded, label: l10n.navToday, index: 0, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.calendar_month_rounded, label: l10n.navMeds, index: 1, current: currentIndex, onTap: onTap),
-              _TodayCenter(label: l10n.navToday, isActive: currentIndex == 2, onTap: () => onTap(2)),
+              _NavItem(icon: Icons.medical_information_rounded, label: l10n.navMedCard, index: 2, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.people_alt_rounded, label: l10n.navFamily, index: 3, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.person_rounded, label: l10n.navProfile, index: 4, current: currentIndex, onTap: onTap),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TodayCenter extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-  const _TodayCenter({required this.label, required this.isActive, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Center(
-          child: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: isActive ? 0.45 : 0.25),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.home_rounded, color: Colors.white, size: 20),
-                const SizedBox(height: 1),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
