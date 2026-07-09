@@ -9,6 +9,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
+import 'privacy_gate_screen.dart';
 
 /// Онбординг-варіант "Відновити акаунт" — вхід через Google/Apple, щоб
 /// знайти вже наявний акаунт синхронізації (`AccountService.findAccountViaOAuth`),
@@ -58,7 +59,9 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
       container.invalidate(tomorrowActivityLogsProvider);
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const PrivacyGateScreen()),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
