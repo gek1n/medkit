@@ -10,6 +10,7 @@ import '../../data/repositories/activities_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -207,7 +208,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         child: Column(
           children: [
             _BackHeader(
-              title: isEdit ? 'Редагувати активність' : 'Активність',
+              title: (isEdit ? 'Редагувати активність' : 'Активність') +
+                  memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),

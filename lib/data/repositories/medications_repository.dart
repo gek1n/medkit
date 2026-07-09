@@ -76,6 +76,7 @@ class MedicationsRepository {
           medName: med.name,
           remaining: newRemaining,
           unit: med.doseUnit,
+          vibrationEnabled: settings.vibrationEnabled,
         );
       }
     }
@@ -114,6 +115,7 @@ class MedicationsRepository {
           medName: med.name,
           remaining: clamped,
           unit: '%',
+          vibrationEnabled: settings.vibrationEnabled,
         );
       }
     }

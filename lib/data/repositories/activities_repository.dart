@@ -2,11 +2,13 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/notification_service.dart';
 
 class ActivitiesRepository {
   final AppDatabase _db;
-  ActivitiesRepository(this._db);
+  final Ref _ref;
+  ActivitiesRepository(this._db, this._ref);
 
   Stream<List<Activity>> watchByMember(int memberId) =>
       (_db.select(_db.activities)
@@ -83,6 +85,26 @@ class ActivitiesRepository {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(ActivityLogsCompanion(scheduledAt: Value(newScheduledAt)));
     await NotificationService.cancelActivityReminder(id);
+
+    final log = await (_db.select(_db.activityLogs)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (log == null) return;
+    final activity = await (_db.select(_db.activities)
+          ..where((t) => t.id.equals(log.activityId)))
+        .getSingleOrNull();
+    if (activity == null) return;
+
+    final settings = _ref.read(notificationSettingsProvider);
+    final remindAt = settings.adjust(newScheduledAt, memberId: log.memberId);
+    if (remindAt != null) {
+      await NotificationService.scheduleActivityReminder(
+        logId: id,
+        activityName: activity.name,
+        scheduledAt: remindAt,
+        vibrationEnabled: settings.vibrationEnabled,
+        repeatMinutes: settings.repeatMinutes,
+      );
+    }
   }
 
   Future<List<ActivityLog>> getLogsByMemberAndDateRange(
@@ -118,5 +140,5 @@ class ActivitiesRepository {
 }
 
 final activitiesRepositoryProvider = Provider<ActivitiesRepository>((ref) {
-  return ActivitiesRepository(ref.watch(databaseProvider));
+  return ActivitiesRepository(ref.watch(databaseProvider), ref);
 });

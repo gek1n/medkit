@@ -14,6 +14,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -361,7 +362,8 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
         child: Column(
           children: [
             _BackHeader(
-              title: isEdit ? 'Редагувати ліки' : 'Ліки',
+              title: (isEdit ? 'Редагувати ліки' : 'Ліки') +
+                  memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),

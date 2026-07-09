@@ -2,10 +2,13 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/notification_service.dart';
 
 class DoctorAppointmentsRepository {
   final AppDatabase _db;
-  DoctorAppointmentsRepository(this._db);
+  final Ref _ref;
+  DoctorAppointmentsRepository(this._db, this._ref);
 
   Stream<List<DoctorAppointment>> watchAll() =>
       (_db.select(_db.doctorAppointments)
@@ -43,29 +46,56 @@ class DoctorAppointmentsRepository {
   Future<int> delete(int id) =>
       (_db.delete(_db.doctorAppointments)..where((t) => t.id.equals(id))).go();
 
-  Future<void> markAttended(int id) =>
-      (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
-          .write(DoctorAppointmentsCompanion(
-        status: const Value('attended'),
-        updatedAt: Value(DateTime.now()),
-      ));
+  Future<void> markAttended(int id) async {
+    await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
+        .write(DoctorAppointmentsCompanion(
+      status: const Value('attended'),
+      updatedAt: Value(DateTime.now()),
+    ));
+    await NotificationService.cancelAppointmentReminder(id);
+  }
 
-  Future<void> markSkipped(int id) =>
-      (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
-          .write(DoctorAppointmentsCompanion(
-        status: const Value('skipped'),
-        updatedAt: Value(DateTime.now()),
-      ));
+  Future<void> markSkipped(int id) async {
+    await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
+        .write(DoctorAppointmentsCompanion(
+      status: const Value('skipped'),
+      updatedAt: Value(DateTime.now()),
+    ));
+    await NotificationService.cancelAppointmentReminder(id);
+  }
 
-  Future<void> reschedule(int id, DateTime newTime) =>
-      (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
-          .write(DoctorAppointmentsCompanion(
-        scheduledAt: Value(newTime),
-        updatedAt: Value(DateTime.now()),
-      ));
+  Future<void> reschedule(int id, DateTime newTime) async {
+    await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
+        .write(DoctorAppointmentsCompanion(
+      scheduledAt: Value(newTime),
+      updatedAt: Value(DateTime.now()),
+    ));
+    await NotificationService.cancelAppointmentReminder(id);
+
+    final appt = await (_db.select(_db.doctorAppointments)
+          ..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+    if (appt == null) return;
+
+    final settings = _ref.read(notificationSettingsProvider);
+    final rawReminderAt =
+        newTime.subtract(Duration(minutes: appt.remindBeforeMin));
+    final remindAt = settings.adjust(rawReminderAt, memberId: appt.memberId);
+    if (remindAt != null) {
+      await NotificationService.scheduleAppointmentReminder(
+        appointmentId: id,
+        doctorType: appt.doctorType,
+        location: appt.location,
+        scheduledAt: remindAt,
+        remindBeforeMin: 0,
+        vibrationEnabled: settings.vibrationEnabled,
+        repeatMinutes: settings.repeatMinutes,
+      );
+    }
+  }
 }
 
 final doctorAppointmentsRepositoryProvider =
     Provider<DoctorAppointmentsRepository>((ref) {
-  return DoctorAppointmentsRepository(ref.watch(databaseProvider));
+  return DoctorAppointmentsRepository(ref.watch(databaseProvider), ref);
 });
