@@ -326,10 +326,6 @@ class _TodayContent extends ConsumerWidget {
                 ),
               ),
 
-              // Все виконано на сьогодні
-              if (allDoneToday)
-                const SliverToBoxAdapter(child: _AllDoneBanner()),
-
               // 1. Сім'я
               if (members.length > 1)
                 SliverToBoxAdapter(
@@ -348,6 +344,10 @@ class _TodayContent extends ConsumerWidget {
                     ),
                   ),
                 ),
+
+              // Все виконано на сьогодні
+              if (allDoneToday)
+                const SliverToBoxAdapter(child: _AllDoneBanner()),
 
               // 2. Ви пропустили
               if (hasMissed)
@@ -552,13 +552,8 @@ class _AllDoneBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionPad(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(20),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
           children: [
             Image.asset('assets/illustrations/all-done-hero.png', height: 96),

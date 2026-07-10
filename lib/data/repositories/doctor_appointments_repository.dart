@@ -15,6 +15,13 @@ class DoctorAppointmentsRepository {
             ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
           .watch();
 
+  Stream<List<DoctorAppointment>> watchByMember(int memberId) {
+    return (_db.select(_db.doctorAppointments)
+          ..where((t) => t.memberId.equals(memberId))
+          ..orderBy([(t) => OrderingTerm.desc(t.scheduledAt)]))
+        .watch();
+  }
+
   Stream<List<DoctorAppointment>> watchUpcoming(int memberId) {
     final now = DateTime.now();
     return (_db.select(_db.doctorAppointments)
