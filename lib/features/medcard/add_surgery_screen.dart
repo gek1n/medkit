@@ -8,28 +8,27 @@ import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/date_utils.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
-import '../../data/repositories/lab_results_repository.dart';
+import '../../data/repositories/surgeries_repository.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
-import '../../shared/widgets/specialty_picker.dart';
 
-class AddLabResultScreen extends ConsumerStatefulWidget {
+class AddSurgeryScreen extends ConsumerStatefulWidget {
   final int memberId;
-  final LabResult? existing;
-  const AddLabResultScreen({super.key, required this.memberId, this.existing});
+  final Surgery? existing;
+  const AddSurgeryScreen({super.key, required this.memberId, this.existing});
 
   @override
-  ConsumerState<AddLabResultScreen> createState() => _AddLabResultScreenState();
+  ConsumerState<AddSurgeryScreen> createState() => _AddSurgeryScreenState();
 }
 
-class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
-  late final TextEditingController _testNameController;
+class _AddSurgeryScreenState extends ConsumerState<AddSurgeryScreen> {
+  late final TextEditingController _nameController;
   late final TextEditingController _notesController;
-  String? _specialty;
-  late DateTime _date;
+  late DateTime _performedAt;
   List<String> _documentPaths = [];
   bool _isSaving = false;
 
@@ -37,10 +36,9 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
   void initState() {
     super.initState();
     final ex = widget.existing;
-    _testNameController = TextEditingController(text: ex?.testName ?? '');
+    _nameController = TextEditingController(text: ex?.name ?? '');
     _notesController = TextEditingController(text: ex?.notes ?? '');
-    _specialty = ex?.specialty;
-    _date = ex?.takenAt ?? DateTime.now();
+    _performedAt = ex?.performedAt ?? DateTime.now();
     if (ex != null) {
       _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
     }
@@ -48,27 +46,22 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
 
   @override
   void dispose() {
-    _testNameController.dispose();
+    _nameController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickSpecialty() async {
-    final picked = await showSpecialtyPicker(context, current: _specialty);
-    if (picked != null) setState(() => _specialty = picked);
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showMedcardDatePicker(context, initialDate: _date);
-    if (picked != null) setState(() => _date = picked);
+  Future<void> _pickPerformedAt() async {
+    final picked = await showMedcardDatePicker(context, initialDate: _performedAt);
+    if (picked != null) setState(() => _performedAt = picked);
   }
 
   Future<void> _delete() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити аналіз?'),
-        content: const Text('Запис і всі прикріплені документи буде видалено.'),
+        title: const Text('Видалити запис?'),
+        content: const Text('Запис буде видалено.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
           TextButton(
@@ -80,49 +73,37 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
     );
     if (confirm != true || !mounted) return;
     await AttachmentCleanupService.deletePaths(widget.existing!.documentPaths);
-    await ref.read(labResultsRepositoryProvider).delete(widget.existing!.id);
+    await ref.read(surgeriesRepositoryProvider).delete(widget.existing!.id);
     if (mounted) Navigator.pop(context);
   }
 
   Future<void> _save() async {
-    if (_specialty == null || _specialty!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Оберіть напрямок')));
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введіть назву операції')));
       return;
     }
     setState(() => _isSaving = true);
     try {
-      final testNameVal = _testNameController.text.trim().isEmpty
-          ? null
-          : _testNameController.text.trim();
-      final notesVal = _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim();
+      final notesVal = _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
 
       if (widget.existing != null) {
-        await ref
-            .read(labResultsRepositoryProvider)
-            .update(
-              LabResultsCompanion(
+        await ref.read(surgeriesRepositoryProvider).update(
+              SurgeriesCompanion(
                 id: Value(widget.existing!.id),
-                specialty: Value(_specialty!),
-                testName: Value(testNameVal),
-                takenAt: Value(_date),
+                name: Value(name),
+                performedAt: Value(_performedAt),
                 notes: Value(notesVal),
                 documentPaths: Value(jsonEncode(_documentPaths)),
                 updatedAt: Value(DateTime.now()),
               ),
             );
       } else {
-        await ref
-            .read(labResultsRepositoryProvider)
-            .insert(
-              LabResultsCompanion.insert(
+        await ref.read(surgeriesRepositoryProvider).insert(
+              SurgeriesCompanion.insert(
                 memberId: widget.memberId,
-                specialty: _specialty!,
-                testName: Value(testNameVal),
-                takenAt: _date,
+                name: name,
+                performedAt: _performedAt,
                 notes: Value(notesVal),
                 documentPaths: Value(jsonEncode(_documentPaths)),
               ),
@@ -131,17 +112,12 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
-
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +128,7 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
         child: Column(
           children: [
             MkFormHeader(
-              title: (isEdit ? 'Редагувати аналіз' : 'Новий аналіз') +
+              title: (isEdit ? 'Редагувати запис' : 'Нова операція чи госпіталізація') +
                   memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
@@ -160,40 +136,30 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.screenPadding,
-                  vertical: 16,
-                ),
+                    horizontal: AppDimensions.screenPadding, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MkFieldLabel('Напрямок'),
-                    const SizedBox(height: 6),
-                    MkTapField(
-                      value: _specialty ?? 'Оберіть напрямок',
-                      filled: _specialty != null,
-                      onTap: _pickSpecialty,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Назва аналізу'),
+                    MkFieldLabel('Назва'),
                     const SizedBox(height: 6),
                     MkTextField(
-                      controller: _testNameController,
-                      hint: 'Загальний аналіз крові…',
+                      controller: _nameController,
+                      hint: 'Апендектомія, госпіталізація…',
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     MkFieldLabel('Дата'),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: _formatDate(_date),
+                      value: MKDateUtils.formatDate(_performedAt),
                       filled: true,
-                      onTap: _pickDate,
+                      onTap: _pickPerformedAt,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     MkFieldLabel('Нотатки'),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
-                      hint: 'Результати, коментар лікаря…',
+                      hint: 'Лікарня, ускладнення, рекомендації…',
                       maxLines: 3,
                     ),
                     const SizedBox(height: AppDimensions.lg),

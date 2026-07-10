@@ -9,6 +9,7 @@ import '../legal/privacy_policy_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_settings_screen.dart';
+import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -27,9 +28,16 @@ import 'privacy_screen.dart';
 
 /// Чи дозволив автономний профіль (subjectId) редагування viewer'у —
 /// зокрема, чи можна змінювати розмір шрифту, дивлячись на нього через
-/// "Переглянути як X" (не власний природний контекст).
-final _editAllowedProvider = FutureProvider.family<bool, (int, int)>((ref, ids) {
-  return FamilyVisibilityService.isAllowed(ids.$1, ids.$2, FamilyPermission.edit);
+/// "Переглянути як X" (не власний природний контекст). Резолвить локальні
+/// id → personUuid, бо FamilyVisibilityService оперує стабільною
+/// крос-пристроєвою ідентичністю (Фаза 1/3).
+final _editAllowedProvider = FutureProvider.family<bool, (int, int)>((ref, ids) async {
+  final db = ref.watch(databaseProvider);
+  final subject = await (db.select(db.members)..where((t) => t.id.equals(ids.$1))).getSingleOrNull();
+  final viewer = await (db.select(db.members)..where((t) => t.id.equals(ids.$2))).getSingleOrNull();
+  if (subject?.personUuid == null || viewer?.personUuid == null) return false;
+  return FamilyVisibilityService.isAllowed(
+      db, subject!.personUuid!, viewer!.personUuid!, FamilyPermission.edit);
 });
 
 // ────────────────────────────── screen ──────────────────────────────

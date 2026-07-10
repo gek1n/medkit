@@ -10,6 +10,9 @@ class Vaccinations extends Table {
   DateTimeColumn get nextDoseAt => dateTime().nullable()();
   // дата наступної ревакцинації — null, якщо разова/невідомо
   TextColumn get notes => text().nullable()();
+  TextColumn get documentPaths => text().withDefault(const Constant('[]'))();
+  // json: ["path1","path2"] — фото/PDF сертифікатів щеплення, той самий
+  // підхід, що й в аналізах/візитах
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально

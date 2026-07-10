@@ -12,6 +12,9 @@ class ChronicConditions extends Table {
   // DoctorAppointments.doctorType / LabResults.specialty
   DateTimeColumn get diagnosedAt => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
+  TextColumn get documentPaths => text().withDefault(const Constant('[]'))();
+  // json: ["path1","path2"] — фото/PDF підтвердження діагнозу, той самий
+  // підхід, що й в аналізах/візитах
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально

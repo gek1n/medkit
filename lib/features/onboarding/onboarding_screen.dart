@@ -39,10 +39,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _step = 0;
   static const _totalSteps = 6;
 
-  // Step 2: имя + аватар + члены семьи
+  // Step 2: ім'я + аватар власного профілю
   final _nameController = TextEditingController();
   int _avatarIndex = 0;
-  final List<_FamilyMemberDraft> _familyDrafts = [];
 
   // Step 3: ліки (скан)
   final List<ScannedMedication> _scannedMedDrafts = [];
@@ -68,9 +67,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    for (final d in _familyDrafts) {
-      d.controller.dispose();
-    }
     super.dispose();
   }
 
@@ -120,19 +116,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           role: const Value('owner'),
         ),
       );
-
-      for (final draft in _familyDrafts) {
-        final draftName = draft.controller.text.trim();
-        if (draftName.isNotEmpty) {
-          await repo.insert(
-            MembersCompanion.insert(
-              name: draftName,
-              avatarIndex: Value(draft.avatarIndex),
-              role: const Value('member'),
-            ),
-          );
-        }
-      }
 
       if (_scannedMedDrafts.isNotEmpty) {
         final medRepo = container.read(medicationsRepositoryProvider);
@@ -263,17 +246,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         key: const ValueKey(2),
         nameController: _nameController,
         avatarIndex: _avatarIndex,
-        familyDrafts: _familyDrafts,
-        selectedRoles: const {'self'},
         onAvatarChange: (i) => setState(() => _avatarIndex = i),
-        onFamilyAdd: () =>
-            setState(() => _familyDrafts.add(_FamilyMemberDraft())),
-        onFamilyAvatarChange: (idx, av) =>
-            setState(() => _familyDrafts[idx].avatarIndex = av),
-        onFamilyRemove: (idx) => setState(() {
-          _familyDrafts[idx].controller.dispose();
-          _familyDrafts.removeAt(idx);
-        }),
         onNext: _next,
       ),
       3 => _StepMedications(
@@ -509,34 +482,23 @@ class _AccountChoiceCard extends StatelessWidget {
   }
 }
 
-// ─── Step 2: Ім'я + аватар + родственники ───────────────────────────────────
-
-class _FamilyMemberDraft {
-  final TextEditingController controller = TextEditingController();
-  int avatarIndex = 1;
-}
+// ─── Step 2: Ім'я + аватар власного профілю ──────────────────────────────────
+// Раніше тут ще можна було одразу додати "чернетки" членів сім'ї — прибрано:
+// профілі інших людей тепер створюються явно, після власної реєстрації,
+// через "Сім'я" (локальний dependent) або запрошення до сімейної групи
+// (FamilyGroupInviteScreen) — ніколи мовчки під час онбордингу.
 
 class _StepName extends StatelessWidget {
   final TextEditingController nameController;
   final int avatarIndex;
-  final List<_FamilyMemberDraft> familyDrafts;
-  final Set<String> selectedRoles;
   final void Function(int) onAvatarChange;
-  final VoidCallback onFamilyAdd;
-  final void Function(int, int) onFamilyAvatarChange;
-  final void Function(int) onFamilyRemove;
   final VoidCallback onNext;
 
   const _StepName({
     super.key,
     required this.nameController,
     required this.avatarIndex,
-    required this.familyDrafts,
-    required this.selectedRoles,
     required this.onAvatarChange,
-    required this.onFamilyAdd,
-    required this.onFamilyAvatarChange,
-    required this.onFamilyRemove,
     required this.onNext,
   });
 
@@ -631,58 +593,6 @@ class _StepName extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20),
-
-                // Family drafts
-                for (int i = 0; i < familyDrafts.length; i++) ...[
-                  _FamilyMemberCard(
-                    draft: familyDrafts[i],
-                    onAvatarTap: () => _showAvatarPicker(
-                      context,
-                      familyDrafts[i].avatarIndex,
-                      (av) => onFamilyAvatarChange(i, av),
-                    ),
-                    onRemove: () => onFamilyRemove(i),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-
-                // Add more
-                if (selectedRoles.length > 1 || familyDrafts.isNotEmpty)
-                  GestureDetector(
-                    onTap: onFamilyAdd,
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: AppColors.border,
-                          width: 2,
-                          style: BorderStyle.solid,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '＋',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: AppColors.textMuted,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Додати учасника',
-                            style: AppTextStyles.bodyMd.copyWith(
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: 12),
               ],
             ),
@@ -693,132 +603,6 @@ class _StepName extends StatelessWidget {
           child: _NextButton(label: 'Далі — ліки →', onTap: onNext),
         ),
       ],
-    );
-  }
-
-  void _showAvatarPicker(
-    BuildContext context,
-    int current,
-    void Function(int) onSelect,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Оберіть аватар', style: AppTextStyles.h3),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 320,
-              child: SingleChildScrollView(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: List.generate(
-                    avatarCount,
-                    (i) => GestureDetector(
-                      onTap: () {
-                        onSelect(i);
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: i == current
-                              ? AppColors.primaryLight
-                              : AppColors.bgPage,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: i == current
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(2),
-                          child: AvatarImage(index: i, size: 52),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FamilyMemberCard extends StatelessWidget {
-  final _FamilyMemberDraft draft;
-  final VoidCallback onAvatarTap;
-  final VoidCallback onRemove;
-
-  const _FamilyMemberCard({
-    required this.draft,
-    required this.onAvatarTap,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: onAvatarTap,
-            child: AvatarImage(index: draft.avatarIndex, size: 48),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: draft.controller,
-              decoration: InputDecoration(
-                hintText: 'Ім\'я учасника',
-                hintStyle: AppTextStyles.bodyMd.copyWith(
-                  color: AppColors.textMuted,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMain),
-            ),
-          ),
-          GestureDetector(
-            onTap: onRemove,
-            child: const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(
-                Icons.close_rounded,
-                size: 18,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

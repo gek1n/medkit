@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
+import 'package:uuid/uuid.dart';
 
 import '../../core/services/db_encryption_service.dart';
 import 'tables/members_table.dart';
@@ -22,6 +23,8 @@ import 'tables/chronic_conditions_table.dart';
 import 'tables/vaccinations_table.dart';
 import 'tables/surgeries_table.dart';
 import 'tables/shared_channels_table.dart';
+import 'tables/family_peers_table.dart';
+import 'tables/family_grants_table.dart';
 
 part 'app_database.g.dart';
 
@@ -43,12 +46,17 @@ part 'app_database.g.dart';
   ChronicConditions,
   Vaccinations,
   Surgeries,
+  FamilyPeers,
+  PendingGroupInvites,
+  FamilyGrants,
+  SharedSubjects,
+  SharedEntities,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -241,6 +249,76 @@ class AppDatabase extends _$AppDatabase {
                 await (update(surgeries)..where((t) => t.id.equals(r.id)))
                     .write(SurgeriesCompanion(documentPaths: Value(jsonEncode([r.attachmentPath]))));
               }
+            } catch (_) {}
+          }
+          if (from < 14) {
+            // documentPaths для решти медкартки — алергії (напр. висновок
+            // алерголога), хронічні захворювання (підтвердження діагнозу),
+            // щеплення (сертифікати).
+            try {
+              await m.addColumn(allergies, allergies.documentPaths);
+            } catch (_) {}
+            try {
+              await m.addColumn(chronicConditions, chronicConditions.documentPaths);
+            } catch (_) {}
+            try {
+              await m.addColumn(vaccinations, vaccinations.documentPaths);
+            } catch (_) {}
+          }
+          if (from < 15) {
+            // Фундамент для повноцінної сімейної групи (кілька незалежних
+            // акаунтів замість одиночного пейрингу 1:1): стабільний
+            // крос-пристроєвий ідентифікатор людини замість локального id.
+            try {
+              await m.addColumn(members, members.personUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(members, members.familyId);
+            } catch (_) {}
+            // Заднім числом видаємо personUuid усім рядкам, які існували
+            // до цієї міграції — інакше вони лишаться без ідентичності.
+            try {
+              final rows = await (select(members)..where((t) => t.personUuid.isNull())).get();
+              for (final r in rows) {
+                await (update(members)..where((t) => t.id.equals(r.id)))
+                    .write(MembersCompanion(personUuid: Value(const Uuid().v4())));
+              }
+            } catch (_) {}
+          }
+          if (from < 16) {
+            // Сімейна група: локальний кеш "хто ще в групі" (FamilyPeers) і
+            // черга власних запрошень, що очікують відповіді
+            // (PendingGroupInvites) — нові таблиці, createAll їх не
+            // створить на апгрейді, тому явно.
+            try {
+              await m.createTable(familyPeers);
+            } catch (_) {}
+            try {
+              await m.createTable(pendingGroupInvites);
+            } catch (_) {}
+          }
+          if (from < 17) {
+            // Явні дозволи видимості за personUuid — заміна старого
+            // локального SharedPreferences-механізму (family_vis_*), який
+            // працював лише в межах одного пристрою й не давав жодного
+            // реального бар'єру між пристроями сім'ї.
+            try {
+              await m.createTable(familyGrants);
+            } catch (_) {}
+          }
+          if (from < 18) {
+            // Реальний N-way обмін даними між учасниками сімейної групи
+            // (Фаза 4): курсор синку на FamilyPeers + окремі таблиці для
+            // отриманих "чужих" даних (свідомо не Members/Medications/etc,
+            // щоб не змішувати з профілями, якими керує цей пристрій).
+            try {
+              await m.addColumn(familyPeers, familyPeers.lastSyncedAt);
+            } catch (_) {}
+            try {
+              await m.createTable(sharedSubjects);
+            } catch (_) {}
+            try {
+              await m.createTable(sharedEntities);
             } catch (_) {}
           }
         },
