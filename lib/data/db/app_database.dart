@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -15,6 +16,11 @@ import 'tables/wellbeing_logs_table.dart';
 import 'tables/wellbeing_schedules_table.dart';
 import 'tables/activities_table.dart';
 import 'tables/doctor_appointments_table.dart';
+import 'tables/lab_results_table.dart';
+import 'tables/allergies_table.dart';
+import 'tables/chronic_conditions_table.dart';
+import 'tables/vaccinations_table.dart';
+import 'tables/surgeries_table.dart';
 import 'tables/shared_channels_table.dart';
 
 part 'app_database.g.dart';
@@ -32,12 +38,17 @@ part 'app_database.g.dart';
   ActivityLogs,
   DoctorAppointments,
   SharedChannels,
+  LabResults,
+  Allergies,
+  ChronicConditions,
+  Vaccinations,
+  Surgeries,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -148,6 +159,88 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.addColumn(wellbeingLogs, wellbeingLogs.skipped);
+            } catch (_) {}
+          }
+          if (from < 10) {
+            // Аналізи, прив'язані до напрямку лікаря — окрема сутність
+            // медкартки, не заміна DoctorAppointments.
+            try {
+              await m.createTable(labResults);
+            } catch (_) {}
+          }
+          if (from < 11) {
+            // Решта категорій медкартки: алергії, хронічні захворювання,
+            // щеплення, операції/госпіталізації.
+            try {
+              await m.createTable(allergies);
+            } catch (_) {}
+            try {
+              await m.createTable(chronicConditions);
+            } catch (_) {}
+            try {
+              await m.createTable(vaccinations);
+            } catch (_) {}
+            try {
+              await m.createTable(surgeries);
+            } catch (_) {}
+          }
+          if (from < 12) {
+            // syncUuid для family_sync — решта медкартки (окрім Medications/
+            // Schedules/Intakes/Symptoms, які отримали його в 6) наздоганяє.
+            try {
+              await m.addColumn(doctorAppointments, doctorAppointments.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(labResults, labResults.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(allergies, allergies.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(chronicConditions, chronicConditions.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(vaccinations, vaccinations.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(surgeries, surgeries.syncUuid);
+            } catch (_) {}
+          }
+          if (from < 13) {
+            // Кілька документів (фото + PDF) на запис замість одиночного
+            // вкладення — documentPaths (json-список), той самий підхід, що
+            // й Medications.photoPaths. Старі одиночні значення переносимо
+            // в новий список, щоб не загубити вже прикріплені файли.
+            try {
+              await m.addColumn(labResults, labResults.documentPaths);
+            } catch (_) {}
+            try {
+              await m.addColumn(doctorAppointments, doctorAppointments.documentPaths);
+            } catch (_) {}
+            try {
+              await m.addColumn(surgeries, surgeries.documentPaths);
+            } catch (_) {}
+            try {
+              final rows = await (select(labResults)..where((t) => t.attachmentPath.isNotNull())).get();
+              for (final r in rows) {
+                await (update(labResults)..where((t) => t.id.equals(r.id)))
+                    .write(LabResultsCompanion(documentPaths: Value(jsonEncode([r.attachmentPath]))));
+              }
+            } catch (_) {}
+            try {
+              final rows =
+                  await (select(doctorAppointments)..where((t) => t.pdfPath.isNotNull())).get();
+              for (final r in rows) {
+                await (update(doctorAppointments)..where((t) => t.id.equals(r.id))).write(
+                    DoctorAppointmentsCompanion(documentPaths: Value(jsonEncode([r.pdfPath]))));
+              }
+            } catch (_) {}
+            try {
+              final rows = await (select(surgeries)..where((t) => t.attachmentPath.isNotNull())).get();
+              for (final r in rows) {
+                await (update(surgeries)..where((t) => t.id.equals(r.id)))
+                    .write(SurgeriesCompanion(documentPaths: Value(jsonEncode([r.attachmentPath]))));
+              }
             } catch (_) {}
           }
         },

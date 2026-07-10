@@ -6076,6 +6076,18 @@ class $DoctorAppointmentsTable extends DoctorAppointments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _documentPathsMeta = const VerificationMeta(
+    'documentPaths',
+  );
+  @override
+  late final GeneratedColumn<String> documentPaths = GeneratedColumn<String>(
+    'document_paths',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
   late final GeneratedColumn<String> color = GeneratedColumn<String>(
@@ -6119,6 +6131,18 @@ class $DoctorAppointmentsTable extends DoctorAppointments
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6129,10 +6153,12 @@ class $DoctorAppointmentsTable extends DoctorAppointments
     remindBeforeMin,
     notes,
     pdfPath,
+    documentPaths,
     color,
     status,
     createdAt,
     updatedAt,
+    syncUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6203,6 +6229,15 @@ class $DoctorAppointmentsTable extends DoctorAppointments
         pdfPath.isAcceptableOrUnknown(data['pdf_path']!, _pdfPathMeta),
       );
     }
+    if (data.containsKey('document_paths')) {
+      context.handle(
+        _documentPathsMeta,
+        documentPaths.isAcceptableOrUnknown(
+          data['document_paths']!,
+          _documentPathsMeta,
+        ),
+      );
+    }
     if (data.containsKey('color')) {
       context.handle(
         _colorMeta,
@@ -6225,6 +6260,12 @@ class $DoctorAppointmentsTable extends DoctorAppointments
       context.handle(
         _updatedAtMeta,
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
       );
     }
     return context;
@@ -6268,6 +6309,10 @@ class $DoctorAppointmentsTable extends DoctorAppointments
         DriftSqlType.string,
         data['${effectivePrefix}pdf_path'],
       ),
+      documentPaths: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_paths'],
+      )!,
       color: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}color'],
@@ -6284,6 +6329,10 @@ class $DoctorAppointmentsTable extends DoctorAppointments
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -6303,10 +6352,12 @@ class DoctorAppointment extends DataClass
   final int remindBeforeMin;
   final String? notes;
   final String? pdfPath;
+  final String documentPaths;
   final String? color;
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? syncUuid;
   const DoctorAppointment({
     required this.id,
     required this.memberId,
@@ -6316,10 +6367,12 @@ class DoctorAppointment extends DataClass
     required this.remindBeforeMin,
     this.notes,
     this.pdfPath,
+    required this.documentPaths,
     this.color,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6338,12 +6391,16 @@ class DoctorAppointment extends DataClass
     if (!nullToAbsent || pdfPath != null) {
       map['pdf_path'] = Variable<String>(pdfPath);
     }
+    map['document_paths'] = Variable<String>(documentPaths);
     if (!nullToAbsent || color != null) {
       map['color'] = Variable<String>(color);
     }
     map['status'] = Variable<String>(status);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -6363,12 +6420,16 @@ class DoctorAppointment extends DataClass
       pdfPath: pdfPath == null && nullToAbsent
           ? const Value.absent()
           : Value(pdfPath),
+      documentPaths: Value(documentPaths),
       color: color == null && nullToAbsent
           ? const Value.absent()
           : Value(color),
       status: Value(status),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -6386,10 +6447,12 @@ class DoctorAppointment extends DataClass
       remindBeforeMin: serializer.fromJson<int>(json['remindBeforeMin']),
       notes: serializer.fromJson<String?>(json['notes']),
       pdfPath: serializer.fromJson<String?>(json['pdfPath']),
+      documentPaths: serializer.fromJson<String>(json['documentPaths']),
       color: serializer.fromJson<String?>(json['color']),
       status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -6404,10 +6467,12 @@ class DoctorAppointment extends DataClass
       'remindBeforeMin': serializer.toJson<int>(remindBeforeMin),
       'notes': serializer.toJson<String?>(notes),
       'pdfPath': serializer.toJson<String?>(pdfPath),
+      'documentPaths': serializer.toJson<String>(documentPaths),
       'color': serializer.toJson<String?>(color),
       'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -6420,10 +6485,12 @@ class DoctorAppointment extends DataClass
     int? remindBeforeMin,
     Value<String?> notes = const Value.absent(),
     Value<String?> pdfPath = const Value.absent(),
+    String? documentPaths,
     Value<String?> color = const Value.absent(),
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => DoctorAppointment(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -6433,10 +6500,12 @@ class DoctorAppointment extends DataClass
     remindBeforeMin: remindBeforeMin ?? this.remindBeforeMin,
     notes: notes.present ? notes.value : this.notes,
     pdfPath: pdfPath.present ? pdfPath.value : this.pdfPath,
+    documentPaths: documentPaths ?? this.documentPaths,
     color: color.present ? color.value : this.color,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   DoctorAppointment copyWithCompanion(DoctorAppointmentsCompanion data) {
     return DoctorAppointment(
@@ -6454,10 +6523,14 @@ class DoctorAppointment extends DataClass
           : this.remindBeforeMin,
       notes: data.notes.present ? data.notes.value : this.notes,
       pdfPath: data.pdfPath.present ? data.pdfPath.value : this.pdfPath,
+      documentPaths: data.documentPaths.present
+          ? data.documentPaths.value
+          : this.documentPaths,
       color: data.color.present ? data.color.value : this.color,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -6472,10 +6545,12 @@ class DoctorAppointment extends DataClass
           ..write('remindBeforeMin: $remindBeforeMin, ')
           ..write('notes: $notes, ')
           ..write('pdfPath: $pdfPath, ')
+          ..write('documentPaths: $documentPaths, ')
           ..write('color: $color, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -6490,10 +6565,12 @@ class DoctorAppointment extends DataClass
     remindBeforeMin,
     notes,
     pdfPath,
+    documentPaths,
     color,
     status,
     createdAt,
     updatedAt,
+    syncUuid,
   );
   @override
   bool operator ==(Object other) =>
@@ -6507,10 +6584,12 @@ class DoctorAppointment extends DataClass
           other.remindBeforeMin == this.remindBeforeMin &&
           other.notes == this.notes &&
           other.pdfPath == this.pdfPath &&
+          other.documentPaths == this.documentPaths &&
           other.color == this.color &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
@@ -6522,10 +6601,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
   final Value<int> remindBeforeMin;
   final Value<String?> notes;
   final Value<String?> pdfPath;
+  final Value<String> documentPaths;
   final Value<String?> color;
   final Value<String> status;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const DoctorAppointmentsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -6535,10 +6616,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     this.remindBeforeMin = const Value.absent(),
     this.notes = const Value.absent(),
     this.pdfPath = const Value.absent(),
+    this.documentPaths = const Value.absent(),
     this.color = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   DoctorAppointmentsCompanion.insert({
     this.id = const Value.absent(),
@@ -6549,10 +6632,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     this.remindBeforeMin = const Value.absent(),
     this.notes = const Value.absent(),
     this.pdfPath = const Value.absent(),
+    this.documentPaths = const Value.absent(),
     this.color = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : memberId = Value(memberId),
        doctorType = Value(doctorType),
        scheduledAt = Value(scheduledAt);
@@ -6565,10 +6650,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     Expression<int>? remindBeforeMin,
     Expression<String>? notes,
     Expression<String>? pdfPath,
+    Expression<String>? documentPaths,
     Expression<String>? color,
     Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -6579,10 +6666,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
       if (remindBeforeMin != null) 'remind_before_min': remindBeforeMin,
       if (notes != null) 'notes': notes,
       if (pdfPath != null) 'pdf_path': pdfPath,
+      if (documentPaths != null) 'document_paths': documentPaths,
       if (color != null) 'color': color,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -6595,10 +6684,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     Value<int>? remindBeforeMin,
     Value<String?>? notes,
     Value<String?>? pdfPath,
+    Value<String>? documentPaths,
     Value<String?>? color,
     Value<String>? status,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return DoctorAppointmentsCompanion(
       id: id ?? this.id,
@@ -6609,10 +6700,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
       remindBeforeMin: remindBeforeMin ?? this.remindBeforeMin,
       notes: notes ?? this.notes,
       pdfPath: pdfPath ?? this.pdfPath,
+      documentPaths: documentPaths ?? this.documentPaths,
       color: color ?? this.color,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -6643,6 +6736,9 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     if (pdfPath.present) {
       map['pdf_path'] = Variable<String>(pdfPath.value);
     }
+    if (documentPaths.present) {
+      map['document_paths'] = Variable<String>(documentPaths.value);
+    }
     if (color.present) {
       map['color'] = Variable<String>(color.value);
     }
@@ -6654,6 +6750,9 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
     }
     return map;
   }
@@ -6669,10 +6768,12 @@ class DoctorAppointmentsCompanion extends UpdateCompanion<DoctorAppointment> {
           ..write('remindBeforeMin: $remindBeforeMin, ')
           ..write('notes: $notes, ')
           ..write('pdfPath: $pdfPath, ')
+          ..write('documentPaths: $documentPaths, ')
           ..write('color: $color, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -7003,6 +7104,2920 @@ class SharedChannelsCompanion extends UpdateCompanion<SharedChannel> {
   }
 }
 
+class $LabResultsTable extends LabResults
+    with TableInfo<$LabResultsTable, LabResult> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LabResultsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _specialtyMeta = const VerificationMeta(
+    'specialty',
+  );
+  @override
+  late final GeneratedColumn<String> specialty = GeneratedColumn<String>(
+    'specialty',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _testNameMeta = const VerificationMeta(
+    'testName',
+  );
+  @override
+  late final GeneratedColumn<String> testName = GeneratedColumn<String>(
+    'test_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _takenAtMeta = const VerificationMeta(
+    'takenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> takenAt = GeneratedColumn<DateTime>(
+    'taken_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _attachmentPathMeta = const VerificationMeta(
+    'attachmentPath',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentPath = GeneratedColumn<String>(
+    'attachment_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _documentPathsMeta = const VerificationMeta(
+    'documentPaths',
+  );
+  @override
+  late final GeneratedColumn<String> documentPaths = GeneratedColumn<String>(
+    'document_paths',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    memberId,
+    specialty,
+    testName,
+    takenAt,
+    notes,
+    attachmentPath,
+    documentPaths,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lab_results';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LabResult> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('specialty')) {
+      context.handle(
+        _specialtyMeta,
+        specialty.isAcceptableOrUnknown(data['specialty']!, _specialtyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_specialtyMeta);
+    }
+    if (data.containsKey('test_name')) {
+      context.handle(
+        _testNameMeta,
+        testName.isAcceptableOrUnknown(data['test_name']!, _testNameMeta),
+      );
+    }
+    if (data.containsKey('taken_at')) {
+      context.handle(
+        _takenAtMeta,
+        takenAt.isAcceptableOrUnknown(data['taken_at']!, _takenAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_takenAtMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('attachment_path')) {
+      context.handle(
+        _attachmentPathMeta,
+        attachmentPath.isAcceptableOrUnknown(
+          data['attachment_path']!,
+          _attachmentPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('document_paths')) {
+      context.handle(
+        _documentPathsMeta,
+        documentPaths.isAcceptableOrUnknown(
+          data['document_paths']!,
+          _documentPathsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LabResult map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LabResult(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      specialty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}specialty'],
+      )!,
+      testName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}test_name'],
+      ),
+      takenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}taken_at'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      attachmentPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachment_path'],
+      ),
+      documentPaths: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_paths'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+    );
+  }
+
+  @override
+  $LabResultsTable createAlias(String alias) {
+    return $LabResultsTable(attachedDatabase, alias);
+  }
+}
+
+class LabResult extends DataClass implements Insertable<LabResult> {
+  final int id;
+  final int memberId;
+  final String specialty;
+  final String? testName;
+  final DateTime takenAt;
+  final String? notes;
+  final String? attachmentPath;
+  final String documentPaths;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? syncUuid;
+  const LabResult({
+    required this.id,
+    required this.memberId,
+    required this.specialty,
+    this.testName,
+    required this.takenAt,
+    this.notes,
+    this.attachmentPath,
+    required this.documentPaths,
+    required this.createdAt,
+    required this.updatedAt,
+    this.syncUuid,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['member_id'] = Variable<int>(memberId);
+    map['specialty'] = Variable<String>(specialty);
+    if (!nullToAbsent || testName != null) {
+      map['test_name'] = Variable<String>(testName);
+    }
+    map['taken_at'] = Variable<DateTime>(takenAt);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || attachmentPath != null) {
+      map['attachment_path'] = Variable<String>(attachmentPath);
+    }
+    map['document_paths'] = Variable<String>(documentPaths);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    return map;
+  }
+
+  LabResultsCompanion toCompanion(bool nullToAbsent) {
+    return LabResultsCompanion(
+      id: Value(id),
+      memberId: Value(memberId),
+      specialty: Value(specialty),
+      testName: testName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(testName),
+      takenAt: Value(takenAt),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      attachmentPath: attachmentPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(attachmentPath),
+      documentPaths: Value(documentPaths),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+    );
+  }
+
+  factory LabResult.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LabResult(
+      id: serializer.fromJson<int>(json['id']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      specialty: serializer.fromJson<String>(json['specialty']),
+      testName: serializer.fromJson<String?>(json['testName']),
+      takenAt: serializer.fromJson<DateTime>(json['takenAt']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      attachmentPath: serializer.fromJson<String?>(json['attachmentPath']),
+      documentPaths: serializer.fromJson<String>(json['documentPaths']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'memberId': serializer.toJson<int>(memberId),
+      'specialty': serializer.toJson<String>(specialty),
+      'testName': serializer.toJson<String?>(testName),
+      'takenAt': serializer.toJson<DateTime>(takenAt),
+      'notes': serializer.toJson<String?>(notes),
+      'attachmentPath': serializer.toJson<String?>(attachmentPath),
+      'documentPaths': serializer.toJson<String>(documentPaths),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+    };
+  }
+
+  LabResult copyWith({
+    int? id,
+    int? memberId,
+    String? specialty,
+    Value<String?> testName = const Value.absent(),
+    DateTime? takenAt,
+    Value<String?> notes = const Value.absent(),
+    Value<String?> attachmentPath = const Value.absent(),
+    String? documentPaths,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
+  }) => LabResult(
+    id: id ?? this.id,
+    memberId: memberId ?? this.memberId,
+    specialty: specialty ?? this.specialty,
+    testName: testName.present ? testName.value : this.testName,
+    takenAt: takenAt ?? this.takenAt,
+    notes: notes.present ? notes.value : this.notes,
+    attachmentPath: attachmentPath.present
+        ? attachmentPath.value
+        : this.attachmentPath,
+    documentPaths: documentPaths ?? this.documentPaths,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+  );
+  LabResult copyWithCompanion(LabResultsCompanion data) {
+    return LabResult(
+      id: data.id.present ? data.id.value : this.id,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      specialty: data.specialty.present ? data.specialty.value : this.specialty,
+      testName: data.testName.present ? data.testName.value : this.testName,
+      takenAt: data.takenAt.present ? data.takenAt.value : this.takenAt,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      attachmentPath: data.attachmentPath.present
+          ? data.attachmentPath.value
+          : this.attachmentPath,
+      documentPaths: data.documentPaths.present
+          ? data.documentPaths.value
+          : this.documentPaths,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LabResult(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('specialty: $specialty, ')
+          ..write('testName: $testName, ')
+          ..write('takenAt: $takenAt, ')
+          ..write('notes: $notes, ')
+          ..write('attachmentPath: $attachmentPath, ')
+          ..write('documentPaths: $documentPaths, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    specialty,
+    testName,
+    takenAt,
+    notes,
+    attachmentPath,
+    documentPaths,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LabResult &&
+          other.id == this.id &&
+          other.memberId == this.memberId &&
+          other.specialty == this.specialty &&
+          other.testName == this.testName &&
+          other.takenAt == this.takenAt &&
+          other.notes == this.notes &&
+          other.attachmentPath == this.attachmentPath &&
+          other.documentPaths == this.documentPaths &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
+}
+
+class LabResultsCompanion extends UpdateCompanion<LabResult> {
+  final Value<int> id;
+  final Value<int> memberId;
+  final Value<String> specialty;
+  final Value<String?> testName;
+  final Value<DateTime> takenAt;
+  final Value<String?> notes;
+  final Value<String?> attachmentPath;
+  final Value<String> documentPaths;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
+  const LabResultsCompanion({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.specialty = const Value.absent(),
+    this.testName = const Value.absent(),
+    this.takenAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.attachmentPath = const Value.absent(),
+    this.documentPaths = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  });
+  LabResultsCompanion.insert({
+    this.id = const Value.absent(),
+    required int memberId,
+    required String specialty,
+    this.testName = const Value.absent(),
+    required DateTime takenAt,
+    this.notes = const Value.absent(),
+    this.attachmentPath = const Value.absent(),
+    this.documentPaths = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  }) : memberId = Value(memberId),
+       specialty = Value(specialty),
+       takenAt = Value(takenAt);
+  static Insertable<LabResult> custom({
+    Expression<int>? id,
+    Expression<int>? memberId,
+    Expression<String>? specialty,
+    Expression<String>? testName,
+    Expression<DateTime>? takenAt,
+    Expression<String>? notes,
+    Expression<String>? attachmentPath,
+    Expression<String>? documentPaths,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (memberId != null) 'member_id': memberId,
+      if (specialty != null) 'specialty': specialty,
+      if (testName != null) 'test_name': testName,
+      if (takenAt != null) 'taken_at': takenAt,
+      if (notes != null) 'notes': notes,
+      if (attachmentPath != null) 'attachment_path': attachmentPath,
+      if (documentPaths != null) 'document_paths': documentPaths,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+    });
+  }
+
+  LabResultsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? memberId,
+    Value<String>? specialty,
+    Value<String?>? testName,
+    Value<DateTime>? takenAt,
+    Value<String?>? notes,
+    Value<String?>? attachmentPath,
+    Value<String>? documentPaths,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
+  }) {
+    return LabResultsCompanion(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      specialty: specialty ?? this.specialty,
+      testName: testName ?? this.testName,
+      takenAt: takenAt ?? this.takenAt,
+      notes: notes ?? this.notes,
+      attachmentPath: attachmentPath ?? this.attachmentPath,
+      documentPaths: documentPaths ?? this.documentPaths,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (specialty.present) {
+      map['specialty'] = Variable<String>(specialty.value);
+    }
+    if (testName.present) {
+      map['test_name'] = Variable<String>(testName.value);
+    }
+    if (takenAt.present) {
+      map['taken_at'] = Variable<DateTime>(takenAt.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (attachmentPath.present) {
+      map['attachment_path'] = Variable<String>(attachmentPath.value);
+    }
+    if (documentPaths.present) {
+      map['document_paths'] = Variable<String>(documentPaths.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LabResultsCompanion(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('specialty: $specialty, ')
+          ..write('testName: $testName, ')
+          ..write('takenAt: $takenAt, ')
+          ..write('notes: $notes, ')
+          ..write('attachmentPath: $attachmentPath, ')
+          ..write('documentPaths: $documentPaths, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AllergiesTable extends Allergies
+    with TableInfo<$AllergiesTable, Allergy> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AllergiesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _allergenMeta = const VerificationMeta(
+    'allergen',
+  );
+  @override
+  late final GeneratedColumn<String> allergen = GeneratedColumn<String>(
+    'allergen',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reactionMeta = const VerificationMeta(
+    'reaction',
+  );
+  @override
+  late final GeneratedColumn<String> reaction = GeneratedColumn<String>(
+    'reaction',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _severityMeta = const VerificationMeta(
+    'severity',
+  );
+  @override
+  late final GeneratedColumn<String> severity = GeneratedColumn<String>(
+    'severity',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('mild'),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    memberId,
+    allergen,
+    reaction,
+    severity,
+    notes,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'allergies';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Allergy> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('allergen')) {
+      context.handle(
+        _allergenMeta,
+        allergen.isAcceptableOrUnknown(data['allergen']!, _allergenMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_allergenMeta);
+    }
+    if (data.containsKey('reaction')) {
+      context.handle(
+        _reactionMeta,
+        reaction.isAcceptableOrUnknown(data['reaction']!, _reactionMeta),
+      );
+    }
+    if (data.containsKey('severity')) {
+      context.handle(
+        _severityMeta,
+        severity.isAcceptableOrUnknown(data['severity']!, _severityMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Allergy map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Allergy(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      allergen: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}allergen'],
+      )!,
+      reaction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reaction'],
+      ),
+      severity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}severity'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+    );
+  }
+
+  @override
+  $AllergiesTable createAlias(String alias) {
+    return $AllergiesTable(attachedDatabase, alias);
+  }
+}
+
+class Allergy extends DataClass implements Insertable<Allergy> {
+  final int id;
+  final int memberId;
+  final String allergen;
+  final String? reaction;
+  final String severity;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? syncUuid;
+  const Allergy({
+    required this.id,
+    required this.memberId,
+    required this.allergen,
+    this.reaction,
+    required this.severity,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+    this.syncUuid,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['member_id'] = Variable<int>(memberId);
+    map['allergen'] = Variable<String>(allergen);
+    if (!nullToAbsent || reaction != null) {
+      map['reaction'] = Variable<String>(reaction);
+    }
+    map['severity'] = Variable<String>(severity);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    return map;
+  }
+
+  AllergiesCompanion toCompanion(bool nullToAbsent) {
+    return AllergiesCompanion(
+      id: Value(id),
+      memberId: Value(memberId),
+      allergen: Value(allergen),
+      reaction: reaction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reaction),
+      severity: Value(severity),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+    );
+  }
+
+  factory Allergy.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Allergy(
+      id: serializer.fromJson<int>(json['id']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      allergen: serializer.fromJson<String>(json['allergen']),
+      reaction: serializer.fromJson<String?>(json['reaction']),
+      severity: serializer.fromJson<String>(json['severity']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'memberId': serializer.toJson<int>(memberId),
+      'allergen': serializer.toJson<String>(allergen),
+      'reaction': serializer.toJson<String?>(reaction),
+      'severity': serializer.toJson<String>(severity),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+    };
+  }
+
+  Allergy copyWith({
+    int? id,
+    int? memberId,
+    String? allergen,
+    Value<String?> reaction = const Value.absent(),
+    String? severity,
+    Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
+  }) => Allergy(
+    id: id ?? this.id,
+    memberId: memberId ?? this.memberId,
+    allergen: allergen ?? this.allergen,
+    reaction: reaction.present ? reaction.value : this.reaction,
+    severity: severity ?? this.severity,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+  );
+  Allergy copyWithCompanion(AllergiesCompanion data) {
+    return Allergy(
+      id: data.id.present ? data.id.value : this.id,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      allergen: data.allergen.present ? data.allergen.value : this.allergen,
+      reaction: data.reaction.present ? data.reaction.value : this.reaction,
+      severity: data.severity.present ? data.severity.value : this.severity,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Allergy(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('allergen: $allergen, ')
+          ..write('reaction: $reaction, ')
+          ..write('severity: $severity, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    allergen,
+    reaction,
+    severity,
+    notes,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Allergy &&
+          other.id == this.id &&
+          other.memberId == this.memberId &&
+          other.allergen == this.allergen &&
+          other.reaction == this.reaction &&
+          other.severity == this.severity &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
+}
+
+class AllergiesCompanion extends UpdateCompanion<Allergy> {
+  final Value<int> id;
+  final Value<int> memberId;
+  final Value<String> allergen;
+  final Value<String?> reaction;
+  final Value<String> severity;
+  final Value<String?> notes;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
+  const AllergiesCompanion({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.allergen = const Value.absent(),
+    this.reaction = const Value.absent(),
+    this.severity = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  });
+  AllergiesCompanion.insert({
+    this.id = const Value.absent(),
+    required int memberId,
+    required String allergen,
+    this.reaction = const Value.absent(),
+    this.severity = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  }) : memberId = Value(memberId),
+       allergen = Value(allergen);
+  static Insertable<Allergy> custom({
+    Expression<int>? id,
+    Expression<int>? memberId,
+    Expression<String>? allergen,
+    Expression<String>? reaction,
+    Expression<String>? severity,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (memberId != null) 'member_id': memberId,
+      if (allergen != null) 'allergen': allergen,
+      if (reaction != null) 'reaction': reaction,
+      if (severity != null) 'severity': severity,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+    });
+  }
+
+  AllergiesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? memberId,
+    Value<String>? allergen,
+    Value<String?>? reaction,
+    Value<String>? severity,
+    Value<String?>? notes,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
+  }) {
+    return AllergiesCompanion(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      allergen: allergen ?? this.allergen,
+      reaction: reaction ?? this.reaction,
+      severity: severity ?? this.severity,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (allergen.present) {
+      map['allergen'] = Variable<String>(allergen.value);
+    }
+    if (reaction.present) {
+      map['reaction'] = Variable<String>(reaction.value);
+    }
+    if (severity.present) {
+      map['severity'] = Variable<String>(severity.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AllergiesCompanion(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('allergen: $allergen, ')
+          ..write('reaction: $reaction, ')
+          ..write('severity: $severity, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChronicConditionsTable extends ChronicConditions
+    with TableInfo<$ChronicConditionsTable, ChronicCondition> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChronicConditionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _specialtyMeta = const VerificationMeta(
+    'specialty',
+  );
+  @override
+  late final GeneratedColumn<String> specialty = GeneratedColumn<String>(
+    'specialty',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _diagnosedAtMeta = const VerificationMeta(
+    'diagnosedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> diagnosedAt = GeneratedColumn<DateTime>(
+    'diagnosed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    memberId,
+    name,
+    specialty,
+    diagnosedAt,
+    notes,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chronic_conditions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChronicCondition> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('specialty')) {
+      context.handle(
+        _specialtyMeta,
+        specialty.isAcceptableOrUnknown(data['specialty']!, _specialtyMeta),
+      );
+    }
+    if (data.containsKey('diagnosed_at')) {
+      context.handle(
+        _diagnosedAtMeta,
+        diagnosedAt.isAcceptableOrUnknown(
+          data['diagnosed_at']!,
+          _diagnosedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChronicCondition map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChronicCondition(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      specialty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}specialty'],
+      ),
+      diagnosedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}diagnosed_at'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+    );
+  }
+
+  @override
+  $ChronicConditionsTable createAlias(String alias) {
+    return $ChronicConditionsTable(attachedDatabase, alias);
+  }
+}
+
+class ChronicCondition extends DataClass
+    implements Insertable<ChronicCondition> {
+  final int id;
+  final int memberId;
+  final String name;
+  final String? specialty;
+  final DateTime? diagnosedAt;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? syncUuid;
+  const ChronicCondition({
+    required this.id,
+    required this.memberId,
+    required this.name,
+    this.specialty,
+    this.diagnosedAt,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+    this.syncUuid,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['member_id'] = Variable<int>(memberId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || specialty != null) {
+      map['specialty'] = Variable<String>(specialty);
+    }
+    if (!nullToAbsent || diagnosedAt != null) {
+      map['diagnosed_at'] = Variable<DateTime>(diagnosedAt);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    return map;
+  }
+
+  ChronicConditionsCompanion toCompanion(bool nullToAbsent) {
+    return ChronicConditionsCompanion(
+      id: Value(id),
+      memberId: Value(memberId),
+      name: Value(name),
+      specialty: specialty == null && nullToAbsent
+          ? const Value.absent()
+          : Value(specialty),
+      diagnosedAt: diagnosedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(diagnosedAt),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+    );
+  }
+
+  factory ChronicCondition.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChronicCondition(
+      id: serializer.fromJson<int>(json['id']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      name: serializer.fromJson<String>(json['name']),
+      specialty: serializer.fromJson<String?>(json['specialty']),
+      diagnosedAt: serializer.fromJson<DateTime?>(json['diagnosedAt']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'memberId': serializer.toJson<int>(memberId),
+      'name': serializer.toJson<String>(name),
+      'specialty': serializer.toJson<String?>(specialty),
+      'diagnosedAt': serializer.toJson<DateTime?>(diagnosedAt),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+    };
+  }
+
+  ChronicCondition copyWith({
+    int? id,
+    int? memberId,
+    String? name,
+    Value<String?> specialty = const Value.absent(),
+    Value<DateTime?> diagnosedAt = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
+  }) => ChronicCondition(
+    id: id ?? this.id,
+    memberId: memberId ?? this.memberId,
+    name: name ?? this.name,
+    specialty: specialty.present ? specialty.value : this.specialty,
+    diagnosedAt: diagnosedAt.present ? diagnosedAt.value : this.diagnosedAt,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+  );
+  ChronicCondition copyWithCompanion(ChronicConditionsCompanion data) {
+    return ChronicCondition(
+      id: data.id.present ? data.id.value : this.id,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      name: data.name.present ? data.name.value : this.name,
+      specialty: data.specialty.present ? data.specialty.value : this.specialty,
+      diagnosedAt: data.diagnosedAt.present
+          ? data.diagnosedAt.value
+          : this.diagnosedAt,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChronicCondition(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('name: $name, ')
+          ..write('specialty: $specialty, ')
+          ..write('diagnosedAt: $diagnosedAt, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    name,
+    specialty,
+    diagnosedAt,
+    notes,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChronicCondition &&
+          other.id == this.id &&
+          other.memberId == this.memberId &&
+          other.name == this.name &&
+          other.specialty == this.specialty &&
+          other.diagnosedAt == this.diagnosedAt &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
+}
+
+class ChronicConditionsCompanion extends UpdateCompanion<ChronicCondition> {
+  final Value<int> id;
+  final Value<int> memberId;
+  final Value<String> name;
+  final Value<String?> specialty;
+  final Value<DateTime?> diagnosedAt;
+  final Value<String?> notes;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
+  const ChronicConditionsCompanion({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.specialty = const Value.absent(),
+    this.diagnosedAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  });
+  ChronicConditionsCompanion.insert({
+    this.id = const Value.absent(),
+    required int memberId,
+    required String name,
+    this.specialty = const Value.absent(),
+    this.diagnosedAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  }) : memberId = Value(memberId),
+       name = Value(name);
+  static Insertable<ChronicCondition> custom({
+    Expression<int>? id,
+    Expression<int>? memberId,
+    Expression<String>? name,
+    Expression<String>? specialty,
+    Expression<DateTime>? diagnosedAt,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (memberId != null) 'member_id': memberId,
+      if (name != null) 'name': name,
+      if (specialty != null) 'specialty': specialty,
+      if (diagnosedAt != null) 'diagnosed_at': diagnosedAt,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+    });
+  }
+
+  ChronicConditionsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? memberId,
+    Value<String>? name,
+    Value<String?>? specialty,
+    Value<DateTime?>? diagnosedAt,
+    Value<String?>? notes,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
+  }) {
+    return ChronicConditionsCompanion(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      name: name ?? this.name,
+      specialty: specialty ?? this.specialty,
+      diagnosedAt: diagnosedAt ?? this.diagnosedAt,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (specialty.present) {
+      map['specialty'] = Variable<String>(specialty.value);
+    }
+    if (diagnosedAt.present) {
+      map['diagnosed_at'] = Variable<DateTime>(diagnosedAt.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChronicConditionsCompanion(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('name: $name, ')
+          ..write('specialty: $specialty, ')
+          ..write('diagnosedAt: $diagnosedAt, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VaccinationsTable extends Vaccinations
+    with TableInfo<$VaccinationsTable, Vaccination> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VaccinationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _givenAtMeta = const VerificationMeta(
+    'givenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> givenAt = GeneratedColumn<DateTime>(
+    'given_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nextDoseAtMeta = const VerificationMeta(
+    'nextDoseAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextDoseAt = GeneratedColumn<DateTime>(
+    'next_dose_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    memberId,
+    name,
+    givenAt,
+    nextDoseAt,
+    notes,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'vaccinations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Vaccination> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('given_at')) {
+      context.handle(
+        _givenAtMeta,
+        givenAt.isAcceptableOrUnknown(data['given_at']!, _givenAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_givenAtMeta);
+    }
+    if (data.containsKey('next_dose_at')) {
+      context.handle(
+        _nextDoseAtMeta,
+        nextDoseAt.isAcceptableOrUnknown(
+          data['next_dose_at']!,
+          _nextDoseAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Vaccination map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Vaccination(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      givenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}given_at'],
+      )!,
+      nextDoseAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_dose_at'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+    );
+  }
+
+  @override
+  $VaccinationsTable createAlias(String alias) {
+    return $VaccinationsTable(attachedDatabase, alias);
+  }
+}
+
+class Vaccination extends DataClass implements Insertable<Vaccination> {
+  final int id;
+  final int memberId;
+  final String name;
+  final DateTime givenAt;
+  final DateTime? nextDoseAt;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? syncUuid;
+  const Vaccination({
+    required this.id,
+    required this.memberId,
+    required this.name,
+    required this.givenAt,
+    this.nextDoseAt,
+    this.notes,
+    required this.createdAt,
+    required this.updatedAt,
+    this.syncUuid,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['member_id'] = Variable<int>(memberId);
+    map['name'] = Variable<String>(name);
+    map['given_at'] = Variable<DateTime>(givenAt);
+    if (!nullToAbsent || nextDoseAt != null) {
+      map['next_dose_at'] = Variable<DateTime>(nextDoseAt);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    return map;
+  }
+
+  VaccinationsCompanion toCompanion(bool nullToAbsent) {
+    return VaccinationsCompanion(
+      id: Value(id),
+      memberId: Value(memberId),
+      name: Value(name),
+      givenAt: Value(givenAt),
+      nextDoseAt: nextDoseAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextDoseAt),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+    );
+  }
+
+  factory Vaccination.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Vaccination(
+      id: serializer.fromJson<int>(json['id']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      name: serializer.fromJson<String>(json['name']),
+      givenAt: serializer.fromJson<DateTime>(json['givenAt']),
+      nextDoseAt: serializer.fromJson<DateTime?>(json['nextDoseAt']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'memberId': serializer.toJson<int>(memberId),
+      'name': serializer.toJson<String>(name),
+      'givenAt': serializer.toJson<DateTime>(givenAt),
+      'nextDoseAt': serializer.toJson<DateTime?>(nextDoseAt),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+    };
+  }
+
+  Vaccination copyWith({
+    int? id,
+    int? memberId,
+    String? name,
+    DateTime? givenAt,
+    Value<DateTime?> nextDoseAt = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
+  }) => Vaccination(
+    id: id ?? this.id,
+    memberId: memberId ?? this.memberId,
+    name: name ?? this.name,
+    givenAt: givenAt ?? this.givenAt,
+    nextDoseAt: nextDoseAt.present ? nextDoseAt.value : this.nextDoseAt,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+  );
+  Vaccination copyWithCompanion(VaccinationsCompanion data) {
+    return Vaccination(
+      id: data.id.present ? data.id.value : this.id,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      name: data.name.present ? data.name.value : this.name,
+      givenAt: data.givenAt.present ? data.givenAt.value : this.givenAt,
+      nextDoseAt: data.nextDoseAt.present
+          ? data.nextDoseAt.value
+          : this.nextDoseAt,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Vaccination(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('name: $name, ')
+          ..write('givenAt: $givenAt, ')
+          ..write('nextDoseAt: $nextDoseAt, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    name,
+    givenAt,
+    nextDoseAt,
+    notes,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Vaccination &&
+          other.id == this.id &&
+          other.memberId == this.memberId &&
+          other.name == this.name &&
+          other.givenAt == this.givenAt &&
+          other.nextDoseAt == this.nextDoseAt &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
+}
+
+class VaccinationsCompanion extends UpdateCompanion<Vaccination> {
+  final Value<int> id;
+  final Value<int> memberId;
+  final Value<String> name;
+  final Value<DateTime> givenAt;
+  final Value<DateTime?> nextDoseAt;
+  final Value<String?> notes;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
+  const VaccinationsCompanion({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.givenAt = const Value.absent(),
+    this.nextDoseAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  });
+  VaccinationsCompanion.insert({
+    this.id = const Value.absent(),
+    required int memberId,
+    required String name,
+    required DateTime givenAt,
+    this.nextDoseAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  }) : memberId = Value(memberId),
+       name = Value(name),
+       givenAt = Value(givenAt);
+  static Insertable<Vaccination> custom({
+    Expression<int>? id,
+    Expression<int>? memberId,
+    Expression<String>? name,
+    Expression<DateTime>? givenAt,
+    Expression<DateTime>? nextDoseAt,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (memberId != null) 'member_id': memberId,
+      if (name != null) 'name': name,
+      if (givenAt != null) 'given_at': givenAt,
+      if (nextDoseAt != null) 'next_dose_at': nextDoseAt,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+    });
+  }
+
+  VaccinationsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? memberId,
+    Value<String>? name,
+    Value<DateTime>? givenAt,
+    Value<DateTime?>? nextDoseAt,
+    Value<String?>? notes,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
+  }) {
+    return VaccinationsCompanion(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      name: name ?? this.name,
+      givenAt: givenAt ?? this.givenAt,
+      nextDoseAt: nextDoseAt ?? this.nextDoseAt,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (givenAt.present) {
+      map['given_at'] = Variable<DateTime>(givenAt.value);
+    }
+    if (nextDoseAt.present) {
+      map['next_dose_at'] = Variable<DateTime>(nextDoseAt.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VaccinationsCompanion(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('name: $name, ')
+          ..write('givenAt: $givenAt, ')
+          ..write('nextDoseAt: $nextDoseAt, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SurgeriesTable extends Surgeries
+    with TableInfo<$SurgeriesTable, Surgery> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SurgeriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _performedAtMeta = const VerificationMeta(
+    'performedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> performedAt = GeneratedColumn<DateTime>(
+    'performed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _attachmentPathMeta = const VerificationMeta(
+    'attachmentPath',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentPath = GeneratedColumn<String>(
+    'attachment_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _documentPathsMeta = const VerificationMeta(
+    'documentPaths',
+  );
+  @override
+  late final GeneratedColumn<String> documentPaths = GeneratedColumn<String>(
+    'document_paths',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    memberId,
+    name,
+    performedAt,
+    notes,
+    attachmentPath,
+    documentPaths,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'surgeries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Surgery> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('performed_at')) {
+      context.handle(
+        _performedAtMeta,
+        performedAt.isAcceptableOrUnknown(
+          data['performed_at']!,
+          _performedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_performedAtMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('attachment_path')) {
+      context.handle(
+        _attachmentPathMeta,
+        attachmentPath.isAcceptableOrUnknown(
+          data['attachment_path']!,
+          _attachmentPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('document_paths')) {
+      context.handle(
+        _documentPathsMeta,
+        documentPaths.isAcceptableOrUnknown(
+          data['document_paths']!,
+          _documentPathsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Surgery map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Surgery(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      performedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}performed_at'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      attachmentPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachment_path'],
+      ),
+      documentPaths: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_paths'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+    );
+  }
+
+  @override
+  $SurgeriesTable createAlias(String alias) {
+    return $SurgeriesTable(attachedDatabase, alias);
+  }
+}
+
+class Surgery extends DataClass implements Insertable<Surgery> {
+  final int id;
+  final int memberId;
+  final String name;
+  final DateTime performedAt;
+  final String? notes;
+  final String? attachmentPath;
+  final String documentPaths;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? syncUuid;
+  const Surgery({
+    required this.id,
+    required this.memberId,
+    required this.name,
+    required this.performedAt,
+    this.notes,
+    this.attachmentPath,
+    required this.documentPaths,
+    required this.createdAt,
+    required this.updatedAt,
+    this.syncUuid,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['member_id'] = Variable<int>(memberId);
+    map['name'] = Variable<String>(name);
+    map['performed_at'] = Variable<DateTime>(performedAt);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || attachmentPath != null) {
+      map['attachment_path'] = Variable<String>(attachmentPath);
+    }
+    map['document_paths'] = Variable<String>(documentPaths);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    return map;
+  }
+
+  SurgeriesCompanion toCompanion(bool nullToAbsent) {
+    return SurgeriesCompanion(
+      id: Value(id),
+      memberId: Value(memberId),
+      name: Value(name),
+      performedAt: Value(performedAt),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      attachmentPath: attachmentPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(attachmentPath),
+      documentPaths: Value(documentPaths),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+    );
+  }
+
+  factory Surgery.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Surgery(
+      id: serializer.fromJson<int>(json['id']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      name: serializer.fromJson<String>(json['name']),
+      performedAt: serializer.fromJson<DateTime>(json['performedAt']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      attachmentPath: serializer.fromJson<String?>(json['attachmentPath']),
+      documentPaths: serializer.fromJson<String>(json['documentPaths']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'memberId': serializer.toJson<int>(memberId),
+      'name': serializer.toJson<String>(name),
+      'performedAt': serializer.toJson<DateTime>(performedAt),
+      'notes': serializer.toJson<String?>(notes),
+      'attachmentPath': serializer.toJson<String?>(attachmentPath),
+      'documentPaths': serializer.toJson<String>(documentPaths),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+    };
+  }
+
+  Surgery copyWith({
+    int? id,
+    int? memberId,
+    String? name,
+    DateTime? performedAt,
+    Value<String?> notes = const Value.absent(),
+    Value<String?> attachmentPath = const Value.absent(),
+    String? documentPaths,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
+  }) => Surgery(
+    id: id ?? this.id,
+    memberId: memberId ?? this.memberId,
+    name: name ?? this.name,
+    performedAt: performedAt ?? this.performedAt,
+    notes: notes.present ? notes.value : this.notes,
+    attachmentPath: attachmentPath.present
+        ? attachmentPath.value
+        : this.attachmentPath,
+    documentPaths: documentPaths ?? this.documentPaths,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+  );
+  Surgery copyWithCompanion(SurgeriesCompanion data) {
+    return Surgery(
+      id: data.id.present ? data.id.value : this.id,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      name: data.name.present ? data.name.value : this.name,
+      performedAt: data.performedAt.present
+          ? data.performedAt.value
+          : this.performedAt,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      attachmentPath: data.attachmentPath.present
+          ? data.attachmentPath.value
+          : this.attachmentPath,
+      documentPaths: data.documentPaths.present
+          ? data.documentPaths.value
+          : this.documentPaths,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Surgery(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('name: $name, ')
+          ..write('performedAt: $performedAt, ')
+          ..write('notes: $notes, ')
+          ..write('attachmentPath: $attachmentPath, ')
+          ..write('documentPaths: $documentPaths, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    name,
+    performedAt,
+    notes,
+    attachmentPath,
+    documentPaths,
+    createdAt,
+    updatedAt,
+    syncUuid,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Surgery &&
+          other.id == this.id &&
+          other.memberId == this.memberId &&
+          other.name == this.name &&
+          other.performedAt == this.performedAt &&
+          other.notes == this.notes &&
+          other.attachmentPath == this.attachmentPath &&
+          other.documentPaths == this.documentPaths &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
+}
+
+class SurgeriesCompanion extends UpdateCompanion<Surgery> {
+  final Value<int> id;
+  final Value<int> memberId;
+  final Value<String> name;
+  final Value<DateTime> performedAt;
+  final Value<String?> notes;
+  final Value<String?> attachmentPath;
+  final Value<String> documentPaths;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
+  const SurgeriesCompanion({
+    this.id = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.performedAt = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.attachmentPath = const Value.absent(),
+    this.documentPaths = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  });
+  SurgeriesCompanion.insert({
+    this.id = const Value.absent(),
+    required int memberId,
+    required String name,
+    required DateTime performedAt,
+    this.notes = const Value.absent(),
+    this.attachmentPath = const Value.absent(),
+    this.documentPaths = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  }) : memberId = Value(memberId),
+       name = Value(name),
+       performedAt = Value(performedAt);
+  static Insertable<Surgery> custom({
+    Expression<int>? id,
+    Expression<int>? memberId,
+    Expression<String>? name,
+    Expression<DateTime>? performedAt,
+    Expression<String>? notes,
+    Expression<String>? attachmentPath,
+    Expression<String>? documentPaths,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (memberId != null) 'member_id': memberId,
+      if (name != null) 'name': name,
+      if (performedAt != null) 'performed_at': performedAt,
+      if (notes != null) 'notes': notes,
+      if (attachmentPath != null) 'attachment_path': attachmentPath,
+      if (documentPaths != null) 'document_paths': documentPaths,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+    });
+  }
+
+  SurgeriesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? memberId,
+    Value<String>? name,
+    Value<DateTime>? performedAt,
+    Value<String?>? notes,
+    Value<String?>? attachmentPath,
+    Value<String>? documentPaths,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
+  }) {
+    return SurgeriesCompanion(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      name: name ?? this.name,
+      performedAt: performedAt ?? this.performedAt,
+      notes: notes ?? this.notes,
+      attachmentPath: attachmentPath ?? this.attachmentPath,
+      documentPaths: documentPaths ?? this.documentPaths,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (performedAt.present) {
+      map['performed_at'] = Variable<DateTime>(performedAt.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (attachmentPath.present) {
+      map['attachment_path'] = Variable<String>(attachmentPath.value);
+    }
+    if (documentPaths.present) {
+      map['document_paths'] = Variable<String>(documentPaths.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SurgeriesCompanion(')
+          ..write('id: $id, ')
+          ..write('memberId: $memberId, ')
+          ..write('name: $name, ')
+          ..write('performedAt: $performedAt, ')
+          ..write('notes: $notes, ')
+          ..write('attachmentPath: $attachmentPath, ')
+          ..write('documentPaths: $documentPaths, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $MembersTable members = $MembersTable(this);
@@ -7019,6 +10034,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DoctorAppointmentsTable doctorAppointments =
       $DoctorAppointmentsTable(this);
   late final $SharedChannelsTable sharedChannels = $SharedChannelsTable(this);
+  late final $LabResultsTable labResults = $LabResultsTable(this);
+  late final $AllergiesTable allergies = $AllergiesTable(this);
+  late final $ChronicConditionsTable chronicConditions =
+      $ChronicConditionsTable(this);
+  late final $VaccinationsTable vaccinations = $VaccinationsTable(this);
+  late final $SurgeriesTable surgeries = $SurgeriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7036,5 +10057,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     activityLogs,
     doctorAppointments,
     sharedChannels,
+    labResults,
+    allergies,
+    chronicConditions,
+    vaccinations,
+    surgeries,
   ];
 }

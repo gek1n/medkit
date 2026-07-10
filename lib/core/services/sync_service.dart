@@ -86,6 +86,12 @@ class SyncService {
     await collect('activity_log', _db.activityLogs, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
     await collect(
         'doctor_appointment', _db.doctorAppointments, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
+    await collect('lab_result', _db.labResults, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
+    await collect('allergy', _db.allergies, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
+    await collect(
+        'chronic_condition', _db.chronicConditions, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
+    await collect('vaccination', _db.vaccinations, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
+    await collect('surgery', _db.surgeries, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
 
     // Фото — окремо від сутностей: чергу "що ще не залито/видалено" веде
     // `PhotoSyncQueue` (заповнюється в `PhotoService.pickAndSave`/`delete`),
@@ -190,6 +196,16 @@ class SyncService {
         await _db.activityLogs.insertOnConflictUpdate(ActivityLog.fromJson(json));
       case 'doctor_appointment':
         await _db.doctorAppointments.insertOnConflictUpdate(DoctorAppointment.fromJson(json));
+      case 'lab_result':
+        await _db.labResults.insertOnConflictUpdate(LabResult.fromJson(json));
+      case 'allergy':
+        await _db.allergies.insertOnConflictUpdate(Allergy.fromJson(json));
+      case 'chronic_condition':
+        await _db.chronicConditions.insertOnConflictUpdate(ChronicCondition.fromJson(json));
+      case 'vaccination':
+        await _db.vaccinations.insertOnConflictUpdate(Vaccination.fromJson(json));
+      case 'surgery':
+        await _db.surgeries.insertOnConflictUpdate(Surgery.fromJson(json));
     }
   }
 
@@ -217,6 +233,16 @@ class SyncService {
         await (_db.delete(_db.activityLogs)..where((t) => t.id.equals(localId))).go();
       case 'doctor_appointment':
         await (_db.delete(_db.doctorAppointments)..where((t) => t.id.equals(localId))).go();
+      case 'lab_result':
+        await (_db.delete(_db.labResults)..where((t) => t.id.equals(localId))).go();
+      case 'allergy':
+        await (_db.delete(_db.allergies)..where((t) => t.id.equals(localId))).go();
+      case 'chronic_condition':
+        await (_db.delete(_db.chronicConditions)..where((t) => t.id.equals(localId))).go();
+      case 'vaccination':
+        await (_db.delete(_db.vaccinations)..where((t) => t.id.equals(localId))).go();
+      case 'surgery':
+        await (_db.delete(_db.surgeries)..where((t) => t.id.equals(localId))).go();
     }
   }
 }

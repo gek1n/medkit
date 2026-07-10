@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +12,9 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/specialty_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
@@ -19,15 +23,18 @@ import 'appointments_history_screen.dart';
 class AddAppointmentScreen extends ConsumerStatefulWidget {
   final int memberId;
   final DoctorAppointment? existing;
-  const AddAppointmentScreen({super.key, required this.memberId, this.existing});
+  const AddAppointmentScreen({
+    super.key,
+    required this.memberId,
+    this.existing,
+  });
 
   @override
   ConsumerState<AddAppointmentScreen> createState() =>
       _AddAppointmentScreenState();
 }
 
-class _AddAppointmentScreenState
-    extends ConsumerState<AddAppointmentScreen> {
+class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   late final TextEditingController _doctorController;
   late final TextEditingController _locationController;
   late final TextEditingController _notesController;
@@ -36,7 +43,13 @@ class _AddAppointmentScreenState
   late TimeOfDay _time;
   int _remindBeforeMin = 1440;
   String? _colorHex;
+  List<String> _documentPaths = [];
   bool _isSaving = false;
+
+  bool get _isPastVisit =>
+      DateTime(_date.year, _date.month, _date.day).isBefore(
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
+      );
 
   static const _remindOptions = [
     (60, 'За 1 годину'),
@@ -53,8 +66,12 @@ class _AddAppointmentScreenState
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _colorHex = ex?.color;
     if (ex != null) {
+      _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
       _date = ex.scheduledAt;
-      _time = TimeOfDay(hour: ex.scheduledAt.hour, minute: ex.scheduledAt.minute);
+      _time = TimeOfDay(
+        hour: ex.scheduledAt.hour,
+        minute: ex.scheduledAt.minute,
+      );
       _remindBeforeMin = ex.remindBeforeMin ?? 1440;
     } else {
       _date = DateTime.now();
@@ -78,12 +95,16 @@ class _AddAppointmentScreenState
         content: const Text('Запис до лікаря буде видалено.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Видалити',
-                  style: AppTextStyles.bodyMd.copyWith(color: Colors.red))),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Видалити',
+              style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
+            ),
+          ),
         ],
       ),
     );
@@ -99,12 +120,14 @@ class _AddAppointmentScreenState
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
-      firstDate: DateTime.now(),
+      // Дозволяємо минулі дати — цей самий екран використовується і для
+      // запису майбутнього візиту з нагадуванням, і для внесення заднім
+      // числом того, що вже відбулось (walk-in візит, стара історія).
+      firstDate: DateTime(1950),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme:
-              const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
         ),
         child: child!,
       ),
@@ -117,17 +140,30 @@ class _AddAppointmentScreenState
     if (picked != null) setState(() => _time = picked);
   }
 
+  Future<void> _pickSpecialty() async {
+    final picked = await showSpecialtyPicker(
+      context,
+      current: _doctorController.text.trim(),
+    );
+    if (picked != null) setState(() => _doctorController.text = picked);
+  }
+
   Future<void> _save() async {
     final doctorType = _doctorController.text.trim();
     if (doctorType.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Введіть тип лікаря')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Введіть тип лікаря')));
       return;
     }
     setState(() => _isSaving = true);
     try {
       final scheduledAt = DateTime(
-        _date.year, _date.month, _date.day, _time.hour, _time.minute,
+        _date.year,
+        _date.month,
+        _date.day,
+        _time.hour,
+        _time.minute,
       );
       final locationVal = _locationController.text.trim().isEmpty
           ? null
@@ -139,7 +175,9 @@ class _AddAppointmentScreenState
       final int appointmentId;
       if (widget.existing != null) {
         appointmentId = widget.existing!.id;
-        await ref.read(doctorAppointmentsRepositoryProvider).update(
+        await ref
+            .read(doctorAppointmentsRepositoryProvider)
+            .update(
               DoctorAppointmentsCompanion(
                 id: Value(appointmentId),
                 doctorType: Value(doctorType),
@@ -147,29 +185,35 @@ class _AddAppointmentScreenState
                 location: Value(locationVal),
                 remindBeforeMin: Value(_remindBeforeMin),
                 notes: Value(notesVal),
+                documentPaths: Value(jsonEncode(_documentPaths)),
                 color: Value(_colorHex),
               ),
             );
       } else {
-        appointmentId =
-            await ref.read(doctorAppointmentsRepositoryProvider).insert(
-                  DoctorAppointmentsCompanion.insert(
-                    memberId: widget.memberId,
-                    doctorType: doctorType,
-                    scheduledAt: scheduledAt,
-                    location: Value(locationVal),
-                    remindBeforeMin: Value(_remindBeforeMin),
-                    notes: Value(notesVal),
-                    color: Value(_colorHex),
-                  ),
-                );
+        appointmentId = await ref
+            .read(doctorAppointmentsRepositoryProvider)
+            .insert(
+              DoctorAppointmentsCompanion.insert(
+                memberId: widget.memberId,
+                doctorType: doctorType,
+                scheduledAt: scheduledAt,
+                location: Value(locationVal),
+                remindBeforeMin: Value(_remindBeforeMin),
+                notes: Value(notesVal),
+                documentPaths: Value(jsonEncode(_documentPaths)),
+                color: Value(_colorHex),
+              ),
+            );
       }
 
       final settings = ref.read(notificationSettingsProvider);
-      final rawReminderAt =
-          scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
-      final remindAt =
-          settings.adjust(rawReminderAt, memberId: widget.memberId);
+      final rawReminderAt = scheduledAt.subtract(
+        Duration(minutes: _remindBeforeMin),
+      );
+      final remindAt = settings.adjust(
+        rawReminderAt,
+        memberId: widget.memberId,
+      );
       if (remindAt != null) {
         await NotificationService.scheduleAppointmentReminder(
           appointmentId: appointmentId,
@@ -187,8 +231,9 @@ class _AddAppointmentScreenState
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -210,31 +255,40 @@ class _AddAppointmentScreenState
         child: Column(
           children: [
             _BackHeader(
-              title: (isEdit ? 'Редагувати запис' : 'Запис до лікаря') +
+              title:
+                  (isEdit
+                      ? 'Редагувати запис'
+                      : (_isPastVisit ? 'Записати візит' : 'Запис до лікаря')) +
                   memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               trailingLabel: isEdit ? null : 'Список',
-              onTrailing: isEdit ? null : () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AppointmentsHistoryScreen(),
-                ),
-              ),
+              onTrailing: isEdit
+                  ? null
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AppointmentsHistoryScreen(),
+                      ),
+                    ),
               onDelete: isEdit ? _delete : null,
             ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.screenPadding, vertical: 16),
+                  horizontal: AppDimensions.screenPadding,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Doctor type
-                    _Label('Лікар або процедура'),
+                    _Label('Напрямок лікаря'),
                     const SizedBox(height: 6),
                     _Input(
                       controller: _doctorController,
-                      hint: 'Кардіолог, Терапевт, УЗД…',
+                      hint: 'Оберіть напрямок',
+                      readOnly: true,
+                      onTap: _pickSpecialty,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -265,60 +319,61 @@ class _AddAppointmentScreenState
                         Expanded(
                           child: GestureDetector(
                             onTap: _pickTime,
-                            child: _DateTimeBox(
-                              label: 'ЧАС',
-                              value: '$hh:$mm',
-                            ),
+                            child: _DateTimeBox(label: 'ЧАС', value: '$hh:$mm'),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Remind before
-                    _Label('Нагадати заздалегідь'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        ..._remindOptions.map((opt) {
-                          final sel = _remindBeforeMin == opt.$1;
-                          return GestureDetector(
-                            onTap: () =>
-                                setState(() => _remindBeforeMin = opt.$1),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 9),
-                              decoration: BoxDecoration(
-                                color: sel
-                                    ? AppColors.primaryLight
-                                    : AppColors.surface,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
+                    // Remind before — не потрібно для візиту, що вже минув
+                    if (!_isPastVisit) ...[
+                      _Label('Нагадати заздалегідь'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          ..._remindOptions.map((opt) {
+                            final sel = _remindBeforeMin == opt.$1;
+                            return GestureDetector(
+                              onTap: () =>
+                                  setState(() => _remindBeforeMin = opt.$1),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 120),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
                                   color: sel
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                  width: sel ? 2 : 1.5,
+                                      ? AppColors.primaryLight
+                                      : AppColors.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: sel
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                    width: sel ? 2 : 1.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  opt.$2,
+                                  style: AppTextStyles.labelMd.copyWith(
+                                    color: sel
+                                        ? AppColors.primary
+                                        : AppColors.textMain,
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                opt.$2,
-                                style: AppTextStyles.labelMd.copyWith(
-                                  color: sel
-                                      ? AppColors.primary
-                                      : AppColors.textMain,
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
+                            );
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                    ],
 
-                    // Notes
-                    _Label('Нотатка'),
+                    // Notes — до візиту це "що запитати", після — висновок лікаря
+                    _Label(_isPastVisit ? 'Висновок лікаря' : 'Нотатка'),
                     const SizedBox(height: 6),
                     Container(
                       decoration: BoxDecoration(
@@ -330,10 +385,12 @@ class _AddAppointmentScreenState
                         controller: _notesController,
                         maxLines: 3,
                         decoration: InputDecoration(
-                          hintText:
-                              'Що запитати, взяти з собою, номер поліса…',
-                          hintStyle: AppTextStyles.bodyMd
-                              .copyWith(color: AppColors.textMuted),
+                          hintText: _isPastVisit
+                              ? 'Що сказав лікар, рекомендації, призначення…'
+                              : 'Що запитати, взяти з собою, номер поліса…',
+                          hintStyle: AppTextStyles.bodyMd.copyWith(
+                            color: AppColors.textMuted,
+                          ),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.all(14),
                         ),
@@ -342,40 +399,10 @@ class _AddAppointmentScreenState
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // PDF hint
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF7F1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: const Color(0xFFCBE6D3), width: 1.5),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.description_rounded, size: 16, color: AppColors.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Додати виписку',
-                                    style: AppTextStyles.labelMd.copyWith(
-                                        color: const Color(0xFF2F5F41))),
-                                const SizedBox(height: 3),
-                                Text(
-                                  'Сформувати PDF з ліками та симптомами за 30 днів',
-                                  style: AppTextStyles.bodySm.copyWith(
-                                      color: const Color(0xFF2F6F49)),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Text('→',
-                              style: TextStyle(
-                                  fontSize: 18, color: Color(0xFF3F8F5F))),
-                        ],
-                      ),
+                    DocumentsSection(
+                      paths: _documentPaths,
+                      onChanged: (paths) => setState(() => _documentPaths = paths),
+                      label: 'Документи',
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -392,18 +419,23 @@ class _AddAppointmentScreenState
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 15),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           elevation: 0,
                         ),
                         child: Text(
                           _isSaving
                               ? 'Зберігаємо...'
-                              : (isEdit ? 'Зберегти зміни' : 'Зберегти нагадування'),
-                          style: AppTextStyles.labelLg
-                              .copyWith(color: Colors.white),
+                              : (isEdit
+                                    ? 'Зберегти зміни'
+                                    : (_isPastVisit
+                                          ? 'Зберегти візит'
+                                          : 'Зберегти нагадування')),
+                          style: AppTextStyles.labelLg.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -420,8 +452,19 @@ class _AddAppointmentScreenState
 
   String _formatDate(DateTime d) {
     const months = [
-      '', 'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
-      'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
+      '',
+      'січня',
+      'лютого',
+      'березня',
+      'квітня',
+      'травня',
+      'червня',
+      'липня',
+      'серпня',
+      'вересня',
+      'жовтня',
+      'листопада',
+      'грудня',
     ];
     return '${d.day} ${months[d.month]} ${d.year}';
   }
@@ -448,9 +491,13 @@ class _DateTimeBox extends StatelessWidget {
         children: [
           Text(label, style: AppTextStyles.labelSm),
           const SizedBox(height: 4),
-          Text(value,
-              style: AppTextStyles.h3.copyWith(
-                  color: AppColors.textMain, fontSize: 15)),
+          Text(
+            value,
+            style: AppTextStyles.h3.copyWith(
+              color: AppColors.textMain,
+              fontSize: 15,
+            ),
+          ),
         ],
       ),
     );
@@ -486,8 +533,7 @@ class _BackHeader extends StatelessWidget {
               onTap: onTrailing,
               child: Text(
                 trailingLabel!,
-                style: AppTextStyles.labelMd
-                    .copyWith(color: AppColors.primary),
+                style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
               ),
             ),
           if (onDelete != null)
@@ -501,8 +547,11 @@ class _BackHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFECACA)),
                 ),
-                child: const Icon(Icons.delete_outline_rounded,
-                    size: 18, color: Color(0xFFDC2626)),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: Color(0xFFDC2626),
+                ),
               ),
             ),
         ],
@@ -523,7 +572,14 @@ class _Label extends StatelessWidget {
 class _Input extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  const _Input({required this.controller, required this.hint});
+  final bool readOnly;
+  final VoidCallback? onTap;
+  const _Input({
+    required this.controller,
+    required this.hint,
+    this.readOnly = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -535,13 +591,22 @@ class _Input extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle:
-              AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
+          suffixIcon: readOnly
+              ? const Icon(
+                  Icons.expand_more_rounded,
+                  color: AppColors.textMuted,
+                )
+              : null,
         ),
         style: AppTextStyles.bodyMd,
       ),
