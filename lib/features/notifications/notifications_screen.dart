@@ -6,9 +6,14 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../today/providers/today_providers.dart';
+
+final _notifyingPeersProvider = StreamProvider<List<FamilyPeer>>((ref) {
+  return ref.watch(familyPeersRepositoryProvider).watchAll();
+});
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -22,6 +27,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final membersAsync = ref.watch(allMembersProvider);
+    final peersAsync = ref.watch(_notifyingPeersProvider);
     final settings = ref.watch(notificationSettingsProvider);
     final settingsNotifier = ref.read(notificationSettingsProvider.notifier);
     final quietFrom = TimeOfDay(
@@ -115,6 +121,39 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             members: nonOwners,
                             alerts: settings.memberAlerts,
                             onChanged: settingsNotifier.setMemberAlert,
+                          ),
+                          const SizedBox(height: AppDimensions.xl),
+                        ],
+                      );
+                    },
+                  ),
+                  peersAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                    data: (peers) {
+                      final notifying = peers.where((p) => p.notifyGranted).toList();
+                      if (notifying.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionTitle('Сповіщення від сім\'ї'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppDimensions.screenPadding,
+                              0,
+                              AppDimensions.screenPadding,
+                              AppDimensions.sm,
+                            ),
+                            child: Text(
+                              'Ці учасники дозволили надсилати вам сповіщення про себе. '
+                              'Тут ви вирішуєте, чи хочете їх отримувати.',
+                              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                            ),
+                          ),
+                          _PeerAlertsCard(
+                            peers: notifying,
+                            alerts: settings.peerAlerts,
+                            onChanged: settingsNotifier.setPeerAlert,
                           ),
                         ],
                       );
@@ -569,6 +608,81 @@ class _MemberAlertsCard extends StatelessWidget {
                       Switch(
                         value: alerts[m.id] ?? true,
                         onChanged: (v) => onChanged(m.id, v),
+                        activeThumbColor: AppColors.primary,
+                        activeTrackColor: AppColors.primaryLight,
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isLast)
+                  const Divider(
+                      height: 1, color: AppColors.borderLight),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────── peer alerts card ──────────────────────────────
+// Той самий патерн, що й _MemberAlertsCard, але для автономних учасників
+// сімейної групи (FamilyPeer) — ключ personUuid, не локальний int id.
+// Двостороння згода: тут я вирішую лише СВОЮ половину (чи хочу отримувати),
+// список взагалі з'являється лише для тих, хто вже дозволив notify мені.
+
+class _PeerAlertsCard extends StatelessWidget {
+  final List<FamilyPeer> peers;
+  final Map<String, bool> alerts;
+  final void Function(String personUuid, bool value) onChanged;
+
+  const _PeerAlertsCard({
+    required this.peers,
+    required this.alerts,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.screenPadding),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.md,
+          vertical: 4,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius:
+              BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          children: peers.map((p) {
+            final isLast = peers.last == p;
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    children: [
+                      AvatarImage(index: p.avatarIndex, size: 36),
+                      const SizedBox(width: AppDimensions.md),
+                      Expanded(
+                        child: Text(p.name,
+                            style: AppTextStyles.bodyMd),
+                      ),
+                      Switch(
+                        value: alerts[p.personUuid] ?? true,
+                        onChanged: (v) => onChanged(p.personUuid, v),
                         activeThumbColor: AppColors.primary,
                         activeTrackColor: AppColors.primaryLight,
                       ),

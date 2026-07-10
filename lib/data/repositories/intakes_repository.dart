@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 import 'medications_repository.dart';
@@ -53,6 +54,7 @@ class IntakesRepository {
       ),
     );
     await NotificationService.cancelIntakeReminder(id);
+    await NotificationService.cancelFamilyCheckReminder(id);
 
     final intake =
         await (_db.select(_db.intakes)..where((t) => t.id.equals(id)))
@@ -73,6 +75,7 @@ class IntakesRepository {
       ),
     );
     await NotificationService.cancelIntakeReminder(id);
+    await NotificationService.cancelFamilyCheckReminder(id);
     await _triggerFamilySyncForIntake(id);
   }
 
@@ -199,6 +202,10 @@ class IntakesRepository {
 
   void _triggerFamilySync(int memberId) {
     unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
+    // Групові піри (FamilyPeers) синкаються окремим шляхом — без цього
+    // виклику "перевірка пропущеного" на їхніх пристроях чекала б
+    // наступного періодичного/resume-синку, а не спрацьовувала одразу.
+    unawaited(FamilyPeerSyncService(_db).syncAllPeers());
   }
 
   Future<void> _triggerFamilySyncForIntake(int id) async {

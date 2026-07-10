@@ -15,7 +15,7 @@ void showAddTypeSheet(BuildContext context, {int? memberId}) {
   final container = ProviderScope.containerOf(context);
   final plan = container.read(planProvider);
   final members = container.read(allMembersProvider).valueOrNull ?? [];
-  final localCount = members.where((m) => m.role != 'member').length;
+  final localCount = members.length;
   final overLocalLimit =
       plan.limits.maxLocalMembers != 0 && localCount > plan.limits.maxLocalMembers;
 

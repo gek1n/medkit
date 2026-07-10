@@ -101,13 +101,13 @@ class IntakeGenerator {
         ));
 
         final settings = _ref.read(notificationSettingsProvider);
-        final remindAt =
-            settings.adjust(scheduledAt, memberId: med.memberId);
+        final dose = '${med.doseAmount} ${med.doseUnit}';
+        final remindAt = settings.adjust(scheduledAt, memberId: med.memberId);
         if (remindAt != null) {
           await NotificationService.scheduleIntakeReminder(
             intakeId: intakeId,
             medName: med.name,
-            dose: '${med.doseAmount} ${med.doseUnit}',
+            dose: dose,
             scheduledAt: remindAt,
             vibrationEnabled: settings.vibrationEnabled,
             repeatMinutes: settings.repeatMinutes,

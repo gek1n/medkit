@@ -16,6 +16,14 @@ class FamilyPeers extends Table {
   // Фаза 4 — курсор для інкрементального push/pull даних (не картки)
   // через FamilySyncApiClient, той самий підхід, що й SharedChannels.
 
+  BoolColumn get notifyGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get viewGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get editGranted => boolean().withDefault(const Constant(false))();
+  // Що САМ цей пір (його головний профіль) дозволив МЕНІ — не моє рішення,
+  // а те, що він мені повідомив через grants_summary при синку. FamilyGrants
+  // живе лише на пристрої субʼєкта, тому без цього обміну я б не мав жодного
+  // способу дізнатись, що мені взагалі дозволено.
+
   @override
   Set<Column> get primaryKey => {personUuid};
 }
@@ -57,6 +65,12 @@ class PendingGroupInvites extends Table {
   TextColumn get channelId => text()();
   TextColumn get familyId => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  IntColumn get convertingMemberId => integer().nullable()();
+  // Заповнено лише для запрошень "Локальний → Автономний" (перетворення
+  // існуючого профілю, а не звичайне запрошення нового учасника групи) —
+  // саме за цим полем refreshPeers() дізнається, що після приєднання
+  // потрібно прибрати локальний Member і відв'язати одноразовий канал
+  // передачі історії.
 
   @override
   Set<Column> get primaryKey => {channelId};

@@ -21,6 +21,22 @@ class FamilyPeersRepository {
       (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid)))
           .write(FamilyPeersCompanion(lastSyncedAt: Value(at)));
 
+  /// Що САМ цей пір дозволив мені — прилітає через grants_summary при
+  /// кожному синку (FamilyGrants живе лише на пристрої субʼєкта).
+  Future<void> updateGrantedToMe(
+    String personUuid, {
+    required bool notify,
+    required bool view,
+    required bool edit,
+  }) =>
+      (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid))).write(
+        FamilyPeersCompanion(
+          notifyGranted: Value(notify),
+          viewGranted: Value(view),
+          editGranted: Value(edit),
+        ),
+      );
+
   Future<void> delete(String personUuid) =>
       (_db.delete(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid))).go();
 

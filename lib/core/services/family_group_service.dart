@@ -9,6 +9,9 @@ import 'package:uuid/uuid.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../data/repositories/shared_channels_repository.dart';
+import 'attachment_cleanup_service.dart';
+import 'family_sync_service.dart';
 import 'pairing_api_client.dart';
 import 'pairing_crypto_service.dart';
 import 'push_token_service.dart';
@@ -116,6 +119,86 @@ class FamilyGroupService {
       }
     } catch (_) {
       // Не критично для самого запрошення — просто не буде push-пробудження.
+    }
+
+    return code;
+  }
+
+  /// "Локальний → Автономний": на відміну від [createInvite] (запрошуєш
+  /// когось приєднатись зі СВОЇМ вже наявним акаунтом), тут запрошуєш
+  /// ЛОКАЛЬНИЙ профіль [dependent], яким сам керуєш, стати незалежним. Той,
+  /// хто відсканує код, отримає на новому пристрої власний акаунт із повною
+  /// історією [dependent] як стартовими даними — далі керує ним сам.
+  ///
+  /// Технічно: одноразова передача історії йде через ту саму інфраструктуру,
+  /// що й старий 1:1-пейринг ([FamilySyncService]/[SharedChannelsRepository]),
+  /// але лише ОДИН раз — щойно приєднання підтверджено, канал видаляється
+  /// ([refreshPeers]) і надалі відносини між двома вже незалежними людьми
+  /// живуть через звичайні FamilyPeers/FamilyGrants.
+  Future<String> createConversionInvite(Member dependent) async {
+    final membersRepo = MembersRepository(_db);
+    final owner = await membersRepo.getOwner();
+    if (owner == null) throw const GroupJoinException('Немає власного профілю');
+
+    var familyId = owner.familyId;
+    if (familyId == null) {
+      familyId = _uuid.v4();
+      await membersRepo.update(MembersCompanion(id: Value(owner.id), familyId: Value(familyId)));
+    }
+
+    final code = PairingCryptoService.generateCode();
+    final channelId = _uuid.v4();
+    final syncKey = _randomBytes(32);
+
+    final envelope = utf8.encode(jsonEncode({
+      'v': 4,
+      'familyId': familyId,
+      'inviterPersonUuid': owner.personUuid,
+      'inviterName': owner.name,
+      'inviterAvatarIndex': owner.avatarIndex,
+      'channelId': channelId,
+      'syncKey': base64Encode(syncKey),
+      'profileName': dependent.name,
+      'profileAvatarIndex': dependent.avatarIndex,
+    }));
+
+    final result = await PairingCryptoService.encrypt(code, envelope);
+    await _pairingApi.create(
+      codeHash: result.codeHash,
+      salt: result.salt,
+      nonce: result.nonce,
+      ciphertext: result.ciphertext,
+    );
+
+    await SharedChannelKeyStorage.store(channelId, syncKey);
+    // Той самий канал одноразово несе повну історію dependent-профілю — тим
+    // самим шляхом, що й старий 1:1-пейринг (SharedChannels), лише без
+    // подальшої постійної синхронізації.
+    await SharedChannelsRepository(_db).bind(channelId: channelId, memberId: dependent.id);
+    await FamilyPeersRepository(_db).addPendingInvite(
+      PendingGroupInvitesCompanion.insert(
+        channelId: channelId,
+        familyId: familyId,
+        convertingMemberId: Value(dependent.id),
+      ),
+    );
+
+    try {
+      final token = await PushTokenService.getToken();
+      if (token != null) {
+        await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+      }
+    } catch (_) {
+      // Не критично для самого запрошення.
+    }
+
+    // Штовхаємо історію на сервер одразу, не чекаючи наступного звичайного
+    // тригера синку — код може бути відсканований за лічені секунди.
+    try {
+      await FamilySyncService(_db).syncChannelForMember(dependent.id);
+    } catch (_) {
+      // Спробуємо ще раз при наступному звичайному тригері (resume/FCM) —
+      // той самий компроміс, що й у решті FamilySyncService.
     }
 
     return code;
@@ -230,6 +313,18 @@ class FamilyGroupService {
           channelId: invite.channelId,
         ));
         await repo.removePendingInvite(invite.channelId);
+
+        // "Локальний → Автономний" підтверджено: людина, якою я щойно
+        // керував локально, тепер сама відповідає за свої дані на власному
+        // пристрої. Прибираю її локальний профіль (з усім, що до нього
+        // прив'язано) і одноразовий канал передачі історії — далі це
+        // звичайний FamilyPeer, як і будь-хто інший.
+        final convertingId = invite.convertingMemberId;
+        if (convertingId != null) {
+          await SharedChannelsRepository(_db).unbind(convertingId);
+          await AttachmentCleanupService.deleteAllForMember(_db, convertingId);
+          await MembersRepository(_db).delete(convertingId);
+        }
       } catch (_) {
         // Ще ніхто не відповів або тимчасово немає мережі — спробуємо ще
         // раз на наступному тригері.

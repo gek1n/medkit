@@ -3,12 +3,25 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/database_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
+import '../../core/services/peer_photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
+
+const _notesFieldByType = {
+  'medication': 'instructions',
+  'doctor_appointment': 'notes',
+  'lab_result': 'notes',
+  'allergy': 'notes',
+  'chronic_condition': 'notes',
+  'vaccination': 'notes',
+  'surgery': 'notes',
+};
 
 const _entityTypeLabels = {
   'medication': 'Ліки',
@@ -18,6 +31,8 @@ const _entityTypeLabels = {
   'chronic_condition': 'Хронічне захворювання',
   'vaccination': 'Щеплення',
   'surgery': 'Операція',
+  'activity': 'Активність',
+  'wellbeing_schedule': 'Самопочуття',
 };
 
 const _entityTypeIcons = {
@@ -28,7 +43,16 @@ const _entityTypeIcons = {
   'chronic_condition': Icons.favorite_rounded,
   'vaccination': Icons.vaccines_rounded,
   'surgery': Icons.local_hospital_rounded,
+  'activity': Icons.directions_walk_rounded,
+  'wellbeing_schedule': Icons.favorite_border_rounded,
 };
+
+// Дочірні "інстанси на день" (intake/activity_log/wellbeing_log) та внутрішні
+// службові типи не показуються як окремі картки у плоскому списку — інакше
+// список ріс би необмежено з кожним новим днем. Вони все одно обробляються
+// (перевірки пропущеного, підрахунок стану), просто не рендеряться напряму;
+// час прийому видно всередині картки відповідних ліків/активності нижче.
+const _hiddenFromList = {'schedule', 'intake', 'activity_slot', 'activity_log', 'wellbeing_log'};
 
 /// Читає найбільш "людяне" поле з довільного JSON — записи різних типів
 /// мають різні назви ключового поля (name/testName/allergen/doctorType),
@@ -50,9 +74,13 @@ final _sharedEntitiesProvider = StreamProvider.family<List<SharedEntity>, String
   return ref.watch(familyPeersRepositoryProvider).watchSharedEntities(subjectPersonUuid);
 });
 
-/// Read-only перегляд того, що поділився зі мною конкретний пір (Фаза 4) —
-/// свідомо без редагування: дані живуть на пристрої піра, тут лише копія
-/// для перегляду, синхронізована в межах наданого view-дозволу.
+/// Перегляд того, що поділився зі мною конкретний пір (Фаза 4). Редагувати
+/// можна лише нотатки (notes/instructions) — навмисно мінімальний перший
+/// крок для "edit"-права: правка йде назад до власника даних і
+/// застосовується лише якщо запис не змінився з моменту, коли я його
+/// побачив (compare-and-swap, див. FamilyPeerSyncService.proposeEdit).
+/// Якщо власник тим часом сам відредагував запис — моя правка тихо
+/// губиться, а не затирає його свіжішу версію.
 class SharedFamilyDataScreen extends ConsumerWidget {
   final String peerChannelId;
   final String peerName;
@@ -116,7 +144,10 @@ class SharedFamilyDataScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: AppDimensions.sm),
-                        _SubjectEntities(subjectPersonUuid: subject.personUuid),
+                        _SubjectEntities(
+                          subjectPersonUuid: subject.personUuid,
+                          peerChannelId: peerChannelId,
+                        ),
                         const SizedBox(height: AppDimensions.lg),
                       ],
                     ],
@@ -133,12 +164,14 @@ class SharedFamilyDataScreen extends ConsumerWidget {
 
 class _SubjectEntities extends ConsumerWidget {
   final String subjectPersonUuid;
-  const _SubjectEntities({required this.subjectPersonUuid});
+  final String peerChannelId;
+  const _SubjectEntities({required this.subjectPersonUuid, required this.peerChannelId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entitiesAsync = ref.watch(_sharedEntitiesProvider(subjectPersonUuid));
-    final entities = entitiesAsync.valueOrNull ?? const [];
+    final entities =
+        (entitiesAsync.valueOrNull ?? const []).where((e) => !_hiddenFromList.contains(e.entityType)).toList();
 
     if (entities.isEmpty) {
       return Text(
@@ -155,32 +188,60 @@ class _SubjectEntities extends ConsumerWidget {
         } catch (_) {
           json = const {};
         }
+        final editable = _notesFieldByType.containsKey(e.entityType);
+        final documentPaths = _documentPathsOf(json);
         return Padding(
           padding: const EdgeInsets.only(bottom: AppDimensions.sm),
           child: Container(
-            padding: const EdgeInsets.all(AppDimensions.md),
+            clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               border: Border.all(color: AppColors.border),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(_entityTypeIcons[e.entityType] ?? Icons.description_rounded,
-                    size: 20, color: AppColors.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_primaryLabel(json), style: AppTextStyles.labelMd),
-                      Text(
-                        _entityTypeLabels[e.entityType] ?? e.entityType,
-                        style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                      ),
-                    ],
+                InkWell(
+                  onTap: editable
+                      ? () => _openEditNotesSheet(context, ref, entity: e, json: json, peerChannelId: peerChannelId)
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppDimensions.md),
+                    child: Row(
+                      children: [
+                        Icon(_entityTypeIcons[e.entityType] ?? Icons.description_rounded,
+                            size: 20, color: AppColors.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_primaryLabel(json), style: AppTextStyles.labelMd),
+                              Text(
+                                _entityTypeLabels[e.entityType] ?? e.entityType,
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (editable)
+                          const Icon(Icons.edit_note_rounded, size: 18, color: AppColors.textMuted),
+                      ],
+                    ),
                   ),
                 ),
+                if (documentPaths.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(AppDimensions.md, 0, AppDimensions.md, AppDimensions.md),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: documentPaths
+                          .map((path) => _AttachmentChip(channelId: peerChannelId, photoPath: path))
+                          .toList(),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -188,4 +249,244 @@ class _SubjectEntities extends ConsumerWidget {
       }).toList(),
     );
   }
+}
+
+/// documentPaths у dataJson лишається у своєму сирому вигляді з БД —
+/// TextColumn, тобто рядок, що сам містить JSON-масив (подвійне кодування).
+List<String> _documentPathsOf(Map<String, dynamic> json) {
+  final raw = json['documentPaths'];
+  try {
+    if (raw is String) return (jsonDecode(raw) as List).cast<String>();
+    if (raw is List) return raw.cast<String>();
+  } catch (_) {}
+  return const [];
+}
+
+/// Стан вкладення: ще не запитане → "Запросити файл"; запит надіслано, але
+/// файл не прийшов → "Очікуємо файл…"; файл уже локально → тап відкриває
+/// перегляд. Дані самого файлу приходять лише за запитом (GDPR-мінімізація)
+/// — на відміну від текстових полів запису, вони не пушаться заздалегідь.
+class _AttachmentChip extends ConsumerStatefulWidget {
+  final String channelId;
+  final String photoPath;
+  const _AttachmentChip({required this.channelId, required this.photoPath});
+
+  @override
+  ConsumerState<_AttachmentChip> createState() => _AttachmentChipState();
+}
+
+enum _AttachmentState { unknown, available, pending, none }
+
+class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
+  _AttachmentState _state = _AttachmentState.unknown;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final exists = await PeerPhotoService.exists(widget.channelId, widget.photoPath);
+    if (exists) {
+      if (mounted) setState(() => _state = _AttachmentState.available);
+      return;
+    }
+    final pending = await PeerPhotoService.isRequested(widget.channelId, widget.photoPath);
+    if (mounted) setState(() => _state = pending ? _AttachmentState.pending : _AttachmentState.none);
+  }
+
+  Future<void> _request() async {
+    setState(() => _state = _AttachmentState.pending);
+    try {
+      await FamilyPeerSyncService(ref.read(databaseProvider))
+          .requestPhoto(channelId: widget.channelId, photoPath: widget.photoPath);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Запит надіслано — файл ще потрібно дочекатись')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _state = _AttachmentState.none);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не вдалося надіслати запит: $e')));
+      }
+    }
+  }
+
+  Future<void> _open() async {
+    try {
+      final bytes = await PeerPhotoService.decryptedBytes(widget.channelId, widget.photoPath);
+      if (!mounted) return;
+      if (PeerPhotoService.isPdf(widget.photoPath)) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('PDF отримано та збережено')));
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: const EdgeInsets.all(12),
+          child: InteractiveViewer(child: Image.memory(bytes)),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не вдалося відкрити файл: $e')));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPdf = PeerPhotoService.isPdf(widget.photoPath);
+    final baseIcon = isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded;
+
+    late final IconData icon;
+    late final String label;
+    late final VoidCallback? onTap;
+    late final Color color;
+
+    switch (_state) {
+      case _AttachmentState.unknown:
+        icon = baseIcon;
+        label = '…';
+        onTap = null;
+        color = AppColors.textMuted;
+      case _AttachmentState.available:
+        icon = baseIcon;
+        label = isPdf ? 'PDF' : 'Фото';
+        onTap = _open;
+        color = AppColors.primary;
+      case _AttachmentState.pending:
+        icon = Icons.hourglass_top_rounded;
+        label = 'Очікуємо файл…';
+        onTap = null;
+        color = AppColors.textMuted;
+      case _AttachmentState.none:
+        icon = Icons.download_rounded;
+        label = 'Запросити файл';
+        onTap = _request;
+        color = AppColors.primary;
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 5),
+            Text(label, style: AppTextStyles.bodySm.copyWith(color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _openEditNotesSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  required SharedEntity entity,
+  required Map<String, dynamic> json,
+  required String peerChannelId,
+}) async {
+  final field = _notesFieldByType[entity.entityType] ?? 'notes';
+  final controller = TextEditingController(text: json[field] as String? ?? '');
+  final baseUpdatedAtRaw = json['updatedAt'] as String?;
+  final baseUpdatedAt = baseUpdatedAtRaw != null ? DateTime.tryParse(baseUpdatedAtRaw) : null;
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Редагувати нотатки', style: AppTextStyles.h3),
+          const SizedBox(height: 4),
+          Text(
+            'Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: TextField(
+              controller: controller,
+              maxLines: 4,
+              autofocus: true,
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                border: InputBorder.none,
+                hintText: 'Нотатки…',
+              ),
+              style: AppTextStyles.bodyMd,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: baseUpdatedAt == null
+                  ? null
+                  : () async {
+                      Navigator.pop(sheetContext);
+                      try {
+                        await FamilyPeerSyncService(ref.read(databaseProvider)).proposeEdit(
+                          channelId: peerChannelId,
+                          subjectPersonUuid: entity.subjectPersonUuid,
+                          entityType: entity.entityType,
+                          targetUuid: entity.uuid,
+                          value: controller.text,
+                          baseUpdatedAt: baseUpdatedAt,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Правку надіслано')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(SnackBar(content: Text('Не вдалося надіслати: $e')));
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text('Надіслати правку'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

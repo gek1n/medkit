@@ -7,14 +7,21 @@ import '../../core/providers/database_provider.dart';
 import '../../core/services/family_group_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../data/db/app_database.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
-/// Запрошення до сімейної групи — на відміну від `PairingInviteScreen`
-/// (шарить дані ОДНОГО керованого профілю), тут запрошується як РІВНОПРАВНИЙ
-/// учасник: власна картка (ім'я/аватар), без передачі медичних даних.
-/// Видимість між учасниками налаштовується окремо, вже після приєднання.
+/// Запрошення до сімейної групи — рівноправний учасник зі своєю карткою
+/// (ім'я/аватар), без автоматичної передачі медичних даних. Видимість між
+/// учасниками налаштовується окремо, вже після приєднання.
+///
+/// Якщо передано [forDependent] — це не звичайне запрошення нового учасника,
+/// а перетворення вже наявного ЛОКАЛЬНОГО профілю на незалежний
+/// ("Локальний → Автономний"): той, хто відсканує код, отримає на своєму
+/// пристрої повну історію [forDependent] як стартові дані власного акаунта
+/// (див. `FamilyGroupService.createConversionInvite`).
 class FamilyGroupInviteScreen extends ConsumerStatefulWidget {
-  const FamilyGroupInviteScreen({super.key});
+  final Member? forDependent;
+  const FamilyGroupInviteScreen({super.key, this.forDependent});
 
   @override
   ConsumerState<FamilyGroupInviteScreen> createState() => _FamilyGroupInviteScreenState();
@@ -38,7 +45,10 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
     });
     try {
       final db = ref.read(databaseProvider);
-      final code = await FamilyGroupService(db).createInvite();
+      final dependent = widget.forDependent;
+      final code = dependent != null
+          ? await FamilyGroupService(db).createConversionInvite(dependent)
+          : await FamilyGroupService(db).createInvite();
       if (!mounted) return;
       setState(() {
         _code = code;
@@ -60,7 +70,10 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
       body: SafeArea(
         child: Column(
           children: [
-            const MkScreenHeader(title: 'Запросити до сім\'ї'),
+            MkScreenHeader(
+                title: widget.forDependent != null
+                    ? 'Запросити ${widget.forDependent!.name}'
+                    : 'Запросити до сім\'ї'),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -107,9 +120,14 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
           Image.asset('assets/illustrations/family.png', height: 140),
           const SizedBox(height: 16),
           Text(
-            'Той, хто введе цей код, приєднається як рівноправний учасник '
-            'вашої сімейної групи — зі своїм профілем і своїми даними. '
-            'Що саме він побачить із ваших даних, ви налаштуєте окремо.',
+            widget.forDependent != null
+                ? 'Нехай ${widget.forDependent!.name} введе цей код у застосунку на своєму '
+                    'телефоні. Профіль перетвориться на незалежний: уся наявна історія '
+                    'перенесеться як стартові дані, а ви автоматично отримаєте повний '
+                    'доступ до нього, як і раніше.'
+                : 'Той, хто введе цей код, приєднається як рівноправний учасник '
+                    'вашої сімейної групи — зі своїм профілем і своїми даними. '
+                    'Що саме він побачить із ваших даних, ви налаштуєте окремо.',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),

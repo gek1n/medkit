@@ -9,9 +9,7 @@ import '../legal/privacy_policy_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_settings_screen.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
-import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -25,20 +23,6 @@ import '../wellbeing/wellbeing_history_screen.dart';
 import 'anti_stress/anti_stress_picker_screen.dart';
 import 'family_visibility_screen.dart';
 import 'privacy_screen.dart';
-
-/// Чи дозволив автономний профіль (subjectId) редагування viewer'у —
-/// зокрема, чи можна змінювати розмір шрифту, дивлячись на нього через
-/// "Переглянути як X" (не власний природний контекст). Резолвить локальні
-/// id → personUuid, бо FamilyVisibilityService оперує стабільною
-/// крос-пристроєвою ідентичністю (Фаза 1/3).
-final _editAllowedProvider = FutureProvider.family<bool, (int, int)>((ref, ids) async {
-  final db = ref.watch(databaseProvider);
-  final subject = await (db.select(db.members)..where((t) => t.id.equals(ids.$1))).getSingleOrNull();
-  final viewer = await (db.select(db.members)..where((t) => t.id.equals(ids.$2))).getSingleOrNull();
-  if (subject?.personUuid == null || viewer?.personUuid == null) return false;
-  return FamilyVisibilityService.isAllowed(
-      db, subject!.personUuid!, viewer!.personUuid!, FamilyPermission.edit);
-});
 
 // ────────────────────────────── screen ──────────────────────────────
 
@@ -94,27 +78,11 @@ class _ProfileBody extends ConsumerWidget {
     final fontSizeIndex = member.fontSize - 1;
     final activeId = ref.watch(activeMemberIdProvider);
     final showSwitchBanner = activeId != null && member.role != 'owner';
-
-    // Автономний профіль, переглянутий через "Переглянути як X" (не свій
-    // природний контекст) — розмір шрифту можна міняти лише якщо сам
-    // профіль дозволив редагування.
-    var canEditFontSize = true;
-    if (member.role == 'member' && activeId != null) {
-      final members = ref.watch(allMembersProvider).valueOrNull;
-      int? ownerId;
-      if (members != null) {
-        for (final m in members) {
-          if (m.role == 'owner') {
-            ownerId = m.id;
-            break;
-          }
-        }
-      }
-      canEditFontSize = ownerId == null
-          ? false
-          : ref.watch(_editAllowedProvider((member.id, ownerId))).valueOrNull ??
-              false;
-    }
+    // Автономні профілі більше не бувають локальними Members-рядками (див.
+    // "Локальний → Автономний" конверсію) — той, хто лишився тут, це
+    // owner/dependent, яким власник керує напряму, тож розмір шрифту можна
+    // міняти завжди.
+    const canEditFontSize = true;
 
     return Scaffold(
       backgroundColor: AppColors.bg,

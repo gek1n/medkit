@@ -16,4 +16,6 @@ class WellbeingSchedules extends Table {
   // hex "#RRGGBB" — кастомний колір картки, null = дефолтний колір типу
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable()();
+  // стабільний ідентифікатор для family_sync (пейринг автономного профілю)
 }

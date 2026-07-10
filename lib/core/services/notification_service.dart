@@ -136,6 +136,58 @@ class NotificationService {
     await cancel(intakeRepeatNotificationId(intakeId));
   }
 
+  // ── Сім'я: перевірка автономного учасника ────────────────────────────
+  // Планується НЕ на пристрої субʼєкта (він і так отримує звичайне
+  // scheduleIntakeReminder), а на пристрої того, хто за ним наглядає —
+  // через +30 хв після запланованого часу, щоб лишити достатньо вікна для
+  // синку. Якщо до цього моменту прилетить підтвердження "прийнято/
+  // пропущено", виклик cancelFamilyCheckReminder прибере це сповіщення
+  // раніше, ніж воно встигне спрацювати; інакше ОС покаже його сама —
+  // жодного фонового коду виконувати не треба.
+  static int familyCheckNotificationId(int intakeId) => 9000000 + intakeId;
+
+  static Future<void> scheduleFamilyCheckReminder({
+    required int intakeId,
+    required String memberName,
+    required String medName,
+    required String dose,
+    required DateTime scheduledAt,
+    bool vibrationEnabled = true,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: familyCheckNotificationId(intakeId),
+      title: '🔔 Перевірте $memberName',
+      body: 'Чи прийнято "$medName" ($dose) о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан у '
+          'розділі "Сімʼя".',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+      vibrationEnabled: vibrationEnabled,
+    );
+  }
+
+  static Future<void> cancelFamilyCheckReminder(int intakeId) =>
+      cancel(familyCheckNotificationId(intakeId));
+
+  // ── Сім'я: миттєве нагадування "🔔 Нагадати" (натиснуте вручну) ──────
+  // На відміну від familyCheckReminder (заплановане наперед, з'являється
+  // лише якщо нема відповіді), це показується одразу на пристрої
+  // отримувача, коли інший член сім'ї натиснув кнопку.
+
+  static Future<void> showRemoteReminder({
+    required String medName,
+    required String dose,
+  }) {
+    final id = 9500000 + (DateTime.now().millisecondsSinceEpoch % 500000);
+    return _plugin.show(
+      id,
+      '🔔 Вам нагадують',
+      'Не забудьте прийняти "$medName" — $dose',
+      _details(),
+    );
+  }
+
   // ── Залишок ліків ─────────────────────────────────────────────────────
 
   static int lowStockNotificationId(int medicationId) =>
@@ -190,6 +242,35 @@ class NotificationService {
     await cancel(activityNotificationId(logId));
     await cancel(activityRepeatNotificationId(logId));
   }
+
+  // ── Сім'я: перевірка активності автономного учасника ─────────────────
+  // Той самий принцип, що й familyCheckReminder для ліків — планується на
+  // пристрої того, хто наглядає, за +30 хв, скасовується щойно прилетить
+  // "виконано/пропущено".
+  static int familyActivityCheckNotificationId(int logId) => 9100000 + logId;
+
+  static Future<void> scheduleFamilyActivityCheckReminder({
+    required int logId,
+    required String memberName,
+    required String activityName,
+    required DateTime scheduledAt,
+    bool vibrationEnabled = true,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: familyActivityCheckNotificationId(logId),
+      title: '🔔 Перевірте $memberName',
+      body: 'Чи виконано "$activityName" о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан у '
+          'розділі "Сімʼя".',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+      vibrationEnabled: vibrationEnabled,
+    );
+  }
+
+  static Future<void> cancelActivityCheckReminder(int logId) =>
+      cancel(familyActivityCheckNotificationId(logId));
 
   // ── Лікарі ────────────────────────────────────────────────────────────
 
@@ -271,6 +352,50 @@ class NotificationService {
     }
   }
 
+  // ── Сім'я: перевірка зрізу самопочуття автономного учасника ──────────
+  // На відміну від scheduleWellbeingDaily (нескінченно повторюваний, той
+  // самий id щодня) — тут кожен день має свій id (memberId+день+слот), щоб
+  // "прийшов новий лог сьогодні" могло скасувати САМЕ сьогоднішні
+  // перевірки, не займаючи майбутні дні.
+  static int _todayEpochDay() => DateTime.now().difference(DateTime(1970, 1, 1)).inDays;
+
+  static int familyWellbeingCheckNotificationId(
+          int memberId, int epochDay, int slotIndex) =>
+      11000000 + (memberId % 1000) * 100000 + (epochDay % 1000) * 10 + slotIndex;
+
+  static Future<void> scheduleFamilyWellbeingCheckReminder({
+    required int memberId,
+    required String memberName,
+    required int slotIndex,
+    required DateTime scheduledAt,
+    bool vibrationEnabled = true,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: familyWellbeingCheckNotificationId(memberId, _todayEpochDay(), slotIndex),
+      title: '🔔 Перевірте $memberName',
+      body: 'Чи зроблено зріз самопочуття о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан у '
+          'розділі "Сімʼя".',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+      vibrationEnabled: vibrationEnabled,
+    );
+  }
+
+  /// Викликається, коли для [memberId] прилетів новий WellbeingLog —
+  /// прибирає всі заплановані на СЬОГОДНІ перевірки (спрощення: не
+  /// звіряємо конкретний слот з конкретним логом).
+  static Future<void> cancelTodayWellbeingChecks(
+    int memberId, {
+    int maxSlots = 6,
+  }) async {
+    final today = _todayEpochDay();
+    for (var i = 0; i < maxSlots; i++) {
+      await cancel(familyWellbeingCheckNotificationId(memberId, today, i));
+    }
+  }
+
   // ── Щеплення ──────────────────────────────────────────────────────────
 
   static int vaccinationNotificationId(int vaccinationId) =>
@@ -297,4 +422,87 @@ class NotificationService {
 
   static Future<void> cancelVaccinationReminder(int vaccinationId) =>
       cancel(vaccinationNotificationId(vaccinationId));
+
+  // ── Сімейна група (FamilyPeers): перевірка суб'єкта з notify-дозволом ──
+  // Той самий принцип, що й familyCheckReminder/familyActivityCheckReminder
+  // для пейрингу автономного профілю — але тут ідентифікатор рядка не
+  // локальний int id (даних у типізованих таблицях немає, лише кеш
+  // SharedEntities), а syncUuid (String) від суб'єкта, тож id сповіщення
+  // виводиться стабільним хешем.
+  static int _stableId(int base, String uuid) => base + (uuid.hashCode.abs() % 900000);
+
+  static int peerIntakeCheckId(String uuid) => _stableId(20000000, uuid);
+
+  static Future<void> schedulePeerIntakeCheck({
+    required String uuid,
+    required String subjectName,
+    required String medName,
+    required String dose,
+    required DateTime scheduledAt,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: peerIntakeCheckId(uuid),
+      title: '🔔 Перевірте $subjectName',
+      body: 'Чи прийнято "$medName" ($dose) о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+    );
+  }
+
+  static Future<void> cancelPeerIntakeCheck(String uuid) => cancel(peerIntakeCheckId(uuid));
+
+  static int peerActivityCheckId(String uuid) => _stableId(21000000, uuid);
+
+  static Future<void> schedulePeerActivityCheck({
+    required String uuid,
+    required String subjectName,
+    required String activityName,
+    required DateTime scheduledAt,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: peerActivityCheckId(uuid),
+      title: '🔔 Перевірте $subjectName',
+      body: 'Чи виконано "$activityName" о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+    );
+  }
+
+  static Future<void> cancelPeerActivityCheck(String uuid) => cancel(peerActivityCheckId(uuid));
+
+  static int _peerWellbeingEpochDay() => DateTime.now().difference(DateTime(1970, 1, 1)).inDays;
+
+  static int peerWellbeingCheckId(String subjectPersonUuid, int epochDay, int slotIndex) =>
+      22000000 + (subjectPersonUuid.hashCode.abs() % 700000) + (epochDay % 1000) * 10 + slotIndex;
+
+  static Future<void> schedulePeerWellbeingCheck({
+    required String subjectPersonUuid,
+    required String subjectName,
+    required int slotIndex,
+    required DateTime scheduledAt,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: peerWellbeingCheckId(subjectPersonUuid, _peerWellbeingEpochDay(), slotIndex),
+      title: '🔔 Перевірте $subjectName',
+      body: 'Чи зроблено зріз самопочуття о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+    );
+  }
+
+  static Future<void> cancelTodayPeerWellbeingChecks(
+    String subjectPersonUuid, {
+    int maxSlots = 6,
+  }) async {
+    final today = _peerWellbeingEpochDay();
+    for (var i = 0; i < maxSlots; i++) {
+      await cancel(peerWellbeingCheckId(subjectPersonUuid, today, i));
+    }
+  }
 }

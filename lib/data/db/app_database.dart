@@ -56,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -319,6 +319,50 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.createTable(sharedEntities);
+            } catch (_) {}
+          }
+          if (from < 19) {
+            // Пір повинен дізнатись, що йому дозволено (FamilyGrants живе
+            // лише на пристрої субʼєкта) — інакше "Сповіщення" не може
+            // показати, хто з автономних учасників реально дозволив собі
+            // слати сповіщення.
+            try {
+              await m.addColumn(familyPeers, familyPeers.notifyGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editGranted);
+            } catch (_) {}
+          }
+          if (from < 20) {
+            // Активності й самопочуття тепер теж дзеркалюються на пейрингу
+            // автономного профілю (family_sync) — раніше синхронізувались
+            // лише ліки й медкартка, тож пропущену активність чи відсутній
+            // зріз самопочуття інший пристрій просто не міг побачити.
+            try {
+              await m.addColumn(activities, activities.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(activitySlots, activitySlots.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(activityLogs, activityLogs.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(wellbeingLogs, wellbeingLogs.syncUuid);
+            } catch (_) {}
+            try {
+              await m.addColumn(wellbeingSchedules, wellbeingSchedules.syncUuid);
+            } catch (_) {}
+          }
+          if (from < 21) {
+            // "Локальний → Автономний": запрошення тепер може нести не лише
+            // звичайне членство в групі, а й перетворення існуючого
+            // локального профілю — convertingMemberId позначає, який саме.
+            try {
+              await m.addColumn(pendingGroupInvites, pendingGroupInvites.convertingMemberId);
             } catch (_) {}
           }
         },

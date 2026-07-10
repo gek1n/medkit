@@ -22,7 +22,6 @@ import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_type_sheet.dart';
-import '../analytics/analytics_screen.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import 'providers/today_providers.dart';
@@ -72,6 +71,7 @@ class TodayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(generateTodayIntakesProvider);
     ref.watch(generateTodayActivityLogsProvider);
+    ref.watch(generateTodayWellbeingChecksProvider);
     final memberAsync = ref.watch(currentMemberProvider);
     final activeId = ref.watch(activeMemberIdProvider);
 
@@ -311,12 +311,6 @@ class _TodayContent extends ConsumerWidget {
                   total: total,
                   nextAt: nextAt,
                   nextLabel: nextLabel,
-                  onAnalyticsTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            AnalyticsScreen(memberId: member.id)),
-                  ),
                   onAddWellbeing: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -584,7 +578,6 @@ class _CompactHero extends StatelessWidget {
   final int taken, total;
   final DateTime? nextAt;
   final String? nextLabel;
-  final VoidCallback onAnalyticsTap;
   final VoidCallback onAddWellbeing;
 
   const _CompactHero({
@@ -593,7 +586,6 @@ class _CompactHero extends StatelessWidget {
     required this.total,
     required this.nextAt,
     required this.nextLabel,
-    required this.onAnalyticsTap,
     required this.onAddWellbeing,
   });
 
