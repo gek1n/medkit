@@ -10,6 +10,7 @@ import '../../data/db/app_database.dart';
 import 'family_sync_api_client.dart';
 import 'family_sync_delete_queue.dart';
 import 'family_visibility_service.dart';
+import 'notification_service.dart';
 import 'photo_service.dart';
 import 'push_token_service.dart';
 import 'relay_api_client.dart';
@@ -83,6 +84,11 @@ class FamilySyncService {
     await _assignMissingChronicConditionUuids(memberId);
     await _assignMissingVaccinationUuids(memberId);
     await _assignMissingSurgeryUuids(memberId);
+    await _assignMissingActivityUuids(memberId);
+    await _assignMissingActivitySlotUuids(memberId);
+    await _assignMissingActivityLogUuids(memberId);
+    await _assignMissingWellbeingLogUuids(memberId);
+    await _assignMissingWellbeingScheduleUuids(memberId);
 
     final medications = await (_db.select(_db.medications)..where((t) => t.memberId.equals(memberId))).get();
     for (final m in medications) {
@@ -173,6 +179,48 @@ class FamilySyncService {
       }
     }
 
+    final activityRows = await (_db.select(_db.activities)..where((t) => t.memberId.equals(memberId))).get();
+    for (final a in activityRows) {
+      if (a.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'activity', syncUuid: a.syncUuid!);
+      }
+    }
+
+    final activitySlotRows = await (_db.select(_db.activitySlots).join([
+      innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activitySlots.activityId)),
+    ])
+          ..where(_db.activities.memberId.equals(memberId)))
+        .get();
+    for (final r in activitySlotRows) {
+      final s = r.readTable(_db.activitySlots);
+      if (s.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'activity_slot', syncUuid: s.syncUuid!);
+      }
+    }
+
+    final activityLogRows = await (_db.select(_db.activityLogs)..where((t) => t.memberId.equals(memberId))).get();
+    for (final l in activityLogRows) {
+      if (l.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'activity_log', syncUuid: l.syncUuid!);
+      }
+    }
+
+    final wellbeingLogRows = await (_db.select(_db.wellbeingLogs)..where((t) => t.memberId.equals(memberId))).get();
+    for (final l in wellbeingLogRows) {
+      if (l.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(channelId: channel.channelId, entityType: 'wellbeing_log', syncUuid: l.syncUuid!);
+      }
+    }
+
+    final wellbeingScheduleRows =
+        await (_db.select(_db.wellbeingSchedules)..where((t) => t.memberId.equals(memberId))).get();
+    for (final s in wellbeingScheduleRows) {
+      if (s.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(
+            channelId: channel.channelId, entityType: 'wellbeing_schedule', syncUuid: s.syncUuid!);
+      }
+    }
+
     try {
       await _syncChannel(channel);
     } catch (_) {
@@ -256,6 +304,61 @@ class FamilySyncService {
         'uuid': s.syncUuid,
         'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
       });
+    }
+
+    // Активності — завжди синхронізуються, той самий пріоритет, що й ліки:
+    // саме "виконав/пропустив активність" — ключова причина, чому за
+    // автономним профілем взагалі наглядають.
+    for (final a in await _activitiesForPush(memberId, since)) {
+      final json = a.toJson()..remove('id')..remove('memberId');
+      entities.add({
+        'type': 'activity',
+        'uuid': a.syncUuid,
+        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+      });
+    }
+    for (final s in await _activitySlotsForPush(memberId, since)) {
+      final actUuid = await _activitySyncUuidFor(s.activityId);
+      if (actUuid == null) continue;
+      final json = s.toJson()..remove('id')..remove('activityId');
+      json['activitySyncUuid'] = actUuid;
+      entities.add({
+        'type': 'activity_slot',
+        'uuid': s.syncUuid,
+        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+      });
+    }
+    for (final l in await _activityLogsForPush(memberId, since)) {
+      final actUuid = await _activitySyncUuidFor(l.activityId);
+      if (actUuid == null) continue;
+      final json = l.toJson()..remove('id')..remove('activityId')..remove('memberId');
+      json['activitySyncUuid'] = actUuid;
+      entities.add({
+        'type': 'activity_log',
+        'uuid': l.syncUuid,
+        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+      });
+    }
+
+    // Самопочуття — настрій/симптоми ближчі до медкартки, ніж до
+    // виконання завдань, тож підпорядковані тому самому прапорцю нижче.
+    if (medcardSyncAllowed) {
+      for (final l in await _wellbeingLogsForPush(memberId, since)) {
+        final json = l.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'wellbeing_log',
+          'uuid': l.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final s in await _wellbeingSchedulesForPush(memberId, since)) {
+        final json = s.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'wellbeing_schedule',
+          'uuid': s.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
     }
 
     // Медкартка — усі плоскі, прив'язані напряму до memberId (без дочірніх
@@ -428,6 +531,117 @@ class FamilySyncService {
     if (since != null) query.where(_db.symptoms.updatedAt.isBiggerThanValue(since));
     final rows = await query.get();
     return rows.map((r) => r.readTable(_db.symptoms)).toList();
+  }
+
+  // ── Активності ────────────────────────────────────────────────────────
+
+  Future<void> _assignMissingActivityUuids(int memberId) async {
+    final rows = await (_db.select(_db.activities)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final a in rows) {
+      await (_db.update(_db.activities)..where((t) => t.id.equals(a.id))).write(
+        ActivitiesCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<Activity>> _activitiesForPush(int memberId, DateTime? since) async {
+    await _assignMissingActivityUuids(memberId);
+    final query = _db.select(_db.activities)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
+  }
+
+  Future<void> _assignMissingActivitySlotUuids(int memberId) async {
+    final query = _db.select(_db.activitySlots).join([
+      innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activitySlots.activityId)),
+    ])
+      ..where(_db.activities.memberId.equals(memberId) & _db.activitySlots.syncUuid.isNull());
+    final rows = await query.get();
+    for (final r in rows) {
+      final slot = r.readTable(_db.activitySlots);
+      await (_db.update(_db.activitySlots)..where((t) => t.id.equals(slot.id))).write(
+        ActivitySlotsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<ActivitySlot>> _activitySlotsForPush(int memberId, DateTime? since) async {
+    await _assignMissingActivitySlotUuids(memberId);
+    final query = _db.select(_db.activitySlots).join([
+      innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activitySlots.activityId)),
+    ])
+      ..where(_db.activities.memberId.equals(memberId));
+    if (since != null) query.where(_db.activitySlots.updatedAt.isBiggerThanValue(since));
+    final rows = await query.get();
+    return rows.map((r) => r.readTable(_db.activitySlots)).toList();
+  }
+
+  Future<void> _assignMissingActivityLogUuids(int memberId) async {
+    final rows = await (_db.select(_db.activityLogs)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final l in rows) {
+      await (_db.update(_db.activityLogs)..where((t) => t.id.equals(l.id))).write(
+        ActivityLogsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<ActivityLog>> _activityLogsForPush(int memberId, DateTime? since) async {
+    await _assignMissingActivityLogUuids(memberId);
+    final query = _db.select(_db.activityLogs)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
+  }
+
+  Future<String?> _activitySyncUuidFor(int activityId) async {
+    final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activityId))).getSingleOrNull();
+    return row?.syncUuid;
+  }
+
+  Future<int?> _localActivityIdForUuid(String syncUuid) async {
+    final row = await (_db.select(_db.activities)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+    return row?.id;
+  }
+
+  // ── Самопочуття ───────────────────────────────────────────────────────
+
+  Future<void> _assignMissingWellbeingLogUuids(int memberId) async {
+    final rows = await (_db.select(_db.wellbeingLogs)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final l in rows) {
+      await (_db.update(_db.wellbeingLogs)..where((t) => t.id.equals(l.id))).write(
+        WellbeingLogsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<WellbeingLog>> _wellbeingLogsForPush(int memberId, DateTime? since) async {
+    await _assignMissingWellbeingLogUuids(memberId);
+    final query = _db.select(_db.wellbeingLogs)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
+  }
+
+  Future<void> _assignMissingWellbeingScheduleUuids(int memberId) async {
+    final rows = await (_db.select(_db.wellbeingSchedules)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final s in rows) {
+      await (_db.update(_db.wellbeingSchedules)..where((t) => t.id.equals(s.id))).write(
+        WellbeingSchedulesCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<WellbeingSchedule>> _wellbeingSchedulesForPush(int memberId, DateTime? since) async {
+    await _assignMissingWellbeingScheduleUuids(memberId);
+    final query = _db.select(_db.wellbeingSchedules)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
   }
 
   // ── Медкартка (плоскі сутності, memberId напряму) ────────────────────────
@@ -649,6 +863,32 @@ class FamilySyncService {
     return photos;
   }
 
+  // ── "🔔 Нагадати": миттєвий пуш на пристрій автономного учасника ────────
+  // На відміну від familyCheckReminder (заплановано наперед, мовчки
+  // скасовується при відповіді) — це разовий, явний виклик за натисканням
+  // кнопки: показується одразу на іншому пристрої, щойно долетить.
+  Future<void> sendRemoteReminder({
+    required int memberId,
+    required String medName,
+    required String dose,
+  }) async {
+    final channel =
+        await (_db.select(_db.sharedChannels)..where((t) => t.memberId.equals(memberId))).getSingleOrNull();
+    if (channel == null) return;
+    final keyBytes = await SharedChannelKeyStorage.read(channel.channelId);
+    if (keyBytes == null) return;
+    final key = SecretKey(keyBytes);
+
+    final json = {'medName': medName, 'dose': dose};
+    final entity = {
+      'type': 'remind_now',
+      'uuid': _uuid.v4(),
+      'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+    };
+    await _api.push(channelId: channel.channelId, entities: [entity]);
+    await _pingOtherDevice(channel.channelId, key);
+  }
+
   Future<void> _pingOtherDevice(String channelId, SecretKey key) async {
     try {
       final token = await PushTokenService.getToken();
@@ -677,11 +917,17 @@ class FamilySyncService {
     // плоскі (memberId напряму), порядок між ними не має значення.
     const order = [
       'medication', 'schedule', 'intake', 'symptom',
+      'activity', 'activity_slot', 'activity_log',
+      'wellbeing_log', 'wellbeing_schedule',
       'doctor_appointment', 'lab_result', 'allergy', 'chronic_condition',
       'vaccination', 'surgery',
     ];
     final byType = <String, List<FamilySyncEntity>>{for (final t in order) t: []};
     for (final e in result.entities) {
+      if (e.type == 'remind_now') {
+        await _handleRemoteReminder(e, key);
+        continue;
+      }
       (byType[e.type] ??= []).add(e);
     }
 
@@ -705,6 +951,21 @@ class FamilySyncService {
       await file.parent.create(recursive: true);
       await file.writeAsBytes(photo.bytes);
     }
+  }
+
+  // Сервер зберігає кожну надіслану сутність і повторно віддає її при
+  // будь-якому "since: null" пулі (напр. після переустановки) — без цієї
+  // перевірки старий "Нагадати" міг би спливти як нове сповіщення значно
+  // пізніше, ніж його справді натиснули.
+  Future<void> _handleRemoteReminder(FamilySyncEntity entity, SecretKey key) async {
+    if (entity.deleted) return;
+    final updatedAt = DateTime.tryParse(entity.updatedAt);
+    if (updatedAt == null || DateTime.now().difference(updatedAt) > const Duration(minutes: 5)) return;
+    final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+    await NotificationService.showRemoteReminder(
+      medName: json['medName'] as String? ?? 'Ліки',
+      dose: json['dose'] as String? ?? '',
+    );
   }
 
   Future<void> _upsertLocally(
@@ -771,6 +1032,11 @@ class FamilySyncService {
         } else {
           await _db.into(_db.intakes).insert(companion);
         }
+        // Пір (на своєму пристрої) щойно відмітив прийом/пропуск — прибрати
+        // заплановану "перевірку" тут раніше, ніж вона встигне спрацювати.
+        if (existing != null && (row.status == 'taken' || row.status == 'skipped')) {
+          await NotificationService.cancelFamilyCheckReminder(existing.id);
+        }
 
       case 'symptom':
         final medUuid = json['medicationSyncUuid'] as String?;
@@ -789,6 +1055,104 @@ class FamilySyncService {
           await _db.update(_db.symptoms).replace(companion);
         } else {
           await _db.into(_db.symptoms).insert(companion);
+        }
+
+      case 'activity':
+        final existing =
+            await (_db.select(_db.activities)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['memberId'] = memberId;
+        final row = Activity.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.activities).replace(companion);
+        } else {
+          await _db.into(_db.activities).insert(companion);
+        }
+
+      case 'activity_slot':
+        final actUuid = json['activitySyncUuid'] as String?;
+        final activityId = actUuid == null ? null : await _localActivityIdForUuid(actUuid);
+        if (activityId == null) return;
+        final existing =
+            await (_db.select(_db.activitySlots)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['activityId'] = activityId;
+        final row = ActivitySlot.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.activitySlots).replace(companion);
+        } else {
+          await _db.into(_db.activitySlots).insert(companion);
+        }
+
+      case 'activity_log':
+        final actUuid = json['activitySyncUuid'] as String?;
+        final activityId = actUuid == null ? null : await _localActivityIdForUuid(actUuid);
+        if (activityId == null) return;
+        final existing =
+            await (_db.select(_db.activityLogs)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['activityId'] = activityId;
+        json['memberId'] = memberId;
+        final row = ActivityLog.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.activityLogs).replace(companion);
+        } else {
+          await _db.into(_db.activityLogs).insert(companion);
+        }
+        // Той самий принцип, що й для intake: пір щойно відмітив
+        // виконано/пропущено — прибрати заплановану перевірку заздалегідь.
+        if (existing != null && (row.status == 'done' || row.status == 'skipped')) {
+          await NotificationService.cancelActivityCheckReminder(existing.id);
+        }
+
+      case 'wellbeing_log':
+        final existing =
+            await (_db.select(_db.wellbeingLogs)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['memberId'] = memberId;
+        final row = WellbeingLog.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.wellbeingLogs).replace(companion);
+        } else {
+          await _db.into(_db.wellbeingLogs).insert(companion);
+        }
+        // Прийшов новий зріз самопочуття цього дня — прибрати всі заплановані
+        // на сьогодні перевірки для цього учасника (спрощення: не звіряємо
+        // конкретний слот, достатньо факту, що людина відкрила застосунок і
+        // щось відмітила).
+        await NotificationService.cancelTodayWellbeingChecks(memberId);
+
+      case 'wellbeing_schedule':
+        final existing = await (_db.select(_db.wellbeingSchedules)
+              ..where((t) => t.syncUuid.equals(syncUuid)))
+            .getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['memberId'] = memberId;
+        final row = WellbeingSchedule.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.wellbeingSchedules).replace(companion);
+        } else {
+          await _db.into(_db.wellbeingSchedules).insert(companion);
         }
 
       case 'doctor_appointment':
@@ -901,6 +1265,16 @@ class FamilySyncService {
         await (_db.delete(_db.intakes)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'symptom':
         await (_db.delete(_db.symptoms)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'activity':
+        await (_db.delete(_db.activities)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'activity_slot':
+        await (_db.delete(_db.activitySlots)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'activity_log':
+        await (_db.delete(_db.activityLogs)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'wellbeing_log':
+        await (_db.delete(_db.wellbeingLogs)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'wellbeing_schedule':
+        await (_db.delete(_db.wellbeingSchedules)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'doctor_appointment':
         await (_db.delete(_db.doctorAppointments)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'lab_result':

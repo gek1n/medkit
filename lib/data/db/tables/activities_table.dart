@@ -23,6 +23,8 @@ class Activities extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable()();
+  // стабільний ідентифікатор для family_sync (пейринг автономного профілю)
 }
 
 class ActivitySlots extends Table {
@@ -35,6 +37,7 @@ class ActivitySlots extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable()();
 }
 
 class ActivityLogs extends Table {
@@ -49,4 +52,5 @@ class ActivityLogs extends Table {
   // pending/done/skipped
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable()();
 }

@@ -8,6 +8,7 @@ import '../../../data/repositories/doctor_appointments_repository.dart';
 import '../../../data/repositories/wellbeing_repository.dart';
 import '../../../core/services/intake_generator.dart';
 import '../../../core/services/activity_log_generator.dart';
+import '../../../core/services/wellbeing_check_generator.dart';
 
 // Активний профіль (null = власник за замовчуванням)
 final activeMemberIdProvider = StateProvider<int?>((_) => null);
@@ -117,6 +118,11 @@ final generateTodayIntakesProvider = FutureProvider<void>((ref) async {
 // Генерація логів активностей при відкритті екрану
 final generateTodayActivityLogsProvider = FutureProvider<void>((ref) async {
   await ref.watch(activityLogGeneratorProvider).generateForDay(DateTime.now());
+});
+
+// Планування перевірок самопочуття автономних профілів на сьогодні
+final generateTodayWellbeingChecksProvider = FutureProvider<void>((ref) async {
+  await ref.watch(wellbeingCheckGeneratorProvider).generateForToday();
 });
 
 // Активні ліки члена сім'ї (для відображення фото та деталей)

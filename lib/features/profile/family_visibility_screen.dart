@@ -11,10 +11,12 @@ import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
 
-/// Один можливий "глядач" видимості — або інший локальний профіль на цьому
-/// ж пристрої (dependent/owner), або незалежний учасник сімейної групи
-/// ([FamilyPeer], Фаза 2) зі своїм власним пристроєм. Обидва мають
-/// personUuid, тому далі UI працює з ними однаково.
+/// Один можливий "глядач" видимості — ЛИШЕ незалежний учасник сімейної
+/// групи ([FamilyPeer], Фаза 2) зі своїм власним акаунтом і пристроєм.
+/// Локальні профілі (dependent/member, керовані цим пристроєм) тут
+/// принципово не показуються — власник і так має до них повний доступ,
+/// "видимість" як окреме право для них не має сенсу: нема кому давати
+/// доступ, крім самого власника.
 class _ViewerInfo {
   final String personUuid;
   final String name;
@@ -22,13 +24,14 @@ class _ViewerInfo {
   const _ViewerInfo({required this.personUuid, required this.name, required this.avatarIndex});
 }
 
-/// Налаштування, кому з членів сім'ї видно завдання/медкартку/розклад
-/// цього профілю, хто може його редагувати і кому надсилати сповіщення.
-/// ⚠️ Перемикачі нижче (_ViewerCard) впливають лише на дані, що йдуть через
-/// цей сервіс — реальний бар'єр для медкартки ([_MedcardSyncCard], перевіряє
-/// `FamilySyncService`) і для перегляду в межах групи ([_ViewerCard], тепер
-/// keyed по personUuid — Фаза 3). setAllowed можна викликати лише для
-/// subject'а, яким керує цей пристрій (перевірка в самому сервісі).
+/// Налаштування, кому з автономних учасників сім'ї видно завдання/
+/// медкартку/розклад цього профілю, хто може його редагувати і кому
+/// надсилати сповіщення. ⚠️ Перемикачі нижче (_ViewerCard) впливають лише
+/// на дані, що йдуть через цей сервіс — реальний бар'єр для медкартки
+/// ([_MedcardSyncCard], перевіряє `FamilySyncService`) і для перегляду в
+/// межах групи ([_ViewerCard], keyed по personUuid — Фаза 3). setAllowed
+/// можна викликати лише для subject'а, яким керує цей пристрій (перевірка
+/// в самому сервісі).
 class FamilyVisibilityScreen extends ConsumerWidget {
   final int subjectMemberId;
   const FamilyVisibilityScreen({super.key, required this.subjectMemberId});
@@ -78,9 +81,6 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                   final subjectUuid = subject!.personUuid!;
 
                   final viewers = <_ViewerInfo>[
-                    for (final m in members)
-                      if (m.id != subjectMemberId && m.personUuid != null)
-                        _ViewerInfo(personUuid: m.personUuid!, name: m.name, avatarIndex: m.avatarIndex),
                     for (final p in peersAsync.valueOrNull ?? const [])
                       _ViewerInfo(personUuid: p.personUuid, name: p.name, avatarIndex: p.avatarIndex),
                   ];
@@ -97,9 +97,10 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                                 height: 160),
                             const SizedBox(height: AppDimensions.lg),
                             Text(
-                              'Якщо у вашій родині зʼявляться інші учасники, '
-                              'тут можна буде керувати рівнями доступу до '
-                              'вашого облікового запису',
+                              'Якщо до вашої сімейної групи приєднаються '
+                              'автономні учасники (зі своїм акаунтом), тут '
+                              'можна буде керувати їхнім доступом до '
+                              'вашого профілю',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodyMd
                                   .copyWith(color: AppColors.textSub),

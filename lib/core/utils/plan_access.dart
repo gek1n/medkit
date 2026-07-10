@@ -14,7 +14,7 @@ bool isMemberBlockedByPlan(WidgetRef ref, int? memberId) {
   if (limits.maxLocalMembers == 0) return false; // необмежено
   final members = ref.watch(allMembersProvider).valueOrNull;
   if (members == null) return false;
-  final localCount = members.where((m) => m.role != 'member').length;
+  final localCount = members.length;
   if (localCount <= limits.maxLocalMembers) return false;
   for (final m in members) {
     if (m.id == memberId) return m.role == 'dependent';

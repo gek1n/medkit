@@ -1,14 +1,23 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
+import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 
 class ActivitiesRepository {
   final AppDatabase _db;
   final Ref _ref;
   ActivitiesRepository(this._db, this._ref);
+
+  void _triggerFamilySync(int memberId) {
+    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
+    unawaited(FamilyPeerSyncService(_db).syncAllPeers());
+  }
 
   Stream<List<Activity>> watchByMember(int memberId) =>
       (_db.select(_db.activities)
@@ -50,8 +59,11 @@ class ActivitiesRepository {
         .watch();
   }
 
-  Future<int> insertActivity(ActivitiesCompanion activity) =>
-      _db.into(_db.activities).insert(activity);
+  Future<int> insertActivity(ActivitiesCompanion activity) async {
+    final id = await _db.into(_db.activities).insert(activity);
+    if (activity.memberId.present) _triggerFamilySync(activity.memberId.value);
+    return id;
+  }
 
   Future<void> insertSlots(List<ActivitySlotsCompanion> slots) async {
     for (final s in slots) {
@@ -71,19 +83,28 @@ class ActivitiesRepository {
 
   Future<void> markLogDone(int id) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
-        .write(const ActivityLogsCompanion(status: Value('done')));
+        .write(ActivityLogsCompanion(status: const Value('done'), updatedAt: Value(DateTime.now())));
     await NotificationService.cancelActivityReminder(id);
+    await NotificationService.cancelActivityCheckReminder(id);
+    await _triggerFamilySyncForLog(id);
   }
 
   Future<void> markLogSkipped(int id) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
-        .write(const ActivityLogsCompanion(status: Value('skipped')));
+        .write(ActivityLogsCompanion(status: const Value('skipped'), updatedAt: Value(DateTime.now())));
     await NotificationService.cancelActivityReminder(id);
+    await NotificationService.cancelActivityCheckReminder(id);
+    await _triggerFamilySyncForLog(id);
+  }
+
+  Future<void> _triggerFamilySyncForLog(int id) async {
+    final log = await (_db.select(_db.activityLogs)..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (log != null) _triggerFamilySync(log.memberId);
   }
 
   Future<void> snoozeLog(int id, DateTime newScheduledAt) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
-        .write(ActivityLogsCompanion(scheduledAt: Value(newScheduledAt)));
+        .write(ActivityLogsCompanion(scheduledAt: Value(newScheduledAt), updatedAt: Value(DateTime.now())));
     await NotificationService.cancelActivityReminder(id);
 
     final log = await (_db.select(_db.activityLogs)..where((t) => t.id.equals(id)))
@@ -105,6 +126,7 @@ class ActivitiesRepository {
         repeatMinutes: settings.repeatMinutes,
       );
     }
+    _triggerFamilySync(log.memberId);
   }
 
   Future<List<ActivityLog>> getLogsByMemberAndDateRange(
@@ -119,12 +141,19 @@ class ActivitiesRepository {
                 t.scheduledAt.isSmallerThanValue(to)))
           .get();
 
-  Future<int> insertLog(ActivityLogsCompanion log) =>
-      _db.into(_db.activityLogs).insert(log);
+  Future<int> insertLog(ActivityLogsCompanion log) async {
+    final id = await _db.into(_db.activityLogs).insert(log);
+    if (log.memberId.present) _triggerFamilySync(log.memberId.value);
+    return id;
+  }
 
-  Future<void> updateActivity(ActivitiesCompanion activity) =>
-      (_db.update(_db.activities)..where((t) => t.id.equals(activity.id.value)))
-          .write(activity);
+  Future<void> updateActivity(ActivitiesCompanion activity) async {
+    await (_db.update(_db.activities)..where((t) => t.id.equals(activity.id.value)))
+        .write(activity);
+    final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activity.id.value)))
+        .getSingleOrNull();
+    if (row != null) _triggerFamilySync(row.memberId);
+  }
 
   Future<int> softDelete(int id) async {
     final pending = await (_db.select(_db.activityLogs)
@@ -132,10 +161,14 @@ class ActivitiesRepository {
         .get();
     for (final log in pending) {
       await NotificationService.cancelActivityReminder(log.id);
+      await NotificationService.cancelActivityCheckReminder(log.id);
     }
 
-    return (_db.update(_db.activities)..where((t) => t.id.equals(id)))
+    final activity = await (_db.select(_db.activities)..where((t) => t.id.equals(id))).getSingleOrNull();
+    final result = await (_db.update(_db.activities)..where((t) => t.id.equals(id)))
         .write(const ActivitiesCompanion(isActive: Value(false)));
+    if (activity != null) _triggerFamilySync(activity.memberId);
+    return result;
   }
 }
 

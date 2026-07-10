@@ -19,4 +19,6 @@ class WellbeingLogs extends Table {
   DateTimeColumn get loggedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
+  TextColumn get syncUuid => text().nullable()();
+  // стабільний ідентифікатор для family_sync (пейринг автономного профілю)
 }

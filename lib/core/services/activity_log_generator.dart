@@ -57,8 +57,7 @@ class ActivityLogGenerator {
                 ));
 
         final settings = _ref.read(notificationSettingsProvider);
-        final remindAt =
-            settings.adjust(scheduledAt, memberId: activity.memberId);
+        final remindAt = settings.adjust(scheduledAt, memberId: activity.memberId);
         if (remindAt != null) {
           await NotificationService.scheduleActivityReminder(
             logId: logId,

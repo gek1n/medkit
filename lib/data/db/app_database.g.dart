@@ -54,7 +54,7 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('member'),
+    defaultValue: const Constant('dependent'),
   );
   static const VerificationMeta _fontSizeMeta = const VerificationMeta(
     'fontSize',
@@ -3693,6 +3693,17 @@ class $WellbeingLogsTable extends WellbeingLogs
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3704,6 +3715,7 @@ class $WellbeingLogsTable extends WellbeingLogs
     skipped,
     loggedAt,
     updatedAt,
+    syncUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3778,6 +3790,12 @@ class $WellbeingLogsTable extends WellbeingLogs
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
     return context;
   }
 
@@ -3823,6 +3841,10 @@ class $WellbeingLogsTable extends WellbeingLogs
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -3842,6 +3864,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
   final bool skipped;
   final DateTime loggedAt;
   final DateTime updatedAt;
+  final String? syncUuid;
   const WellbeingLog({
     required this.id,
     required this.memberId,
@@ -3852,6 +3875,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     required this.skipped,
     required this.loggedAt,
     required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3869,6 +3893,9 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     map['skipped'] = Variable<bool>(skipped);
     map['logged_at'] = Variable<DateTime>(loggedAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -3887,6 +3914,9 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       skipped: Value(skipped),
       loggedAt: Value(loggedAt),
       updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -3905,6 +3935,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       skipped: serializer.fromJson<bool>(json['skipped']),
       loggedAt: serializer.fromJson<DateTime>(json['loggedAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -3920,6 +3951,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       'skipped': serializer.toJson<bool>(skipped),
       'loggedAt': serializer.toJson<DateTime>(loggedAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -3933,6 +3965,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     bool? skipped,
     DateTime? loggedAt,
     DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => WellbeingLog(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -3945,6 +3978,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     skipped: skipped ?? this.skipped,
     loggedAt: loggedAt ?? this.loggedAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   WellbeingLog copyWithCompanion(WellbeingLogsCompanion data) {
     return WellbeingLog(
@@ -3961,6 +3995,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
       skipped: data.skipped.present ? data.skipped.value : this.skipped,
       loggedAt: data.loggedAt.present ? data.loggedAt.value : this.loggedAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -3975,7 +4010,8 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
           ..write('voiceNotePath: $voiceNotePath, ')
           ..write('skipped: $skipped, ')
           ..write('loggedAt: $loggedAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -3991,6 +4027,7 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
     skipped,
     loggedAt,
     updatedAt,
+    syncUuid,
   );
   @override
   bool operator ==(Object other) =>
@@ -4004,7 +4041,8 @@ class WellbeingLog extends DataClass implements Insertable<WellbeingLog> {
           other.voiceNotePath == this.voiceNotePath &&
           other.skipped == this.skipped &&
           other.loggedAt == this.loggedAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
@@ -4017,6 +4055,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
   final Value<bool> skipped;
   final Value<DateTime> loggedAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const WellbeingLogsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -4027,6 +4066,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     this.skipped = const Value.absent(),
     this.loggedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   WellbeingLogsCompanion.insert({
     this.id = const Value.absent(),
@@ -4038,6 +4078,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     this.skipped = const Value.absent(),
     this.loggedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : memberId = Value(memberId),
        mood = Value(mood);
   static Insertable<WellbeingLog> custom({
@@ -4050,6 +4091,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     Expression<bool>? skipped,
     Expression<DateTime>? loggedAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4061,6 +4103,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
       if (skipped != null) 'skipped': skipped,
       if (loggedAt != null) 'logged_at': loggedAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -4074,6 +4117,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     Value<bool>? skipped,
     Value<DateTime>? loggedAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return WellbeingLogsCompanion(
       id: id ?? this.id,
@@ -4085,6 +4129,7 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
       skipped: skipped ?? this.skipped,
       loggedAt: loggedAt ?? this.loggedAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -4118,6 +4163,9 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
     return map;
   }
 
@@ -4132,7 +4180,8 @@ class WellbeingLogsCompanion extends UpdateCompanion<WellbeingLog> {
           ..write('voiceNotePath: $voiceNotePath, ')
           ..write('skipped: $skipped, ')
           ..write('loggedAt: $loggedAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -4226,6 +4275,17 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4235,6 +4295,7 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
     isActive,
     color,
     updatedAt,
+    syncUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4292,6 +4353,12 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
     return context;
   }
 
@@ -4329,6 +4396,10 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -4347,6 +4418,7 @@ class WellbeingSchedule extends DataClass
   final bool isActive;
   final String? color;
   final DateTime updatedAt;
+  final String? syncUuid;
   const WellbeingSchedule({
     required this.id,
     required this.memberId,
@@ -4355,6 +4427,7 @@ class WellbeingSchedule extends DataClass
     required this.isActive,
     this.color,
     required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4368,6 +4441,9 @@ class WellbeingSchedule extends DataClass
       map['color'] = Variable<String>(color);
     }
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -4382,6 +4458,9 @@ class WellbeingSchedule extends DataClass
           ? const Value.absent()
           : Value(color),
       updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -4398,6 +4477,7 @@ class WellbeingSchedule extends DataClass
       isActive: serializer.fromJson<bool>(json['isActive']),
       color: serializer.fromJson<String?>(json['color']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -4411,6 +4491,7 @@ class WellbeingSchedule extends DataClass
       'isActive': serializer.toJson<bool>(isActive),
       'color': serializer.toJson<String?>(color),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -4422,6 +4503,7 @@ class WellbeingSchedule extends DataClass
     bool? isActive,
     Value<String?> color = const Value.absent(),
     DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => WellbeingSchedule(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -4430,6 +4512,7 @@ class WellbeingSchedule extends DataClass
     isActive: isActive ?? this.isActive,
     color: color.present ? color.value : this.color,
     updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   WellbeingSchedule copyWithCompanion(WellbeingSchedulesCompanion data) {
     return WellbeingSchedule(
@@ -4442,6 +4525,7 @@ class WellbeingSchedule extends DataClass
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       color: data.color.present ? data.color.value : this.color,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -4454,14 +4538,23 @@ class WellbeingSchedule extends DataClass
           ..write('times: $times, ')
           ..write('isActive: $isActive, ')
           ..write('color: $color, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, memberId, timesPerDay, times, isActive, color, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    memberId,
+    timesPerDay,
+    times,
+    isActive,
+    color,
+    updatedAt,
+    syncUuid,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4472,7 +4565,8 @@ class WellbeingSchedule extends DataClass
           other.times == this.times &&
           other.isActive == this.isActive &&
           other.color == this.color &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
@@ -4483,6 +4577,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   final Value<bool> isActive;
   final Value<String?> color;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const WellbeingSchedulesCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -4491,6 +4586,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     this.isActive = const Value.absent(),
     this.color = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   WellbeingSchedulesCompanion.insert({
     this.id = const Value.absent(),
@@ -4500,6 +4596,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     this.isActive = const Value.absent(),
     this.color = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : memberId = Value(memberId);
   static Insertable<WellbeingSchedule> custom({
     Expression<int>? id,
@@ -4509,6 +4606,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     Expression<bool>? isActive,
     Expression<String>? color,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -4518,6 +4616,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
       if (isActive != null) 'is_active': isActive,
       if (color != null) 'color': color,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -4529,6 +4628,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     Value<bool>? isActive,
     Value<String?>? color,
     Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return WellbeingSchedulesCompanion(
       id: id ?? this.id,
@@ -4538,6 +4638,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
       isActive: isActive ?? this.isActive,
       color: color ?? this.color,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -4565,6 +4666,9 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
     return map;
   }
 
@@ -4577,7 +4681,8 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
           ..write('times: $times, ')
           ..write('isActive: $isActive, ')
           ..write('color: $color, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -4731,6 +4836,17 @@ class $ActivitiesTable extends Activities
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4745,6 +4861,7 @@ class $ActivitiesTable extends Activities
     isActive,
     createdAt,
     updatedAt,
+    syncUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4837,6 +4954,12 @@ class $ActivitiesTable extends Activities
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
     return context;
   }
 
@@ -4894,6 +5017,10 @@ class $ActivitiesTable extends Activities
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -4916,6 +5043,7 @@ class Activity extends DataClass implements Insertable<Activity> {
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? syncUuid;
   const Activity({
     required this.id,
     required this.memberId,
@@ -4929,6 +5057,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4949,6 +5078,9 @@ class Activity extends DataClass implements Insertable<Activity> {
     map['is_active'] = Variable<bool>(isActive);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -4970,6 +5102,9 @@ class Activity extends DataClass implements Insertable<Activity> {
       isActive: Value(isActive),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -4991,6 +5126,7 @@ class Activity extends DataClass implements Insertable<Activity> {
       isActive: serializer.fromJson<bool>(json['isActive']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -5009,6 +5145,7 @@ class Activity extends DataClass implements Insertable<Activity> {
       'isActive': serializer.toJson<bool>(isActive),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -5025,6 +5162,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => Activity(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -5038,6 +5176,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     isActive: isActive ?? this.isActive,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   Activity copyWithCompanion(ActivitiesCompanion data) {
     return Activity(
@@ -5061,6 +5200,7 @@ class Activity extends DataClass implements Insertable<Activity> {
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -5078,7 +5218,8 @@ class Activity extends DataClass implements Insertable<Activity> {
           ..write('color: $color, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -5097,6 +5238,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     isActive,
     createdAt,
     updatedAt,
+    syncUuid,
   );
   @override
   bool operator ==(Object other) =>
@@ -5113,7 +5255,8 @@ class Activity extends DataClass implements Insertable<Activity> {
           other.color == this.color &&
           other.isActive == this.isActive &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class ActivitiesCompanion extends UpdateCompanion<Activity> {
@@ -5129,6 +5272,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   final Value<bool> isActive;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const ActivitiesCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -5142,6 +5286,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   ActivitiesCompanion.insert({
     this.id = const Value.absent(),
@@ -5156,6 +5301,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name);
   static Insertable<Activity> custom({
@@ -5171,6 +5317,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Expression<bool>? isActive,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5185,6 +5332,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       if (isActive != null) 'is_active': isActive,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -5201,6 +5349,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Value<bool>? isActive,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return ActivitiesCompanion(
       id: id ?? this.id,
@@ -5215,6 +5364,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -5257,6 +5407,9 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
     return map;
   }
 
@@ -5274,7 +5427,8 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
           ..write('color: $color, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -5357,6 +5511,17 @@ class $ActivitySlotsTable extends ActivitySlots
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5365,6 +5530,7 @@ class $ActivitySlotsTable extends ActivitySlots
     durationMin,
     sortOrder,
     updatedAt,
+    syncUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5418,6 +5584,12 @@ class $ActivitySlotsTable extends ActivitySlots
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
     return context;
   }
 
@@ -5451,6 +5623,10 @@ class $ActivitySlotsTable extends ActivitySlots
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -5467,6 +5643,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
   final int durationMin;
   final int sortOrder;
   final DateTime updatedAt;
+  final String? syncUuid;
   const ActivitySlot({
     required this.id,
     required this.activityId,
@@ -5474,6 +5651,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
     required this.durationMin,
     required this.sortOrder,
     required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5484,6 +5662,9 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
     map['duration_min'] = Variable<int>(durationMin);
     map['sort_order'] = Variable<int>(sortOrder);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -5495,6 +5676,9 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
       durationMin: Value(durationMin),
       sortOrder: Value(sortOrder),
       updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -5510,6 +5694,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
       durationMin: serializer.fromJson<int>(json['durationMin']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -5522,6 +5707,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
       'durationMin': serializer.toJson<int>(durationMin),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -5532,6 +5718,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
     int? durationMin,
     int? sortOrder,
     DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => ActivitySlot(
     id: id ?? this.id,
     activityId: activityId ?? this.activityId,
@@ -5539,6 +5726,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
     durationMin: durationMin ?? this.durationMin,
     sortOrder: sortOrder ?? this.sortOrder,
     updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   ActivitySlot copyWithCompanion(ActivitySlotsCompanion data) {
     return ActivitySlot(
@@ -5552,6 +5740,7 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
           : this.durationMin,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -5563,14 +5752,22 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
           ..write('timeOfDay: $timeOfDay, ')
           ..write('durationMin: $durationMin, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, activityId, timeOfDay, durationMin, sortOrder, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    activityId,
+    timeOfDay,
+    durationMin,
+    sortOrder,
+    updatedAt,
+    syncUuid,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5580,7 +5777,8 @@ class ActivitySlot extends DataClass implements Insertable<ActivitySlot> {
           other.timeOfDay == this.timeOfDay &&
           other.durationMin == this.durationMin &&
           other.sortOrder == this.sortOrder &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
@@ -5590,6 +5788,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
   final Value<int> durationMin;
   final Value<int> sortOrder;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const ActivitySlotsCompanion({
     this.id = const Value.absent(),
     this.activityId = const Value.absent(),
@@ -5597,6 +5796,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
     this.durationMin = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   ActivitySlotsCompanion.insert({
     this.id = const Value.absent(),
@@ -5605,6 +5805,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
     this.durationMin = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : activityId = Value(activityId),
        timeOfDay = Value(timeOfDay);
   static Insertable<ActivitySlot> custom({
@@ -5614,6 +5815,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
     Expression<int>? durationMin,
     Expression<int>? sortOrder,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5622,6 +5824,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
       if (durationMin != null) 'duration_min': durationMin,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -5632,6 +5835,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
     Value<int>? durationMin,
     Value<int>? sortOrder,
     Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return ActivitySlotsCompanion(
       id: id ?? this.id,
@@ -5640,6 +5844,7 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
       durationMin: durationMin ?? this.durationMin,
       sortOrder: sortOrder ?? this.sortOrder,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -5664,6 +5869,9 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
     return map;
   }
 
@@ -5675,7 +5883,8 @@ class ActivitySlotsCompanion extends UpdateCompanion<ActivitySlot> {
           ..write('timeOfDay: $timeOfDay, ')
           ..write('durationMin: $durationMin, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -5755,6 +5964,17 @@ class $ActivityLogsTable extends ActivityLogs
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5763,6 +5983,7 @@ class $ActivityLogsTable extends ActivityLogs
     scheduledAt,
     status,
     updatedAt,
+    syncUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5818,6 +6039,12 @@ class $ActivityLogsTable extends ActivityLogs
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
     return context;
   }
 
@@ -5851,6 +6078,10 @@ class $ActivityLogsTable extends ActivityLogs
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -5867,6 +6098,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
   final DateTime scheduledAt;
   final String status;
   final DateTime updatedAt;
+  final String? syncUuid;
   const ActivityLog({
     required this.id,
     required this.activityId,
@@ -5874,6 +6106,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     required this.scheduledAt,
     required this.status,
     required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5884,6 +6117,9 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     map['scheduled_at'] = Variable<DateTime>(scheduledAt);
     map['status'] = Variable<String>(status);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -5895,6 +6131,9 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       scheduledAt: Value(scheduledAt),
       status: Value(status),
       updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -5910,6 +6149,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       scheduledAt: serializer.fromJson<DateTime>(json['scheduledAt']),
       status: serializer.fromJson<String>(json['status']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -5922,6 +6162,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       'scheduledAt': serializer.toJson<DateTime>(scheduledAt),
       'status': serializer.toJson<String>(status),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -5932,6 +6173,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     DateTime? scheduledAt,
     String? status,
     DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => ActivityLog(
     id: id ?? this.id,
     activityId: activityId ?? this.activityId,
@@ -5939,6 +6181,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     scheduledAt: scheduledAt ?? this.scheduledAt,
     status: status ?? this.status,
     updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   ActivityLog copyWithCompanion(ActivityLogsCompanion data) {
     return ActivityLog(
@@ -5952,6 +6195,7 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
           : this.scheduledAt,
       status: data.status.present ? data.status.value : this.status,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -5963,14 +6207,22 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
           ..write('memberId: $memberId, ')
           ..write('scheduledAt: $scheduledAt, ')
           ..write('status: $status, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, activityId, memberId, scheduledAt, status, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    activityId,
+    memberId,
+    scheduledAt,
+    status,
+    updatedAt,
+    syncUuid,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5980,7 +6232,8 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
           other.memberId == this.memberId &&
           other.scheduledAt == this.scheduledAt &&
           other.status == this.status &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
@@ -5990,6 +6243,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
   final Value<DateTime> scheduledAt;
   final Value<String> status;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const ActivityLogsCompanion({
     this.id = const Value.absent(),
     this.activityId = const Value.absent(),
@@ -5997,6 +6251,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     this.scheduledAt = const Value.absent(),
     this.status = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   ActivityLogsCompanion.insert({
     this.id = const Value.absent(),
@@ -6005,6 +6260,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     required DateTime scheduledAt,
     this.status = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : activityId = Value(activityId),
        memberId = Value(memberId),
        scheduledAt = Value(scheduledAt);
@@ -6015,6 +6271,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     Expression<DateTime>? scheduledAt,
     Expression<String>? status,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -6023,6 +6280,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
       if (scheduledAt != null) 'scheduled_at': scheduledAt,
       if (status != null) 'status': status,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -6033,6 +6291,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     Value<DateTime>? scheduledAt,
     Value<String>? status,
     Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return ActivityLogsCompanion(
       id: id ?? this.id,
@@ -6041,6 +6300,7 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
       scheduledAt: scheduledAt ?? this.scheduledAt,
       status: status ?? this.status,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -6065,6 +6325,9 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
     return map;
   }
 
@@ -6076,7 +6339,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
           ..write('memberId: $memberId, ')
           ..write('scheduledAt: $scheduledAt, ')
           ..write('status: $status, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -10355,6 +10619,51 @@ class $FamilyPeersTable extends FamilyPeers
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _notifyGrantedMeta = const VerificationMeta(
+    'notifyGranted',
+  );
+  @override
+  late final GeneratedColumn<bool> notifyGranted = GeneratedColumn<bool>(
+    'notify_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _viewGrantedMeta = const VerificationMeta(
+    'viewGranted',
+  );
+  @override
+  late final GeneratedColumn<bool> viewGranted = GeneratedColumn<bool>(
+    'view_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("view_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _editGrantedMeta = const VerificationMeta(
+    'editGranted',
+  );
+  @override
+  late final GeneratedColumn<bool> editGranted = GeneratedColumn<bool>(
+    'edit_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("edit_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     personUuid,
@@ -10364,6 +10673,9 @@ class $FamilyPeersTable extends FamilyPeers
     channelId,
     addedAt,
     lastSyncedAt,
+    notifyGranted,
+    viewGranted,
+    editGranted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10433,6 +10745,33 @@ class $FamilyPeersTable extends FamilyPeers
         ),
       );
     }
+    if (data.containsKey('notify_granted')) {
+      context.handle(
+        _notifyGrantedMeta,
+        notifyGranted.isAcceptableOrUnknown(
+          data['notify_granted']!,
+          _notifyGrantedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('view_granted')) {
+      context.handle(
+        _viewGrantedMeta,
+        viewGranted.isAcceptableOrUnknown(
+          data['view_granted']!,
+          _viewGrantedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('edit_granted')) {
+      context.handle(
+        _editGrantedMeta,
+        editGranted.isAcceptableOrUnknown(
+          data['edit_granted']!,
+          _editGrantedMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10470,6 +10809,18 @@ class $FamilyPeersTable extends FamilyPeers
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_synced_at'],
       ),
+      notifyGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_granted'],
+      )!,
+      viewGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}view_granted'],
+      )!,
+      editGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}edit_granted'],
+      )!,
     );
   }
 
@@ -10487,6 +10838,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
   final String channelId;
   final DateTime addedAt;
   final DateTime? lastSyncedAt;
+  final bool notifyGranted;
+  final bool viewGranted;
+  final bool editGranted;
   const FamilyPeer({
     required this.personUuid,
     required this.familyId,
@@ -10495,6 +10849,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     required this.channelId,
     required this.addedAt,
     this.lastSyncedAt,
+    required this.notifyGranted,
+    required this.viewGranted,
+    required this.editGranted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10508,6 +10865,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     if (!nullToAbsent || lastSyncedAt != null) {
       map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
     }
+    map['notify_granted'] = Variable<bool>(notifyGranted);
+    map['view_granted'] = Variable<bool>(viewGranted);
+    map['edit_granted'] = Variable<bool>(editGranted);
     return map;
   }
 
@@ -10522,6 +10882,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       lastSyncedAt: lastSyncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncedAt),
+      notifyGranted: Value(notifyGranted),
+      viewGranted: Value(viewGranted),
+      editGranted: Value(editGranted),
     );
   }
 
@@ -10538,6 +10901,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       channelId: serializer.fromJson<String>(json['channelId']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
       lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
+      notifyGranted: serializer.fromJson<bool>(json['notifyGranted']),
+      viewGranted: serializer.fromJson<bool>(json['viewGranted']),
+      editGranted: serializer.fromJson<bool>(json['editGranted']),
     );
   }
   @override
@@ -10551,6 +10917,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       'channelId': serializer.toJson<String>(channelId),
       'addedAt': serializer.toJson<DateTime>(addedAt),
       'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
+      'notifyGranted': serializer.toJson<bool>(notifyGranted),
+      'viewGranted': serializer.toJson<bool>(viewGranted),
+      'editGranted': serializer.toJson<bool>(editGranted),
     };
   }
 
@@ -10562,6 +10931,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     String? channelId,
     DateTime? addedAt,
     Value<DateTime?> lastSyncedAt = const Value.absent(),
+    bool? notifyGranted,
+    bool? viewGranted,
+    bool? editGranted,
   }) => FamilyPeer(
     personUuid: personUuid ?? this.personUuid,
     familyId: familyId ?? this.familyId,
@@ -10570,6 +10942,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     channelId: channelId ?? this.channelId,
     addedAt: addedAt ?? this.addedAt,
     lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
+    notifyGranted: notifyGranted ?? this.notifyGranted,
+    viewGranted: viewGranted ?? this.viewGranted,
+    editGranted: editGranted ?? this.editGranted,
   );
   FamilyPeer copyWithCompanion(FamilyPeersCompanion data) {
     return FamilyPeer(
@@ -10586,6 +10961,15 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       lastSyncedAt: data.lastSyncedAt.present
           ? data.lastSyncedAt.value
           : this.lastSyncedAt,
+      notifyGranted: data.notifyGranted.present
+          ? data.notifyGranted.value
+          : this.notifyGranted,
+      viewGranted: data.viewGranted.present
+          ? data.viewGranted.value
+          : this.viewGranted,
+      editGranted: data.editGranted.present
+          ? data.editGranted.value
+          : this.editGranted,
     );
   }
 
@@ -10598,7 +10982,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ..write('avatarIndex: $avatarIndex, ')
           ..write('channelId: $channelId, ')
           ..write('addedAt: $addedAt, ')
-          ..write('lastSyncedAt: $lastSyncedAt')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('notifyGranted: $notifyGranted, ')
+          ..write('viewGranted: $viewGranted, ')
+          ..write('editGranted: $editGranted')
           ..write(')'))
         .toString();
   }
@@ -10612,6 +10999,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     channelId,
     addedAt,
     lastSyncedAt,
+    notifyGranted,
+    viewGranted,
+    editGranted,
   );
   @override
   bool operator ==(Object other) =>
@@ -10623,7 +11013,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           other.avatarIndex == this.avatarIndex &&
           other.channelId == this.channelId &&
           other.addedAt == this.addedAt &&
-          other.lastSyncedAt == this.lastSyncedAt);
+          other.lastSyncedAt == this.lastSyncedAt &&
+          other.notifyGranted == this.notifyGranted &&
+          other.viewGranted == this.viewGranted &&
+          other.editGranted == this.editGranted);
 }
 
 class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
@@ -10634,6 +11027,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
   final Value<String> channelId;
   final Value<DateTime> addedAt;
   final Value<DateTime?> lastSyncedAt;
+  final Value<bool> notifyGranted;
+  final Value<bool> viewGranted;
+  final Value<bool> editGranted;
   final Value<int> rowid;
   const FamilyPeersCompanion({
     this.personUuid = const Value.absent(),
@@ -10643,6 +11039,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.channelId = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
+    this.notifyGranted = const Value.absent(),
+    this.viewGranted = const Value.absent(),
+    this.editGranted = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FamilyPeersCompanion.insert({
@@ -10653,6 +11052,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     required String channelId,
     this.addedAt = const Value.absent(),
     this.lastSyncedAt = const Value.absent(),
+    this.notifyGranted = const Value.absent(),
+    this.viewGranted = const Value.absent(),
+    this.editGranted = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : personUuid = Value(personUuid),
        familyId = Value(familyId),
@@ -10666,6 +11068,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Expression<String>? channelId,
     Expression<DateTime>? addedAt,
     Expression<DateTime>? lastSyncedAt,
+    Expression<bool>? notifyGranted,
+    Expression<bool>? viewGranted,
+    Expression<bool>? editGranted,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -10676,6 +11081,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       if (channelId != null) 'channel_id': channelId,
       if (addedAt != null) 'added_at': addedAt,
       if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
+      if (notifyGranted != null) 'notify_granted': notifyGranted,
+      if (viewGranted != null) 'view_granted': viewGranted,
+      if (editGranted != null) 'edit_granted': editGranted,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10688,6 +11096,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Value<String>? channelId,
     Value<DateTime>? addedAt,
     Value<DateTime?>? lastSyncedAt,
+    Value<bool>? notifyGranted,
+    Value<bool>? viewGranted,
+    Value<bool>? editGranted,
     Value<int>? rowid,
   }) {
     return FamilyPeersCompanion(
@@ -10698,6 +11109,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       channelId: channelId ?? this.channelId,
       addedAt: addedAt ?? this.addedAt,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      notifyGranted: notifyGranted ?? this.notifyGranted,
+      viewGranted: viewGranted ?? this.viewGranted,
+      editGranted: editGranted ?? this.editGranted,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10726,6 +11140,15 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     if (lastSyncedAt.present) {
       map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
     }
+    if (notifyGranted.present) {
+      map['notify_granted'] = Variable<bool>(notifyGranted.value);
+    }
+    if (viewGranted.present) {
+      map['view_granted'] = Variable<bool>(viewGranted.value);
+    }
+    if (editGranted.present) {
+      map['edit_granted'] = Variable<bool>(editGranted.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10742,6 +11165,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
           ..write('channelId: $channelId, ')
           ..write('addedAt: $addedAt, ')
           ..write('lastSyncedAt: $lastSyncedAt, ')
+          ..write('notifyGranted: $notifyGranted, ')
+          ..write('viewGranted: $viewGranted, ')
+          ..write('editGranted: $editGranted, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10788,8 +11214,23 @@ class $PendingGroupInvitesTable extends PendingGroupInvites
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _convertingMemberIdMeta =
+      const VerificationMeta('convertingMemberId');
   @override
-  List<GeneratedColumn> get $columns => [channelId, familyId, createdAt];
+  late final GeneratedColumn<int> convertingMemberId = GeneratedColumn<int>(
+    'converting_member_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    channelId,
+    familyId,
+    createdAt,
+    convertingMemberId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -10824,6 +11265,15 @@ class $PendingGroupInvitesTable extends PendingGroupInvites
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('converting_member_id')) {
+      context.handle(
+        _convertingMemberIdMeta,
+        convertingMemberId.isAcceptableOrUnknown(
+          data['converting_member_id']!,
+          _convertingMemberIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10845,6 +11295,10 @@ class $PendingGroupInvitesTable extends PendingGroupInvites
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      convertingMemberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}converting_member_id'],
+      ),
     );
   }
 
@@ -10859,10 +11313,12 @@ class PendingGroupInvite extends DataClass
   final String channelId;
   final String familyId;
   final DateTime createdAt;
+  final int? convertingMemberId;
   const PendingGroupInvite({
     required this.channelId,
     required this.familyId,
     required this.createdAt,
+    this.convertingMemberId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10870,6 +11326,9 @@ class PendingGroupInvite extends DataClass
     map['channel_id'] = Variable<String>(channelId);
     map['family_id'] = Variable<String>(familyId);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || convertingMemberId != null) {
+      map['converting_member_id'] = Variable<int>(convertingMemberId);
+    }
     return map;
   }
 
@@ -10878,6 +11337,9 @@ class PendingGroupInvite extends DataClass
       channelId: Value(channelId),
       familyId: Value(familyId),
       createdAt: Value(createdAt),
+      convertingMemberId: convertingMemberId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(convertingMemberId),
     );
   }
 
@@ -10890,6 +11352,7 @@ class PendingGroupInvite extends DataClass
       channelId: serializer.fromJson<String>(json['channelId']),
       familyId: serializer.fromJson<String>(json['familyId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      convertingMemberId: serializer.fromJson<int?>(json['convertingMemberId']),
     );
   }
   @override
@@ -10899,6 +11362,7 @@ class PendingGroupInvite extends DataClass
       'channelId': serializer.toJson<String>(channelId),
       'familyId': serializer.toJson<String>(familyId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'convertingMemberId': serializer.toJson<int?>(convertingMemberId),
     };
   }
 
@@ -10906,16 +11370,23 @@ class PendingGroupInvite extends DataClass
     String? channelId,
     String? familyId,
     DateTime? createdAt,
+    Value<int?> convertingMemberId = const Value.absent(),
   }) => PendingGroupInvite(
     channelId: channelId ?? this.channelId,
     familyId: familyId ?? this.familyId,
     createdAt: createdAt ?? this.createdAt,
+    convertingMemberId: convertingMemberId.present
+        ? convertingMemberId.value
+        : this.convertingMemberId,
   );
   PendingGroupInvite copyWithCompanion(PendingGroupInvitesCompanion data) {
     return PendingGroupInvite(
       channelId: data.channelId.present ? data.channelId.value : this.channelId,
       familyId: data.familyId.present ? data.familyId.value : this.familyId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      convertingMemberId: data.convertingMemberId.present
+          ? data.convertingMemberId.value
+          : this.convertingMemberId,
     );
   }
 
@@ -10924,37 +11395,43 @@ class PendingGroupInvite extends DataClass
     return (StringBuffer('PendingGroupInvite(')
           ..write('channelId: $channelId, ')
           ..write('familyId: $familyId, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('convertingMemberId: $convertingMemberId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(channelId, familyId, createdAt);
+  int get hashCode =>
+      Object.hash(channelId, familyId, createdAt, convertingMemberId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PendingGroupInvite &&
           other.channelId == this.channelId &&
           other.familyId == this.familyId &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.convertingMemberId == this.convertingMemberId);
 }
 
 class PendingGroupInvitesCompanion extends UpdateCompanion<PendingGroupInvite> {
   final Value<String> channelId;
   final Value<String> familyId;
   final Value<DateTime> createdAt;
+  final Value<int?> convertingMemberId;
   final Value<int> rowid;
   const PendingGroupInvitesCompanion({
     this.channelId = const Value.absent(),
     this.familyId = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.convertingMemberId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PendingGroupInvitesCompanion.insert({
     required String channelId,
     required String familyId,
     this.createdAt = const Value.absent(),
+    this.convertingMemberId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : channelId = Value(channelId),
        familyId = Value(familyId);
@@ -10962,12 +11439,15 @@ class PendingGroupInvitesCompanion extends UpdateCompanion<PendingGroupInvite> {
     Expression<String>? channelId,
     Expression<String>? familyId,
     Expression<DateTime>? createdAt,
+    Expression<int>? convertingMemberId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (channelId != null) 'channel_id': channelId,
       if (familyId != null) 'family_id': familyId,
       if (createdAt != null) 'created_at': createdAt,
+      if (convertingMemberId != null)
+        'converting_member_id': convertingMemberId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10976,12 +11456,14 @@ class PendingGroupInvitesCompanion extends UpdateCompanion<PendingGroupInvite> {
     Value<String>? channelId,
     Value<String>? familyId,
     Value<DateTime>? createdAt,
+    Value<int?>? convertingMemberId,
     Value<int>? rowid,
   }) {
     return PendingGroupInvitesCompanion(
       channelId: channelId ?? this.channelId,
       familyId: familyId ?? this.familyId,
       createdAt: createdAt ?? this.createdAt,
+      convertingMemberId: convertingMemberId ?? this.convertingMemberId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10998,6 +11480,9 @@ class PendingGroupInvitesCompanion extends UpdateCompanion<PendingGroupInvite> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (convertingMemberId.present) {
+      map['converting_member_id'] = Variable<int>(convertingMemberId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11010,6 +11495,7 @@ class PendingGroupInvitesCompanion extends UpdateCompanion<PendingGroupInvite> {
           ..write('channelId: $channelId, ')
           ..write('familyId: $familyId, ')
           ..write('createdAt: $createdAt, ')
+          ..write('convertingMemberId: $convertingMemberId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

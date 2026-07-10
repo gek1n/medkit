@@ -4,8 +4,10 @@ class Members extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 100)();
   IntColumn get avatarIndex => integer().withDefault(const Constant(0))();
-  TextColumn get role => text().withDefault(const Constant('member'))();
-  // owner / member / dependent
+  TextColumn get role => text().withDefault(const Constant('dependent'))();
+  // owner / dependent — "автономний" більше не є роллю Members: незалежні
+  // учасники живуть виключно як FamilyPeers (див. FamilyGroupService,
+  // "Локальний → Автономний" конверсія переносить дані й видаляє цей рядок).
   IntColumn get fontSize => integer().withDefault(const Constant(2))();
   // 1=small 2=normal 3=large 4=xlarge
   TextColumn get accessType => text().nullable()();

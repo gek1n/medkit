@@ -1,11 +1,21 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
+import '../../core/services/family_sync_service.dart';
+import '../../core/services/notification_service.dart';
 
 class WellbeingRepository {
   final AppDatabase _db;
   WellbeingRepository(this._db);
+
+  void _triggerFamilySync(int memberId) {
+    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
+    unawaited(FamilyPeerSyncService(_db).syncAllPeers());
+  }
 
   // Logs
   Stream<List<WellbeingLog>> watchByMember(int memberId) =>
@@ -34,8 +44,18 @@ class WellbeingRepository {
             ..limit(1))
           .getSingleOrNull();
 
-  Future<int> insertLog(WellbeingLogsCompanion log) =>
-      _db.into(_db.wellbeingLogs).insert(log);
+  Future<int> insertLog(WellbeingLogsCompanion log) async {
+    final id = await _db.into(_db.wellbeingLogs).insert(log);
+    if (log.memberId.present) {
+      final memberId = log.memberId.value;
+      // Якщо це власний лог автономного профілю (переглянуто "як" нього на
+      // цьому ж пристрої) — прибрати заплановану перевірку одразу, не
+      // чекаючи наступного синку.
+      await NotificationService.cancelTodayWellbeingChecks(memberId);
+      _triggerFamilySync(memberId);
+    }
+    return id;
+  }
 
   Future<int> deleteLog(int id) =>
       (_db.delete(_db.wellbeingLogs)..where((t) => t.id.equals(id))).go();
@@ -76,6 +96,7 @@ class WellbeingRepository {
     } else {
       await _db.into(_db.wellbeingSchedules).insert(schedule);
     }
+    _triggerFamilySync(schedule.memberId.value);
   }
 }
 

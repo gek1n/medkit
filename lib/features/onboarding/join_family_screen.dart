@@ -1,21 +1,27 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/database_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
+import '../../core/services/family_visibility_service.dart';
 import '../../core/services/pairing_api_client.dart';
 import '../../core/services/pairing_crypto_service.dart';
 import '../../core/services/push_token_service.dart';
 import '../../core/services/relay_api_client.dart';
 import '../../core/services/shared_channel_key_storage.dart';
+import '../../core/services/sync_crypto_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
@@ -24,12 +30,14 @@ import 'privacy_gate_screen.dart';
 
 enum _JoinStage { entering, working, review }
 
-/// Онбординг-варіант "Підключитися до сім'ї" — вводимо код доступу, який
-/// хтось із родини вже видав для ЦЬОГО профілю (див. `PairingInviteScreen`).
-/// На відміну від `PairingJoinScreen` (використовується з екрану "Сім'я" для
-/// прив'язки чужого пристрою до вже наявного локального профілю), тут
-/// локального профілю ще не існує — ми створюємо його самі з іменем із
-/// envelope і одразу підтягуємо розклад, який родич міг уже скласти.
+/// Онбординг-варіант "Підключитися до сім'ї" — вводимо код запрошення
+/// "Локальний → Автономний" (див. `FamilyGroupService.createConversionInvite`).
+/// Локального профілю на цьому пристрої ще не існує — ми створюємо його самі
+/// (ім'я/аватар з envelope), одноразово підтягуємо всю історію, яку вів
+/// запрошувач, а тоді стаємо звичайним незалежним учасником сімейної групи:
+/// той, хто нас запросив, отримує повний доступ до наших даних одразу
+/// (секунду тому це були його ж дані), а надалі відносини між нами — звичайні
+/// FamilyPeers/FamilyGrants, як і з будь-ким іншим у групі.
 class JoinFamilyScreen extends ConsumerStatefulWidget {
   const JoinFamilyScreen({super.key});
 
@@ -74,26 +82,38 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
         cipherTextAndMac: blob.ciphertext,
       );
       final envelope = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
-      final channelId = envelope['channelId'] as String;
-      final profileName = envelope['name'] as String? ?? 'Профіль';
-      final inviterName = envelope['inviterName'] as String?;
-      final syncKeyB64 = envelope['syncKey'] as String?;
-      if (syncKeyB64 == null) {
+      if (envelope['v'] != 4) {
         throw StateError('Цей код не підтримує підключення профілю');
       }
+      final channelId = envelope['channelId'] as String;
+      final familyId = envelope['familyId'] as String;
+      final inviterPersonUuid = envelope['inviterPersonUuid'] as String;
+      final inviterName = envelope['inviterName'] as String? ?? 'Родина';
+      final inviterAvatarIndex = envelope['inviterAvatarIndex'] as int? ?? 0;
+      final profileName = envelope['profileName'] as String? ?? 'Профіль';
+      final profileAvatarIndex = envelope['profileAvatarIndex'] as int? ?? 0;
+      final syncKeyBytes = base64Decode(envelope['syncKey'] as String);
 
       final db = ref.read(databaseProvider);
       final memberId = await ref.read(membersRepositoryProvider).insert(
-            MembersCompanion.insert(name: profileName, role: const Value('owner')),
+            MembersCompanion.insert(
+              name: profileName,
+              avatarIndex: Value(profileAvatarIndex),
+              role: const Value('owner'),
+              familyId: Value(familyId),
+            ),
           );
+      final me = await ref.read(membersRepositoryProvider).getById(memberId);
+      final myPersonUuid = me!.personUuid!;
 
       await ref
           .read(sharedChannelsRepositoryProvider)
           .bind(channelId: channelId, memberId: memberId);
-      await SharedChannelKeyStorage.store(channelId, base64Decode(syncKeyB64));
+      await SharedChannelKeyStorage.store(channelId, syncKeyBytes);
 
+      String? token;
       try {
-        final token = await PushTokenService.getToken();
+        token = await PushTokenService.getToken();
         if (token != null) {
           await _relayApi.register(
             channelId: channelId,
@@ -105,7 +125,52 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
         // Не критично — реєстрацію push-токена можна повторити пізніше.
       }
 
+      // Одноразово підтягуємо всю історію, яку запрошувач вів за цей
+      // профіль — та сама машинерія, що й старий 1:1-пейринг, лише один раз.
       await FamilySyncService(db).syncChannelForMember(memberId);
+
+      // Далі — звичайний незалежний учасник сімейної групи: запрошувач стає
+      // FamilyPeer з повним доступом одразу (секунду тому це були його ж
+      // дані), а одноразовий канал передачі історії більше не потрібен.
+      await FamilyPeersRepository(db).upsert(FamilyPeersCompanion.insert(
+        personUuid: inviterPersonUuid,
+        familyId: familyId,
+        name: inviterName,
+        avatarIndex: Value(inviterAvatarIndex),
+        channelId: channelId,
+      ));
+      for (final p in FamilyPermission.values) {
+        await FamilyVisibilityService.setAllowed(
+          db,
+          subjectPersonUuid: myPersonUuid,
+          viewerPersonUuid: inviterPersonUuid,
+          permission: p,
+          value: true,
+        );
+      }
+      await ref.read(sharedChannelsRepositoryProvider).unbind(memberId);
+
+      if (token != null) {
+        try {
+          final key = SecretKey(syncKeyBytes);
+          final myCard = {
+            'v': 3,
+            'familyId': familyId,
+            'personUuid': myPersonUuid,
+            'name': profileName,
+            'avatarIndex': profileAvatarIndex,
+          };
+          final encrypted = await SyncCryptoService.encryptEntity(key, myCard);
+          await _relayApi.send(
+            channelId: channelId,
+            senderToken: token,
+            encryptedPayloadBase64: base64Encode(encrypted),
+          );
+        } catch (_) {
+          // Запрошувач підхопить картку на наступному тригері refreshPeers().
+        }
+      }
+      unawaited(FamilyPeerSyncService(db).syncAllPeers());
 
       final existingMeds = await ref.read(medicationsRepositoryProvider).getByMember(memberId);
 

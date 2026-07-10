@@ -6,7 +6,6 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
-import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -15,14 +14,10 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/family_peers_repository.dart';
-import '../../data/repositories/shared_channels_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
-import '../pairing/pairing_invite_screen.dart';
-import '../pairing/pairing_join_screen.dart';
 import '../plans/plans_screen.dart';
-import '../profile/family_visibility_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'family_group_invite_screen.dart';
 import 'family_group_join_screen.dart';
@@ -34,41 +29,6 @@ final _memberMedsProvider = StreamProvider.family<List<Medication>, int>(
   (ref, memberId) =>
       ref.watch(medicationsRepositoryProvider).watchByMember(memberId),
 );
-
-final _memberChannelProvider = StreamProvider.family<SharedChannel?, int>(
-  (ref, memberId) =>
-      ref.watch(sharedChannelsRepositoryProvider).watchForMember(memberId),
-);
-
-/// Локальний id має значення лише на цьому пристрої — FamilyVisibilityService
-/// оперує стабільним personUuid (Фаза 1/3), тож провайдери-обгортки нижче
-/// резолвлять id → personUuid, щоб виклики в решті екрана (де під рукою
-/// лише int id з Member) лишились без змін.
-Future<String?> _personUuidFor(AppDatabase db, int memberId) async {
-  final row = await (db.select(db.members)..where((t) => t.id.equals(memberId))).getSingleOrNull();
-  return row?.personUuid;
-}
-
-/// (subjectId, viewerId) — чи дозволив subject перегляд своїх даних viewer'у.
-final _viewAllowedProvider =
-    FutureProvider.family<bool, (int, int)>((ref, ids) async {
-  final db = ref.watch(databaseProvider);
-  final subjectUuid = await _personUuidFor(db, ids.$1);
-  final viewerUuid = await _personUuidFor(db, ids.$2);
-  if (subjectUuid == null || viewerUuid == null) return false;
-  return FamilyVisibilityService.isAllowed(db, subjectUuid, viewerUuid, FamilyPermission.view);
-});
-
-final _viewOrEditAllowedProvider =
-    FutureProvider.family<bool, (int, int)>((ref, ids) async {
-  final db = ref.watch(databaseProvider);
-  final subjectUuid = await _personUuidFor(db, ids.$1);
-  final viewerUuid = await _personUuidFor(db, ids.$2);
-  if (subjectUuid == null || viewerUuid == null) return false;
-  final view = await FamilyVisibilityService.isAllowed(db, subjectUuid, viewerUuid, FamilyPermission.view);
-  if (view) return true;
-  return FamilyVisibilityService.isAllowed(db, subjectUuid, viewerUuid, FamilyPermission.edit);
-});
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -102,14 +62,16 @@ class _FamilyBody extends ConsumerWidget {
     final plan = ref.watch(planProvider);
     final limits = plan.limits;
     // Власник рахується як локальний профіль — той самий слот, що і раніше
-    // займав "maxMembers" на Free-плані.
-    final localCount = members.where((m) => m.role != 'member').length;
-    final autonomousCount = members.where((m) => m.role == 'member').length;
+    // займав "maxMembers" на Free-плані. "Автономний" тепер завжди означає
+    // незалежний FamilyPeer (Members більше не мають ролі 'member'), тому
+    // ліміт рахується за кількістю пірів.
+    final localCount = members.length;
+    final peersCount = ref.watch(_familyPeersProvider).valueOrNull?.length ?? 0;
     final localLimitReached =
         limits.maxLocalMembers != 0 && localCount >= limits.maxLocalMembers;
     final autonomousLimitReached = limits.maxAutonomousMembers == 0
         ? true
-        : autonomousCount >= limits.maxAutonomousMembers;
+        : peersCount >= limits.maxAutonomousMembers;
     final familyAvailable = !localLimitReached || !autonomousLimitReached;
     final activeId = ref.watch(activeMemberIdProvider);
     Member? activeMember;
@@ -166,8 +128,6 @@ class _FamilyBody extends ConsumerWidget {
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
               const SizedBox(height: AppDimensions.xl),
               const _FamilyGroupSection(),
-              const SizedBox(height: AppDimensions.xl),
-              const _InviteSection(),
               const SizedBox(height: 100),
             ]),
           ),
@@ -252,7 +212,10 @@ class _MemberCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOwner = member.role == 'owner';
-    final isAutonomous = member.role == 'member';
+    // Лише owner/dependent лишаються локальними Members-рядками — власник
+    // веде dependent-профілі напряму, тож перегляд тут завжди дозволений,
+    // жодних permission-гейтів не потрібно (на відміну від незалежних
+    // FamilyPeers, з ними видимість — окреме питання, див. _PeerCard).
     final intakesAsync = ref.watch(todayIntakesProvider(member.id));
     final medsAsync = ref.watch(_memberMedsProvider(member.id));
 
@@ -267,20 +230,6 @@ class _MemberCard extends ConsumerWidget {
         ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
       return pending.isEmpty ? null : pending.first;
     }();
-
-    // Якщо план більше не підтримує автономні профілі (напр. злетіла
-    // підписка Elly Family) — перегляд/редагування таких профілів
-    // забороняється, хоч у списку сім'ї вони лишаються видимими.
-    final plan = ref.watch(planProvider);
-    final restrictedByPlan = isAutonomous && plan.limits.maxAutonomousMembers == 0;
-
-    // Локальні профілі керує сам власник — перегляд завжди дозволений.
-    // Автономні — лише якщо самі дозволили (за замовчуванням так) і план
-    // це дозволяє.
-    final viewAllowedAsync = isOwner || !isAutonomous
-        ? const AsyncValue<bool>.data(true)
-        : ref.watch(_viewAllowedProvider((member.id, ownerId)));
-    final viewAllowed = !restrictedByPlan && (viewAllowedAsync.valueOrNull ?? false);
 
     final hasMissed = missedIntakes.isNotEmpty;
 
@@ -302,15 +251,6 @@ class _MemberCard extends ConsumerWidget {
             : (taken == total ? 'Усе виконано сьогодні' : '$taken з $total прийомів'),
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
       );
-    } else if (restrictedByPlan) {
-      statusLine = Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.lock_outline_rounded, size: 12, color: AppColors.textMuted),
-        const SizedBox(width: 3),
-        Text('Потрібен план Elly Family',
-            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
-      ]);
-    } else if (!viewAllowed) {
-      statusLine = const SizedBox.shrink();
     } else if (hasMissed) {
       statusLine = Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_rounded, size: 12, color: AppColors.danger),
@@ -335,7 +275,7 @@ class _MemberCard extends ConsumerWidget {
           style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted));
     }
 
-    final showMissedCard = !isOwner && viewAllowed && hasMissed;
+    final showMissedCard = !isOwner && hasMissed;
     final firstMissed = hasMissed ? missedIntakes.first : null;
 
     return Container(
@@ -393,9 +333,7 @@ class _MemberCard extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                        isOwner
-                                            ? 'я'
-                                            : (isAutonomous ? 'Автономний' : 'Локальний'),
+                                        isOwner ? 'я' : 'Локальний',
                                         style: AppTextStyles.caption.copyWith(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w700)),
@@ -451,21 +389,6 @@ class _MemberCard extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          if (isAutonomous) ...[
-                            const SizedBox(height: 10),
-                            _RemindBtn(
-                              label: '🔔 Нагадати',
-                              color: Colors.white,
-                              bg: AppColors.primary,
-                              fullWidth: true,
-                              onTap: () =>
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        'Нагадування для ${member.name} відправлено')),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -506,81 +429,50 @@ class _MemberActionsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(planProvider);
-    final isAutonomous = member.role == 'member';
-    final channelAsync = ref.watch(_memberChannelProvider(member.id));
-    final autonomousCount =
-        ref.watch(allMembersProvider).valueOrNull?.where((m) => m.role == 'member').length ?? 0;
+    // "Автономний" тепер завжди означає незалежний FamilyPeer, а не
+    // локальний Member-рядок — тому ліміт плану рахується за кількістю
+    // пірів, а не за роллю цього профілю (він завжди dependent/owner тут).
+    final peersCount = ref.watch(_familyPeersProvider).valueOrNull?.length ?? 0;
     final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
         ? true
-        : autonomousCount >= plan.limits.maxAutonomousMembers;
-    // Якщо план більше не підтримує автономні профілі (напр. злетіла
-    // підписка Elly Family), переглядати/редагувати їх не можна незалежно
-    // від того, що дозволив сам профіль.
-    final planAllowsAutonomous = plan.limits.maxAutonomousMembers > 0;
-    final canViewAsAsync = isAutonomous
-        ? ref.watch(_viewOrEditAllowedProvider((member.id, ownerId)))
-        : const AsyncValue<bool>.data(true);
-    final canViewAs =
-        (!isAutonomous || planAllowsAutonomous) && (canViewAsAsync.valueOrNull ?? false);
+        : peersCount >= plan.limits.maxAutonomousMembers;
+    final pendingConversion = ref.watch(_pendingConversionProvider(member.id)).valueOrNull ?? false;
 
     final rows = <_SheetAction>[
-      if (!isAutonomous)
-        if (autonomousLimitReached)
-          _SheetAction(
-            icon: Icons.workspace_premium_rounded,
-            label: 'Запросити',
-            subtitle: 'Автономні профілі — лише на Elly Family',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PlansScreen()));
-            },
-          )
-        else
-          _SheetAction(
-            icon: Icons.person_add_alt_1_rounded,
-            label: channelAsync.valueOrNull != null
-                ? 'Запрошення надіслано'
-                : 'Запросити в застосунок',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PairingInviteScreen(
-                    ownerName: member.name,
-                    memberId: member.id,
-                  ),
-                ),
-              );
-            },
-          ),
-      // Локальні профілі не мають власного акаунту, яким могли б керувати
-      // рівнями доступу — власник і так керує ними напряму.
-      if (isAutonomous)
+      if (autonomousLimitReached)
         _SheetAction(
-          icon: Icons.visibility_rounded,
-          label: 'Рівні доступу',
+          icon: Icons.workspace_premium_rounded,
+          label: 'Запросити',
+          subtitle: 'Автономні профілі — лише на Elly Family',
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PlansScreen()));
+          },
+        )
+      else
+        _SheetAction(
+          icon: Icons.person_add_alt_1_rounded,
+          label: pendingConversion ? 'Очікуємо приєднання' : 'Запросити в застосунок',
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => FamilyVisibilityScreen(subjectMemberId: member.id),
+                builder: (_) => FamilyGroupInviteScreen(forDependent: member),
               ),
             );
           },
         ),
-      if (!isAutonomous || canViewAs)
-        _SheetAction(
-          icon: Icons.today_rounded,
-          label: 'Переглянути як ${member.name}',
-          onTap: () {
-            ref.read(activeMemberIdProvider.notifier).state = member.id;
-            ref.read(requestedTabIndexProvider.notifier).state = 0;
-            Navigator.pop(context);
-          },
-        ),
+      _SheetAction(
+        icon: Icons.today_rounded,
+        label: 'Переглянути як ${member.name}',
+        onTap: () {
+          ref.read(activeMemberIdProvider.notifier).state = member.id;
+          ref.read(requestedTabIndexProvider.notifier).state = 0;
+          Navigator.pop(context);
+        },
+      ),
       _SheetAction(
         icon: Icons.delete_forever_rounded,
         label: 'Видалити назавжди',
@@ -777,42 +669,6 @@ String _closeOnesWordUk(int n) {
   return 'близьких';
 }
 
-class _RemindBtn extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color bg;
-  final VoidCallback? onTap;
-  final bool fullWidth;
-  const _RemindBtn({
-    required this.label,
-    required this.color,
-    required this.bg,
-    required this.onTap,
-    this.fullWidth = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: fullWidth ? double.infinity : null,
-        alignment: fullWidth ? Alignment.center : null,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.bodyMd
-              .copyWith(color: color, fontWeight: FontWeight.w600, fontSize: 13),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Add member tile ───────────────────────────────────────────────────────────
 
 class _AddMemberTile extends StatelessWidget {
@@ -955,15 +811,11 @@ class _FamilyUpgradeBanner extends StatelessWidget {
   }
 }
 
-// ── Invite section ────────────────────────────────────────────────────────────
-// Запросити конкретного члена сім'ї можна з його картки (кнопка "Підключити
-// телефон" у _MemberCard) — тут лишається лише приєднання за чужим кодом,
-// бо до розшифровки коду невідомо, чий це профіль.
-
 // ── Family group (peers) ─────────────────────────────────────────────────────
-// На відміну від "Приєднатись до сім'ї" нижче (дзеркалить дані ОДНОГО
-// керованого профілю на нове пристрій — `PairingJoinScreen`), тут ідеться
-// про НЕЗАЛЕЖНИХ учасників зі своїми акаунтами: обмін лише візитівкою
+// Єдиний шлях стати автономним — або приєднатись сюди зі своїм акаунтом
+// самостійно, або через "Запросити в застосунок" на картці локального
+// профілю (перетворення "Локальний → Автономний" з переносом історії, див.
+// FamilyGroupService.createConversionInvite). Обмін лише візитівкою
 // (ім'я/аватар), без жодних медичних даних. Видимість між учасниками —
 // окреме налаштування (Фаза 3/4), тут лише сам факт членства.
 
@@ -1052,6 +904,17 @@ class _FamilyGroupSection extends ConsumerWidget {
 
 final _familyPeersProvider = StreamProvider<List<FamilyPeer>>((ref) {
   return ref.watch(familyPeersRepositoryProvider).watchAll();
+});
+
+/// true, якщо для цього локального профілю вже створено (і ще не
+/// підтверджено) запрошення "Локальний → Автономний" — щойно приєднання
+/// підтвердиться, FamilyGroupService.refreshPeers() видалить сам профіль,
+/// тож рядок тут природно зникне разом з ним.
+final _pendingConversionProvider = StreamProvider.family<bool, int>((ref, memberId) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.pendingGroupInvites)..where((t) => t.convertingMemberId.equals(memberId)))
+      .watch()
+      .map((rows) => rows.isNotEmpty);
 });
 
 class _PeerCard extends ConsumerWidget {
@@ -1164,78 +1027,6 @@ class _GroupActionTile extends StatelessWidget {
   }
 }
 
-class _InviteSection extends StatelessWidget {
-  const _InviteSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionLabel('Приєднатись до сім\'ї'),
-        const SizedBox(height: AppDimensions.md),
-        GestureDetector(
-          onTap: () async {
-            final result = await Navigator.of(context).push<PairingResult>(
-              MaterialPageRoute(builder: (_) => const PairingJoinScreen()),
-            );
-            if (result != null && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Приєднано до "${result.name}"')),
-              );
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border, width: 1.5),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 16,
-                    offset: Offset(0, 6)),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  ),
-                  child: const Icon(Icons.qr_code_scanner_rounded,
-                      color: AppColors.primary, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('У мене є код',
-                          style: AppTextStyles.labelLg
-                              .copyWith(color: AppColors.primary)),
-                      const SizedBox(height: 2),
-                      Text('Приєднатись до іншого пристрою',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.textMuted)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: AppColors.textMuted, size: 20),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── Add member screen ─────────────────────────────────────────────────────────
 
 void _openAddMemberScreen(BuildContext context) {
@@ -1274,120 +1065,6 @@ class _AddMemberBackHeader extends StatelessWidget {
   }
 }
 
-class _ProfileTypeCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-  final bool selected;
-  final bool locked;
-  final VoidCallback onTap;
-
-  const _ProfileTypeCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.selected,
-    this.locked = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: locked
-              ? AppColors.bgPage
-              : (selected ? AppColors.primaryLight : AppColors.surface),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: selected && !locked ? AppColors.primary : AppColors.border,
-            width: selected && !locked ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(locked ? Icons.workspace_premium_rounded : icon,
-                size: 20,
-                color: locked
-                    ? AppColors.warning
-                    : (selected ? AppColors.primary : AppColors.textMuted)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: AppTextStyles.labelLg.copyWith(
-                          color: locked
-                              ? AppColors.textMuted
-                              : (selected
-                                  ? AppColors.primary
-                                  : AppColors.textMain))),
-                  const SizedBox(height: 3),
-                  Text(description,
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: AppColors.textSub)),
-                  if (locked) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningLight,
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusFull),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.workspace_premium_rounded,
-                              size: 11, color: AppColors.warning),
-                          const SizedBox(width: 4),
-                          Text('Доступно в Elly Family',
-                              style: AppTextStyles.bodySm.copyWith(
-                                  fontSize: 11,
-                                  color: AppColors.warning,
-                                  fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (locked)
-              const Icon(Icons.lock_outline_rounded,
-                  size: 18, color: AppColors.textMuted)
-            else
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: selected ? AppColors.primary : Colors.transparent,
-                  border: Border.all(
-                    color: selected ? AppColors.primary : AppColors.border,
-                    width: 1.5,
-                  ),
-                ),
-                child: selected
-                    ? const Icon(Icons.circle_rounded,
-                        size: 8, color: Colors.white)
-                    : null,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 
 class _AddMemberScreen extends ConsumerStatefulWidget {
   const _AddMemberScreen();
@@ -1399,7 +1076,6 @@ class _AddMemberScreen extends ConsumerStatefulWidget {
 class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
   final _nameCtrl = TextEditingController();
   int _avatarIndex = 0;
-  String _profileType = 'dependent'; // dependent (Локальний) | member (Автономний)
   bool _saving = false;
   bool _consentChecked = false;
 
@@ -1419,29 +1095,12 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
       return;
     }
 
-    if (_profileType == 'member') {
-      final plan = ref.read(planProvider);
-      final members = ref.read(allMembersProvider).valueOrNull ?? [];
-      final autonomousCount = members.where((m) => m.role == 'member').length;
-      final maxAutonomous = plan.limits.maxAutonomousMembers;
-      if (maxAutonomous == 0 || autonomousCount >= maxAutonomous) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(maxAutonomous == 0
-                ? 'Автономні профілі доступні з плану Elly Family'
-                : 'Досягнуто ліміту автономних профілів ($maxAutonomous)'),
-          ),
-        );
-        return;
-      }
-    }
-
     setState(() => _saving = true);
     await ref.read(membersRepositoryProvider).insert(
           MembersCompanion.insert(
             name: name,
             avatarIndex: Value(_avatarIndex),
-            role: Value(_profileType),
+            role: const Value('dependent'),
           ),
         );
     if (mounted) Navigator.pop(context);
@@ -1449,8 +1108,6 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final autonomousLocked =
-        ref.watch(planProvider).limits.maxAutonomousMembers == 0;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -1530,33 +1187,6 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    const _SectionLabel('ТИП ПРОФІЛЮ'),
-                    const SizedBox(height: 8),
-                    _ProfileTypeCard(
-                      icon: Icons.home_rounded,
-                      title: 'Локальний',
-                      description:
-                          'Без власного телефону — записи зберігаються у твоєму акаунті, ти керуєш ліками та розкладом.',
-                      selected: _profileType == 'dependent',
-                      onTap: () => setState(() => _profileType = 'dependent'),
-                    ),
-                    const SizedBox(height: 10),
-                    _ProfileTypeCard(
-                      icon: Icons.link_rounded,
-                      title: 'Автономний',
-                      description:
-                          'Надсилаєш інвайт. Людина сама встановлює застосунок і керує своїм профілем.',
-                      selected: _profileType == 'member',
-                      locked: autonomousLocked,
-                      onTap: autonomousLocked
-                          ? () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const PlansScreen()))
-                          : () => setState(() => _profileType = 'member'),
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     GestureDetector(
