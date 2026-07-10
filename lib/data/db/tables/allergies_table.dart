@@ -13,6 +13,9 @@ class Allergies extends Table {
   // mild/moderate/severe — для попередження при додаванні ліків з цією
   // алергією варто виділяти severe окремо
   TextColumn get notes => text().nullable()();
+  TextColumn get documentPaths => text().withDefault(const Constant('[]'))();
+  // json: ["path1","path2"] — фото/PDF підтвердження алергії (напр. висновок
+  // алерголога), той самий підхід, що й в аналізах/візитах
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально

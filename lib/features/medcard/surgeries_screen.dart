@@ -1,0 +1,130 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/date_utils.dart';
+import '../../data/db/app_database.dart';
+import '../../data/repositories/surgeries_repository.dart';
+import '../../shared/widgets/mk_list_widgets.dart';
+import 'add_surgery_screen.dart';
+
+final _surgeriesProvider = StreamProvider.family<List<Surgery>, int>((ref, memberId) {
+  return ref.watch(surgeriesRepositoryProvider).watchByMember(memberId);
+});
+
+class SurgeriesScreen extends ConsumerWidget {
+  final int memberId;
+  const SurgeriesScreen({super.key, required this.memberId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final surgeriesAsync = ref.watch(_surgeriesProvider(memberId));
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            MkListHeader(
+              title: 'Операції та госпіталізації',
+              onAdd: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AddSurgeryScreen(memberId: memberId)),
+              ),
+            ),
+            Expanded(
+              child: surgeriesAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                error: (e, _) => Center(child: Text('Помилка: $e')),
+                data: (surgeries) {
+                  if (surgeries.isEmpty) {
+                    return const MkEmptyState(
+                      hint: 'Натисніть "+ Додати" щоб додати перший запис',
+                    );
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppDimensions.screenPadding, AppDimensions.md, AppDimensions.screenPadding, 48),
+                    itemCount: surgeries.length,
+                    itemBuilder: (context, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                      child: _SurgeryCard(
+                        surgery: surgeries[i],
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AddSurgeryScreen(memberId: memberId, existing: surgeries[i]),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SurgeryCard extends StatelessWidget {
+  final Surgery surgery;
+  final VoidCallback onTap;
+  const _SurgeryCard({required this.surgery, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDocs = (jsonDecode(surgery.documentPaths) as List).isNotEmpty;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.warningLight,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              ),
+              child: const Icon(Icons.local_hospital_rounded, size: 20, color: AppColors.warning),
+            ),
+            const SizedBox(width: AppDimensions.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(surgery.name, style: AppTextStyles.labelLg),
+                  const SizedBox(height: 2),
+                  Text(
+                    MKDateUtils.formatDate(surgery.performedAt),
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                  ),
+                ],
+              ),
+            ),
+            if (hasDocs) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.attach_file_rounded, size: 16, color: AppColors.textMuted),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

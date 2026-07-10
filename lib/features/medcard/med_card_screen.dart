@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/database_provider.dart';
 import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
-import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../today/providers/today_providers.dart';
+import 'allergies_screen.dart';
+import 'chronic_conditions_screen.dart';
 import 'lab_results_screen.dart';
 import 'specialty_history_screen.dart';
+import 'surgeries_screen.dart';
+import 'vaccinations_screen.dart';
 
-/// (subjectId, viewerId) — чи дозволив subject власнику пристрою бачити
-/// свою медкартку. Той самий патерн, що й `_viewAllowedProvider` на
-/// `family_screen.dart`, тут — власна копія, бо провайдер там приватний.
-final _medCardViewAllowedProvider = FutureProvider.family<bool, (int, int)>((
+/// (subjectPersonUuid, viewerPersonUuid) — чи дозволив subject власнику
+/// пристрою бачити свою медкартку. Той самий патерн, що й
+/// `_viewAllowedProvider` на `family_screen.dart`, тут — власна копія, бо
+/// провайдер там приватний.
+final _medCardViewAllowedProvider = FutureProvider.family<bool, (String, String)>((
   ref,
   ids,
 ) {
   return FamilyVisibilityService.isAllowed(
+    ref.watch(databaseProvider),
     ids.$1,
     ids.$2,
     FamilyPermission.view,
@@ -61,8 +67,11 @@ class MedCardScreen extends ConsumerWidget {
                 showSwitchBanner: showBanner,
               );
             }
+            if (member.personUuid == null || owner.personUuid == null) {
+              return const _AccessRestricted();
+            }
             final allowedAsync = ref.watch(
-              _medCardViewAllowedProvider((member.id, owner.id)),
+              _medCardViewAllowedProvider((member.personUuid!, owner.personUuid!)),
             );
             return allowedAsync.when(
               loading: () => const Center(
@@ -143,15 +152,18 @@ class _MedCardBody extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: AppDimensions.xl),
-              SectionLabel('Скоро'),
-              const SizedBox(height: AppDimensions.md),
+              const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
                 icon: Icons.warning_amber_rounded,
                 iconColor: AppColors.danger,
                 title: 'Алергії',
                 subtitle: 'Реакції на препарати й речовини',
-                onTap: null,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AllergiesScreen(memberId: memberId),
+                  ),
+                ),
               ),
               const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
@@ -159,7 +171,12 @@ class _MedCardBody extends StatelessWidget {
                 iconColor: AppColors.danger,
                 title: 'Хронічні захворювання',
                 subtitle: 'Діагнози, дата встановлення',
-                onTap: null,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChronicConditionsScreen(memberId: memberId),
+                  ),
+                ),
               ),
               const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
@@ -167,7 +184,12 @@ class _MedCardBody extends StatelessWidget {
                 iconColor: AppColors.warning,
                 title: 'Щеплення',
                 subtitle: 'Історія й наступні ревакцинації',
-                onTap: null,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VaccinationsScreen(memberId: memberId),
+                  ),
+                ),
               ),
               const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
@@ -175,7 +197,12 @@ class _MedCardBody extends StatelessWidget {
                 iconColor: AppColors.warning,
                 title: 'Операції та госпіталізації',
                 subtitle: null,
-                onTap: null,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SurgeriesScreen(memberId: memberId),
+                  ),
+                ),
               ),
             ],
           ),

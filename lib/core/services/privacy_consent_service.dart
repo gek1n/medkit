@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// досить підняти [currentVersion], і `hasAccepted` знову поверне false,
 /// поки користувач не погодиться заново.
 class PrivacyConsentService {
-  static const currentVersion = '1.0';
+  static const currentVersion = '2.0';
 
   static const _versionKey = 'privacy_policy_consent_version';
   static const _dateKey = 'privacy_policy_consent_date';

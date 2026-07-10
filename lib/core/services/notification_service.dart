@@ -270,4 +270,31 @@ class NotificationService {
       await cancelWellbeingSlot(memberId, i);
     }
   }
+
+  // ── Щеплення ──────────────────────────────────────────────────────────
+
+  static int vaccinationNotificationId(int vaccinationId) =>
+      10000000 + vaccinationId;
+
+  /// Нагадування о 9:00 в день [nextDoseAt] — про наступну ревакцинацію.
+  /// Викликати лише коли nextDoseAt заповнено; минулі дати мовчки
+  /// ігноруються всередині [_zonedSchedule].
+  static Future<void> scheduleVaccinationReminder({
+    required int vaccinationId,
+    required String name,
+    required DateTime nextDoseAt,
+    bool vibrationEnabled = true,
+  }) async {
+    final at = DateTime(nextDoseAt.year, nextDoseAt.month, nextDoseAt.day, 9);
+    await _zonedSchedule(
+      id: vaccinationNotificationId(vaccinationId),
+      title: '💉 Час ревакцинації',
+      body: name,
+      at: at,
+      vibrationEnabled: vibrationEnabled,
+    );
+  }
+
+  static Future<void> cancelVaccinationReminder(int vaccinationId) =>
+      cancel(vaccinationNotificationId(vaccinationId));
 }

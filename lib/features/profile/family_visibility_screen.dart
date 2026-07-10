@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/database_provider.dart';
 import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
 
+/// Один можливий "глядач" видимості — або інший локальний профіль на цьому
+/// ж пристрої (dependent/owner), або незалежний учасник сімейної групи
+/// ([FamilyPeer], Фаза 2) зі своїм власним пристроєм. Обидва мають
+/// personUuid, тому далі UI працює з ними однаково.
+class _ViewerInfo {
+  final String personUuid;
+  final String name;
+  final int avatarIndex;
+  const _ViewerInfo({required this.personUuid, required this.name, required this.avatarIndex});
+}
+
 /// Налаштування, кому з членів сім'ї видно завдання/медкартку/розклад
 /// цього профілю, хто може його редагувати і кому надсилати сповіщення.
-/// ⚠️ Тут лише зберігається вибір користувача — фактичне застосування
-/// цих обмежень в інших екранах (фільтрація сповіщень, блокування
-/// редагування/перегляду) ще не підключене, це окрема задача.
+/// ⚠️ Перемикачі нижче (_ViewerCard) впливають лише на дані, що йдуть через
+/// цей сервіс — реальний бар'єр для медкартки ([_MedcardSyncCard], перевіряє
+/// `FamilySyncService`) і для перегляду в межах групи ([_ViewerCard], тепер
+/// keyed по personUuid — Фаза 3). setAllowed можна викликати лише для
+/// subject'а, яким керує цей пристрій (перевірка в самому сервісі).
 class FamilyVisibilityScreen extends ConsumerWidget {
   final int subjectMemberId;
   const FamilyVisibilityScreen({super.key, required this.subjectMemberId});
@@ -21,6 +36,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(allMembersProvider);
+    final peersAsync = ref.watch(_familyPeersProvider);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -49,8 +65,26 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                         CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(child: Text('$e')),
                 data: (members) {
-                  final viewers =
-                      members.where((m) => m.id != subjectMemberId).toList();
+                  Member? subject;
+                  for (final m in members) {
+                    if (m.id == subjectMemberId) {
+                      subject = m;
+                      break;
+                    }
+                  }
+                  if (subject?.personUuid == null) {
+                    return const Center(child: Text('Профіль не знайдено'));
+                  }
+                  final subjectUuid = subject!.personUuid!;
+
+                  final viewers = <_ViewerInfo>[
+                    for (final m in members)
+                      if (m.id != subjectMemberId && m.personUuid != null)
+                        _ViewerInfo(personUuid: m.personUuid!, name: m.name, avatarIndex: m.avatarIndex),
+                    for (final p in peersAsync.valueOrNull ?? const [])
+                      _ViewerInfo(personUuid: p.personUuid, name: p.name, avatarIndex: p.avatarIndex),
+                  ];
+
                   if (viewers.isEmpty) {
                     return Center(
                       child: Padding(
@@ -83,6 +117,8 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                       AppDimensions.xl,
                     ),
                     children: [
+                      _MedcardSyncCard(subjectPersonUuid: subjectUuid),
+                      const SizedBox(height: AppDimensions.lg),
                       Text(
                         'Що бачать і можуть робити інші члени сім\'ї з вашим профілем',
                         style: AppTextStyles.bodySm
@@ -90,10 +126,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppDimensions.md),
                       for (final viewer in viewers) ...[
-                        _ViewerCard(
-                          subjectId: subjectMemberId,
-                          viewer: viewer,
-                        ),
+                        _ViewerCard(subjectPersonUuid: subjectUuid, viewer: viewer),
                         const SizedBox(height: AppDimensions.md),
                       ],
                     ],
@@ -108,17 +141,110 @@ class FamilyVisibilityScreen extends ConsumerWidget {
   }
 }
 
-class _ViewerCard extends StatefulWidget {
-  final int subjectId;
-  final Member viewer;
-  const _ViewerCard({required this.subjectId, required this.viewer});
+final _familyPeersProvider = StreamProvider<List<FamilyPeer>>((ref) {
+  return ref.watch(familyPeersRepositoryProvider).watchAll();
+});
+
+/// Головний перемикач: чи синхронізується медкартка цього профілю на інші
+/// пристрої сім'ї через family-sync взагалі (незалежно від того, з ким саме
+/// цей профіль спарено). На відміну від перемикачів нижче — це реальний
+/// бар'єр: коли вимкнено, дані медкартки (алергії, хронічні захворювання,
+/// щеплення, операції, аналізи, візити з вкладеннями) ніколи не потрапляють
+/// у payload синхронізації. Ліки й розклад прийому синхронізуються завжди.
+class _MedcardSyncCard extends StatefulWidget {
+  final String subjectPersonUuid;
+  const _MedcardSyncCard({required this.subjectPersonUuid});
 
   @override
-  State<_ViewerCard> createState() => _ViewerCardState();
+  State<_MedcardSyncCard> createState() => _MedcardSyncCardState();
 }
 
-class _ViewerCardState extends State<_ViewerCard> {
+class _MedcardSyncCardState extends State<_MedcardSyncCard> {
   bool _loading = true;
+  bool _value = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final value = await FamilyVisibilityService.isMedcardSyncAllowed(widget.subjectPersonUuid);
+    if (mounted) {
+      setState(() {
+        _value = value;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    setState(() => _value = value);
+    await FamilyVisibilityService.setMedcardSyncAllowed(widget.subjectPersonUuid, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Синхронізувати медкартку на інші пристрої', style: AppTextStyles.labelLg),
+              ),
+              if (_loading)
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                )
+              else
+                Switch(
+                  value: _value,
+                  onChanged: _toggle,
+                  activeThumbColor: AppColors.primary,
+                  activeTrackColor: AppColors.primaryLight,
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Якщо вимкнено, алергії, хронічні захворювання, щеплення, операції, '
+            'аналізи й візити цього профілю (разом із вкладеннями) не передаються '
+            'на інші пристрої сім\'ї, підключені через пейринг. Ліки й розклад '
+            'прийому синхронізуються незалежно від цього перемикача.',
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewerCard extends ConsumerStatefulWidget {
+  final String subjectPersonUuid;
+  final _ViewerInfo viewer;
+  const _ViewerCard({required this.subjectPersonUuid, required this.viewer});
+
+  @override
+  ConsumerState<_ViewerCard> createState() => _ViewerCardState();
+}
+
+class _ViewerCardState extends ConsumerState<_ViewerCard> {
+  bool _loading = true;
+  bool _denied = false;
   final Map<FamilyPermission, bool> _values = {};
 
   @override
@@ -128,17 +254,27 @@ class _ViewerCardState extends State<_ViewerCard> {
   }
 
   Future<void> _load() async {
+    final db = ref.read(databaseProvider);
     for (final p in FamilyPermission.values) {
       _values[p] = await FamilyVisibilityService.isAllowed(
-          widget.subjectId, widget.viewer.id, p);
+          db, widget.subjectPersonUuid, widget.viewer.personUuid, p);
     }
     if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _toggle(FamilyPermission p, bool value) async {
     setState(() => _values[p] = value);
-    await FamilyVisibilityService.setAllowed(
-        widget.subjectId, widget.viewer.id, p, value);
+    try {
+      await FamilyVisibilityService.setAllowed(
+        ref.read(databaseProvider),
+        subjectPersonUuid: widget.subjectPersonUuid,
+        viewerPersonUuid: widget.viewer.personUuid,
+        permission: p,
+        value: value,
+      );
+    } on FamilyGrantDeniedException {
+      if (mounted) setState(() => _denied = true);
+    }
   }
 
   @override
@@ -191,6 +327,13 @@ class _ViewerCardState extends State<_ViewerCard> {
               value: _values[FamilyPermission.view]!,
               onChanged: (v) => _toggle(FamilyPermission.view, v),
             ),
+            if (_denied) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Не вдалося змінити — це не ваш профіль',
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.danger),
+              ),
+            ],
           ],
         ],
       ),

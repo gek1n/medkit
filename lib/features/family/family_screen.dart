@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/services/attachment_cleanup_service.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
 import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -12,6 +14,7 @@ import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
@@ -21,6 +24,9 @@ import '../pairing/pairing_join_screen.dart';
 import '../plans/plans_screen.dart';
 import '../profile/family_visibility_screen.dart';
 import '../today/providers/today_providers.dart';
+import 'family_group_invite_screen.dart';
+import 'family_group_join_screen.dart';
+import 'shared_family_data_screen.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -34,19 +40,34 @@ final _memberChannelProvider = StreamProvider.family<SharedChannel?, int>(
       ref.watch(sharedChannelsRepositoryProvider).watchForMember(memberId),
 );
 
+/// Локальний id має значення лише на цьому пристрої — FamilyVisibilityService
+/// оперує стабільним personUuid (Фаза 1/3), тож провайдери-обгортки нижче
+/// резолвлять id → personUuid, щоб виклики в решті екрана (де під рукою
+/// лише int id з Member) лишились без змін.
+Future<String?> _personUuidFor(AppDatabase db, int memberId) async {
+  final row = await (db.select(db.members)..where((t) => t.id.equals(memberId))).getSingleOrNull();
+  return row?.personUuid;
+}
+
 /// (subjectId, viewerId) — чи дозволив subject перегляд своїх даних viewer'у.
 final _viewAllowedProvider =
-    FutureProvider.family<bool, (int, int)>((ref, ids) {
-  return FamilyVisibilityService.isAllowed(
-      ids.$1, ids.$2, FamilyPermission.view);
+    FutureProvider.family<bool, (int, int)>((ref, ids) async {
+  final db = ref.watch(databaseProvider);
+  final subjectUuid = await _personUuidFor(db, ids.$1);
+  final viewerUuid = await _personUuidFor(db, ids.$2);
+  if (subjectUuid == null || viewerUuid == null) return false;
+  return FamilyVisibilityService.isAllowed(db, subjectUuid, viewerUuid, FamilyPermission.view);
 });
 
 final _viewOrEditAllowedProvider =
     FutureProvider.family<bool, (int, int)>((ref, ids) async {
-  final view =
-      await FamilyVisibilityService.isAllowed(ids.$1, ids.$2, FamilyPermission.view);
+  final db = ref.watch(databaseProvider);
+  final subjectUuid = await _personUuidFor(db, ids.$1);
+  final viewerUuid = await _personUuidFor(db, ids.$2);
+  if (subjectUuid == null || viewerUuid == null) return false;
+  final view = await FamilyVisibilityService.isAllowed(db, subjectUuid, viewerUuid, FamilyPermission.view);
   if (view) return true;
-  return FamilyVisibilityService.isAllowed(ids.$1, ids.$2, FamilyPermission.edit);
+  return FamilyVisibilityService.isAllowed(db, subjectUuid, viewerUuid, FamilyPermission.edit);
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -143,6 +164,8 @@ class _FamilyBody extends ConsumerWidget {
               if (!blocked) const _AddMemberTile(),
               const SizedBox(height: AppDimensions.xl),
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
+              const SizedBox(height: AppDimensions.xl),
+              const _FamilyGroupSection(),
               const SizedBox(height: AppDimensions.xl),
               const _InviteSection(),
               const SizedBox(height: 100),
@@ -646,7 +669,11 @@ class _MemberActionsSheet extends ConsumerWidget {
       ),
     );
     if (ok == true) {
-      await FamilySyncService(ref.read(databaseProvider)).deleteMemberEverywhere(member.id);
+      final db = ref.read(databaseProvider);
+      // Зібрати й видалити прикріплені файли ДО каскадного видалення рядків
+      // — інакше зашифровані документи лишаться в med_photos/ назавжди.
+      await AttachmentCleanupService.deleteAllForMember(db, member.id);
+      await FamilySyncService(db).deleteMemberEverywhere(member.id);
       await ref.read(membersRepositoryProvider).delete(member.id);
       if (context.mounted) Navigator.pop(context);
     }
@@ -933,6 +960,210 @@ class _FamilyUpgradeBanner extends StatelessWidget {
 // телефон" у _MemberCard) — тут лишається лише приєднання за чужим кодом,
 // бо до розшифровки коду невідомо, чий це профіль.
 
+// ── Family group (peers) ─────────────────────────────────────────────────────
+// На відміну від "Приєднатись до сім'ї" нижче (дзеркалить дані ОДНОГО
+// керованого профілю на нове пристрій — `PairingJoinScreen`), тут ідеться
+// про НЕЗАЛЕЖНИХ учасників зі своїми акаунтами: обмін лише візитівкою
+// (ім'я/аватар), без жодних медичних даних. Видимість між учасниками —
+// окреме налаштування (Фаза 3/4), тут лише сам факт членства.
+
+class _FamilyGroupSection extends ConsumerWidget {
+  const _FamilyGroupSection();
+
+  Future<void> _confirmLeaveGroup(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Покинути сімейну групу?'),
+        content: const Text(
+          'Усі учасники групи втратять доступ до ваших даних, а ви — до того, чим вони з вами ділились.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Покинути'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await FamilyPeerSyncService(ref.read(databaseProvider)).leaveGroup();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ви покинули сімейну групу')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final peersAsync = ref.watch(_familyPeersProvider);
+    final peers = peersAsync.valueOrNull ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel('Сімейна група'),
+        const SizedBox(height: AppDimensions.md),
+        if (peers.isNotEmpty) ...[
+          ...peers.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                child: _PeerCard(peer: p),
+              )),
+          const SizedBox(height: AppDimensions.sm),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: _GroupActionTile(
+                icon: Icons.qr_code_2_rounded,
+                label: 'Запросити до сім\'ї',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FamilyGroupInviteScreen()),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppDimensions.sm),
+            Expanded(
+              child: _GroupActionTile(
+                icon: Icons.group_add_rounded,
+                label: 'Приєднатись',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FamilyGroupJoinScreen()),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (peers.isNotEmpty) ...[
+          const SizedBox(height: AppDimensions.sm),
+          Center(
+            child: TextButton(
+              onPressed: () => _confirmLeaveGroup(context, ref),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: const Text('Покинути сімейну групу'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+final _familyPeersProvider = StreamProvider<List<FamilyPeer>>((ref) {
+  return ref.watch(familyPeersRepositoryProvider).watchAll();
+});
+
+class _PeerCard extends ConsumerWidget {
+  final FamilyPeer peer;
+  const _PeerCard({required this.peer});
+
+  Future<void> _confirmRemove(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Прибрати "${peer.name}"?'),
+        content: const Text(
+          'Ви обидва втратите доступ до даних, якими ділились одне з одним.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Прибрати'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await FamilyPeerSyncService(ref.read(databaseProvider)).removePeer(peer.personUuid);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SharedFamilyDataScreen(peerChannelId: peer.channelId, peerName: peer.name),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            AvatarImage(index: peer.avatarIndex, size: 40),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(peer.name, style: AppTextStyles.labelLg),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Незалежний обліковий запис',
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                  ),
+                ],
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              onTap: () => _confirmRemove(context, ref),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _GroupActionTile({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1.5),
+          boxShadow: const [
+            BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InviteSection extends StatelessWidget {
   const _InviteSection();
 
@@ -1170,6 +1401,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
   int _avatarIndex = 0;
   String _profileType = 'dependent'; // dependent (Локальний) | member (Автономний)
   bool _saving = false;
+  bool _consentChecked = false;
 
   @override
   void dispose() {
@@ -1180,6 +1412,12 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
+    if (!_consentChecked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Підтвердіть, що ви маєте право вести дані цієї людини')),
+      );
+      return;
+    }
 
     if (_profileType == 'member') {
       final plan = ref.read(planProvider);
@@ -1320,7 +1558,40 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                                   builder: (_) => const PlansScreen()))
                           : () => setState(() => _profileType = 'member'),
                     ),
-                    const SizedBox(height: AppDimensions.xl),
+                    const SizedBox(height: AppDimensions.lg),
+                    GestureDetector(
+                      onTap: () => setState(() => _consentChecked = !_consentChecked),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 2),
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: _consentChecked ? AppColors.primary : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: _consentChecked ? AppColors.primary : AppColors.border,
+                                width: 2,
+                              ),
+                            ),
+                            child: _consentChecked
+                                ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                                : null,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Я є законним представником цієї людини або отримав(-ла) '
+                              'її згоду на ведення її даних у застосунку',
+                              style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(

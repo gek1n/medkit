@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -13,7 +14,8 @@ import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../shared/widgets/documents_section.dart';
-import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_date_picker.dart';
+import '../../shared/widgets/mk_form_fields.dart';
 import '../../shared/widgets/specialty_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
@@ -109,6 +111,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       ),
     );
     if (confirm != true || !mounted) return;
+    await AttachmentCleanupService.deletePaths(widget.existing!.documentPaths);
     await ref
         .read(doctorAppointmentsRepositoryProvider)
         .delete(widget.existing!.id);
@@ -117,20 +120,13 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
+    // Дозволяємо минулі дати — цей самий екран використовується і для
+    // запису майбутнього візиту з нагадуванням, і для внесення заднім
+    // числом того, що вже відбулось (walk-in візит, стара історія).
+    final picked = await showMedcardDatePicker(
+      context,
       initialDate: _date,
-      // Дозволяємо минулі дати — цей самий екран використовується і для
-      // запису майбутнього візиту з нагадуванням, і для внесення заднім
-      // числом того, що вже відбулось (walk-in візит, стара історія).
-      firstDate: DateTime(1950),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.primary),
-        ),
-        child: child!,
-      ),
     );
     if (picked != null) setState(() => _date = picked);
   }
@@ -254,7 +250,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _BackHeader(
+            MkFormHeader(
               title:
                   (isEdit
                       ? 'Редагувати запис'
@@ -282,9 +278,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Doctor type
-                    _Label('Напрямок лікаря'),
+                    MkFieldLabel('Напрямок лікаря'),
                     const SizedBox(height: 6),
-                    _Input(
+                    MkTextField(
                       controller: _doctorController,
                       hint: 'Оберіть напрямок',
                       readOnly: true,
@@ -293,16 +289,16 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     const SizedBox(height: AppDimensions.lg),
 
                     // Location
-                    _Label('Де'),
+                    MkFieldLabel('Де'),
                     const SizedBox(height: 6),
-                    _Input(
+                    MkTextField(
                       controller: _locationController,
                       hint: 'Клініка, адреса або онлайн',
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Date & time
-                    _Label('Дата та час'),
+                    MkFieldLabel('Дата та час'),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -328,7 +324,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
 
                     // Remind before — не потрібно для візиту, що вже минув
                     if (!_isPastVisit) ...[
-                      _Label('Нагадати заздалегідь'),
+                      MkFieldLabel('Нагадати заздалегідь'),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -373,29 +369,14 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ],
 
                     // Notes — до візиту це "що запитати", після — висновок лікаря
-                    _Label(_isPastVisit ? 'Висновок лікаря' : 'Нотатка'),
+                    MkFieldLabel(_isPastVisit ? 'Висновок лікаря' : 'Нотатка'),
                     const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: TextField(
-                        controller: _notesController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: _isPastVisit
-                              ? 'Що сказав лікар, рекомендації, призначення…'
-                              : 'Що запитати, взяти з собою, номер поліса…',
-                          hintStyle: AppTextStyles.bodyMd.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(14),
-                        ),
-                        style: AppTextStyles.bodyMd,
-                      ),
+                    MkTextField(
+                      controller: _notesController,
+                      maxLines: 3,
+                      hint: _isPastVisit
+                          ? 'Що сказав лікар, рекомендації, призначення…'
+                          : 'Що запитати, взяти з собою, номер поліса…',
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -412,32 +393,12 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          _isSaving
-                              ? 'Зберігаємо...'
-                              : (isEdit
-                                    ? 'Зберегти зміни'
-                                    : (_isPastVisit
-                                          ? 'Зберегти візит'
-                                          : 'Зберегти нагадування')),
-                          style: AppTextStyles.labelLg.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                    MkSaveButton(
+                      isSaving: _isSaving,
+                      onPressed: _save,
+                      label: isEdit
+                          ? 'Зберегти зміни'
+                          : (_isPastVisit ? 'Зберегти візит' : 'Зберегти нагадування'),
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -504,112 +465,3 @@ class _DateTimeBox extends StatelessWidget {
   }
 }
 
-class _BackHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback onBack;
-  final String? trailingLabel;
-  final VoidCallback? onTrailing;
-  final VoidCallback? onDelete;
-  const _BackHeader({
-    required this.title,
-    required this.onBack,
-    this.trailingLabel,
-    this.onTrailing,
-    this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.bg,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        children: [
-          MkBackButton(onTap: onBack),
-          const SizedBox(width: 12),
-          Expanded(child: Text(title, style: AppTextStyles.h3)),
-          if (trailingLabel != null)
-            GestureDetector(
-              onTap: onTrailing,
-              child: Text(
-                trailingLabel!,
-                style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
-              ),
-            ),
-          if (onDelete != null)
-            GestureDetector(
-              onTap: onDelete,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFECACA)),
-                ),
-                child: const Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: Color(0xFFDC2626),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Label extends StatelessWidget {
-  final String label;
-  const _Label(this.label);
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(label.toUpperCase(), style: AppTextStyles.labelSm);
-}
-
-class _Input extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final bool readOnly;
-  final VoidCallback? onTap;
-  const _Input({
-    required this.controller,
-    required this.hint,
-    this.readOnly = false,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: TextField(
-        controller: controller,
-        readOnly: readOnly,
-        onTap: onTap,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 13,
-          ),
-          suffixIcon: readOnly
-              ? const Icon(
-                  Icons.expand_more_rounded,
-                  color: AppColors.textMuted,
-                )
-              : null,
-        ),
-        style: AppTextStyles.bodyMd,
-      ),
-    );
-  }
-}

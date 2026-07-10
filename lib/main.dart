@@ -11,9 +11,12 @@ import 'core/providers/database_provider.dart';
 import 'core/providers/font_scale_provider.dart';
 import 'core/services/account_service.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/family_group_service.dart';
+import 'core/services/family_peer_sync_service.dart';
 import 'core/services/family_sync_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/sync_service.dart';
+import 'data/repositories/family_peers_repository.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
 import 'core/theme/app_theme.dart';
@@ -190,6 +193,12 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     super.initState();
     _pageController = PageController(initialPage: _index);
     WidgetsBinding.instance.addObserver(this);
+    // Похідний кеш "чужих" даних, поділених пірами (SharedSubjects/
+    // SharedEntities) — чистимо ПЕРЕД першим синком на холодному старті,
+    // щоб застаріла версія (напр. з відновленого бекапу) не пережила
+    // відновлення; наступний вдалий syncAllPeers() наповнить його заново
+    // вже актуальними даними.
+    unawaited(FamilyPeersRepository(ref.read(databaseProvider)).clearSharedCache());
     _syncIfEnabled();
     _familySyncIfNeeded();
     // "Розбуди" push від family_sync (relay/send) приходить як data-message —
@@ -245,7 +254,15 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     if (_familySyncing) return;
     _familySyncing = true;
     try {
-      await FamilySyncService(ref.read(databaseProvider)).syncAll();
+      final db = ref.read(databaseProvider);
+      await FamilySyncService(db).syncAll();
+      // Легкий обмін візитівками сімейної групи — той самий тригер, що й
+      // family_sync вище, але не залежить від нього (працює навіть якщо
+      // жодного каналу-дзеркала профілю ще немає).
+      await FamilyGroupService(db).refreshPeers();
+      // Реальні дані (ліки, медкартка) до/від пірів, відфільтровані через
+      // FamilyVisibilityService — Фаза 4.
+      await FamilyPeerSyncService(db).syncAllPeers();
     } catch (_) {
       // Тиха невдача — див. коментар до _syncIfEnabled.
     } finally {

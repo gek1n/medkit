@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/db/app_database.dart';
 import 'family_sync_api_client.dart';
 import 'family_sync_delete_queue.dart';
+import 'family_visibility_service.dart';
 import 'photo_service.dart';
 import 'push_token_service.dart';
 import 'relay_api_client.dart';
@@ -205,6 +206,10 @@ class FamilySyncService {
     final since = channel.lastSyncedAt;
     final memberId = channel.memberId;
     final entities = <Map<String, dynamic>>[];
+    final subjectMember = await (_db.select(_db.members)..where((t) => t.id.equals(memberId))).getSingleOrNull();
+    final medcardSyncAllowed = subjectMember?.personUuid == null
+        ? true
+        : await FamilyVisibilityService.isMedcardSyncAllowed(subjectMember!.personUuid!);
 
     for (final m in await _medicationsForPush(memberId, since)) {
       final json = m.toJson()..remove('id')..remove('memberId');
@@ -255,54 +260,59 @@ class FamilySyncService {
 
     // Медкартка — усі плоскі, прив'язані напряму до memberId (без дочірніх
     // uuid, на відміну від schedule/intake/symptom), тому пушаться так само
-    // просто, як і medication.
-    for (final a in await _appointmentsForPush(memberId, since)) {
-      final json = a.toJson()..remove('id')..remove('memberId');
-      entities.add({
-        'type': 'doctor_appointment',
-        'uuid': a.syncUuid,
-        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-      });
-    }
-    for (final l in await _labResultsForPush(memberId, since)) {
-      final json = l.toJson()..remove('id')..remove('memberId');
-      entities.add({
-        'type': 'lab_result',
-        'uuid': l.syncUuid,
-        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-      });
-    }
-    for (final a in await _allergiesForPush(memberId, since)) {
-      final json = a.toJson()..remove('id')..remove('memberId');
-      entities.add({
-        'type': 'allergy',
-        'uuid': a.syncUuid,
-        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-      });
-    }
-    for (final c in await _chronicConditionsForPush(memberId, since)) {
-      final json = c.toJson()..remove('id')..remove('memberId');
-      entities.add({
-        'type': 'chronic_condition',
-        'uuid': c.syncUuid,
-        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-      });
-    }
-    for (final v in await _vaccinationsForPush(memberId, since)) {
-      final json = v.toJson()..remove('id')..remove('memberId');
-      entities.add({
-        'type': 'vaccination',
-        'uuid': v.syncUuid,
-        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-      });
-    }
-    for (final s in await _surgeriesForPush(memberId, since)) {
-      final json = s.toJson()..remove('id')..remove('memberId');
-      entities.add({
-        'type': 'surgery',
-        'uuid': s.syncUuid,
-        'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-      });
+    // просто, як і medication. Керується окремим прапорцем
+    // FamilyVisibilityService.isMedcardSyncAllowed — на відміну від ліків і
+    // розкладу, які завжди синхронізуються, дані медкартки можна повністю
+    // виключити з передачі на інші пристрої.
+    if (medcardSyncAllowed) {
+      for (final a in await _appointmentsForPush(memberId, since)) {
+        final json = a.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'doctor_appointment',
+          'uuid': a.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final l in await _labResultsForPush(memberId, since)) {
+        final json = l.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'lab_result',
+          'uuid': l.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final a in await _allergiesForPush(memberId, since)) {
+        final json = a.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'allergy',
+          'uuid': a.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final c in await _chronicConditionsForPush(memberId, since)) {
+        final json = c.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'chronic_condition',
+          'uuid': c.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final v in await _vaccinationsForPush(memberId, since)) {
+        final json = v.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'vaccination',
+          'uuid': v.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final s in await _surgeriesForPush(memberId, since)) {
+        final json = s.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'surgery',
+          'uuid': s.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
     }
 
     final tombstones = await FamilySyncDeleteQueue.pendingForChannel(channel.channelId);
@@ -310,7 +320,7 @@ class FamilySyncService {
       entities.add({'type': t['entityType'], 'uuid': t['syncUuid'], 'ciphertext': '', 'deleted': true});
     }
 
-    final photos = await _photosForPush(channel);
+    final photos = await _photosForPush(channel, medcardSyncAllowed);
 
     if (entities.isEmpty && photos.isEmpty) return false;
 
@@ -560,7 +570,7 @@ class FamilySyncService {
     await prefs.setString(_photoStateKey(channelId), jsonEncode(ids.toList()));
   }
 
-  Future<List<Map<String, dynamic>>> _photosForPush(SharedChannel channel) async {
+  Future<List<Map<String, dynamic>>> _photosForPush(SharedChannel channel, bool medcardSyncAllowed) async {
     final medications =
         await (_db.select(_db.medications)..where((t) => t.memberId.equals(channel.memberId))).get();
     final currentPaths = <String>{};
@@ -574,29 +584,49 @@ class FamilySyncService {
     }
 
     // Медкартка — documentPaths, той самий json-список формат, що й
-    // photoPaths вище (кілька фото/PDF на один запис).
-    void addDocumentPaths(String json) {
-      try {
-        currentPaths.addAll((jsonDecode(json) as List).cast<String>());
-      } catch (_) {
-        // documentPaths пошкоджений/порожній — пропускаємо цей рядок
+    // photoPaths вище (кілька фото/PDF на один запис). Пропускаємо весь блок,
+    // якщо синхронізація медкартки вимкнена — інакше вкладення все одно
+    // долетіли б до іншого пристрою в обхід прапорця.
+    if (medcardSyncAllowed) {
+      void addDocumentPaths(String json) {
+        try {
+          currentPaths.addAll((jsonDecode(json) as List).cast<String>());
+        } catch (_) {
+          // documentPaths пошкоджений/порожній — пропускаємо цей рядок
+        }
       }
-    }
 
-    final appointments =
-        await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(channel.memberId))).get();
-    for (final a in appointments) {
-      addDocumentPaths(a.documentPaths);
-    }
-    final labResults =
-        await (_db.select(_db.labResults)..where((t) => t.memberId.equals(channel.memberId))).get();
-    for (final l in labResults) {
-      addDocumentPaths(l.documentPaths);
-    }
-    final surgeries =
-        await (_db.select(_db.surgeries)..where((t) => t.memberId.equals(channel.memberId))).get();
-    for (final s in surgeries) {
-      addDocumentPaths(s.documentPaths);
+      final appointments =
+          await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(channel.memberId))).get();
+      for (final a in appointments) {
+        addDocumentPaths(a.documentPaths);
+      }
+      final labResults =
+          await (_db.select(_db.labResults)..where((t) => t.memberId.equals(channel.memberId))).get();
+      for (final l in labResults) {
+        addDocumentPaths(l.documentPaths);
+      }
+      final surgeries =
+          await (_db.select(_db.surgeries)..where((t) => t.memberId.equals(channel.memberId))).get();
+      for (final s in surgeries) {
+        addDocumentPaths(s.documentPaths);
+      }
+      final allergyRows =
+          await (_db.select(_db.allergies)..where((t) => t.memberId.equals(channel.memberId))).get();
+      for (final a in allergyRows) {
+        addDocumentPaths(a.documentPaths);
+      }
+      final conditionRows = await (_db.select(_db.chronicConditions)
+            ..where((t) => t.memberId.equals(channel.memberId)))
+          .get();
+      for (final c in conditionRows) {
+        addDocumentPaths(c.documentPaths);
+      }
+      final vaccinationRows =
+          await (_db.select(_db.vaccinations)..where((t) => t.memberId.equals(channel.memberId))).get();
+      for (final v in vaccinationRows) {
+        addDocumentPaths(v.documentPaths);
+      }
     }
 
     final previouslyPushed = await _pushedPhotoIds(channel.channelId);
