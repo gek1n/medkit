@@ -54,7 +54,6 @@ class IntakesRepository {
       ),
     );
     await NotificationService.cancelIntakeReminder(id);
-    await NotificationService.cancelFamilyCheckReminder(id);
 
     final intake =
         await (_db.select(_db.intakes)..where((t) => t.id.equals(id)))
@@ -75,7 +74,6 @@ class IntakesRepository {
       ),
     );
     await NotificationService.cancelIntakeReminder(id);
-    await NotificationService.cancelFamilyCheckReminder(id);
     await _triggerFamilySyncForIntake(id);
   }
 

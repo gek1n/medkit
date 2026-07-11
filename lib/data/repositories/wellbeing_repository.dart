@@ -6,7 +6,6 @@ import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
-import '../../core/services/notification_service.dart';
 
 class WellbeingRepository {
   final AppDatabase _db;
@@ -46,14 +45,7 @@ class WellbeingRepository {
 
   Future<int> insertLog(WellbeingLogsCompanion log) async {
     final id = await _db.into(_db.wellbeingLogs).insert(log);
-    if (log.memberId.present) {
-      final memberId = log.memberId.value;
-      // Якщо це власний лог автономного профілю (переглянуто "як" нього на
-      // цьому ж пристрої) — прибрати заплановану перевірку одразу, не
-      // чекаючи наступного синку.
-      await NotificationService.cancelTodayWellbeingChecks(memberId);
-      _triggerFamilySync(memberId);
-    }
+    if (log.memberId.present) _triggerFamilySync(log.memberId.value);
     return id;
   }
 

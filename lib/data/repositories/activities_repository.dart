@@ -85,7 +85,6 @@ class ActivitiesRepository {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(ActivityLogsCompanion(status: const Value('done'), updatedAt: Value(DateTime.now())));
     await NotificationService.cancelActivityReminder(id);
-    await NotificationService.cancelActivityCheckReminder(id);
     await _triggerFamilySyncForLog(id);
   }
 
@@ -93,7 +92,6 @@ class ActivitiesRepository {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(ActivityLogsCompanion(status: const Value('skipped'), updatedAt: Value(DateTime.now())));
     await NotificationService.cancelActivityReminder(id);
-    await NotificationService.cancelActivityCheckReminder(id);
     await _triggerFamilySyncForLog(id);
   }
 
@@ -161,7 +159,6 @@ class ActivitiesRepository {
         .get();
     for (final log in pending) {
       await NotificationService.cancelActivityReminder(log.id);
-      await NotificationService.cancelActivityCheckReminder(log.id);
     }
 
     final activity = await (_db.select(_db.activities)..where((t) => t.id.equals(id))).getSingleOrNull();
