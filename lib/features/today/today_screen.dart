@@ -71,7 +71,6 @@ class TodayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(generateTodayIntakesProvider);
     ref.watch(generateTodayActivityLogsProvider);
-    ref.watch(generateTodayWellbeingChecksProvider);
     final memberAsync = ref.watch(currentMemberProvider);
     final activeId = ref.watch(activeMemberIdProvider);
 

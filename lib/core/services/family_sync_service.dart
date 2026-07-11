@@ -1032,11 +1032,6 @@ class FamilySyncService {
         } else {
           await _db.into(_db.intakes).insert(companion);
         }
-        // Пір (на своєму пристрої) щойно відмітив прийом/пропуск — прибрати
-        // заплановану "перевірку" тут раніше, ніж вона встигне спрацювати.
-        if (existing != null && (row.status == 'taken' || row.status == 'skipped')) {
-          await NotificationService.cancelFamilyCheckReminder(existing.id);
-        }
 
       case 'symptom':
         final medUuid = json['medicationSyncUuid'] as String?;
@@ -1111,11 +1106,6 @@ class FamilySyncService {
         } else {
           await _db.into(_db.activityLogs).insert(companion);
         }
-        // Той самий принцип, що й для intake: пір щойно відмітив
-        // виконано/пропущено — прибрати заплановану перевірку заздалегідь.
-        if (existing != null && (row.status == 'done' || row.status == 'skipped')) {
-          await NotificationService.cancelActivityCheckReminder(existing.id);
-        }
 
       case 'wellbeing_log':
         final existing =
@@ -1132,11 +1122,6 @@ class FamilySyncService {
         } else {
           await _db.into(_db.wellbeingLogs).insert(companion);
         }
-        // Прийшов новий зріз самопочуття цього дня — прибрати всі заплановані
-        // на сьогодні перевірки для цього учасника (спрощення: не звіряємо
-        // конкретний слот, достатньо факту, що людина відкрила застосунок і
-        // щось відмітила).
-        await NotificationService.cancelTodayWellbeingChecks(memberId);
 
       case 'wellbeing_schedule':
         final existing = await (_db.select(_db.wellbeingSchedules)
