@@ -52,4 +52,29 @@ class FileEncryptionService {
     final plain = await _algorithm.decrypt(box, secretKey: key);
     return Uint8List.fromList(plain);
   }
+
+  // ── Синхронізація ключа між пристроями ОДНОГО акаунта ──────────────────
+  // На відміну від пейрингу з іншою людиною (FamilySyncService), тут це
+  // той самий власник даних на іншому своєму пристрої — тож, коли на новому
+  // пристрої локального ключа ще нема, безпечно (і потрібно) прийняти той,
+  // що вже використовувався для наявних файлів, а не мовчки згенерувати
+  // свій — інакше відновлені фото/PDF назавжди лишились би нечитаемыми.
+
+  static Future<bool> hasLocalKey() async {
+    final existing = await _secureStorage.read(key: _keyStorageKey);
+    return existing != null && existing.isNotEmpty;
+  }
+
+  static Future<Uint8List> exportKeyBytes() async {
+    final key = await _getOrCreateKey();
+    return Uint8List.fromList(await key.extractBytes());
+  }
+
+  /// Встановлює ключ з сервера ЛИШЕ якщо на цьому пристрої ще нема свого —
+  /// інакше вже наявні тут локальні файли (зашифровані старим ключем)
+  /// стали б нечитаемыми назавжди.
+  static Future<void> installKeyIfAbsent(Uint8List keyBytes) async {
+    if (await hasLocalKey()) return;
+    await _secureStorage.write(key: _keyStorageKey, value: base64Encode(keyBytes));
+  }
 }

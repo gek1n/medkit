@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +19,7 @@ import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
+import '../plans/elly_denied_screen.dart';
 import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'family_group_invite_screen.dart';
@@ -851,6 +854,10 @@ class _FamilyGroupSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final peersAsync = ref.watch(_familyPeersProvider);
     final peers = peersAsync.valueOrNull ?? [];
+    final plan = ref.watch(planProvider);
+    final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
+        ? true
+        : peers.length >= plan.limits.maxAutonomousMembers;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -871,7 +878,14 @@ class _FamilyGroupSection extends ConsumerWidget {
                 icon: Icons.qr_code_2_rounded,
                 label: 'Запросити до сім\'ї',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const FamilyGroupInviteScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => autonomousLimitReached
+                        ? const EllyDeniedScreen(
+                            title: 'Ліміт автономних профілів досягнуто',
+                            subtitle: 'Перейдіть на Elly Family, щоб запросити ще когось',
+                          )
+                        : const FamilyGroupInviteScreen(),
+                  ),
                 ),
               ),
             ),
@@ -917,6 +931,142 @@ final _pendingConversionProvider = StreamProvider.family<bool, int>((ref, member
       .map((rows) => rows.isNotEmpty);
 });
 
+class _MissedItem {
+  final String entityType; // intake / activity_log / doctor_appointment / wellbeing
+  final String uuid;
+  final String title;
+  final String? detail;
+  final DateTime scheduledAt;
+  const _MissedItem({
+    required this.entityType,
+    required this.uuid,
+    required this.title,
+    this.detail,
+    required this.scheduledAt,
+  });
+}
+
+/// Пропущене (доза/активність/прийом лікаря/самопочуття) для профілю, яким
+/// керує пір [personUuid] — рахується лише за грантом view (дані, яких я не
+/// бачу, сюди й не потрапляють у SharedEntities взагалі). Дизайн-піру
+/// завжди ділиться лише СВОЇМ ВЛАСНИМ профілем (не своїми dependent'ами —
+/// UI видачі грантів це не дозволяє), тож personUuid піра й subjectPersonUuid
+/// тут завжди збігаються.
+final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((ref, personUuid) {
+  return ref.watch(familyPeersRepositoryProvider).watchSharedEntities(personUuid).map((entities) {
+    Map<String, dynamic>? decode(SharedEntity e) {
+      try {
+        return jsonDecode(e.dataJson) as Map<String, dynamic>;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    String? nameFor(String entityType, String? uuid) {
+      if (uuid == null) return null;
+      for (final e in entities) {
+        if (e.entityType == entityType && e.uuid == uuid) return decode(e)?['name'] as String?;
+      }
+      return null;
+    }
+
+    final now = DateTime.now();
+    final items = <_MissedItem>[];
+    var hasWellbeingLogToday = false;
+    final todayStart = DateTime(now.year, now.month, now.day);
+
+    for (final e in entities) {
+      if (e.entityType == 'wellbeing_log') {
+        final loggedAt = DateTime.tryParse(decode(e)?['loggedAt'] as String? ?? '');
+        if (loggedAt != null && !loggedAt.isBefore(todayStart)) hasWellbeingLogToday = true;
+      }
+    }
+
+    for (final e in entities) {
+      final json = decode(e);
+      if (json == null) continue;
+      final status = json['status'] as String?;
+      if (status != null && status != 'pending') continue;
+
+      switch (e.entityType) {
+        case 'intake':
+          final scheduledAt = DateTime.tryParse(json['scheduledAt'] as String? ?? '');
+          if (scheduledAt == null || scheduledAt.isAfter(now)) continue;
+          final medName = nameFor('medication', json['medicationSyncUuid'] as String?) ?? 'Ліки';
+          final doseAmount = json['doseAmount'];
+          final dose = doseAmount != null ? '$doseAmount ${json['doseUnit'] ?? ''}'.trim() : null;
+          items.add(_MissedItem(
+              entityType: 'intake', uuid: e.uuid, title: medName, detail: dose, scheduledAt: scheduledAt));
+        case 'activity_log':
+          final scheduledAt = DateTime.tryParse(json['scheduledAt'] as String? ?? '');
+          if (scheduledAt == null || scheduledAt.isAfter(now)) continue;
+          final activityName = nameFor('activity', json['activitySyncUuid'] as String?) ?? 'Активність';
+          items.add(_MissedItem(
+              entityType: 'activity_log', uuid: e.uuid, title: activityName, scheduledAt: scheduledAt));
+        case 'doctor_appointment':
+          final scheduledAt = DateTime.tryParse(json['scheduledAt'] as String? ?? '');
+          if (scheduledAt == null || scheduledAt.isAfter(now)) continue;
+          items.add(_MissedItem(
+            entityType: 'doctor_appointment',
+            uuid: e.uuid,
+            title: json['doctorType'] as String? ?? 'Лікар',
+            detail: json['location'] as String?,
+            scheduledAt: scheduledAt,
+          ));
+      }
+    }
+
+    if (!hasWellbeingLogToday) {
+      for (final e in entities) {
+        if (e.entityType != 'wellbeing_schedule') continue;
+        final json = decode(e);
+        List<String> times;
+        try {
+          times = List<String>.from(json?['times'] as List);
+        } catch (_) {
+          continue;
+        }
+        final day = DateTime(now.year, now.month, now.day);
+        for (final t in times) {
+          final parts = t.split(':');
+          final slot = DateTime(day.year, day.month, day.day, int.parse(parts[0]), int.parse(parts[1]));
+          if (slot.isBefore(now)) {
+            items.add(_MissedItem(entityType: 'wellbeing', uuid: e.uuid, title: 'Самопочуття', scheduledAt: slot));
+            break;
+          }
+        }
+      }
+    }
+
+    items.sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
+    return items;
+  });
+});
+
+Future<void> _sendPeerReminder(BuildContext context, WidgetRef ref, FamilyPeer peer, _MissedItem item) async {
+  final timeStr =
+      '${item.scheduledAt.hour.toString().padLeft(2, '0')}:${item.scheduledAt.minute.toString().padLeft(2, '0')}';
+  final body = switch (item.entityType) {
+    'intake' => 'Не забудьте прийняти "${item.title}"${item.detail != null ? ' — ${item.detail}' : ''} о $timeStr',
+    'activity_log' => 'Не забудьте виконати "${item.title}" о $timeStr',
+    'doctor_appointment' =>
+      'Не забудьте про прийом лікаря: ${item.title}${item.detail != null && item.detail!.isNotEmpty ? ' (${item.detail})' : ''}',
+    'wellbeing' => 'Не забудьте відмітити самопочуття',
+    _ => 'Перевірте розклад',
+  };
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await FamilyPeerSyncService(ref.read(databaseProvider)).sendRemoteReminder(
+      channelId: peer.channelId,
+      title: '🔔 Вам нагадують',
+      body: body,
+    );
+    messenger.showSnackBar(SnackBar(content: Text('Нагадування для ${peer.name} надіслано')));
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Не вдалося надіслати: $e')));
+  }
+}
+
 class _PeerCard extends ConsumerWidget {
   final FamilyPeer peer;
   const _PeerCard({required this.peer});
@@ -945,47 +1095,110 @@ class _PeerCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SharedFamilyDataScreen(peerChannelId: peer.channelId, peerName: peer.name),
-        ),
+    final missed = ref.watch(_peerMissedProvider(peer.personUuid)).valueOrNull ?? const [];
+    final firstMissed = missed.isNotEmpty ? missed.first : null;
+
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            AvatarImage(index: peer.avatarIndex, size: 40),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SharedFamilyDataScreen(peerChannelId: peer.channelId, peerName: peer.name),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
                 children: [
-                  Text(peer.name, style: AppTextStyles.labelLg),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Незалежний обліковий запис',
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                  AvatarImage(index: peer.avatarIndex, size: 40),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(peer.name, style: AppTextStyles.labelLg),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Незалежний обліковий запис',
+                          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                    onTap: () => _confirmRemove(context, ref),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                    ),
                   ),
                 ],
               ),
             ),
-            InkWell(
-              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-              onTap: () => _confirmRemove(context, ref),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+          ),
+          if (firstMissed != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.dangerLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_rounded, size: 18, color: AppColors.danger),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(firstMissed.title, style: AppTextStyles.labelMd),
+                              Text(
+                                missed.length > 1 ? 'Пропущено ${missed.length}' : 'Пропущено',
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () => _sendPeerReminder(context, ref, peer, firstMissed),
+                    child: Container(
+                      width: double.infinity,
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '🔔 Нагадати',
+                        style: AppTextStyles.bodyMd
+                            .copyWith(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

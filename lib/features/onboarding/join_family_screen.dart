@@ -94,6 +94,11 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       final profileAvatarIndex = envelope['profileAvatarIndex'] as int? ?? 0;
       final syncKeyBytes = base64Decode(envelope['syncKey'] as String);
 
+      // Свідомо БЕЗ перевірки ліміту автономних профілів тут: створити таке
+      // запрошення міг лише той, хто вже на плані Elly Family (перевірено на
+      // його боці, FamilyGroupInviteScreen/_FamilyGroupSection) — той, кого
+      // запросили, приєднується як частина цієї ж сімейної групи, а не як
+      // самостійна покупка власного плану.
       final db = ref.read(databaseProvider);
       final memberId = await ref.read(membersRepositoryProvider).insert(
             MembersCompanion.insert(

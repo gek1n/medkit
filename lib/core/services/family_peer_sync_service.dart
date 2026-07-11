@@ -693,6 +693,12 @@ class FamilyPeerSyncService {
         await _handlePhotoResponse(json, peer);
         continue;
       }
+      if (entity.type == 'remind_now') {
+        if (entity.deleted) continue;
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _handleRemoteReminder(json, entity);
+        continue;
+      }
       if (entity.deleted) {
         await repo.deleteSharedEntity(entity.uuid);
         continue;
@@ -715,6 +721,41 @@ class FamilyPeerSyncService {
         updatedAt: Value(DateTime.now()),
       ));
     }
+  }
+
+  // ── "🔔 Нагадати": миттєвий пуш пиру, коли наглядач натиснув кнопку ──────
+  // На відміну від _scheduleMissedChecks (заплановано наперед на пристрої
+  // НАГЛЯДАЧА, скасовується мовчки) — це разовий, явний виклик: показується
+  // одразу на пристрої СУБ'ЄКТА, щойно долетить.
+  Future<void> sendRemoteReminder({
+    required String channelId,
+    required String title,
+    required String body,
+  }) async {
+    final keyBytes = await SharedChannelKeyStorage.read(channelId);
+    if (keyBytes == null) throw StateError('Немає ключа каналу для цього піра');
+    final key = SecretKey(keyBytes);
+
+    final entity = {
+      'type': 'remind_now',
+      'uuid': _uuid.v4(),
+      'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, {'title': title, 'body': body})),
+    };
+    await _api.push(channelId: channelId, entities: [entity]);
+    await _ping(channelId, key);
+  }
+
+  // Сервер зберігає кожну надіслану сутність і повторно віддає її при
+  // будь-якому "since: null" пулі (напр. після переустановки) — без цієї
+  // перевірки старий "Нагадати" міг би спливти як нове сповіщення значно
+  // пізніше, ніж його справді натиснули.
+  Future<void> _handleRemoteReminder(Map<String, dynamic> json, FamilySyncEntity entity) async {
+    final updatedAt = DateTime.tryParse(entity.updatedAt);
+    if (updatedAt == null || DateTime.now().difference(updatedAt) > const Duration(minutes: 5)) return;
+    await NotificationService.showRemoteReminder(
+      title: json['title'] as String? ?? '🔔 Вам нагадують',
+      body: json['body'] as String? ?? '',
+    );
   }
 
   // ── Фото/документи на запит ──────────────────────────────────────────
@@ -825,7 +866,8 @@ class FamilyPeerSyncService {
     await PeerPhotoService.clearRequested(peer.channelId, photoPath);
   }
 
-  // ── Перевірка пропущеного: intake/activity_log/wellbeing для пірів ──────
+  // ── Перевірка пропущеного: intake/activity_log/doctor_appointment/
+  // wellbeing для пірів ────────────────────────────────────────────────
   // Той самий принцип "заплановано на +30 хв, скасовано якщо прийшло
   // підтвердження", що й у family_sync_service.dart (пейринг 1:1) — але тут
   // немає типізованих локальних рядків, лише кеш SharedEntities, тож
@@ -921,6 +963,22 @@ class FamilyPeerSyncService {
               );
             } else {
               await NotificationService.cancelPeerActivityCheck(e.uuid);
+            }
+          case 'doctor_appointment':
+            final status = json['status'] as String?;
+            if (status == null || status == 'pending') {
+              final scheduledAtRaw = json['scheduledAt'] as String?;
+              final scheduledAt = scheduledAtRaw != null ? DateTime.tryParse(scheduledAtRaw) : null;
+              if (scheduledAt == null) break;
+              final doctorType = json['doctorType'] as String? ?? 'Лікар';
+              await NotificationService.schedulePeerAppointmentCheck(
+                uuid: e.uuid,
+                subjectName: subject.name,
+                doctorType: doctorType,
+                scheduledAt: scheduledAt,
+              );
+            } else {
+              await NotificationService.cancelPeerAppointmentCheck(e.uuid);
             }
           case 'wellbeing_schedule':
             if (hasWellbeingLogToday) break;
