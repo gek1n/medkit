@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/db/app_database.dart';
 import 'account_service.dart';
+import 'file_encryption_service.dart';
 import 'photo_service.dart';
 import 'photo_sync_queue.dart';
 import 'sync_api_client.dart';
@@ -26,6 +27,7 @@ import 'sync_crypto_service.dart';
 /// призначений для обміну між РІЗНИМИ людьми/пристроями.
 class SyncService {
   static const _lastSyncedAtKey = 'sync_last_synced_at';
+  static const _fileKeyPushedKey = 'sync_file_key_pushed';
 
   final AppDatabase _db;
   final _accountService = AccountService();
@@ -42,6 +44,18 @@ class SyncService {
   Future<void> _setLastSyncedAt(DateTime value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_lastSyncedAtKey, value.toIso8601String());
+  }
+
+  /// Пушиться лише один раз (поки локальний ключ не зміниться) — інакше
+  /// довелося б бити мережу щоразу, навіть коли реально нічого не змінилось.
+  Future<bool> _fileKeyAlreadyPushed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_fileKeyPushedKey) ?? false;
+  }
+
+  Future<void> _markFileKeyPushed() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_fileKeyPushedKey, true);
   }
 
   /// Заливає на сервер усе, що змінилось з часу останньої синхронізації.
@@ -93,6 +107,21 @@ class SyncService {
     await collect('vaccination', _db.vaccinations, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
     await collect('surgery', _db.surgeries, (t) => t.updatedAt, (r) => r.id, (r) => r.toJson());
 
+    // Ключ шифрування вкладень — окрема "сутність-синглтон" (не пов'язана з
+    // жодною таблицею), щоб новий пристрій міг прийняти той самий ключ і
+    // коректно прочитати вже синхронізовані фото/PDF (див.
+    // FileEncryptionService.installKeyIfAbsent). Пушиться один раз — далі
+    // локальний ключ не змінюється, повторювати щоразу немає сенсу.
+    final fileKeyAlreadyPushed = await _fileKeyAlreadyPushed();
+    if (!fileKeyAlreadyPushed) {
+      final fileKeyBytes = await FileEncryptionService.exportKeyBytes();
+      entities.add({
+        'type': 'file_key',
+        'local_id': 0,
+        'ciphertext': base64Encode(await SyncCryptoService.encryptBytes(key, fileKeyBytes)),
+      });
+    }
+
     // Фото — окремо від сутностей: чергу "що ще не залито/видалено" веде
     // `PhotoSyncQueue` (заповнюється в `PhotoService.pickAndSave`/`delete`),
     // а не `updatedAt` — самі файли зберігаються без окремої дати зміни.
@@ -126,6 +155,8 @@ class SyncService {
       await _api.push(accountId: accountId, photos: chunk);
     }
 
+    if (!fileKeyAlreadyPushed) await _markFileKeyPushed();
+
     for (final path in pendingUploads) {
       await PhotoSyncQueue.clearUpload(path);
     }
@@ -148,6 +179,19 @@ class SyncService {
     final response = await _api.pull(accountId: accountId, since: since);
 
     for (final entity in response.entities) {
+      if (entity.type == 'file_key') {
+        // Сирі байти ключа, не JSON — і встановлюємо лише якщо на цьому
+        // пристрої свого ще нема (див. FileEncryptionService.installKeyIfAbsent).
+        if (entity.deleted) continue;
+        try {
+          final keyBytes = await SyncCryptoService.decryptBytes(key, entity.ciphertext);
+          await FileEncryptionService.installKeyIfAbsent(keyBytes);
+        } catch (_) {
+          // Спробуємо ще раз наступного разу — фото просто лишаться
+          // нерозшифровними до тих пір, це не блокує решту відновлення.
+        }
+        continue;
+      }
       if (entity.deleted) {
         await _softDeleteLocally(entity.type, entity.localId);
         continue;

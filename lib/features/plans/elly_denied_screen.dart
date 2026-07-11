@@ -7,11 +7,18 @@ import '../../shared/widgets/mk_button.dart';
 import 'plans_screen.dart';
 
 /// Показується замість форми додавання, коли в акаунті вже більше
-/// локальних профілів, ніж дозволяє поточний (безкоштовний) план —
-/// напр. після завершення платної підписки. Перегляд лишається
+/// профілів (локальних чи автономних), ніж дозволяє поточний план —
+/// напр. після завершення платної підписки, або при спробі приєднати ще
+/// одного автономного учасника понад ліміт. Перегляд лишається
 /// доступним, редагування/додавання — ні, поки не оновити план.
 class EllyDeniedScreen extends StatelessWidget {
-  const EllyDeniedScreen({super.key});
+  final String title;
+  final String subtitle;
+  const EllyDeniedScreen({
+    super.key,
+    this.title = 'Забагато профілів для цього плану',
+    this.subtitle = 'Продовжіть Elly Plus або Elly Family, щоб редагувати',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +59,12 @@ class EllyDeniedScreen extends StatelessWidget {
                         Image.asset('assets/illustrations/elly-denied.png',
                             height: 220),
                         const SizedBox(height: AppDimensions.lg),
-                        Text('Забагато профілів для цього плану',
+                        Text(title,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.h2),
                         const SizedBox(height: 8),
                         Text(
-                          "Продовжіть Elly Plus або Elly Family, щоб редагувати",
+                          subtitle,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.bodyMd
                               .copyWith(color: AppColors.textSub),

@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/plan_provider.dart';
 import '../../core/services/camera_permission_service.dart';
 import '../../core/services/family_group_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
+import '../plans/elly_denied_screen.dart';
 
 enum _Stage { scanning, review, done }
 
@@ -87,6 +90,28 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
     });
     try {
       final db = ref.read(databaseProvider);
+
+      // Приєднання додає ще одного автономного пира — рахується у той
+      // самий ліміт плану, що й запрошення когось до себе.
+      final plan = ref.read(planProvider);
+      final peersCount = (await ref.read(familyPeersRepositoryProvider).allPeers()).length;
+      final limitReached = plan.limits.maxAutonomousMembers == 0
+          ? true
+          : peersCount >= plan.limits.maxAutonomousMembers;
+      if (limitReached) {
+        if (!mounted) return;
+        setState(() => _submitting = false);
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const EllyDeniedScreen(
+              title: 'Ліміт автономних профілів досягнуто',
+              subtitle: 'Перейдіть на Elly Family, щоб приєднатись ще до когось',
+            ),
+          ),
+        );
+        return;
+      }
+
       await FamilyGroupService(db).acceptInvite(_preview!);
       if (!mounted) return;
       setState(() {

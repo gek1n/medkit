@@ -37,4 +37,33 @@ class SyncCryptoService {
     final plain = await _algorithm.decrypt(box, secretKey: key);
     return jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
   }
+
+  /// Той самий формат, що й [encryptEntity]/[decryptEntity], але для сирих
+  /// байтів (вкладення: фото/PDF) замість JSON — використовується, коли файл
+  /// передається МІЖ пристроями (на відміну від [FileEncryptionService],
+  /// який шифрує ключем, що ніколи не покидає цей пристрій): відправник
+  /// розшифровує своїм локальним ключем і одразу шифрує цим, ключем каналу,
+  /// щоб байти на дроті були захищені спільним секретом, а не чужим
+  /// локальним ключем, якого отримувач не має.
+  static Future<Uint8List> encryptBytes(SecretKey key, List<int> plainBytes) async {
+    final nonce = _algorithm.newNonce();
+    final box = await _algorithm.encrypt(plainBytes, secretKey: key, nonce: nonce);
+    return Uint8List.fromList([...nonce, ...box.cipherText, ...box.mac.bytes]);
+  }
+
+  static Future<Uint8List> decryptBytes(SecretKey key, List<int> blob) async {
+    const nonceLength = 12;
+    const macLength = 16;
+    if (blob.length < nonceLength + macLength) {
+      throw const FormatException('Зашифровані байти пошкоджені (замалий розмір)');
+    }
+
+    final nonce = blob.sublist(0, nonceLength);
+    final mac = blob.sublist(blob.length - macLength);
+    final cipherText = blob.sublist(nonceLength, blob.length - macLength);
+
+    final box = SecretBox(cipherText, nonce: nonce, mac: Mac(mac));
+    final plain = await _algorithm.decrypt(box, secretKey: key);
+    return Uint8List.fromList(plain);
+  }
 }

@@ -137,21 +137,17 @@ class NotificationService {
   }
 
   // ── Сім'я: миттєве нагадування "🔔 Нагадати" (натиснуте вручну) ──────
-  // На відміну від familyCheckReminder (заплановане наперед, з'являється
-  // лише якщо нема відповіді), це показується одразу на пристрої
-  // отримувача, коли інший член сім'ї натиснув кнопку.
-
+  // На відміну від запланованої заздалегідь перевірки (з'являється лише
+  // якщо нема відповіді), це показується одразу на пристрої отримувача,
+  // щойно інший член сім'ї натиснув кнопку. Текст (title/body) формує
+  // викликач — тут лише показ, щоб один метод годився для ліків/
+  // активностей/лікарів/самопочуття.
   static Future<void> showRemoteReminder({
-    required String medName,
-    required String dose,
+    required String title,
+    required String body,
   }) {
     final id = 9500000 + (DateTime.now().millisecondsSinceEpoch % 500000);
-    return _plugin.show(
-      id,
-      '🔔 Вам нагадують',
-      'Не забудьте прийняти "$medName" — $dose',
-      _details(),
-    );
+    return _plugin.show(id, title, body, _details());
   }
 
   // ── Залишок ліків ─────────────────────────────────────────────────────
@@ -365,6 +361,27 @@ class NotificationService {
   }
 
   static Future<void> cancelPeerActivityCheck(String uuid) => cancel(peerActivityCheckId(uuid));
+
+  static int peerAppointmentCheckId(String uuid) => _stableId(23000000, uuid);
+
+  static Future<void> schedulePeerAppointmentCheck({
+    required String uuid,
+    required String subjectName,
+    required String doctorType,
+    required DateTime scheduledAt,
+  }) async {
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    await _zonedSchedule(
+      id: peerAppointmentCheckId(uuid),
+      title: '🔔 Перевірте $subjectName',
+      body: 'Чи відбувся прийом ("$doctorType") о $timeStr? Відкрийте застосунок '
+          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      at: scheduledAt.add(const Duration(minutes: 30)),
+    );
+  }
+
+  static Future<void> cancelPeerAppointmentCheck(String uuid) => cancel(peerAppointmentCheckId(uuid));
 
   static int _peerWellbeingEpochDay() => DateTime.now().difference(DateTime(1970, 1, 1)).inDays;
 

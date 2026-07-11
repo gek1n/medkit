@@ -10,7 +10,7 @@ import '../../data/db/app_database.dart';
 import 'family_sync_api_client.dart';
 import 'family_sync_delete_queue.dart';
 import 'family_visibility_service.dart';
-import 'notification_service.dart';
+import 'file_encryption_service.dart';
 import 'photo_service.dart';
 import 'push_token_service.dart';
 import 'relay_api_client.dart';
@@ -423,7 +423,7 @@ class FamilySyncService {
       entities.add({'type': t['entityType'], 'uuid': t['syncUuid'], 'ciphertext': '', 'deleted': true});
     }
 
-    final photos = await _photosForPush(channel, medcardSyncAllowed);
+    final photos = await _photosForPush(channel, medcardSyncAllowed, key);
 
     if (entities.isEmpty && photos.isEmpty) return false;
 
@@ -784,7 +784,8 @@ class FamilySyncService {
     await prefs.setString(_photoStateKey(channelId), jsonEncode(ids.toList()));
   }
 
-  Future<List<Map<String, dynamic>>> _photosForPush(SharedChannel channel, bool medcardSyncAllowed) async {
+  Future<List<Map<String, dynamic>>> _photosForPush(
+      SharedChannel channel, bool medcardSyncAllowed, SecretKey key) async {
     final medications =
         await (_db.select(_db.medications)..where((t) => t.memberId.equals(channel.memberId))).get();
     final currentPaths = <String>{};
@@ -849,8 +850,19 @@ class FamilySyncService {
     for (final path in currentPaths.difference(previouslyPushed)) {
       final file = File(await PhotoService.absolutePath(path));
       if (!await file.exists()) continue;
-      final bytes = await file.readAsBytes();
-      photos.add({'photo_id': path, 'bytes': base64Encode(bytes)});
+      // Файл на диску зашифрований ЛОКАЛЬНИМ ключем цього пристрою — інший
+      // пристрій його прочитати не зможе. Розшифровуємо тут (лише в пам'яті)
+      // і шифруємо ключем каналу, спільним для обох сторін, перш ніж
+      // відправити.
+      final diskBytes = await file.readAsBytes();
+      Uint8List plainBytes;
+      try {
+        plainBytes = await FileEncryptionService.decryptBytes(diskBytes);
+      } catch (_) {
+        continue; // пошкоджений/чужий файл — пропускаємо, а не ламаємо весь push
+      }
+      final channelBytes = await SyncCryptoService.encryptBytes(key, plainBytes);
+      photos.add({'photo_id': path, 'bytes': base64Encode(channelBytes)});
     }
     for (final path in previouslyPushed.difference(currentPaths)) {
       photos.add({'photo_id': path, 'deleted': true});
@@ -861,32 +873,6 @@ class FamilySyncService {
     }
 
     return photos;
-  }
-
-  // ── "🔔 Нагадати": миттєвий пуш на пристрій автономного учасника ────────
-  // На відміну від familyCheckReminder (заплановано наперед, мовчки
-  // скасовується при відповіді) — це разовий, явний виклик за натисканням
-  // кнопки: показується одразу на іншому пристрої, щойно долетить.
-  Future<void> sendRemoteReminder({
-    required int memberId,
-    required String medName,
-    required String dose,
-  }) async {
-    final channel =
-        await (_db.select(_db.sharedChannels)..where((t) => t.memberId.equals(memberId))).getSingleOrNull();
-    if (channel == null) return;
-    final keyBytes = await SharedChannelKeyStorage.read(channel.channelId);
-    if (keyBytes == null) return;
-    final key = SecretKey(keyBytes);
-
-    final json = {'medName': medName, 'dose': dose};
-    final entity = {
-      'type': 'remind_now',
-      'uuid': _uuid.v4(),
-      'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-    };
-    await _api.push(channelId: channel.channelId, entities: [entity]);
-    await _pingOtherDevice(channel.channelId, key);
   }
 
   Future<void> _pingOtherDevice(String channelId, SecretKey key) async {
@@ -924,10 +910,6 @@ class FamilySyncService {
     ];
     final byType = <String, List<FamilySyncEntity>>{for (final t in order) t: []};
     for (final e in result.entities) {
-      if (e.type == 'remind_now') {
-        await _handleRemoteReminder(e, key);
-        continue;
-      }
       (byType[e.type] ??= []).add(e);
     }
 
@@ -948,24 +930,21 @@ class FamilySyncService {
         if (await file.exists()) await file.delete();
         continue;
       }
+      // photo.bytes прийшли зашифровані ключем КАНАЛУ (спільним для обох
+      // сторін) — розшифровуємо і одразу шифруємо СВОЇМ локальним ключем,
+      // перш ніж записати на диск, інакше PhotoService.decryptedBytes()
+      // пізніше не зможе це прочитати (в іншого пристрою інший локальний
+      // ключ).
+      Uint8List plainBytes;
+      try {
+        plainBytes = await SyncCryptoService.decryptBytes(key, photo.bytes);
+      } catch (_) {
+        continue; // пошкоджений блок — пропускаємо, спробуємо наступного разу
+      }
+      final diskBytes = await FileEncryptionService.encryptBytes(plainBytes);
       await file.parent.create(recursive: true);
-      await file.writeAsBytes(photo.bytes);
+      await file.writeAsBytes(diskBytes);
     }
-  }
-
-  // Сервер зберігає кожну надіслану сутність і повторно віддає її при
-  // будь-якому "since: null" пулі (напр. після переустановки) — без цієї
-  // перевірки старий "Нагадати" міг би спливти як нове сповіщення значно
-  // пізніше, ніж його справді натиснули.
-  Future<void> _handleRemoteReminder(FamilySyncEntity entity, SecretKey key) async {
-    if (entity.deleted) return;
-    final updatedAt = DateTime.tryParse(entity.updatedAt);
-    if (updatedAt == null || DateTime.now().difference(updatedAt) > const Duration(minutes: 5)) return;
-    final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
-    await NotificationService.showRemoteReminder(
-      medName: json['medName'] as String? ?? 'Ліки',
-      dose: json['dose'] as String? ?? '',
-    );
   }
 
   Future<void> _upsertLocally(
