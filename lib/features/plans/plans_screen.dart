@@ -16,6 +16,8 @@ import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/recovery_key_dialog.dart';
+import '../legal/privacy_policy_screen.dart';
+import '../legal/terms_of_use_screen.dart';
 
 class PlansScreen extends ConsumerStatefulWidget {
   const PlansScreen({super.key});
@@ -295,11 +297,46 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           ),
                           const SizedBox(height: AppDimensions.xl),
                           Text(
-                            'Скасувати можна будь-коли\nОплата через App Store · Google Play',
+                            'Оплата списується з вашого облікового запису App Store чи Google Play. '
+                            'Підписка автоматично продовжується на новий період за тією самою ціною, '
+                            'якщо не скасувати щонайменше за 24 години до завершення періоду. '
+                            'Керувати підпискою та скасувати автопродовження можна в налаштуваннях '
+                            'облікового запису App Store · Google Play.',
                             textAlign: TextAlign.center,
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.textMuted,
                             ),
+                          ),
+                          const SizedBox(height: AppDimensions.md),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _LegalLink(
+                                label: 'Політика конфіденційності',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PrivacyPolicyScreen(),
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '  ·  ',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              _LegalLink(
+                                label: 'Умови використання',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const TermsOfUseScreen(),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 48),
                         ],
@@ -524,6 +561,27 @@ class _PlanCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LegalLink extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _LegalLink({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Text(
+        label,
+        style: AppTextStyles.bodySm.copyWith(
+          color: AppColors.primary,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.primary,
+        ),
       ),
     );
   }
