@@ -17,6 +17,7 @@ import 'core/services/billing_lifecycle_service.dart';
 import 'core/services/family_group_service.dart';
 import 'core/services/family_peer_sync_service.dart';
 import 'core/services/family_sync_service.dart';
+import 'core/services/marketing_topics_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/services/sync_service.dart';
@@ -208,6 +209,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     _syncIfEnabled();
     _familySyncIfNeeded();
     _billingSyncIfNeeded();
+    unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
     // "Розбуди" push від family_sync (relay/send) приходить як data-message —
     // поки застосунок відкритий, його треба явно підхопити тут; коли
     // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.
@@ -232,6 +234,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       _syncIfEnabled();
       _familySyncIfNeeded();
       _billingSyncIfNeeded();
+      unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
     }
   }
 
