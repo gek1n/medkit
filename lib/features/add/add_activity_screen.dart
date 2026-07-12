@@ -31,7 +31,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _youtubeController;
   String? _colorHex;
-  List<_Slot> _slots = [(time: const TimeOfDay(hour: 8, minute: 30), duration: null)];
+  List<_Slot> _slots = [
+    (time: const TimeOfDay(hour: 8, minute: 30), duration: null),
+  ];
   Set<int> _weekdays = {1, 2, 3, 4, 5};
   bool _reminder = true;
   bool _isSaving = false;
@@ -57,9 +59,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     _colorHex = ex?.color;
     if (ex != null) {
       _type = ex.type;
-      _reminder = (ex.reminderBeforeMin ?? 0) > 0;
+      _reminder = ex.reminderBeforeMin > 0;
       try {
-        final days = List<int>.from(jsonDecode(ex.repeatDays ?? '[]') as List);
+        final days = List<int>.from(jsonDecode(ex.repeatDays) as List);
         _weekdays = days.toSet();
       } catch (_) {}
       _loadSlots(ex.id);
@@ -106,12 +108,16 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         content: const Text('Активність буде вилучена з розкладу.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Видалити',
-                  style: AppTextStyles.bodyMd.copyWith(color: Colors.red))),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Видалити',
+              style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
+            ),
+          ),
         ],
       ),
     );
@@ -124,14 +130,16 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 
   Future<void> _save() async {
     if (_type == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Оберіть тип активності')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Оберіть тип активності')));
       return;
     }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Введіть назву активності')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Введіть назву активності')));
       return;
     }
     setState(() => _isSaving = true);
@@ -142,26 +150,30 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       final int activityId;
 
       if (widget.existing != null) {
-        await repo.updateActivity(ActivitiesCompanion(
-          id: Value(widget.existing!.id),
-          name: Value(name),
-          type: Value(_type!),
-          repeatDays: Value(repeatDays),
-          reminderBeforeMin: Value(_reminder ? 10 : 0),
-          youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
-          color: Value(_colorHex),
-        ));
+        await repo.updateActivity(
+          ActivitiesCompanion(
+            id: Value(widget.existing!.id),
+            name: Value(name),
+            type: Value(_type!),
+            repeatDays: Value(repeatDays),
+            reminderBeforeMin: Value(_reminder ? 10 : 0),
+            youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
+            color: Value(_colorHex),
+          ),
+        );
         activityId = widget.existing!.id;
       } else {
-        activityId = await repo.insertActivity(ActivitiesCompanion.insert(
-          memberId: widget.memberId,
-          name: name,
-          type: Value(_type!),
-          repeatDays: Value(repeatDays),
-          reminderBeforeMin: Value(_reminder ? 10 : 0),
-          youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
-          color: Value(_colorHex),
-        ));
+        activityId = await repo.insertActivity(
+          ActivitiesCompanion.insert(
+            memberId: widget.memberId,
+            name: name,
+            type: Value(_type!),
+            repeatDays: Value(repeatDays),
+            reminderBeforeMin: Value(_reminder ? 10 : 0),
+            youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
+            color: Value(_colorHex),
+          ),
+        );
       }
 
       final slots = _slots.asMap().entries.map((e) {
@@ -182,8 +194,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -198,7 +211,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     if (!_loaded) {
       return const Scaffold(
         backgroundColor: AppColors.bg,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
     final isEdit = widget.existing != null;
@@ -208,7 +223,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         child: Column(
           children: [
             _BackHeader(
-              title: (isEdit ? 'Редагувати активність' : 'Активність') +
+              title:
+                  (isEdit ? 'Редагувати активність' : 'Активність') +
                   memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
@@ -216,7 +232,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.screenPadding, vertical: 16),
+                  horizontal: AppDimensions.screenPadding,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -259,11 +277,13 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(t.$2,
-                                    size: 22,
-                                    color: sel
-                                        ? const Color(0xFF15803D)
-                                        : AppColors.textMuted),
+                                Icon(
+                                  t.$2,
+                                  size: 22,
+                                  color: sel
+                                      ? const Color(0xFF15803D)
+                                      : AppColors.textMuted,
+                                ),
                                 const SizedBox(height: 4),
                                 Text(
                                   t.$3,
@@ -288,7 +308,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     // Name
                     _Label('Назва'),
                     const SizedBox(height: 6),
-                    _Input(controller: _nameController, hint: 'Назва активності'),
+                    _Input(
+                      controller: _nameController,
+                      hint: 'Назва активності',
+                    ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // YouTube link
@@ -301,31 +324,40 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Відео тренування чи клип — прев\'ю показуватиметься у картці на сьогодні',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Slots
                     _Label('Розклад'),
                     const SizedBox(height: 8),
-                    ..._slots.asMap().entries.map((e) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _ActivitySlot(
-                            index: e.key,
-                            time: e.value.time,
-                            duration: e.value.duration,
-                            onTimeTap: () => _pickTime(e.key),
-                            onDurationTap: () => _pickDuration(e.key),
-                            onRemove: _slots.length > 1
-                                ? () => setState(() => _slots.removeAt(e.key))
-                                : null,
-                          ),
-                        )),
+                    ..._slots.asMap().entries.map(
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _ActivitySlot(
+                          index: e.key,
+                          time: e.value.time,
+                          duration: e.value.duration,
+                          onTimeTap: () => _pickTime(e.key),
+                          onDurationTap: () => _pickDuration(e.key),
+                          onRemove: _slots.length > 1
+                              ? () => setState(() => _slots.removeAt(e.key))
+                              : null,
+                        ),
+                      ),
+                    ),
                     GestureDetector(
-                      onTap: () => setState(() => _slots.add((
-                            time: TimeOfDay(hour: (8 + _slots.length) % 24, minute: 0),
-                            duration: null,
-                          ))),
+                      onTap: () => setState(
+                        () => _slots.add((
+                          time: TimeOfDay(
+                            hour: (8 + _slots.length) % 24,
+                            minute: 0,
+                          ),
+                          duration: null,
+                        )),
+                      ),
                       child: _DashedAdd('Додати ще заняття'),
                     ),
                     const SizedBox(height: AppDimensions.lg),
@@ -356,9 +388,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                                   : AppColors.surface,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: sel
-                                      ? AppColors.primary
-                                      : AppColors.border),
+                                color: sel
+                                    ? AppColors.primary
+                                    : AppColors.border,
+                              ),
                             ),
                             child: Center(
                               child: Text(
@@ -386,17 +419,24 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.notifications_outlined,
-                              color: AppColors.textSub, size: 20),
+                          const Icon(
+                            Icons.notifications_outlined,
+                            color: AppColors.textSub,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Нагадування',
-                                    style: AppTextStyles.labelMd),
-                                Text('За 10 хвилин до кожного заняття',
-                                    style: AppTextStyles.bodySm),
+                                Text(
+                                  'Нагадування',
+                                  style: AppTextStyles.labelMd,
+                                ),
+                                Text(
+                                  'За 10 хвилин до кожного заняття',
+                                  style: AppTextStyles.bodySm,
+                                ),
                               ],
                             ),
                           ),
@@ -423,16 +463,21 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 15),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           elevation: 0,
                         ),
                         child: Text(
-                          _isSaving ? 'Зберігаємо...' : (isEdit ? 'Зберегти зміни' : 'Зберегти активність'),
-                          style: AppTextStyles.labelLg
-                              .copyWith(color: Colors.white),
+                          _isSaving
+                              ? 'Зберігаємо...'
+                              : (isEdit
+                                    ? 'Зберегти зміни'
+                                    : 'Зберегти активність'),
+                          style: AppTextStyles.labelLg.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -448,8 +493,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   }
 
   Future<void> _pickTime(int index) async {
-    final picked =
-        await showWheelTimePicker(context, initialTime: _slots[index].time);
+    final picked = await showWheelTimePicker(
+      context,
+      initialTime: _slots[index].time,
+    );
     if (picked != null) {
       setState(() {
         _slots[index] = (time: picked, duration: _slots[index].duration);
@@ -515,7 +562,10 @@ class _ActivitySlot extends StatelessWidget {
         border: Border.all(color: AppColors.primary, width: 1.5),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+            color: Color(0x0F000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
@@ -523,14 +573,20 @@ class _ActivitySlot extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Заняття ${index + 1}',
-                  style: AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
+              Text(
+                'Заняття ${index + 1}',
+                style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
+              ),
               const Spacer(),
               if (onRemove != null)
                 GestureDetector(
                   onTap: onRemove,
-                  child: Text('видалити',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
+                  child: Text(
+                    'видалити',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -538,7 +594,11 @@ class _ActivitySlot extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _SlotField(label: 'Час', value: '$hh:$mm', onTap: onTimeTap),
+                child: _SlotField(
+                  label: 'Час',
+                  value: '$hh:$mm',
+                  onTap: onTimeTap,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -584,7 +644,9 @@ class _DurationPickerState extends State<_DurationPicker> {
     _notSpecified = cur == null || cur == 0;
     _hours = _notSpecified ? 0 : (cur! ~/ 60).clamp(0, 3);
     final rawMin = _notSpecified ? 0 : (cur! % 60);
-    _minuteIdx = (_minuteOptions.indexOf(rawMin)).clamp(0, _minuteOptions.length - 1);
+    _minuteIdx = (_minuteOptions.indexOf(
+      rawMin,
+    )).clamp(0, _minuteOptions.length - 1);
     if (_minuteIdx < 0) _minuteIdx = 0;
     _hourCtrl = FixedExtentScrollController(initialItem: _hours);
     _minCtrl = FixedExtentScrollController(initialItem: _minuteIdx);
@@ -616,13 +678,18 @@ class _DurationPickerState extends State<_DurationPicker> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+        20,
+        16,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle
           Container(
-            width: 36, height: 4,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
               color: AppColors.border,
               borderRadius: BorderRadius.circular(2),
@@ -636,9 +703,12 @@ class _DurationPickerState extends State<_DurationPicker> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Тривалість', style: AppTextStyles.h3),
-                    Text('Необов\'язково',
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.textMuted)),
+                    Text(
+                      'Необов\'язково',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -647,14 +717,19 @@ class _DurationPickerState extends State<_DurationPicker> {
                 onTap: () => setState(() => _notSpecified = !_notSpecified),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: _notSpecified
                         ? AppColors.primaryLight
                         : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: _notSpecified ? AppColors.primary : AppColors.border,
+                      color: _notSpecified
+                          ? AppColors.primary
+                          : AppColors.border,
                       width: _notSpecified ? 2 : 1.5,
                     ),
                   ),
@@ -767,7 +842,8 @@ class _DurationPickerState extends State<_DurationPicker> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
               child: Text(
@@ -829,8 +905,11 @@ class _BackHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFECACA)),
                 ),
-                child: const Icon(Icons.delete_outline_rounded,
-                    size: 18, color: Color(0xFFDC2626)),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: Color(0xFFDC2626),
+                ),
               ),
             ),
         ],
@@ -844,10 +923,8 @@ class _Label extends StatelessWidget {
   const _Label(this.label);
 
   @override
-  Widget build(BuildContext context) => Text(
-        label.toUpperCase(),
-        style: AppTextStyles.labelSm,
-      );
+  Widget build(BuildContext context) =>
+      Text(label.toUpperCase(), style: AppTextStyles.labelSm);
 }
 
 class _Input extends StatelessWidget {
@@ -867,11 +944,12 @@ class _Input extends StatelessWidget {
         controller: controller,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle:
-              AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
         ),
         style: AppTextStyles.bodyMd,
       ),
@@ -884,7 +962,12 @@ class _SlotField extends StatelessWidget {
   final String value;
   final bool hint;
   final VoidCallback? onTap;
-  const _SlotField({required this.label, required this.value, this.hint = false, this.onTap});
+  const _SlotField({
+    required this.label,
+    required this.value,
+    this.hint = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -893,20 +976,24 @@ class _SlotField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(),
-              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+          Text(
+            label.toUpperCase(),
+            style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+          ),
           const SizedBox(height: 4),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.border),
             ),
-            child: Text(value,
-                style: AppTextStyles.labelMd.copyWith(
-                    color: hint ? AppColors.textMuted : AppColors.textMain)),
+            child: Text(
+              value,
+              style: AppTextStyles.labelMd.copyWith(
+                color: hint ? AppColors.textMuted : AppColors.textMain,
+              ),
+            ),
           ),
         ],
       ),
@@ -929,13 +1016,21 @@ class _DashedAdd extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('＋',
-              style: AppTextStyles.bodyMd
-                  .copyWith(fontSize: 16, color: AppColors.textMuted)),
+          Text(
+            '＋',
+            style: AppTextStyles.bodyMd.copyWith(
+              fontSize: 16,
+              color: AppColors.textMuted,
+            ),
+          ),
           const SizedBox(width: 6),
-          Text(label,
-              style: AppTextStyles.bodyMd.copyWith(
-                  color: AppColors.textMuted, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: AppTextStyles.bodyMd.copyWith(
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

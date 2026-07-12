@@ -22,8 +22,7 @@ class WellbeingCheckScreen extends ConsumerStatefulWidget {
       _WellbeingCheckScreenState();
 }
 
-class _WellbeingCheckScreenState
-    extends ConsumerState<WellbeingCheckScreen> {
+class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
   int? _mood; // 1-5
   final Set<String> _symptoms = {};
   final _commentController = TextEditingController();
@@ -57,28 +56,33 @@ class _WellbeingCheckScreenState
 
   Future<void> _save() async {
     if (_mood == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Оберіть самопочуття')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Оберіть самопочуття')));
       return;
     }
     setState(() => _isSaving = true);
     try {
-      await ref.read(wellbeingRepositoryProvider).insertLog(
+      await ref
+          .read(wellbeingRepositoryProvider)
+          .insertLog(
             WellbeingLogsCompanion.insert(
               memberId: widget.memberId,
               mood: _mood!,
-              symptomsJson:
-                  Value(jsonEncode(_symptoms.toList())),
-              comment: Value(_commentController.text.trim().isEmpty
-                  ? null
-                  : _commentController.text.trim()),
+              symptomsJson: Value(jsonEncode(_symptoms.toList())),
+              comment: Value(
+                _commentController.text.trim().isEmpty
+                    ? null
+                    : _commentController.text.trim(),
+              ),
             ),
           );
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -91,8 +95,8 @@ class _WellbeingCheckScreenState
     final timeLabel = now.hour < 12
         ? 'ранковий зріз'
         : now.hour < 17
-            ? 'денний зріз'
-            : 'вечірній зріз';
+        ? 'денний зріз'
+        : 'вечірній зріз';
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -123,21 +127,26 @@ class _WellbeingCheckScreenState
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => WellbeingHistoryScreen(
-                              memberId: widget.memberId),
+                          builder: (_) =>
+                              WellbeingHistoryScreen(memberId: widget.memberId),
                         ),
                       ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 6),
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.bg,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: Text('Історія',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: AppColors.textSub)),
+                        child: Text(
+                          'Історія',
+                          style: AppTextStyles.labelMd.copyWith(
+                            color: AppColors.textSub,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -146,7 +155,8 @@ class _WellbeingCheckScreenState
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.screenPadding),
+                horizontal: AppDimensions.screenPadding,
+              ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   const SizedBox(height: 28),
@@ -172,17 +182,20 @@ class _WellbeingCheckScreenState
                                 boxShadow: sel
                                     ? [
                                         BoxShadow(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.4),
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.4,
+                                          ),
                                           blurRadius: 0,
                                           spreadRadius: 3,
-                                        )
+                                        ),
                                       ]
                                     : [],
                               ),
                               child: Center(
-                                child: Text(m.$2,
-                                    style: const TextStyle(fontSize: 30)),
+                                child: Text(
+                                  m.$2,
+                                  style: const TextStyle(fontSize: 30),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 5),
@@ -233,7 +246,9 @@ class _WellbeingCheckScreenState
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 120),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: sel
                                   ? const Color(0xFFFEE2E2)
@@ -261,18 +276,22 @@ class _WellbeingCheckScreenState
                         onTap: () => _addCustomSymptom(context),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.4),
-                                style: BorderStyle.solid),
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              style: BorderStyle.solid,
+                            ),
                           ),
                           child: Text(
                             '＋ своє',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: AppColors.primary),
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
@@ -287,13 +306,20 @@ class _WellbeingCheckScreenState
                   // ── Step 3: Comment ──
                   Row(
                     children: [
-                      Text('Коментар',
-                          style: AppTextStyles.bodyMd.copyWith(
-                              fontSize: 15, fontWeight: FontWeight.w800)),
+                      Text(
+                        'Коментар',
+                        style: AppTextStyles.bodyMd.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const SizedBox(width: 6),
-                      Text('· необов\'язково',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.textMuted)),
+                      Text(
+                        '· необов\'язково',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -307,16 +333,17 @@ class _WellbeingCheckScreenState
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 15),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         elevation: 0,
                       ),
                       child: Text(
                         _isSaving ? 'Зберігаємо...' : 'Зберегти зріз',
-                        style: AppTextStyles.labelLg
-                            .copyWith(color: Colors.white),
+                        style: AppTextStyles.labelLg.copyWith(
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -349,11 +376,13 @@ class _WellbeingCheckScreenState
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-              child: const Text('Додати')),
+            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+            child: const Text('Додати'),
+          ),
         ],
       ),
     );
@@ -364,8 +393,19 @@ class _WellbeingCheckScreenState
 
   String _formatDate(DateTime d) {
     const months = [
-      '', 'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
-      'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
+      '',
+      'січня',
+      'лютого',
+      'березня',
+      'квітня',
+      'травня',
+      'червня',
+      'липня',
+      'серпня',
+      'вересня',
+      'жовтня',
+      'листопада',
+      'грудня',
     ];
     return '${d.day} ${months[d.month]}';
   }
@@ -479,43 +519,45 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
             onStop: _stopRecording,
           )
         else if (_mode == _CommentMode.transcribed)
-          _TranscribedBlock(
-            text: _transcript,
-            onReRecord: _reRecord,
-          )
+          _TranscribedBlock(text: _transcript, onReRecord: _reRecord)
         else
-          _MicIdleButton(
-            available: _sttReady,
-            onTap: _startRecording,
-          ),
+          _MicIdleButton(available: _sttReady, onTap: _startRecording),
 
         if (_mode != _CommentMode.recording) ...[
           const SizedBox(height: 10),
-          Row(children: [
-            const Expanded(child: Divider(color: AppColors.border)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text('або введіть текстом',
-                  style: AppTextStyles.bodySm
-                      .copyWith(color: AppColors.textMuted)),
-            ),
-            const Expanded(child: Divider(color: AppColors.border)),
-          ]),
+          Row(
+            children: [
+              const Expanded(child: Divider(color: AppColors.border)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'або введіть текстом',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider(color: AppColors.border)),
+            ],
+          ),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                  color: AppColors.border, style: BorderStyle.solid),
+                color: AppColors.border,
+                style: BorderStyle.solid,
+              ),
             ),
             child: TextField(
               controller: widget.controller,
               maxLines: 4,
               decoration: InputDecoration(
                 hintText: 'Опишіть як себе почуваєте…',
-                hintStyle: AppTextStyles.bodyMd
-                    .copyWith(color: AppColors.textMuted),
+                hintStyle: AppTextStyles.bodyMd.copyWith(
+                  color: AppColors.textMuted,
+                ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(14),
               ),
@@ -550,9 +592,7 @@ class _MicIdleButton extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: available
-                    ? const Color(0xFF3F8F5F)
-                    : AppColors.border,
+                color: available ? const Color(0xFF3F8F5F) : AppColors.border,
                 shape: BoxShape.circle,
               ),
               child: const Center(
@@ -565,24 +605,29 @@ class _MicIdleButton extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    available
-                        ? 'Надиктуйте коментар'
-                        : 'Мікрофон недоступний',
+                    available ? 'Надиктуйте коментар' : 'Мікрофон недоступний',
                     style: AppTextStyles.labelMd.copyWith(
-                        color: available
-                            ? const Color(0xFF2F5F41)
-                            : AppColors.textMuted),
+                      color: available
+                          ? const Color(0xFF2F5F41)
+                          : AppColors.textMuted,
+                    ),
                   ),
                   if (available)
-                    Text('Натисніть і говоріть',
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: const Color(0xFF3F8F5F))),
+                    Text(
+                      'Натисніть і говоріть',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: const Color(0xFF3F8F5F),
+                      ),
+                    ),
                 ],
               ),
             ),
             if (available)
-              const Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFF3F8F5F), size: 20),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF3F8F5F),
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -595,8 +640,34 @@ class _RecordingBlock extends StatelessWidget {
   final String timerLabel;
   final VoidCallback onStop;
 
-  static const _barHeights = [12.0, 28.0, 20.0, 34.0, 16.0, 24.0, 10.0, 30.0, 18.0, 26.0, 14.0, 32.0];
-  static const _barPhases = [0.0, 0.3, 0.6, 0.1, 0.8, 0.4, 0.7, 0.2, 0.9, 0.5, 0.15, 0.65];
+  static const _barHeights = [
+    12.0,
+    28.0,
+    20.0,
+    34.0,
+    16.0,
+    24.0,
+    10.0,
+    30.0,
+    18.0,
+    26.0,
+    14.0,
+    32.0,
+  ];
+  static const _barPhases = [
+    0.0,
+    0.3,
+    0.6,
+    0.1,
+    0.8,
+    0.4,
+    0.7,
+    0.2,
+    0.9,
+    0.5,
+    0.15,
+    0.65,
+  ];
 
   const _RecordingBlock({
     required this.waveCtrl,
@@ -627,24 +698,30 @@ class _RecordingBlock extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                          color: const Color(0xFF3F8F5F).withValues(alpha: 0.25),
-                          blurRadius: 0,
-                          spreadRadius: 6),
+                        color: const Color(0xFF3F8F5F).withValues(alpha: 0.25),
+                        blurRadius: 0,
+                        spreadRadius: 6,
+                      ),
                       BoxShadow(
-                          color: const Color(0xFF3F8F5F).withValues(alpha: 0.12),
-                          blurRadius: 0,
-                          spreadRadius: 10),
+                        color: const Color(0xFF3F8F5F).withValues(alpha: 0.12),
+                        blurRadius: 0,
+                        spreadRadius: 10,
+                      ),
                     ],
                   ),
                   child: const Center(
-                    child: Icon(Icons.mic_rounded, color: Colors.white, size: 22),
+                    child: Icon(
+                      Icons.mic_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: AnimatedBuilder(
                     animation: waveCtrl,
-                    builder: (_, __) => Row(
+                    builder: (_, _) => Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: List.generate(_barHeights.length, (i) {
@@ -665,16 +742,21 @@ class _RecordingBlock extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(timerLabel,
-                    style: AppTextStyles.labelMd
-                        .copyWith(color: const Color(0xFF3F8F5F))),
+                Text(
+                  timerLabel,
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: const Color(0xFF3F8F5F),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               'Говоріть… натисніть щоб зупинити',
-              style: AppTextStyles.bodySm
-                  .copyWith(color: const Color(0xFF3F8F5F), fontWeight: FontWeight.w600),
+              style: AppTextStyles.bodySm.copyWith(
+                color: const Color(0xFF3F8F5F),
+                fontWeight: FontWeight.w600,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -700,7 +782,10 @@ class _TranscribedBlock extends StatelessWidget {
         border: Border.all(color: AppColors.border, width: 1.5),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+            color: Color(0x0F000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Column(
@@ -716,20 +801,24 @@ class _TranscribedBlock extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Icon(Icons.mic_rounded, color: Color(0xFF3F8F5F), size: 14),
+                  child: Icon(
+                    Icons.mic_rounded,
+                    color: Color(0xFF3F8F5F),
+                    size: 14,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Розшифровка голосу',
-                  style: AppTextStyles.labelMd
-                      .copyWith(color: const Color(0xFF2F5F41))),
+              Text(
+                'Розшифровка голосу',
+                style: AppTextStyles.labelMd.copyWith(
+                  color: const Color(0xFF2F5F41),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            text,
-            style: AppTextStyles.bodyMd.copyWith(height: 1.6),
-          ),
+          Text(text, style: AppTextStyles.bodyMd.copyWith(height: 1.6)),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -746,12 +835,18 @@ class _TranscribedBlock extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.edit_rounded,
-                            size: 15, color: Color(0xFF3F8F5F)),
+                        const Icon(
+                          Icons.edit_rounded,
+                          size: 15,
+                          color: Color(0xFF3F8F5F),
+                        ),
                         const SizedBox(width: 4),
-                        Text('Редагувати',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: const Color(0xFF3F8F5F))),
+                        Text(
+                          'Редагувати',
+                          style: AppTextStyles.labelMd.copyWith(
+                            color: const Color(0xFF3F8F5F),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -771,12 +866,18 @@ class _TranscribedBlock extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.mic_rounded,
-                            size: 15, color: AppColors.textSub),
+                        const Icon(
+                          Icons.mic_rounded,
+                          size: 15,
+                          color: AppColors.textSub,
+                        ),
                         const SizedBox(width: 4),
-                        Text('Записати знову',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: AppColors.textSub)),
+                        Text(
+                          'Записати знову',
+                          style: AppTextStyles.labelMd.copyWith(
+                            color: AppColors.textSub,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -810,10 +911,12 @@ class _TodayLogsSection extends ConsumerWidget {
           children: [
             SectionLabel('Сьогодні'),
             const SizedBox(height: 12),
-            ...logs.map((log) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _LogCard(log: log),
-                )),
+            ...logs.map(
+              (log) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _LogCard(log: log),
+              ),
+            ),
           ],
         );
       },
@@ -821,15 +924,19 @@ class _TodayLogsSection extends ConsumerWidget {
   }
 }
 
-final _todayLogsProvider =
-    StreamProvider.family<List<WellbeingLog>, int>((ref, memberId) {
+final _todayLogsProvider = StreamProvider.family<List<WellbeingLog>, int>((
+  ref,
+  memberId,
+) {
   final now = DateTime.now();
   final start = DateTime(now.year, now.month, now.day);
   final end = start.add(const Duration(days: 1));
-  return ref.watch(wellbeingRepositoryProvider).watchByMember(memberId).map(
+  return ref
+      .watch(wellbeingRepositoryProvider)
+      .watchByMember(memberId)
+      .map(
         (logs) => logs
-            .where((l) =>
-                l.loggedAt.isAfter(start) && l.loggedAt.isBefore(end))
+            .where((l) => l.loggedAt.isAfter(start) && l.loggedAt.isBefore(end))
             .toList(),
       );
 });
@@ -846,8 +953,8 @@ class _LogCard extends StatelessWidget {
     final timeIcon = h < 12
         ? Icons.wb_sunny_rounded
         : h < 17
-            ? Icons.schedule_rounded
-            : Icons.dark_mode_rounded;
+        ? Icons.schedule_rounded
+        : Icons.dark_mode_rounded;
     final hh = h.toString().padLeft(2, '0');
     final mm = log.loggedAt.minute.toString().padLeft(2, '0');
 
@@ -861,14 +968,19 @@ class _LogCard extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+            color: Color(0x0F000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_moodEmoji[log.mood.clamp(1, 5)],
-              style: const TextStyle(fontSize: 24)),
+          Text(
+            _moodEmoji[log.mood.clamp(1, 5)],
+            style: const TextStyle(fontSize: 24),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -879,9 +991,12 @@ class _LogCard extends StatelessWidget {
                   children: [
                     Icon(timeIcon, size: 12, color: AppColors.textMuted),
                     const SizedBox(width: 3),
-                    Text('$hh:$mm',
-                        style: AppTextStyles.caption
-                            .copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      '$hh:$mm',
+                      style: AppTextStyles.caption.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
                 if (symptoms.isNotEmpty) ...[
@@ -890,30 +1005,36 @@ class _LogCard extends StatelessWidget {
                     spacing: 4,
                     runSpacing: 4,
                     children: symptoms
-                        .map((s) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEE2E2),
-                                borderRadius: BorderRadius.circular(20),
+                        .map(
+                          (s) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              s.startsWith('custom_') ? s.substring(7) : s,
+                              style: AppTextStyles.caption.copyWith(
+                                color: const Color(0xFF991B1B),
+                                fontWeight: FontWeight.w600,
                               ),
-                              child: Text(
-                                s.startsWith('custom_')
-                                    ? s.substring(7)
-                                    : s,
-                                style: AppTextStyles.caption.copyWith(
-                                    color: const Color(0xFF991B1B),
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ))
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ],
                 if (log.comment != null) ...[
                   const SizedBox(height: 4),
-                  Text('«${log.comment}»',
-                      style: AppTextStyles.bodySm
-                          .copyWith(fontStyle: FontStyle.italic)),
+                  Text(
+                    '«${log.comment}»',
+                    style: AppTextStyles.bodySm.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ],
               ],
             ),

@@ -74,7 +74,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         hour: ex.scheduledAt.hour,
         minute: ex.scheduledAt.minute,
       );
-      _remindBeforeMin = ex.remindBeforeMin ?? 1440;
+      _remindBeforeMin = ex.remindBeforeMin;
     } else {
       _date = DateTime.now();
       _time = const TimeOfDay(hour: 10, minute: 0);
@@ -382,7 +382,8 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
 
                     DocumentsSection(
                       paths: _documentPaths,
-                      onChanged: (paths) => setState(() => _documentPaths = paths),
+                      onChanged: (paths) =>
+                          setState(() => _documentPaths = paths),
                       label: 'Документи',
                     ),
                     const SizedBox(height: AppDimensions.lg),
@@ -398,7 +399,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       onPressed: _save,
                       label: isEdit
                           ? 'Зберегти зміни'
-                          : (_isPastVisit ? 'Зберегти візит' : 'Зберегти нагадування'),
+                          : (_isPastVisit
+                                ? 'Зберегти візит'
+                                : 'Зберегти нагадування'),
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -464,4 +467,3 @@ class _DateTimeBox extends StatelessWidget {
     );
   }
 }
-

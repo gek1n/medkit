@@ -29,18 +29,17 @@ import '../scan/prescription_scan_screen.dart';
 import '../today/providers/today_providers.dart';
 
 TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
-      'morning' => const TimeOfDay(hour: 8, minute: 0),
-      'afternoon' => const TimeOfDay(hour: 13, minute: 0),
-      'evening' => const TimeOfDay(hour: 19, minute: 0),
-      'night' => const TimeOfDay(hour: 22, minute: 0),
-      _ => const TimeOfDay(hour: 8, minute: 0),
-    };
+  'morning' => const TimeOfDay(hour: 8, minute: 0),
+  'afternoon' => const TimeOfDay(hour: 13, minute: 0),
+  'evening' => const TimeOfDay(hour: 19, minute: 0),
+  'night' => const TimeOfDay(hour: 22, minute: 0),
+  _ => const TimeOfDay(hour: 8, minute: 0),
+};
 
 class AddMedicationScreen extends ConsumerStatefulWidget {
   final int memberId;
   final Medication? existing;
-  const AddMedicationScreen(
-      {super.key, required this.memberId, this.existing});
+  const AddMedicationScreen({super.key, required this.memberId, this.existing});
 
   @override
   ConsumerState<AddMedicationScreen> createState() =>
@@ -113,8 +112,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
   Future<void> _refreshScanAvailability() async {
     final plan = ref.read(planProvider);
-    final canScan =
-        plan.isPaid ? true : await AiUsageService.canPhotoScan();
+    final canScan = plan.isPaid ? true : await AiUsageService.canPhotoScan();
     if (!canScan) unawaited(MarketingTopicsService.markHitScanLimit());
     if (mounted) setState(() => _canScan = canScan);
   }
@@ -164,14 +162,17 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     } catch (_) {}
 
     try {
-      final rawPhases =
-          List<Map<String, dynamic>>.from(jsonDecode(ex.phases ?? '[]') as List);
+      final rawPhases = List<Map<String, dynamic>>.from(
+        jsonDecode(ex.phases ?? '[]') as List,
+      );
       if (rawPhases.isNotEmpty) {
         _phases = rawPhases.map((p) {
           final times = List<String>.from(p['times'] as List).map((t) {
             final parts = t.split(':');
             return TimeOfDay(
-                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+              hour: int.parse(parts[0]),
+              minute: int.parse(parts[1]),
+            );
           }).toList();
           return _MedPhase(
             times: times,
@@ -181,10 +182,14 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           );
         }).toList();
       } else {
-        _phases = [_MedPhase(times: [const TimeOfDay(hour: 6, minute: 0)])];
+        _phases = [
+          _MedPhase(times: [const TimeOfDay(hour: 6, minute: 0)]),
+        ];
       }
     } catch (_) {
-      _phases = [_MedPhase(times: [const TimeOfDay(hour: 6, minute: 0)])];
+      _phases = [
+        _MedPhase(times: [const TimeOfDay(hour: 6, minute: 0)]),
+      ];
     }
   }
 
@@ -195,23 +200,24 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   }
 
   static String _unitForForm(String form) => switch (form) {
-        'tablet'      => 'табл.',
-        'capsule'     => 'капс.',
-        'syrup'       => 'мл',
-        'drops'       => 'крап.',
-        'cream'       => 'г',
-        'inhaler'     => 'вдих',
-        'injection'   => 'мл',
-        'suppository' => 'свіча',
-        'vial'        => 'фл.',
-        _             => 'шт.',
-      };
+    'tablet' => 'табл.',
+    'capsule' => 'капс.',
+    'syrup' => 'мл',
+    'drops' => 'крап.',
+    'cream' => 'г',
+    'inhaler' => 'вдих',
+    'injection' => 'мл',
+    'suppository' => 'свіча',
+    'vial' => 'фл.',
+    _ => 'шт.',
+  };
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Введіть назву ліків')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Введіть назву ліків')));
       return;
     }
 
@@ -220,17 +226,23 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     final now = DateTime.now();
 
     // Build phases JSON (doseAmount per phase)
-    final phasesJson = jsonEncode(_phases
-        .map((p) => {
+    final phasesJson = jsonEncode(
+      _phases
+          .map(
+            (p) => {
               'times': p.effectiveTimes
-                  .map((t) =>
-                      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
+                  .map(
+                    (t) =>
+                        '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                  )
                   .toList(),
               'durationDays': p.durationDays,
               'doseAmount': p.doseAmount,
               if (p.doseComment.isNotEmpty) 'doseComment': p.doseComment,
-            })
-        .toList());
+            },
+          )
+          .toList(),
+    );
     // Use first phase dose as the top-level doseAmount for legacy display
     final doseAmount = _phases.isNotEmpty ? _phases.first.doseAmount : 1.0;
 
@@ -248,8 +260,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       totalDays += p.durationDays!;
     }
     if (!hasPermanent) {
-      endDate = DateTime(baseStart.year, baseStart.month, baseStart.day)
-          .add(Duration(days: totalDays));
+      endDate = DateTime(
+        baseStart.year,
+        baseStart.month,
+        baseStart.day,
+      ).add(Duration(days: totalDays));
     }
 
     setState(() => _isSaving = true);
@@ -260,50 +275,54 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       final ex = widget.existing;
 
       if (ex != null) {
-        await medRepo.update(MedicationsCompanion(
-          id: Value(ex.id),
-          memberId: Value(ex.memberId),
-          name: Value(name),
-          form: Value(_form),
-          doseAmount: Value(doseAmount),
-          doseUnit: Value(doseUnit),
-          foodRelation: Value(_foodRelation),
-          repeatType: Value(_repeatType),
-          repeatConfig: Value(jsonEncode(repeatConfig)),
-          startDate: Value(baseStart),
-          endDate: Value(endDate),
-          totalCount: Value(isPercentForm ? 0 : _availableCount),
-          remainingCount: Value(isPercentForm ? 0 : _availableCount),
-          stockPercent: Value(_trackStock && isPercentForm
-              ? (ex.stockPercent ?? 100)
-              : null),
-          openedAt: Value(
-              _trackStock && isPercentForm ? (ex.openedAt ?? now) : null),
-          photoPaths: Value(jsonEncode(_photoPaths)),
-          phases: Value(phasesJson),
-          color: Value(_colorHex),
-        ));
+        await medRepo.update(
+          MedicationsCompanion(
+            id: Value(ex.id),
+            memberId: Value(ex.memberId),
+            name: Value(name),
+            form: Value(_form),
+            doseAmount: Value(doseAmount),
+            doseUnit: Value(doseUnit),
+            foodRelation: Value(_foodRelation),
+            repeatType: Value(_repeatType),
+            repeatConfig: Value(jsonEncode(repeatConfig)),
+            startDate: Value(baseStart),
+            endDate: Value(endDate),
+            totalCount: Value(isPercentForm ? 0 : _availableCount),
+            remainingCount: Value(isPercentForm ? 0 : _availableCount),
+            stockPercent: Value(
+              _trackStock && isPercentForm ? (ex.stockPercent ?? 100) : null,
+            ),
+            openedAt: Value(
+              _trackStock && isPercentForm ? (ex.openedAt ?? now) : null,
+            ),
+            photoPaths: Value(jsonEncode(_photoPaths)),
+            phases: Value(phasesJson),
+            color: Value(_colorHex),
+          ),
+        );
       } else {
-        await medRepo.insert(MedicationsCompanion.insert(
-          memberId: widget.memberId,
-          name: name,
-          form: Value(_form),
-          doseAmount: doseAmount,
-          doseUnit: Value(doseUnit),
-          foodRelation: Value(_foodRelation),
-          repeatType: Value(_repeatType),
-          repeatConfig: Value(jsonEncode(repeatConfig)),
-          startDate: now,
-          endDate: Value(endDate),
-          totalCount: Value(isPercentForm ? 0 : _availableCount),
-          remainingCount: Value(isPercentForm ? 0 : _availableCount),
-          stockPercent:
-              Value(_trackStock && isPercentForm ? 100 : null),
-          openedAt: Value(_trackStock && isPercentForm ? now : null),
-          photoPaths: Value(jsonEncode(_photoPaths)),
-          phases: Value(phasesJson),
-          color: Value(_colorHex),
-        ));
+        await medRepo.insert(
+          MedicationsCompanion.insert(
+            memberId: widget.memberId,
+            name: name,
+            form: Value(_form),
+            doseAmount: doseAmount,
+            doseUnit: Value(doseUnit),
+            foodRelation: Value(_foodRelation),
+            repeatType: Value(_repeatType),
+            repeatConfig: Value(jsonEncode(repeatConfig)),
+            startDate: now,
+            endDate: Value(endDate),
+            totalCount: Value(isPercentForm ? 0 : _availableCount),
+            remainingCount: Value(isPercentForm ? 0 : _availableCount),
+            stockPercent: Value(_trackStock && isPercentForm ? 100 : null),
+            openedAt: Value(_trackStock && isPercentForm ? now : null),
+            photoPaths: Value(jsonEncode(_photoPaths)),
+            phases: Value(phasesJson),
+            color: Value(_colorHex),
+          ),
+        );
       }
 
       ref.invalidate(generateTodayIntakesProvider);
@@ -312,8 +331,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -328,12 +348,16 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
         content: const Text('Ліки будуть вилучені з розкладу.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text('Видалити',
-                  style: AppTextStyles.bodyMd.copyWith(color: Colors.red))),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Видалити',
+              style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
+            ),
+          ),
         ],
       ),
     );
@@ -347,11 +371,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   }
 
   Map<String, dynamic> _buildRepeatConfig() => switch (_repeatType) {
-        'weekdays' => {'days': _weekdays.toList()..sort()},
-        'every_n' => {'n': _everyNDays},
-        'cycle' => {'on': _cycleOn, 'off': _cycleOff},
-        _ => {},
-      };
+    'weekdays' => {'days': _weekdays.toList()..sort()},
+    'every_n' => {'n': _everyNDays},
+    'cycle' => {'on': _cycleOn, 'off': _cycleOff},
+    _ => {},
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -365,7 +389,8 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
         child: Column(
           children: [
             _BackHeader(
-              title: (isEdit ? 'Редагувати ліки' : 'Ліки') +
+              title:
+                  (isEdit ? 'Редагувати ліки' : 'Ліки') +
                   memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
@@ -373,7 +398,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimensions.screenPadding, vertical: 16),
+                  horizontal: AppDimensions.screenPadding,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -390,8 +417,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     _FormLabel('Назва'),
                     const SizedBox(height: 6),
                     _TextField(
-                        controller: _nameController,
-                        hint: 'Назва препарату'),
+                      controller: _nameController,
+                      hint: 'Назва препарату',
+                    ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Form (перша — визначає одиницю)
@@ -403,44 +431,44 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-
                     // Phases
                     _FormLabel('Фази курсу'),
                     const SizedBox(height: 8),
-                    ..._phases.asMap().entries.map((e) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _PhaseCard(
-                            index: e.key,
-                            phase: e.value,
-                            canRemove: _phases.length > 1,
-                            isLast: e.key == _phases.length - 1,
-                            foodRelation: _foodRelation,
-                            onFoodRelationChanged: (v) =>
-                                setState(() => _foodRelation = v),
-                            onChanged: (p) =>
-                                setState(() => _phases[e.key] = p),
-                            onRemove: () =>
-                                setState(() => _phases.removeAt(e.key)),
-                            onPickTime: (idx) => _pickPhaseTime(e.key, idx),
-                          ),
-                        )),
+                    ..._phases.asMap().entries.map(
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _PhaseCard(
+                          index: e.key,
+                          phase: e.value,
+                          canRemove: _phases.length > 1,
+                          isLast: e.key == _phases.length - 1,
+                          foodRelation: _foodRelation,
+                          onFoodRelationChanged: (v) =>
+                              setState(() => _foodRelation = v),
+                          onChanged: (p) => setState(() => _phases[e.key] = p),
+                          onRemove: () =>
+                              setState(() => _phases.removeAt(e.key)),
+                          onPickTime: (idx) => _pickPhaseTime(e.key, idx),
+                        ),
+                      ),
+                    ),
                     if (_phases.length < 4)
                       GestureDetector(
                         onTap: () {
-                          final lastHour = _phases.isNotEmpty &&
+                          final lastHour =
+                              _phases.isNotEmpty &&
                                   _phases.last.times.isNotEmpty
                               ? _phases.last.times.last.hour
                               : 5;
-                          final nextHour =
-                              lastHour < 23 ? lastHour + 1 : 23;
-                          setState(() => _phases.add(
-                                _MedPhase(
-                                  times: [
-                                    TimeOfDay(hour: nextHour, minute: 0)
-                                  ],
-                                  durationDays: 7,
-                                ),
-                              ));
+                          final nextHour = lastHour < 23 ? lastHour + 1 : 23;
+                          setState(
+                            () => _phases.add(
+                              _MedPhase(
+                                times: [TimeOfDay(hour: nextHour, minute: 0)],
+                                durationDays: 7,
+                              ),
+                            ),
+                          );
                         },
                         child: _DashedAdd('Додати фазу'),
                       ),
@@ -463,13 +491,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           _weekdays.add(d);
                         }
                       }),
-                      onEveryNChanged: (n) =>
-                          setState(() => _everyNDays = n),
-                      onCycleChanged: (on, off) =>
-                          setState(() {
-                            _cycleOn = on;
-                            _cycleOff = off;
-                          }),
+                      onEveryNChanged: (n) => setState(() => _everyNDays = n),
+                      onCycleChanged: (on, off) => setState(() {
+                        _cycleOn = on;
+                        _cycleOff = off;
+                      }),
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -483,20 +509,17 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           : 1.0,
                       doseUnit: _unitForForm(_form),
                       form: _form,
-                      onTrackToggle: (v) =>
-                          setState(() => _trackStock = v),
+                      onTrackToggle: (v) => setState(() => _trackStock = v),
                       onDecrement: () => setState(() {
                         if (_availableCount > 0) _availableCount--;
                       }),
-                      onIncrement: () =>
-                          setState(() => _availableCount++),
+                      onIncrement: () => setState(() => _availableCount++),
                       onEdit: (v) => setState(() => _availableCount = v),
                       photoPaths: _photoPaths,
                       onPhotosChanged: (paths) =>
                           setState(() => _photoPaths = paths),
                       colorHex: _colorHex,
-                      onColorChanged: (hex) =>
-                          setState(() => _colorHex = hex),
+                      onColorChanged: (hex) => setState(() => _colorHex = hex),
                     ),
                     const SizedBox(height: 32),
 
@@ -510,18 +533,21 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppDimensions.radiusMd)),
+                            borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusMd,
+                            ),
+                          ),
                           elevation: 0,
                         ),
                         child: Text(
                           _isSaving
                               ? 'Зберігаємо...'
                               : (isEdit
-                                  ? 'Зберегти зміни'
-                                  : 'Зберегти та переглянути розклад →'),
-                          style: AppTextStyles.labelLg
-                              .copyWith(color: Colors.white),
+                                    ? 'Зберегти зміни'
+                                    : 'Зберегти та переглянути розклад →'),
+                          style: AppTextStyles.labelLg.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -537,8 +563,10 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   }
 
   Future<void> _pickPhaseTime(int phaseIdx, int timeIdx) async {
-    final picked = await showWheelTimePicker(context,
-        initialTime: _phases[phaseIdx].times[timeIdx]);
+    final picked = await showWheelTimePicker(
+      context,
+      initialTime: _phases[phaseIdx].times[timeIdx],
+    );
     if (picked != null) {
       setState(() => _phases[phaseIdx].times[timeIdx] = picked);
     }
@@ -547,7 +575,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   Future<void> _openScan() async {
     if (_canScan == false) {
       Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const PlansScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const PlansScreen()),
+      );
       return;
     }
 
@@ -586,10 +616,13 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     });
 
     if (m.foodRelation != null || (m.sideEffects?.isNotEmpty ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text(
-            '⚠️ Довідкова інформація (їжа/побічні ефекти) не гарантована — звірте з інструкцією'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '⚠️ Довідкова інформація (їжа/побічні ефекти) не гарантована — звірте з інструкцією',
+          ),
+        ),
+      );
     }
   }
 
@@ -601,26 +634,40 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
       for (final m in meds) {
         final times = (m.scheduleTimes ?? const ['morning'])
-            .map((s) =>
-                '${_defaultTimeForSchedule(s).hour.toString().padLeft(2, '0')}:${_defaultTimeForSchedule(s).minute.toString().padLeft(2, '0')}')
+            .map(
+              (s) =>
+                  '${_defaultTimeForSchedule(s).hour.toString().padLeft(2, '0')}:${_defaultTimeForSchedule(s).minute.toString().padLeft(2, '0')}',
+            )
             .toList();
         final phasesJson = jsonEncode([
-          {'times': times, 'durationDays': 7, 'doseAmount': m.doseAmount ?? 1.0},
+          {
+            'times': times,
+            'durationDays': 7,
+            'doseAmount': m.doseAmount ?? 1.0,
+          },
         ]);
 
-        await medRepo.insert(MedicationsCompanion.insert(
-          memberId: widget.memberId,
-          name: m.name,
-          form: const Value('tablet'),
-          doseAmount: m.doseAmount ?? 1.0,
-          doseUnit: Value(m.doseUnit ?? _unitForForm('tablet')),
-          foodRelation: Value(m.foodRelation ?? 'after'),
-          repeatType: const Value('daily'),
-          repeatConfig: const Value('{}'),
-          startDate: now,
-          endDate: Value(DateTime(now.year, now.month, now.day).add(const Duration(days: 7))),
-          phases: Value(phasesJson),
-        ));
+        await medRepo.insert(
+          MedicationsCompanion.insert(
+            memberId: widget.memberId,
+            name: m.name,
+            form: const Value('tablet'),
+            doseAmount: m.doseAmount ?? 1.0,
+            doseUnit: Value(m.doseUnit ?? _unitForForm('tablet')),
+            foodRelation: Value(m.foodRelation ?? 'after'),
+            repeatType: const Value('daily'),
+            repeatConfig: const Value('{}'),
+            startDate: now,
+            endDate: Value(
+              DateTime(
+                now.year,
+                now.month,
+                now.day,
+              ).add(const Duration(days: 7)),
+            ),
+            phases: Value(phasesJson),
+          ),
+        );
       }
 
       ref.invalidate(generateTodayIntakesProvider);
@@ -628,13 +675,19 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Додано ${meds.length} препаратів. Перевірте деталі в списку ліків.')),
+          SnackBar(
+            content: Text(
+              'Додано ${meds.length} препаратів. Перевірте деталі в списку ліків.',
+            ),
+          ),
         );
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -655,7 +708,9 @@ class _BackHeader extends StatelessWidget {
     return Container(
       color: AppColors.bg,
       padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.screenPadding, vertical: 12),
+        horizontal: AppDimensions.screenPadding,
+        vertical: 12,
+      ),
       child: Row(
         children: [
           MkBackButton(onTap: onBack),
@@ -672,8 +727,11 @@ class _BackHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFECACA)),
                 ),
-                child: const Icon(Icons.delete_outline_rounded,
-                    size: 18, color: Color(0xFFDC2626)),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: Color(0xFFDC2626),
+                ),
               ),
             ),
         ],
@@ -705,8 +763,10 @@ class _ScanCta extends StatelessWidget {
           Positioned(
             right: -8,
             bottom: -6,
-            child: Image.asset('assets/illustrations/elly-telling.png',
-                height: 116),
+            child: Image.asset(
+              'assets/illustrations/elly-telling.png',
+              height: 116,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 96, 16),
@@ -716,7 +776,9 @@ class _ScanCta extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(999),
@@ -725,35 +787,54 @@ class _ScanCta extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: locked
                         ? [
-                            const Icon(Icons.lock_rounded,
-                                size: 12, color: Colors.white),
+                            const Icon(
+                              Icons.lock_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 4),
-                            Text('Більше в Elly+',
-                                style: AppTextStyles.bodySm.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11)),
+                            Text(
+                              'Більше в Elly+',
+                              style: AppTextStyles.bodySm.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                              ),
+                            ),
                           ]
                         : [
-                            const Icon(Icons.auto_awesome_rounded,
-                                size: 12, color: Colors.white),
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 4),
-                            Text('AI',
-                                style: AppTextStyles.bodySm.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11)),
+                            Text(
+                              'AI',
+                              style: AppTextStyles.bodySm.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text('Розпізнати рецепт за фото',
-                    style: AppTextStyles.labelLg.copyWith(
-                        color: Colors.white, fontWeight: FontWeight.w800)),
+                Text(
+                  'Розпізнати рецепт за фото',
+                  style: AppTextStyles.labelLg.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text('Еллі внесе ліки у розклад',
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: Colors.white.withValues(alpha: 0.85))),
+                Text(
+                  'Еллі внесе ліки у розклад',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
               ],
             ),
           ),
@@ -775,9 +856,10 @@ class _OrDivider extends StatelessWidget {
           const Expanded(child: Divider(color: AppColors.border)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('або введіть вручну',
-                style:
-                    AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
+            child: Text(
+              'або введіть вручну',
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+            ),
           ),
           const Expanded(child: Divider(color: AppColors.border)),
         ],
@@ -792,20 +874,15 @@ class _FormLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label.toUpperCase(),
-      style: AppTextStyles.labelSm,
-    );
+    return Text(label.toUpperCase(), style: AppTextStyles.labelSm);
   }
 }
 
 class _TextField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  final TextInputType? keyboardType;
 
-  const _TextField(
-      {required this.controller, required this.hint, this.keyboardType});
+  const _TextField({required this.controller, required this.hint});
 
   @override
   Widget build(BuildContext context) {
@@ -817,14 +894,14 @@ class _TextField extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
-        keyboardType: keyboardType,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle:
-              AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
         ),
         style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMain),
       ),
@@ -870,51 +947,48 @@ class _FormChips extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: _forms
-          .map((f) => GestureDetector(
-                onTap: () => onSelect(f),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: selected == f
-                        ? AppColors.primary
-                        : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: selected == f
-                          ? AppColors.primary
-                          : AppColors.border,
-                    ),
+          .map(
+            (f) => GestureDetector(
+              onTap: () => onSelect(f),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: selected == f ? AppColors.primary : AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: selected == f ? AppColors.primary : AppColors.border,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        medFormIcon(f),
-                        size: 16,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      medFormIcon(f),
+                      size: 16,
+                      color: selected == f ? Colors.white : AppColors.textMain,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formLabels[f]!,
+                      style: AppTextStyles.labelMd.copyWith(
                         color: selected == f
                             ? Colors.white
                             : AppColors.textMain,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _formLabels[f]!,
-                        style: AppTextStyles.labelMd.copyWith(
-                          color: selected == f
-                              ? Colors.white
-                              : AppColors.textMain,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ))
+              ),
+            ),
+          )
           .toList(),
     );
   }
 }
-
 
 class _DashedAdd extends StatelessWidget {
   final String label;
@@ -931,14 +1005,21 @@ class _DashedAdd extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('＋',
-              style: AppTextStyles.bodyMd
-                  .copyWith(fontSize: 16, color: AppColors.textMuted)),
+          Text(
+            '＋',
+            style: AppTextStyles.bodyMd.copyWith(
+              fontSize: 16,
+              color: AppColors.textMuted,
+            ),
+          ),
           const SizedBox(width: 6),
-          Text(label,
-              style: AppTextStyles.bodyMd
-                  .copyWith(color: AppColors.textMuted,
-                      fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: AppTextStyles.bodyMd.copyWith(
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1002,8 +1083,9 @@ class _PhaseCard extends StatelessWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
             onPressed: () {
               final v = int.tryParse(ctrl.text.trim());
@@ -1034,16 +1116,20 @@ class _PhaseCard extends StatelessWidget {
           // Header
           Row(
             children: [
-              Text('Фаза ${index + 1}',
-                  style: AppTextStyles.labelMd
-                      .copyWith(color: AppColors.primary)),
+              Text(
+                'Фаза ${index + 1}',
+                style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
+              ),
               const Spacer(),
               if (canRemove)
                 GestureDetector(
                   onTap: onRemove,
-                  child: Text('видалити',
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: AppColors.textMuted)),
+                  child: Text(
+                    'видалити',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -1057,8 +1143,10 @@ class _PhaseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('КІЛЬКІСТЬ НА ПРИЙОМ',
-                        style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    Text(
+                      'КІЛЬКІСТЬ НА ПРИЙОМ',
+                      style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+                    ),
                     const SizedBox(height: 6),
                     _DoseRow(
                       value: phase.doseAmount,
@@ -1073,8 +1161,10 @@ class _PhaseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ВІДНОСНО ЇЖІ',
-                        style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    Text(
+                      'ВІДНОСНО ЇЖІ',
+                      style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+                    ),
                     const SizedBox(height: 6),
                     Container(
                       decoration: BoxDecoration(
@@ -1087,16 +1177,25 @@ class _PhaseCard extends StatelessWidget {
                         child: DropdownButton<String>(
                           value: foodRelation,
                           isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                              size: 18, color: AppColors.textMuted),
-                          style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.textMain, fontSize: 12),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: AppColors.textMuted,
+                          ),
+                          style: AppTextStyles.labelMd.copyWith(
+                            color: AppColors.textMain,
+                            fontSize: 12,
+                          ),
                           items: _foodRelationLabels.entries
-                              .map((e) => DropdownMenuItem(
-                                    value: e.key,
-                                    child: Text(e.value,
-                                        overflow: TextOverflow.ellipsis),
-                                  ))
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e.key,
+                                  child: Text(
+                                    e.value,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
                               .toList(),
                           onChanged: (v) {
                             if (v != null) onFoodRelationChanged(v);
@@ -1119,8 +1218,10 @@ class _PhaseCard extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Duration stepper
-          Text('ТРИВАЛІСТЬ',
-              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+          Text(
+            'ТРИВАЛІСТЬ',
+            style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -1133,31 +1234,34 @@ class _PhaseCard extends StatelessWidget {
                       icon: '−',
                       onTap: isPermanent || (phase.durationDays ?? 1) <= 1
                           ? null
-                          : () => onChanged(_copyPhase(
-                              phase, durationDays: phase.durationDays! - 1)),
+                          : () => onChanged(
+                              _copyPhase(
+                                phase,
+                                durationDays: phase.durationDays! - 1,
+                              ),
+                            ),
                     ),
                     GestureDetector(
                       onTap: isPermanent
                           ? null
                           : () async {
-                              final v = await _pickInt(context,
-                                  title: 'Кількість днів',
-                                  value: phase.durationDays ?? 1,
-                                  suffix: 'дн.');
+                              final v = await _pickInt(
+                                context,
+                                title: 'Кількість днів',
+                                value: phase.durationDays ?? 1,
+                                suffix: 'дн.',
+                              );
                               if (v != null) {
-                                onChanged(_copyPhase(phase,
-                                    durationDays: v));
+                                onChanged(_copyPhase(phase, durationDays: v));
                               }
                             },
                       child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          isPermanent
-                              ? '— дн.'
-                              : '${phase.durationDays} дн.',
-                          style: AppTextStyles.labelLg
-                              .copyWith(color: AppColors.primary),
+                          isPermanent ? '— дн.' : '${phase.durationDays} дн.',
+                          style: AppTextStyles.labelLg.copyWith(
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ),
@@ -1165,8 +1269,12 @@ class _PhaseCard extends StatelessWidget {
                       icon: '＋',
                       onTap: isPermanent
                           ? null
-                          : () => onChanged(_copyPhase(phase,
-                              durationDays: (phase.durationDays ?? 0) + 1)),
+                          : () => onChanged(
+                              _copyPhase(
+                                phase,
+                                durationDays: (phase.durationDays ?? 0) + 1,
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -1174,17 +1282,23 @@ class _PhaseCard extends StatelessWidget {
               if (isLast) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('або',
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: AppColors.textMuted)),
+                  child: Text(
+                    'або',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ),
                 GestureDetector(
                   onTap: () => onChanged(
-                      _copyPhase(phase, durationDays: isPermanent ? 7 : -1)),
+                    _copyPhase(phase, durationDays: isPermanent ? 7 : -1),
+                  ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 120),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: isPermanent
                           ? AppColors.primary
@@ -1199,9 +1313,7 @@ class _PhaseCard extends StatelessWidget {
                     child: Text(
                       'Постійно',
                       style: AppTextStyles.labelMd.copyWith(
-                        color: isPermanent
-                            ? Colors.white
-                            : AppColors.textMain,
+                        color: isPermanent ? Colors.white : AppColors.textMain,
                       ),
                     ),
                   ),
@@ -1214,8 +1326,10 @@ class _PhaseCard extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Час прийому
-          Text('ЧАС ПРИЙОМУ',
-              style: AppTextStyles.labelSm.copyWith(fontSize: 10)),
+          Text(
+            'ЧАС ПРИЙОМУ',
+            style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+          ),
           const SizedBox(height: 6),
           Container(
             decoration: BoxDecoration(
@@ -1228,24 +1342,28 @@ class _PhaseCard extends StatelessWidget {
                 _ModeTab(
                   label: 'Конкретний час',
                   active: !phase.intervalMode,
-                  onTap: () => onChanged(_MedPhase(
-                    times: phase.times,
-                    durationDays: phase.durationDays,
-                    intervalMode: false,
-                    intervalHours: phase.intervalHours,
-                    intervalStart: phase.intervalStart,
-                  )),
+                  onTap: () => onChanged(
+                    _MedPhase(
+                      times: phase.times,
+                      durationDays: phase.durationDays,
+                      intervalMode: false,
+                      intervalHours: phase.intervalHours,
+                      intervalStart: phase.intervalStart,
+                    ),
+                  ),
                 ),
                 _ModeTab(
                   label: 'Кожні N годин',
                   active: phase.intervalMode,
-                  onTap: () => onChanged(_MedPhase(
-                    times: phase.times,
-                    durationDays: phase.durationDays,
-                    intervalMode: true,
-                    intervalHours: phase.intervalHours,
-                    intervalStart: phase.intervalStart,
-                  )),
+                  onTap: () => onChanged(
+                    _MedPhase(
+                      times: phase.times,
+                      durationDays: phase.durationDays,
+                      intervalMode: true,
+                      intervalHours: phase.intervalHours,
+                      intervalStart: phase.intervalStart,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1255,70 +1373,86 @@ class _PhaseCard extends StatelessWidget {
           // Content by mode
           if (!phase.intervalMode) ...[
             // ── Конкретний час ──
-            ...phase.times.asMap().entries.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                          final picked =
-                              await _pickTime(context, e.value);
-                          if (picked != null) {
-                            final updated =
-                                List<TimeOfDay>.from(phase.times);
-                            updated[e.key] = picked;
-                            onChanged(_MedPhase(
+            ...phase.times.asMap().entries.map(
+              (e) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await _pickTime(context, e.value);
+                        if (picked != null) {
+                          final updated = List<TimeOfDay>.from(phase.times);
+                          updated[e.key] = picked;
+                          onChanged(
+                            _MedPhase(
                               times: updated,
                               durationDays: phase.durationDays,
                               intervalMode: false,
                               intervalHours: phase.intervalHours,
                               intervalStart: phase.intervalStart,
-                            ));
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 9),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: AppColors.primary, width: 1.5),
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 1.5,
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.access_time_rounded,
-                                  size: 14, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text(_fmt(e.value),
-                                  style: AppTextStyles.labelMd
-                                      .copyWith(color: AppColors.primary)),
-                            ],
-                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _fmt(e.value),
+                              style: AppTextStyles.labelMd.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
-                      if (phase.times.length > 1)
-                        GestureDetector(
-                          onTap: () {
-                            final updated =
-                                List<TimeOfDay>.from(phase.times)
-                                  ..removeAt(e.key);
-                            onChanged(_MedPhase(
+                    ),
+                    const Spacer(),
+                    if (phase.times.length > 1)
+                      GestureDetector(
+                        onTap: () {
+                          final updated = List<TimeOfDay>.from(phase.times)
+                            ..removeAt(e.key);
+                          onChanged(
+                            _MedPhase(
                               times: updated,
                               durationDays: phase.durationDays,
                               intervalMode: false,
                               intervalHours: phase.intervalHours,
                               intervalStart: phase.intervalStart,
-                            ));
-                          },
-                          child: const Icon(Icons.close_rounded,
-                              size: 18, color: AppColors.textMuted),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
                         ),
-                    ],
-                  ),
-                )),
+                      ),
+                  ],
+                ),
+              ),
+            ),
             GestureDetector(
               onTap: () {
                 final lastHour = phase.times.isNotEmpty
@@ -1327,31 +1461,40 @@ class _PhaseCard extends StatelessWidget {
                 final nextHour = lastHour < 23 ? lastHour + 1 : 23;
                 final updated = List<TimeOfDay>.from(phase.times)
                   ..add(TimeOfDay(hour: nextHour, minute: 0));
-                onChanged(_MedPhase(
-                  times: updated,
-                  durationDays: phase.durationDays,
-                  intervalMode: false,
-                  intervalHours: phase.intervalHours,
-                  intervalStart: phase.intervalStart,
-                ));
+                onChanged(
+                  _MedPhase(
+                    times: updated,
+                    durationDays: phase.durationDays,
+                    intervalMode: false,
+                    intervalHours: phase.intervalHours,
+                    intervalStart: phase.intervalStart,
+                  ),
+                );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 9),
+                  horizontal: 14,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  border:
-                      Border.all(color: AppColors.border, width: 1.5),
+                  border: Border.all(color: AppColors.border, width: 1.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.add_rounded,
-                        size: 14, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.add_rounded,
+                      size: 14,
+                      color: AppColors.textMuted,
+                    ),
                     const SizedBox(width: 6),
-                    Text('Додати час',
-                        style: AppTextStyles.labelMd
-                            .copyWith(color: AppColors.textMuted)),
+                    Text(
+                      'Додати час',
+                      style: AppTextStyles.labelMd.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1364,9 +1507,10 @@ class _PhaseCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ІНТЕРВАЛ',
-                        style:
-                            AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    Text(
+                      'ІНТЕРВАЛ',
+                      style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -1374,37 +1518,43 @@ class _PhaseCard extends StatelessWidget {
                           icon: '−',
                           onTap: phase.intervalHours <= 1
                               ? null
-                              : () => onChanged(_MedPhase(
+                              : () => onChanged(
+                                  _MedPhase(
                                     times: phase.times,
                                     durationDays: phase.durationDays,
                                     intervalMode: true,
                                     intervalHours: phase.intervalHours - 1,
                                     intervalStart: phase.intervalStart,
-                                  )),
+                                  ),
+                                ),
                         ),
                         GestureDetector(
                           onTap: () async {
-                            final v = await _pickInt(context,
-                                title: 'Інтервал',
-                                value: phase.intervalHours,
-                                suffix: 'год');
+                            final v = await _pickInt(
+                              context,
+                              title: 'Інтервал',
+                              value: phase.intervalHours,
+                              suffix: 'год',
+                            );
                             if (v != null) {
-                              onChanged(_MedPhase(
-                                times: phase.times,
-                                durationDays: phase.durationDays,
-                                intervalMode: true,
-                                intervalHours: v,
-                                intervalStart: phase.intervalStart,
-                              ));
+                              onChanged(
+                                _MedPhase(
+                                  times: phase.times,
+                                  durationDays: phase.durationDays,
+                                  intervalMode: true,
+                                  intervalHours: v,
+                                  intervalStart: phase.intervalStart,
+                                ),
+                              );
                             }
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Text(
                               '${phase.intervalHours} год',
-                              style: AppTextStyles.labelLg
-                                  .copyWith(color: AppColors.primary),
+                              style: AppTextStyles.labelLg.copyWith(
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ),
@@ -1412,13 +1562,15 @@ class _PhaseCard extends StatelessWidget {
                           icon: '＋',
                           onTap: phase.intervalHours >= 23
                               ? null
-                              : () => onChanged(_MedPhase(
+                              : () => onChanged(
+                                  _MedPhase(
                                     times: phase.times,
                                     durationDays: phase.durationDays,
                                     intervalMode: true,
                                     intervalHours: phase.intervalHours + 1,
                                     intervalStart: phase.intervalStart,
-                                  )),
+                                  ),
+                                ),
                         ),
                       ],
                     ),
@@ -1429,42 +1581,57 @@ class _PhaseCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('ПОЧАТОК',
-                        style:
-                            AppTextStyles.labelSm.copyWith(fontSize: 10)),
+                    Text(
+                      'ПОЧАТОК',
+                      style: AppTextStyles.labelSm.copyWith(fontSize: 10),
+                    ),
                     const SizedBox(height: 4),
                     GestureDetector(
                       onTap: () async {
                         final picked = await _pickTime(
-                            context, phase.intervalStart);
+                          context,
+                          phase.intervalStart,
+                        );
                         if (picked != null) {
-                          onChanged(_MedPhase(
-                            times: phase.times,
-                            durationDays: phase.durationDays,
-                            intervalMode: true,
-                            intervalHours: phase.intervalHours,
-                            intervalStart: picked,
-                          ));
+                          onChanged(
+                            _MedPhase(
+                              times: phase.times,
+                              durationDays: phase.durationDays,
+                              intervalMode: true,
+                              intervalHours: phase.intervalHours,
+                              intervalStart: picked,
+                            ),
+                          );
                         }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 9),
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                              color: AppColors.primary, width: 1.5),
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.access_time_rounded,
-                                size: 14, color: AppColors.primary),
+                            const Icon(
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 6),
-                            Text(_fmt(phase.intervalStart),
-                                style: AppTextStyles.labelMd
-                                    .copyWith(color: AppColors.primary)),
+                            Text(
+                              _fmt(phase.intervalStart),
+                              style: AppTextStyles.labelMd.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1476,8 +1643,7 @@ class _PhaseCard extends StatelessWidget {
             const SizedBox(height: 8),
             // Preview
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(8),
@@ -1485,8 +1651,7 @@ class _PhaseCard extends StatelessWidget {
               ),
               child: Text(
                 preview,
-                style: AppTextStyles.bodySm
-                    .copyWith(color: AppColors.textSub),
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
               ),
             ),
           ],
@@ -1495,18 +1660,20 @@ class _PhaseCard extends StatelessWidget {
     );
   }
 
-  _MedPhase _copyPhase(_MedPhase p,
-          {int? durationDays, double? doseAmount, String? doseComment}) =>
-      _MedPhase(
-        times: p.times,
-        durationDays:
-            durationDays == -1 ? null : (durationDays ?? p.durationDays),
-        intervalMode: p.intervalMode,
-        intervalHours: p.intervalHours,
-        intervalStart: p.intervalStart,
-        doseAmount: doseAmount ?? p.doseAmount,
-        doseComment: doseComment ?? p.doseComment,
-      );
+  _MedPhase _copyPhase(
+    _MedPhase p, {
+    int? durationDays,
+    double? doseAmount,
+    String? doseComment,
+  }) => _MedPhase(
+    times: p.times,
+    durationDays: durationDays == -1 ? null : (durationDays ?? p.durationDays),
+    intervalMode: p.intervalMode,
+    intervalHours: p.intervalHours,
+    intervalStart: p.intervalStart,
+    doseAmount: doseAmount ?? p.doseAmount,
+    doseComment: doseComment ?? p.doseComment,
+  );
 }
 
 // ─── Dose comment ─────────────────────────────────────────────────────────────
@@ -1546,8 +1713,7 @@ class _DoseCommentFieldState extends State<_DoseCommentField> {
         hintText: 'Коментар до дози (необов\'язково)',
         hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         filled: true,
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
@@ -1560,8 +1726,7 @@ class _DoseCommentFieldState extends State<_DoseCommentField> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
     );
@@ -1574,17 +1739,14 @@ class _DoseRow extends StatelessWidget {
   final double value;
   final void Function(double) onChanged;
 
-  const _DoseRow({
-    required this.value,
-    required this.onChanged,
-  });
+  const _DoseRow({required this.value, required this.onChanged});
 
   String _fmt(double v) {
     if (v == v.truncateToDouble()) return v.toInt().toString();
     // округлення до 2 знаків
-    return double.parse(v.toStringAsFixed(2))
-        .toString()
-        .replaceAll(RegExp(r'\.?0+$'), '');
+    return double.parse(
+      v.toStringAsFixed(2),
+    ).toString().replaceAll(RegExp(r'\.?0+$'), '');
   }
 
   Future<void> _openInput(BuildContext context) async {
@@ -1595,19 +1757,18 @@ class _DoseRow extends StatelessWidget {
         title: const Text('Кількість на прийом'),
         content: TextField(
           controller: ctrl,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
           decoration: const InputDecoration(hintText: 'наприклад 2.5'),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
             onPressed: () {
-              final v = double.tryParse(
-                  ctrl.text.trim().replaceAll(',', '.'));
+              final v = double.tryParse(ctrl.text.trim().replaceAll(',', '.'));
               Navigator.pop(ctx, v != null && v > 0 ? v : null);
             },
             child: const Text('OK'),
@@ -1632,12 +1793,13 @@ class _DoseRow extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              _fmt(value),
-              style: AppTextStyles.labelLg,
-            ),
+            Text(_fmt(value), style: AppTextStyles.labelLg),
             const SizedBox(width: 8),
-            const Icon(Icons.edit_outlined, size: 14, color: AppColors.textMuted),
+            const Icon(
+              Icons.edit_outlined,
+              size: 14,
+              color: AppColors.textMuted,
+            ),
           ],
         ),
       ),
@@ -1652,8 +1814,11 @@ class _ModeTab extends StatelessWidget {
   final bool active;
   final VoidCallback onTap;
 
-  const _ModeTab(
-      {required this.label, required this.active, required this.onTap});
+  const _ModeTab({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1735,8 +1900,7 @@ class _RepeatSection extends StatelessWidget {
           selected: selected,
           onSelect: onSelect,
           expanded: selected == 'weekdays'
-              ? _WeekdayPicker(
-                  selected: weekdays, onToggle: onWeekdayToggle)
+              ? _WeekdayPicker(selected: weekdays, onToggle: onWeekdayToggle)
               : null,
         ),
         const SizedBox(height: 6),
@@ -1771,20 +1935,20 @@ class _RepeatSection extends StatelessWidget {
                       label: 'Пити',
                       suffix: 'днів',
                       value: cycleOn,
-                      onDecrement: () =>
-                          cycleOn > 1 ? onCycleChanged(cycleOn - 1, cycleOff) : null,
-                      onIncrement: () =>
-                          onCycleChanged(cycleOn + 1, cycleOff),
+                      onDecrement: () => cycleOn > 1
+                          ? onCycleChanged(cycleOn - 1, cycleOff)
+                          : null,
+                      onIncrement: () => onCycleChanged(cycleOn + 1, cycleOff),
                     ),
                     const SizedBox(height: 8),
                     _StepperRow(
                       label: 'Перерва',
                       suffix: 'днів',
                       value: cycleOff,
-                      onDecrement: () =>
-                          cycleOff > 1 ? onCycleChanged(cycleOn, cycleOff - 1) : null,
-                      onIncrement: () =>
-                          onCycleChanged(cycleOn, cycleOff + 1),
+                      onDecrement: () => cycleOff > 1
+                          ? onCycleChanged(cycleOn, cycleOff - 1)
+                          : null,
+                      onIncrement: () => onCycleChanged(cycleOn, cycleOff + 1),
                     ),
                   ],
                 )
@@ -1829,8 +1993,9 @@ class _RepeatOption extends StatelessWidget {
           color: sel ? AppColors.primaryLight : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: sel ? AppColors.primary : AppColors.border,
-              width: sel ? 2 : 1.5),
+            color: sel ? AppColors.primary : AppColors.border,
+            width: sel ? 2 : 1.5,
+          ),
         ),
         child: Column(
           children: [
@@ -1842,9 +2007,12 @@ class _RepeatOption extends StatelessWidget {
                     children: [
                       Text(label, style: AppTextStyles.labelMd),
                       if (sub != null && sub!.isNotEmpty)
-                        Text(sub!,
-                            style: AppTextStyles.bodySm
-                                .copyWith(color: AppColors.textMuted)),
+                        Text(
+                          sub!,
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1860,7 +2028,11 @@ class _RepeatOption extends StatelessWidget {
                     ),
                   ),
                   child: sel
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 12)
+                      ? const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 12,
+                        )
                       : null,
                 ),
               ],
@@ -1940,9 +2112,10 @@ class _StepperRow extends StatelessWidget {
         _CountBtn(icon: '−', onTap: onDecrement),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text('$value $suffix',
-              style: AppTextStyles.labelLg
-                  .copyWith(color: AppColors.primary)),
+          child: Text(
+            '$value $suffix',
+            style: AppTextStyles.labelLg.copyWith(color: AppColors.primary),
+          ),
         ),
         _CountBtn(icon: '＋', onTap: onIncrement),
       ],
@@ -1976,7 +2149,8 @@ class _DurationSectionState extends State<_DurationSection> {
   void initState() {
     super.initState();
     _ctrl = TextEditingController(
-        text: widget.isPermanent ? '' : '${widget.days}');
+      text: widget.isPermanent ? '' : '${widget.days}',
+    );
   }
 
   @override
@@ -2000,85 +2174,91 @@ class _DurationSectionState extends State<_DurationSection> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.border),
             ),
-              child: Row(
-                children: [
-                  // Кнопка −
-                  GestureDetector(
-                    onTap: widget.isPermanent
-                        ? null
-                        : () {
-                            final v = (widget.days - 1).clamp(1, 365);
-                            widget.onDaysSelect(v);
-                            _ctrl.text = '$v';
-                          },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      child: Icon(Icons.remove_rounded,
-                          size: 18,
-                          color: widget.isPermanent
-                              ? AppColors.textMuted
-                              : AppColors.textMain),
+            child: Row(
+              children: [
+                // Кнопка −
+                GestureDetector(
+                  onTap: widget.isPermanent
+                      ? null
+                      : () {
+                          final v = (widget.days - 1).clamp(1, 365);
+                          widget.onDaysSelect(v);
+                          _ctrl.text = '$v';
+                        },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.remove_rounded,
+                      size: 18,
+                      color: widget.isPermanent
+                          ? AppColors.textMuted
+                          : AppColors.textMain,
                     ),
                   ),
-                  // Инпут
-                  Expanded(
-                    child: TextField(
-                      controller: _ctrl,
-                      enabled: !widget.isPermanent,
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      style: AppTextStyles.bodyLg.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: widget.isPermanent
-                            ? AppColors.textMuted
-                            : AppColors.textMain,
+                ),
+                // Инпут
+                Expanded(
+                  child: TextField(
+                    controller: _ctrl,
+                    enabled: !widget.isPermanent,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.bodyLg.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: widget.isPermanent
+                          ? AppColors.textMuted
+                          : AppColors.textMain,
+                    ),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: '—',
+                      hintStyle: AppTextStyles.bodyLg.copyWith(
+                        color: AppColors.textMuted,
                       ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: '—',
-                        hintStyle: AppTextStyles.bodyLg
-                            .copyWith(color: AppColors.textMuted),
-                        suffixText: widget.isPermanent ? '' : ' дн.',
-                        suffixStyle: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.textSub),
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
+                      suffixText: widget.isPermanent ? '' : ' дн.',
+                      suffixStyle: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textSub,
                       ),
-                      onChanged: (v) {
-                        final n = int.tryParse(v);
-                        if (n != null && n >= 1 && n <= 365) {
-                          widget.onPermanentToggle(false);
-                          widget.onDaysSelect(n);
-                        }
-                      },
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: (v) {
+                      final n = int.tryParse(v);
+                      if (n != null && n >= 1 && n <= 365) {
+                        widget.onPermanentToggle(false);
+                        widget.onDaysSelect(n);
+                      }
+                    },
+                  ),
+                ),
+                // Кнопка +
+                GestureDetector(
+                  onTap: widget.isPermanent
+                      ? null
+                      : () {
+                          final v = (widget.days + 1).clamp(1, 365);
+                          widget.onDaysSelect(v);
+                          _ctrl.text = '$v';
+                        },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 18,
+                      color: widget.isPermanent
+                          ? AppColors.textMuted
+                          : AppColors.textMain,
                     ),
                   ),
-                  // Кнопка +
-                  GestureDetector(
-                    onTap: widget.isPermanent
-                        ? null
-                        : () {
-                            final v = (widget.days + 1).clamp(1, 365);
-                            widget.onDaysSelect(v);
-                            _ctrl.text = '$v';
-                          },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      child: Icon(Icons.add_rounded,
-                          size: 18,
-                          color: widget.isPermanent
-                              ? AppColors.textMuted
-                              : AppColors.textMain),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
         const SizedBox(width: 10),
         // Кнопка "Постійно"
         GestureDetector(
@@ -2092,12 +2272,9 @@ class _DurationSectionState extends State<_DurationSection> {
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: widget.isPermanent
-                  ? AppColors.primary
-                  : AppColors.surface,
+              color: widget.isPermanent ? AppColors.primary : AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: widget.isPermanent
@@ -2108,9 +2285,7 @@ class _DurationSectionState extends State<_DurationSection> {
             child: Text(
               'Постійно',
               style: AppTextStyles.labelMd.copyWith(
-                color: widget.isPermanent
-                    ? Colors.white
-                    : AppColors.textMain,
+                color: widget.isPermanent ? Colors.white : AppColors.textMain,
               ),
             ),
           ),
@@ -2192,27 +2367,35 @@ class _OptionalSectionState extends State<_OptionalSection> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.tune_rounded,
-                    size: 18, color: AppColors.textSub),
+                const Icon(
+                  Icons.tune_rounded,
+                  size: 18,
+                  color: AppColors.textSub,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Додаткові параметри',
-                    style: AppTextStyles.labelMd
-                        .copyWith(color: AppColors.textSub),
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: AppColors.textSub,
+                    ),
                   ),
                 ),
                 Text(
                   'Необов\'язково',
-                  style: AppTextStyles.bodySm
-                      .copyWith(color: AppColors.textMuted),
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 20, color: AppColors.textMuted),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -2265,8 +2448,11 @@ class _OptionalSectionState extends State<_OptionalSection> {
                           ),
                         ),
                         child: widget.trackStock
-                            ? const Icon(Icons.check_rounded,
-                                size: 14, color: Colors.white)
+                            ? const Icon(
+                                Icons.check_rounded,
+                                size: 14,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
                       const SizedBox(width: 10),
@@ -2291,22 +2477,23 @@ class _OptionalSectionState extends State<_OptionalSection> {
                       const SizedBox(height: 14),
 
                       if (isPercentTrackedForm(widget.form)) ...[
-                        Text('Флакон / упаковка',
-                            style: AppTextStyles.labelMd),
+                        Text('Флакон / упаковка', style: AppTextStyles.labelMd),
                         const SizedBox(height: 4),
                         Text(
                           'Позначимо як щойно відкриту (100%) — оновити '
                           'оцінку залишку можна буде в картці ліків',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.textMuted),
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ] else ...[
                         Text('В наявності', style: AppTextStyles.labelMd),
                         const SizedBox(height: 4),
                         Text(
                           'Скільки ${widget.doseUnit} є зараз',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.textMuted),
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.textMuted,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         _PillCountRow(
@@ -2354,22 +2541,22 @@ class _OptionalSectionState extends State<_OptionalSection> {
                                           style: AppTextStyles.bodyMd,
                                           children: [
                                             const TextSpan(
-                                                text: 'Потрібно докупити: '),
+                                              text: 'Потрібно докупити: ',
+                                            ),
                                             TextSpan(
-                                              text:
-                                                  '$toBuy ${widget.doseUnit}',
+                                              text: '$toBuy ${widget.doseUnit}',
                                               style: AppTextStyles.labelMd
                                                   .copyWith(
-                                                      color:
-                                                          AppColors.primary),
+                                                    color: AppColors.primary,
+                                                  ),
                                             ),
                                             TextSpan(
                                               text:
                                                   ' (курс: $needed, є: ${widget.availableCount})',
                                               style: AppTextStyles.bodySm
                                                   .copyWith(
-                                                      color: AppColors
-                                                          .textMuted),
+                                                    color: AppColors.textMuted,
+                                                  ),
                                             ),
                                           ],
                                         ),
@@ -2377,7 +2564,8 @@ class _OptionalSectionState extends State<_OptionalSection> {
                                     : Text(
                                         'Вистачить на весь курс',
                                         style: AppTextStyles.bodyMd.copyWith(
-                                            color: Colors.green.shade700),
+                                          color: Colors.green.shade700,
+                                        ),
                                       ),
                               ),
                             ],
@@ -2501,8 +2689,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
   bool _loading = false;
 
   Future<Uint8List> _decrypted(String rel) async {
-    return _bytesCache[rel] ??=
-        await PhotoService.decryptedBytes(rel);
+    return _bytesCache[rel] ??= await PhotoService.decryptedBytes(rel);
   }
 
   Future<void> _add() async {
@@ -2516,7 +2703,9 @@ class _PhotoSectionState extends State<_PhotoSection> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Немає доступу до камери. Дозвольте його в налаштуваннях телефону.'),
+              content: Text(
+                'Немає доступу до камери. Дозвольте його в налаштуваннях телефону.',
+              ),
             ),
           );
         }
@@ -2562,9 +2751,10 @@ class _PhotoSectionState extends State<_PhotoSection> {
                 border: Border.all(color: AppColors.border, width: 1.5),
                 boxShadow: const [
                   BoxShadow(
-                      color: Color(0x0F000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 6)),
+                    color: Color(0x0F000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
                 ],
               ),
               child: Column(
@@ -2572,10 +2762,13 @@ class _PhotoSectionState extends State<_PhotoSection> {
                 children: [
                   if (_loading)
                     const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.primary))
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    )
                   else ...[
                     Container(
                       width: 44,
@@ -2584,17 +2777,26 @@ class _PhotoSectionState extends State<_PhotoSection> {
                         color: AppColors.primaryLight,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.camera_alt_outlined,
-                          color: AppColors.primary, size: 22),
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text('Додати фото',
-                        style: AppTextStyles.labelMd
-                            .copyWith(color: AppColors.primary)),
+                    Text(
+                      'Додати фото',
+                      style: AppTextStyles.labelMd.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text('щоб не переплутати ліки',
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.textMuted)),
+                    Text(
+                      'щоб не переплутати ліки',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -2613,15 +2815,19 @@ class _PhotoSectionState extends State<_PhotoSection> {
             const Spacer(),
             if (_loading)
               const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2))
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             else
               GestureDetector(
                 onTap: _add,
-                child: Text('Додати',
-                    style: AppTextStyles.labelSm
-                        .copyWith(color: AppColors.primary)),
+                child: Text(
+                  'Додати',
+                  style: AppTextStyles.labelSm.copyWith(
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
           ],
         ),
@@ -2631,7 +2837,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: widget.paths.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (ctx, i) {
               final rel = widget.paths[i];
               return FutureBuilder<Uint8List>(
@@ -2667,8 +2873,11 @@ class _PhotoSectionState extends State<_PhotoSection> {
                               color: Colors.black54,
                               borderRadius: BorderRadius.circular(11),
                             ),
-                            child: const Icon(Icons.close_rounded,
-                                size: 14, color: Colors.white),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
@@ -2703,7 +2912,8 @@ class _CountBtn extends StatelessWidget {
           color: onTap != null ? AppColors.primaryLight : AppColors.bgPage,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: onTap != null ? AppColors.primary : AppColors.border),
+            color: onTap != null ? AppColors.primary : AppColors.border,
+          ),
         ),
         child: Center(
           child: Text(
