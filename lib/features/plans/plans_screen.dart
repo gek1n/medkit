@@ -7,6 +7,7 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/providers/real_plan_provider.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/marketing_topics_service.dart';
+import '../../core/services/review_prompt_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -117,6 +118,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       ref.read(planProvider.notifier).state = plan;
       ref.invalidate(realPlanProvider);
       unawaited(MarketingTopicsService.clearPurchaseIntentTopics());
+      unawaited(ReviewPromptService.recordPurchase(plan));
       if (!mounted) return;
       if (outcome.newRecoveryKeyDisplay != null) {
         await showRecoveryKeyDialog(context, outcome.newRecoveryKeyDisplay!);
