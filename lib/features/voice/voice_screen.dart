@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -5,6 +7,7 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/services/ai_consent_service.dart';
 import '../../core/services/ai_usage_service.dart';
 import '../../core/services/drug_info_service.dart';
+import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/nlu_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -96,6 +99,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     }
     final plan = ref.read(planProvider);
     if (!plan.isPaid && !await AiUsageService.canUseVoiceCommand()) {
+      unawaited(MarketingTopicsService.markHitVoiceLimit());
       if (!mounted) return;
       Navigator.push(
           context, MaterialPageRoute(builder: (_) => const PlansScreen()));

@@ -45,19 +45,22 @@ class _DayItem {
   final DateTime scheduledAt;
   final Object? _data;
 
-  const _DayItem._({required this.type, required this.scheduledAt, Object? data})
-      : _data = data;
+  const _DayItem._({required this.type, required this.scheduledAt, this._data});
 
   Intake? get intake => _data is Intake ? _data : null;
   ActivityLog? get activityLog => _data is ActivityLog ? _data : null;
-  DoctorAppointment? get appointment => _data is DoctorAppointment ? _data : null;
+  DoctorAppointment? get appointment =>
+      _data is DoctorAppointment ? _data : null;
 
   static _DayItem fromIntake(Intake i) =>
       _DayItem._(type: _ItemType.intake, scheduledAt: i.effectiveDue, data: i);
   static _DayItem fromActivity(ActivityLog l) =>
       _DayItem._(type: _ItemType.activity, scheduledAt: l.scheduledAt, data: l);
-  static _DayItem fromAppointment(DoctorAppointment a) =>
-      _DayItem._(type: _ItemType.appointment, scheduledAt: a.scheduledAt, data: a);
+  static _DayItem fromAppointment(DoctorAppointment a) => _DayItem._(
+    type: _ItemType.appointment,
+    scheduledAt: a.scheduledAt,
+    data: a,
+  );
   static _DayItem fromWellbeing(DateTime dt) =>
       _DayItem._(type: _ItemType.wellbeing, scheduledAt: dt);
 }
@@ -77,7 +80,9 @@ class TodayScreen extends ConsumerWidget {
     return memberAsync.when(
       loading: () => const Scaffold(
         backgroundColor: AppColors.bg,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       ),
       error: (e, _) => Scaffold(
         backgroundColor: AppColors.bg,
@@ -109,7 +114,9 @@ class _TodayContent extends ConsumerWidget {
     final activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
     final appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
     final membersAsync = ref.watch(allMembersProvider);
-    final wellbeingScheduleAsync = ref.watch(todayWellbeingScheduleProvider(member.id));
+    final wellbeingScheduleAsync = ref.watch(
+      todayWellbeingScheduleProvider(member.id),
+    );
     final wellbeingLogsAsync = ref.watch(todayWellbeingLogsProvider(member.id));
 
     return Scaffold(
@@ -122,7 +129,8 @@ class _TodayContent extends ConsumerWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: intakesAsync.when(
         loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.primary)),
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
         error: (e, _) => Center(child: Text('$e')),
         data: (intakes) {
           final meds = medsAsync.valueOrNull ?? [];
@@ -148,25 +156,40 @@ class _TodayContent extends ConsumerWidget {
 
           if (schedule != null && schedule.isActive) {
             final today = DateTime(now.year, now.month, now.day);
-            final slotDts = (List<String>.from(
-                    jsonDecode(schedule.times) as List))
-                .map((t) {
-              final p = t.split(':');
-              return DateTime(today.year, today.month, today.day,
-                  int.parse(p[0]), int.parse(p[1]));
-            }).toList()
-              ..sort();
-            final endOfDay =
-                DateTime(today.year, today.month, today.day, 23, 59, 59);
+            final slotDts =
+                (List<String>.from(jsonDecode(schedule.times) as List)).map((
+                  t,
+                ) {
+                  final p = t.split(':');
+                  return DateTime(
+                    today.year,
+                    today.month,
+                    today.day,
+                    int.parse(p[0]),
+                    int.parse(p[1]),
+                  );
+                }).toList()..sort();
+            final endOfDay = DateTime(
+              today.year,
+              today.month,
+              today.day,
+              23,
+              59,
+              59,
+            );
 
             for (int i = 0; i < slotDts.length; i++) {
               final slotDt = slotDts[i];
-              final windowEnd =
-                  i + 1 < slotDts.length ? slotDts[i + 1] : endOfDay;
-              final hasLog = todayWbLogs.any((l) =>
-                  l.loggedAt.isAfter(
-                      slotDt.subtract(const Duration(minutes: 30))) &&
-                  l.loggedAt.isBefore(windowEnd));
+              final windowEnd = i + 1 < slotDts.length
+                  ? slotDts[i + 1]
+                  : endOfDay;
+              final hasLog = todayWbLogs.any(
+                (l) =>
+                    l.loggedAt.isAfter(
+                      slotDt.subtract(const Duration(minutes: 30)),
+                    ) &&
+                    l.loggedAt.isBefore(windowEnd),
+              );
               if (hasLog) {
                 doneWbSlots.add(slotDt);
               } else if (slotDt.isBefore(activeWindowStart)) {
@@ -198,9 +221,11 @@ class _TodayContent extends ConsumerWidget {
               .where((i) => i.effectiveDue.isBefore(activeWindowStart))
               .toList();
           final activeIntakes = pendingIntakes
-              .where((i) =>
-                  !i.effectiveDue.isBefore(activeWindowStart) &&
-                  i.effectiveDue.isBefore(activeWindowEnd))
+              .where(
+                (i) =>
+                    !i.effectiveDue.isBefore(activeWindowStart) &&
+                    i.effectiveDue.isBefore(activeWindowEnd),
+              )
               .toList();
           final upcomingIntakes = pendingIntakes
               .where((i) => !i.effectiveDue.isBefore(activeWindowEnd))
@@ -210,15 +235,18 @@ class _TodayContent extends ConsumerWidget {
               .toList();
 
           // ── Activity log buckets ─────────────────────────────────────────
-          final pendingLogs =
-              activityLogs.where((l) => l.status == 'pending').toList();
+          final pendingLogs = activityLogs
+              .where((l) => l.status == 'pending')
+              .toList();
           final missedActivities = pendingLogs
               .where((l) => l.scheduledAt.isBefore(activeWindowStart))
               .toList();
           final activeActivities = pendingLogs
-              .where((l) =>
-                  !l.scheduledAt.isBefore(activeWindowStart) &&
-                  l.scheduledAt.isBefore(activeWindowEnd))
+              .where(
+                (l) =>
+                    !l.scheduledAt.isBefore(activeWindowStart) &&
+                    l.scheduledAt.isBefore(activeWindowEnd),
+              )
               .toList();
           final upcomingActivities = pendingLogs
               .where((l) => !l.scheduledAt.isBefore(activeWindowEnd))
@@ -228,21 +256,25 @@ class _TodayContent extends ConsumerWidget {
               .toList();
 
           // ── Appointment buckets ───────────────────────────────────────────
-          final pendingAppointments =
-              appointments.where((a) => a.status == 'pending').toList();
+          final pendingAppointments = appointments
+              .where((a) => a.status == 'pending')
+              .toList();
           final missedAppointments = pendingAppointments
               .where((a) => a.scheduledAt.isBefore(activeWindowStart))
               .toList();
           final activeAppointments = pendingAppointments
-              .where((a) =>
-                  !a.scheduledAt.isBefore(activeWindowStart) &&
-                  a.scheduledAt.isBefore(activeWindowEnd))
+              .where(
+                (a) =>
+                    !a.scheduledAt.isBefore(activeWindowStart) &&
+                    a.scheduledAt.isBefore(activeWindowEnd),
+              )
               .toList();
           final upcomingAppointments = pendingAppointments
               .where((a) => !a.scheduledAt.isBefore(activeWindowEnd))
               .toList();
-          final doneAppointments =
-              appointments.where((a) => a.status != 'pending').toList();
+          final doneAppointments = appointments
+              .where((a) => a.status != 'pending')
+              .toList();
 
           // ── Unified schedule (upcoming, sorted) ──────────────────────────
           final scheduleItems = <_DayItem>[
@@ -261,6 +293,7 @@ class _TodayContent extends ConsumerWidget {
               nextLabel = label;
             }
           }
+
           for (final i in [...activeIntakes, ...upcomingIntakes]) {
             final med = meds.where((m) => m.id == i.medicationId).firstOrNull;
             checkNext(i.effectiveDue, med?.name ?? 'Ліки');
@@ -284,15 +317,18 @@ class _TodayContent extends ConsumerWidget {
             ...doneAppointments.map(_DayItem.fromAppointment),
           ]..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
 
-          final hasMissed = missedIntakes.isNotEmpty ||
+          final hasMissed =
+              missedIntakes.isNotEmpty ||
               missedActivities.isNotEmpty ||
               missedWbSlots.isNotEmpty ||
               missedAppointments.isNotEmpty;
-          final hasActive = activeIntakes.isNotEmpty ||
+          final hasActive =
+              activeIntakes.isNotEmpty ||
               activeActivities.isNotEmpty ||
               activeWbSlots.isNotEmpty ||
               activeAppointments.isNotEmpty;
-          final allDoneToday = !hasMissed &&
+          final allDoneToday =
+              !hasMissed &&
               !hasActive &&
               scheduleItems.isEmpty &&
               doneItems.isNotEmpty;
@@ -300,7 +336,9 @@ class _TodayContent extends ConsumerWidget {
           return CustomScrollView(
             slivers: [
               if (showSwitchBanner)
-                SliverToBoxAdapter(child: SwitchProfileBanner(name: member.name)),
+                SliverToBoxAdapter(
+                  child: SwitchProfileBanner(name: member.name),
+                ),
 
               // Hero
               SliverToBoxAdapter(
@@ -313,8 +351,8 @@ class _TodayContent extends ConsumerWidget {
                   onAddWellbeing: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) =>
-                            WellbeingCheckScreen(memberId: member.id)),
+                      builder: (_) => WellbeingCheckScreen(memberId: member.id),
+                    ),
                   ),
                 ),
               ),
@@ -419,16 +457,26 @@ class _TodayContent extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset('assets/illustrations/elly-calendar.png',
-                            height: 140),
+                        Image.asset(
+                          'assets/illustrations/elly-calendar.png',
+                          height: 140,
+                        ),
                         const SizedBox(height: 16),
-                        Text('На сьогодні нічого немає',
-                            style: AppTextStyles.bodyMd.copyWith(
-                                fontSize: 17, fontWeight: FontWeight.w700)),
+                        Text(
+                          'На сьогодні нічого немає',
+                          style: AppTextStyles.bodyMd.copyWith(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 8),
-                        Text('Натисніть + щоб додати',
-                            style: AppTextStyles.bodyMd.copyWith(
-                                fontSize: 14, color: AppColors.textSub)),
+                        Text(
+                          'Натисніть + щоб додати',
+                          style: AppTextStyles.bodyMd.copyWith(
+                            fontSize: 14,
+                            color: AppColors.textSub,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -460,14 +508,19 @@ class _NextEventChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_rounded, size: 11, color: Colors.white),
+            const Icon(
+              Icons.check_circle_rounded,
+              size: 11,
+              color: Colors.white,
+            ),
             const SizedBox(width: 5),
             Text(
               'Все виконано',
               style: AppTextStyles.bodyMd.copyWith(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600),
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -478,8 +531,8 @@ class _NextEventChip extends StatelessWidget {
     final timeStr = diff.inMinutes <= 0
         ? 'зараз'
         : diff.inMinutes < 60
-            ? 'через ${diff.inMinutes} хв'
-            : 'о ${nextAt!.hour.toString().padLeft(2, '0')}:${nextAt!.minute.toString().padLeft(2, '0')}';
+        ? 'через ${diff.inMinutes} хв'
+        : 'о ${nextAt!.hour.toString().padLeft(2, '0')}:${nextAt!.minute.toString().padLeft(2, '0')}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -495,24 +548,29 @@ class _NextEventChip extends StatelessWidget {
           Text(
             timeStr,
             style: AppTextStyles.bodyMd.copyWith(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700),
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Text('·',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 11)),
+            child: Text(
+              '·',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 11,
+              ),
+            ),
           ),
           Flexible(
             child: Text(
               nextLabel ?? '',
               style: AppTextStyles.bodyMd.copyWith(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500),
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -530,11 +588,14 @@ class _SectionPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-            AppDimensions.screenPadding, 16,
-            AppDimensions.screenPadding, 0),
-        child: child,
-      );
+    padding: const EdgeInsets.fromLTRB(
+      AppDimensions.screenPadding,
+      16,
+      AppDimensions.screenPadding,
+      0,
+    ),
+    child: child,
+  );
 }
 
 // ─── All Done Banner ──────────────────────────────────────────────────────────
@@ -596,8 +657,11 @@ class _CompactHero extends StatelessWidget {
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppDimensions.screenPadding, 12,
-              AppDimensions.screenPadding, 0),
+            AppDimensions.screenPadding,
+            12,
+            AppDimensions.screenPadding,
+            0,
+          ),
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
             decoration: BoxDecoration(
@@ -613,7 +677,9 @@ class _CompactHero extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.6), width: 2),
+                      color: Colors.white.withValues(alpha: 0.6),
+                      width: 2,
+                    ),
                   ),
                   child: AvatarImage(index: member.avatarIndex, size: 56),
                 ),
@@ -645,7 +711,9 @@ class _CompactHero extends StatelessWidget {
                   onTap: onAddWellbeing,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(14),
@@ -653,8 +721,11 @@ class _CompactHero extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.favorite_rounded,
-                            color: Colors.white, size: 20),
+                        const Icon(
+                          Icons.favorite_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         const SizedBox(height: 3),
                         Text(
                           'Зараз\nболить',
@@ -713,10 +784,11 @@ class _MissedSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveIntakeCard(
-                intake: i,
-                med: meds.where((m) => m.id == i.medicationId).firstOrNull,
-                ref: ref,
-                missed: true),
+              intake: i,
+              med: meds.where((m) => m.id == i.medicationId).firstOrNull,
+              ref: ref,
+              missed: true,
+            ),
           ),
         ),
       for (final l in activityLogs)
@@ -725,11 +797,13 @@ class _MissedSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveActivityCard(
-                log: l,
-                ref: ref,
-                activity:
-                    activities.where((a) => a.id == l.activityId).firstOrNull,
-                missed: true),
+              log: l,
+              ref: ref,
+              activity: activities
+                  .where((a) => a.id == l.activityId)
+                  .firstOrNull,
+              missed: true,
+            ),
           ),
         ),
       for (final dt in wellbeingSlots)
@@ -738,10 +812,11 @@ class _MissedSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveWellbeingCard(
-                scheduledAt: dt,
-                memberId: memberId,
-                missed: true,
-                wellbeingSchedule: wellbeingSchedule),
+              scheduledAt: dt,
+              memberId: memberId,
+              missed: true,
+              wellbeingSchedule: wellbeingSchedule,
+            ),
           ),
         ),
       for (final a in appointments)
@@ -750,7 +825,10 @@ class _MissedSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveAppointmentCard(
-                appointment: a, ref: ref, missed: true),
+              appointment: a,
+              ref: ref,
+              missed: true,
+            ),
           ),
         ),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
@@ -759,20 +837,28 @@ class _MissedSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
+          Row(
+            children: [
+              Container(
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                    color: Color(0xFFF97316), shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text('Ви пропустили',
+                  color: Color(0xFFF97316),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Ви пропустили',
                 style: AppTextStyles.bodyMd.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFFC2410C))),
-            _CountBadge(count: cards.length, color: const Color(0xFFF97316)),
-          ]),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFC2410C),
+                ),
+              ),
+              _CountBadge(count: cards.length, color: const Color(0xFFF97316)),
+            ],
+          ),
           const SizedBox(height: 8),
           ...cards.map((c) => c.$2),
         ],
@@ -815,9 +901,10 @@ class _ActiveNowSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveIntakeCard(
-                intake: i,
-                med: meds.where((m) => m.id == i.medicationId).firstOrNull,
-                ref: ref),
+              intake: i,
+              med: meds.where((m) => m.id == i.medicationId).firstOrNull,
+              ref: ref,
+            ),
           ),
         ),
       for (final l in activityLogs)
@@ -826,10 +913,12 @@ class _ActiveNowSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveActivityCard(
-                log: l,
-                ref: ref,
-                activity:
-                    activities.where((a) => a.id == l.activityId).firstOrNull),
+              log: l,
+              ref: ref,
+              activity: activities
+                  .where((a) => a.id == l.activityId)
+                  .firstOrNull,
+            ),
           ),
         ),
       for (final dt in wellbeingSlots)
@@ -838,9 +927,10 @@ class _ActiveNowSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveWellbeingCard(
-                scheduledAt: dt,
-                memberId: memberId,
-                wellbeingSchedule: wellbeingSchedule),
+              scheduledAt: dt,
+              memberId: memberId,
+              wellbeingSchedule: wellbeingSchedule,
+            ),
           ),
         ),
       for (final a in appointments)
@@ -857,20 +947,28 @@ class _ActiveNowSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Container(
+          Row(
+            children: [
+              Container(
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text('Зараз потрібно',
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Зараз потрібно',
                 style: AppTextStyles.bodyMd.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textMain)),
-            _CountBadge(count: cards.length, color: AppColors.primary),
-          ]),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                ),
+              ),
+              _CountBadge(count: cards.length, color: AppColors.primary),
+            ],
+          ),
           const SizedBox(height: 8),
           ...cards.map((c) => c.$2),
         ],
@@ -888,7 +986,6 @@ class _ScheduleSection extends StatelessWidget {
   final List<Activity> activities;
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
-  final bool dimmed;
 
   const _ScheduleSection({
     required this.title,
@@ -897,16 +994,13 @@ class _ScheduleSection extends StatelessWidget {
     required this.activities,
     required this.memberId,
     this.wellbeingSchedule,
-    this.dimmed = false,
   });
 
   static const _dayParts = ['Ранок', 'День', 'Вечір', 'Ніч'];
 
   @override
   Widget build(BuildContext context) {
-    final buckets = <String, List<_DayItem>>{
-      for (final p in _dayParts) p: [],
-    };
+    final buckets = <String, List<_DayItem>>{for (final p in _dayParts) p: []};
     for (final item in items) {
       buckets[_dayPartOf(item.scheduledAt)]!.add(item);
     }
@@ -921,17 +1015,18 @@ class _ScheduleSection extends StatelessWidget {
             if (buckets[part]!.isNotEmpty) ...[
               _DayPartHeader(part: part),
               const SizedBox(height: 8),
-              ...buckets[part]!.map((item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _ScheduleCard(
-                      item: item,
-                      meds: meds,
-                      activities: activities,
-                      memberId: memberId,
-                      wellbeingSchedule: wellbeingSchedule,
-                      dimmed: dimmed,
-                    ),
-                  )),
+              ...buckets[part]!.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _ScheduleCard(
+                    item: item,
+                    meds: meds,
+                    activities: activities,
+                    memberId: memberId,
+                    wellbeingSchedule: wellbeingSchedule,
+                  ),
+                ),
+              ),
               const SizedBox(height: 4),
             ],
         ],
@@ -949,18 +1044,18 @@ String _dayPartOf(DateTime dt) {
 }
 
 IconData _dayPartIcon(String part) => switch (part) {
-      'Ранок' => Icons.wb_twilight_rounded,
-      'День' => Icons.wb_sunny_rounded,
-      'Вечір' => Icons.nights_stay_rounded,
-      _ => Icons.nightlight_round,
-    };
+  'Ранок' => Icons.wb_twilight_rounded,
+  'День' => Icons.wb_sunny_rounded,
+  'Вечір' => Icons.nights_stay_rounded,
+  _ => Icons.nightlight_round,
+};
 
 Color _scheduleCategoryColor(_ItemType type) => switch (type) {
-      _ItemType.appointment => const Color(0xFF72A8C7),
-      _ItemType.intake => const Color(0xFFF08060),
-      _ItemType.activity => const Color(0xFFA58BC9),
-      _ItemType.wellbeing => const Color(0xFF6AAF8B),
-    };
+  _ItemType.appointment => const Color(0xFF72A8C7),
+  _ItemType.intake => const Color(0xFFF08060),
+  _ItemType.activity => const Color(0xFFA58BC9),
+  _ItemType.wellbeing => const Color(0xFF6AAF8B),
+};
 
 class _DayPartHeader extends StatelessWidget {
   final String part;
@@ -986,7 +1081,6 @@ class _ScheduleCard extends StatelessWidget {
   final List<Activity> activities;
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
-  final bool dimmed;
 
   const _ScheduleCard({
     required this.item,
@@ -994,7 +1088,6 @@ class _ScheduleCard extends StatelessWidget {
     required this.activities,
     required this.memberId,
     this.wellbeingSchedule,
-    this.dimmed = false,
   });
 
   Color get _color {
@@ -1009,92 +1102,103 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, title, subtitle) = _scheduleItemInfo(item,
-        med: _resolvedMed, activity: _resolvedActivity);
+    final (icon, title, subtitle) = _scheduleItemInfo(
+      item,
+      med: _resolvedMed,
+      activity: _resolvedActivity,
+    );
     final color = _color;
 
-    return Opacity(
-      opacity: dimmed ? 0.5 : 1.0,
-      child: GestureDetector(
-        onTap: () => _handleTap(context),
-        child: Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 14, 66, 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(icon, size: 20, color: color),
+    return GestureDetector(
+      onTap: () => _handleTap(context),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 14, 66, 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.bodyMd.copyWith(
-                                  fontSize: 15, fontWeight: FontWeight.w800)),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(subtitle,
-                                style: AppTextStyles.bodySm
-                                    .copyWith(color: AppColors.textMuted)),
-                          ],
+                    child: Icon(icon, size: 20, color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodyMd.copyWith(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                         ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Час і шеврон — окрема група, завжди по центру всієї висоти
+            // картки (а не прив'язана до заголовка, який спливає вгору,
+            // коли є підзаголовок).
+            Positioned(
+              right: 8,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _fmt(item.scheduledAt),
+                      style: AppTextStyles.bodySm.copyWith(
+                        fontSize: 13,
+                        color: AppColors.textMain,
+                        fontWeight: FontWeight.w800,
                       ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
                     ),
                   ],
                 ),
               ),
-              // Час і шеврон — окрема група, завжди по центру всієї висоти
-              // картки (а не прив'язана до заголовка, який спливає вгору,
-              // коли є підзаголовок).
-              Positioned(
-                right: 8,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_fmt(item.scheduledAt),
-                          style: AppTextStyles.bodySm.copyWith(
-                              fontSize: 13,
-                              color: AppColors.textMain,
-                              fontWeight: FontWeight.w800)),
-                      if (!dimmed) ...[
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded,
-                            size: 18, color: AppColors.textMuted),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Container(width: 4, color: color),
-              ),
-            ],
-          ),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(width: 4, color: color),
+            ),
+          ],
         ),
       ),
     );
@@ -1105,7 +1209,9 @@ class _ScheduleCard extends StatelessWidget {
       : null;
 
   Activity? get _resolvedActivity => item.type == _ItemType.activity
-      ? activities.where((a) => a.id == item.activityLog!.activityId).firstOrNull
+      ? activities
+            .where((a) => a.id == item.activityLog!.activityId)
+            .firstOrNull
       : null;
 
   void _handleTap(BuildContext context) {
@@ -1113,7 +1219,8 @@ class _ScheduleCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => WellbeingCheckScreen(memberId: memberId)),
+          builder: (_) => WellbeingCheckScreen(memberId: memberId),
+        ),
       );
       return;
     }
@@ -1124,7 +1231,9 @@ class _ScheduleCard extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (_) => MedicationDetailScreen(
-              medicationId: item.intake!.medicationId, memberId: memberId),
+            medicationId: item.intake!.medicationId,
+            memberId: memberId,
+          ),
         ),
       );
       return;
@@ -1142,8 +1251,11 @@ class _ScheduleCard extends StatelessWidget {
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
 
-(IconData, String, String?) _scheduleItemInfo(_DayItem item,
-    {Medication? med, Activity? activity}) {
+(IconData, String, String?) _scheduleItemInfo(
+  _DayItem item, {
+  Medication? med,
+  Activity? activity,
+}) {
   switch (item.type) {
     case _ItemType.intake:
       return (
@@ -1151,26 +1263,33 @@ class _ScheduleCard extends StatelessWidget {
         med?.name ?? 'Ліки',
         med != null
             ? '${med.doseAmount.toStringAsFixed(med.doseAmount == med.doseAmount.roundToDouble() ? 0 : 1)} ${med.doseUnit}'
-            : null
+            : null,
       );
     case _ItemType.activity:
-      return (_scheduleActIcon(activity?.type), activity?.name ?? 'Активність', null);
+      return (
+        _scheduleActIcon(activity?.type),
+        activity?.name ?? 'Активність',
+        null,
+      );
     case _ItemType.appointment:
-      return (Icons.medical_services_rounded, item.appointment!.doctorType,
-          item.appointment!.location);
+      return (
+        Icons.medical_services_rounded,
+        item.appointment!.doctorType,
+        item.appointment!.location,
+      );
     case _ItemType.wellbeing:
       return (Icons.favorite_rounded, 'Самопочуття', null);
   }
 }
 
 IconData _scheduleActIcon(String? t) => switch (t) {
-      'walk' => Icons.directions_walk_rounded,
-      'workout' => Icons.fitness_center_rounded,
-      'gym' => Icons.fitness_center_rounded,
-      'yoga' => Icons.self_improvement_rounded,
-      'cycling' => Icons.directions_bike_rounded,
-      _ => Icons.directions_run_rounded,
-    };
+  'walk' => Icons.directions_walk_rounded,
+  'workout' => Icons.fitness_center_rounded,
+  'gym' => Icons.fitness_center_rounded,
+  'yoga' => Icons.self_improvement_rounded,
+  'cycling' => Icons.directions_bike_rounded,
+  _ => Icons.directions_run_rounded,
+};
 
 // ─── Schedule item details modal ──────────────────────────────────────────────
 
@@ -1186,8 +1305,7 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _scheduleCategoryColor(item.type);
-    final (icon, title, _) =
-        _scheduleItemInfo(item, activity: activity);
+    final (icon, title, _) = _scheduleItemInfo(item, activity: activity);
 
     return SafeArea(
       child: Container(
@@ -1218,11 +1336,12 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              _DetailRow(
-                  label: 'Час', value: _fmt(item.scheduledAt)),
+              _DetailRow(label: 'Час', value: _fmt(item.scheduledAt)),
               if (activity != null)
                 _DetailRow(
-                    label: 'Тривалість', value: '${activity!.durationMin} хв'),
+                  label: 'Тривалість',
+                  value: '${activity!.durationMin} хв',
+                ),
               if (item.type == _ItemType.appointment &&
                   item.appointment!.location != null &&
                   item.appointment!.location!.isNotEmpty)
@@ -1296,15 +1415,14 @@ class _ScheduleRow extends StatelessWidget {
             ),
             onTap: item.type == _ItemType.wellbeing
                 ? () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) =>
-                              WellbeingCheckScreen(memberId: memberId)),
-                    )
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WellbeingCheckScreen(memberId: memberId),
+                    ),
+                  )
                 : null,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
                   SizedBox(
@@ -1312,8 +1430,9 @@ class _ScheduleRow extends StatelessWidget {
                     child: Text(
                       _fmt(item.scheduledAt),
                       style: AppTextStyles.bodySm.copyWith(
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w600),
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   Icon(icon, size: 18, color: AppColors.primary),
@@ -1322,30 +1441,40 @@ class _ScheduleRow extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(title,
-                            style: AppTextStyles.bodyMd
-                                .copyWith(fontWeight: FontWeight.w600)),
+                        Text(
+                          title,
+                          style: AppTextStyles.bodyMd.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         if (subtitle != null)
-                          Text(subtitle,
-                              style: AppTextStyles.bodySm
-                                  .copyWith(color: AppColors.textMuted)),
+                          Text(
+                            subtitle,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   if (item.type == _ItemType.wellbeing && !dimmed)
-                    const Icon(Icons.chevron_right_rounded,
-                        size: 18, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
                 ],
               ),
             ),
           ),
           if (!isLast)
             const Divider(
-                height: 1,
-                thickness: 1,
-                indent: 14,
-                endIndent: 14,
-                color: AppColors.border),
+              height: 1,
+              thickness: 1,
+              indent: 14,
+              endIndent: 14,
+              color: AppColors.border,
+            ),
         ],
       ),
     );
@@ -1354,31 +1483,38 @@ class _ScheduleRow extends StatelessWidget {
   (IconData, String, String?) _info() {
     switch (item.type) {
       case _ItemType.intake:
-        final med =
-            meds.where((m) => m.id == item.intake!.medicationId).firstOrNull;
-        return (Icons.medication_rounded, med?.name ?? 'Ліки',
-            med != null ? '${med.doseAmount} ${med.doseUnit}' : null);
+        final med = meds
+            .where((m) => m.id == item.intake!.medicationId)
+            .firstOrNull;
+        return (
+          Icons.medication_rounded,
+          med?.name ?? 'Ліки',
+          med != null ? '${med.doseAmount} ${med.doseUnit}' : null,
+        );
       case _ItemType.activity:
         final a = activities
             .where((a) => a.id == item.activityLog!.activityId)
             .firstOrNull;
         return (_actIcon(a?.type), a?.name ?? 'Активність', null);
       case _ItemType.appointment:
-        return (Icons.medical_services_rounded, item.appointment!.doctorType,
-            item.appointment!.location);
+        return (
+          Icons.medical_services_rounded,
+          item.appointment!.doctorType,
+          item.appointment!.location,
+        );
       case _ItemType.wellbeing:
         return (Icons.favorite_rounded, 'Самопочуття', null);
     }
   }
 
   IconData _actIcon(String? t) => switch (t) {
-        'walk' => Icons.directions_walk_rounded,
-        'workout' => Icons.fitness_center_rounded,
-        'gym' => Icons.fitness_center_rounded,
-        'yoga' => Icons.self_improvement_rounded,
-        'cycling' => Icons.directions_bike_rounded,
-        _ => Icons.directions_run_rounded,
-      };
+    'walk' => Icons.directions_walk_rounded,
+    'workout' => Icons.fitness_center_rounded,
+    'gym' => Icons.fitness_center_rounded,
+    'yoga' => Icons.self_improvement_rounded,
+    'cycling' => Icons.directions_bike_rounded,
+    _ => Icons.directions_run_rounded,
+  };
 
   String _fmt(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -1418,12 +1554,22 @@ class _TomorrowSection extends ConsumerWidget {
     if (wellbeingSchedule != null && wellbeingSchedule!.isActive) {
       final tomorrow = DateTime.now().add(const Duration(days: 1));
       final td = DateTime(tomorrow.year, tomorrow.month, tomorrow.day);
-      final times =
-          List<String>.from(jsonDecode(wellbeingSchedule!.times) as List);
+      final times = List<String>.from(
+        jsonDecode(wellbeingSchedule!.times) as List,
+      );
       for (final t in times) {
         final p = t.split(':');
-        items.add(_DayItem.fromWellbeing(DateTime(
-            td.year, td.month, td.day, int.parse(p[0]), int.parse(p[1]))));
+        items.add(
+          _DayItem.fromWellbeing(
+            DateTime(
+              td.year,
+              td.month,
+              td.day,
+              int.parse(p[0]),
+              int.parse(p[1]),
+            ),
+          ),
+        );
       }
     }
 
@@ -1470,15 +1616,19 @@ class _DoneAccordion extends StatelessWidget {
             border: Border.all(color: AppColors.border),
           ),
           child: ExpansionTile(
-            leading:
-                const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
+            leading: const Icon(
+              Icons.check_circle_rounded,
+              size: 18,
+              color: AppColors.success,
+            ),
             title: Text(
               'Виконано · ${items.length}',
-              style: AppTextStyles.bodyMd
-                  .copyWith(fontWeight: FontWeight.w600),
+              style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600),
             ),
-            tilePadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 2,
+            ),
             childrenPadding: EdgeInsets.zero,
             shape: const Border(),
             collapsedShape: const Border(),
@@ -1509,11 +1659,11 @@ const _foodRelationLabels = {
 };
 
 IconData _foodRelationIcon(String v) => switch (v) {
-      'before' => Icons.schedule_rounded,
-      'after' => Icons.restaurant_rounded,
-      'with' => Icons.ramen_dining_rounded,
-      _ => Icons.check_circle_outline_rounded,
-    };
+  'before' => Icons.schedule_rounded,
+  'after' => Icons.restaurant_rounded,
+  'with' => Icons.ramen_dining_rounded,
+  _ => Icons.check_circle_outline_rounded,
+};
 
 // doseComment живе всередині відповідної фази в med.phases (json), а не в
 // самому intake — тому шукаємо активну на дату intake фазу так само, як для
@@ -1521,15 +1671,14 @@ IconData _foodRelationIcon(String v) => switch (v) {
 String? _doseComment(Medication med, DateTime scheduledAt) {
   if (med.phases == null) return null;
   try {
-    final phases =
-        List<Map<String, dynamic>>.from(jsonDecode(med.phases!) as List);
+    final phases = List<Map<String, dynamic>>.from(
+      jsonDecode(med.phases!) as List,
+    );
     final day = DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day);
     final daysElapsed = day
-        .difference(DateTime(
-          med.startDate.year,
-          med.startDate.month,
-          med.startDate.day,
-        ))
+        .difference(
+          DateTime(med.startDate.year, med.startDate.month, med.startDate.day),
+        )
         .inDays;
     int accumulated = 0;
     Map<String, dynamic>? activePhase;
@@ -1566,14 +1715,13 @@ DateTime _snoozeFrom(DateTime due) {
 // обводка. Стан "пропущено" сигналізується заголовком секції та підписом під
 // часом, а не кольоровою рамкою — картка лишається чистою.
 BoxDecoration get _cardDecoration => BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
-      boxShadow: const [
-        BoxShadow(
-            color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-      ],
-    );
+  color: AppColors.surface,
+  borderRadius: BorderRadius.circular(18),
+  border: Border.all(color: AppColors.border),
+  boxShadow: const [
+    BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+  ],
+);
 
 String? _firstMedPhoto(String? json) {
   if (json == null || json == '[]') return null;
@@ -1591,8 +1739,12 @@ class _ActiveIntakeCard extends StatelessWidget {
   final WidgetRef ref;
   final bool missed;
 
-  const _ActiveIntakeCard(
-      {required this.intake, this.med, required this.ref, this.missed = false});
+  const _ActiveIntakeCard({
+    required this.intake,
+    this.med,
+    required this.ref,
+    this.missed = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1600,8 +1752,7 @@ class _ActiveIntakeCard extends StatelessWidget {
     // користувачем при створенні). Основна кнопка "Виконати" — фірмовий зелений.
     final iconColor = colorFromHex(med?.color) ?? AppColors.primary;
     final photoPath = _firstMedPhoto(med?.photoPaths);
-    final comment =
-        med != null ? _doseComment(med!, intake.scheduledAt) : null;
+    final comment = med != null ? _doseComment(med!, intake.scheduledAt) : null;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -1629,13 +1780,15 @@ class _ActiveIntakeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(med?.name ?? 'Ліки',
-                          style: AppTextStyles.h3
-                              .copyWith(fontWeight: FontWeight.w800)),
+                      child: Text(
+                        med?.name ?? 'Ліки',
+                        style: AppTextStyles.h3.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    _TimeStamp(
-                        time: _fmt(intake.effectiveDue), missed: missed),
+                    _TimeStamp(time: _fmt(intake.effectiveDue), missed: missed),
                   ],
                 ),
                 if (med != null) ...[
@@ -1651,7 +1804,8 @@ class _ActiveIntakeCard extends StatelessWidget {
                       ),
                       _InfoChip(
                         icon: _foodRelationIcon(med!.foodRelation),
-                        label: _foodRelationLabels[med!.foodRelation] ??
+                        label:
+                            _foodRelationLabels[med!.foodRelation] ??
                             med!.foodRelation,
                       ),
                     ],
@@ -1671,9 +1825,12 @@ class _ActiveIntakeCard extends StatelessWidget {
                 ref.read(intakesRepositoryProvider).markTaken(intake.id),
             onSkip: () =>
                 ref.read(intakesRepositoryProvider).markSkipped(intake.id),
-            onSnooze: (min) => ref.read(intakesRepositoryProvider).markSnoozed(
-                intake.id,
-                _snoozeFrom(intake.effectiveDue).add(Duration(minutes: min))),
+            onSnooze: (min) => ref
+                .read(intakesRepositoryProvider)
+                .markSnoozed(
+                  intake.id,
+                  _snoozeFrom(intake.effectiveDue).add(Duration(minutes: min)),
+                ),
           ),
         ],
       ),
@@ -1686,7 +1843,9 @@ class _ActiveIntakeCard extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => MedicationDetailScreen(
-            medicationId: intake.medicationId, memberId: med!.memberId),
+          medicationId: intake.medicationId,
+          memberId: med!.memberId,
+        ),
       ),
     );
   }
@@ -1702,8 +1861,11 @@ class _MediaHeader extends StatelessWidget {
   final Color accent;
   final VoidCallback onZoom;
 
-  const _MediaHeader(
-      {required this.photoPath, required this.accent, required this.onZoom});
+  const _MediaHeader({
+    required this.photoPath,
+    required this.accent,
+    required this.onZoom,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1728,7 +1890,7 @@ class _MediaHeader extends StatelessWidget {
                   width: double.infinity,
                   height: 190,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     width: double.infinity,
                     height: 190,
                     color: accent.withValues(alpha: 0.1),
@@ -1751,8 +1913,11 @@ class _VideoMediaHeader extends StatelessWidget {
   final Color accent;
   final VoidCallback onTap;
 
-  const _VideoMediaHeader(
-      {required this.thumbnailUrl, required this.accent, required this.onTap});
+  const _VideoMediaHeader({
+    required this.thumbnailUrl,
+    required this.accent,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1770,7 +1935,7 @@ class _VideoMediaHeader extends StatelessWidget {
                 width: double.infinity,
                 height: 190,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   width: double.infinity,
                   height: 190,
                   color: accent.withValues(alpha: 0.1),
@@ -1783,8 +1948,11 @@ class _VideoMediaHeader extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 32),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
             ],
           ),
@@ -1801,7 +1969,11 @@ class _IconHeader extends StatelessWidget {
   final Color accent;
   final VoidCallback? onZoom;
 
-  const _IconHeader({required this.illustration, required this.accent, this.onZoom});
+  const _IconHeader({
+    required this.illustration,
+    required this.accent,
+    this.onZoom,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1816,11 +1988,15 @@ class _IconHeader extends StatelessWidget {
               height: 115,
               color: accent.withValues(alpha: 0.14),
               child: Center(
-                  child: Image.asset(illustration, height: 115, fit: BoxFit.contain)),
+                child: Image.asset(
+                  illustration,
+                  height: 115,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
             if (onZoom != null)
-              Positioned(
-                  top: 8, right: 8, child: _ZoomButton(onTap: onZoom!)),
+              Positioned(top: 8, right: 8, child: _ZoomButton(onTap: onZoom!)),
           ],
         ),
       ),
@@ -1852,9 +2028,13 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: AppColors.textSub),
           const SizedBox(width: 6),
-          Text(label,
-              style: AppTextStyles.bodyMd.copyWith(
-                  fontWeight: FontWeight.w600, color: AppColors.textMain)),
+          Text(
+            label,
+            style: AppTextStyles.bodyMd.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMain,
+            ),
+          ),
         ],
       ),
     );
@@ -1867,9 +2047,13 @@ class _CommentNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text,
-        style: AppTextStyles.bodyMd
-            .copyWith(color: AppColors.textSub, height: 1.35));
+    return Text(
+      text,
+      style: AppTextStyles.bodyMd.copyWith(
+        color: AppColors.textSub,
+        height: 1.35,
+      ),
+    );
   }
 }
 
@@ -1891,11 +2075,17 @@ class _ZoomButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: const [
             BoxShadow(
-                color: Color(0x1A000000), blurRadius: 6, offset: Offset(0, 2)),
+              color: Color(0x1A000000),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
-        child: const Icon(Icons.search_rounded,
-            color: AppColors.textSub, size: 17),
+        child: const Icon(
+          Icons.search_rounded,
+          color: AppColors.textSub,
+          size: 17,
+        ),
       ),
     );
   }
@@ -1913,22 +2103,28 @@ class _TimeStamp extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(time,
-            style: AppTextStyles.h3.copyWith(
-                color: AppColors.textMain, fontWeight: FontWeight.w800)),
+        Text(
+          time,
+          style: AppTextStyles.h3.copyWith(
+            color: AppColors.textMain,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         if (missed)
           Padding(
             padding: const EdgeInsets.only(top: 1),
-            child: Text('пропущено',
-                style: AppTextStyles.bodySm.copyWith(
-                    color: const Color(0xFFF97316),
-                    fontWeight: FontWeight.w700)),
+            child: Text(
+              'пропущено',
+              style: AppTextStyles.bodySm.copyWith(
+                color: const Color(0xFFF97316),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
       ],
     );
   }
 }
-
 
 // ─── Section count badge (пігулка з числом біля заголовка секції) ─────────────
 
@@ -1946,9 +2142,14 @@ class _CountBadge extends StatelessWidget {
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text('$count',
-          style: AppTextStyles.bodySm.copyWith(
-              color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+      child: Text(
+        '$count',
+        style: AppTextStyles.bodySm.copyWith(
+          color: color,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 }
@@ -1961,8 +2162,12 @@ class _ActiveActivityCard extends StatefulWidget {
   final WidgetRef ref;
   final bool missed;
 
-  const _ActiveActivityCard(
-      {required this.log, this.activity, required this.ref, this.missed = false});
+  const _ActiveActivityCard({
+    required this.log,
+    this.activity,
+    required this.ref,
+    this.missed = false,
+  });
 
   @override
   State<_ActiveActivityCard> createState() => _ActiveActivityCardState();
@@ -2005,8 +2210,9 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
                 builder: (_) => _ScheduleItemDetailsSheet(
-                    item: _DayItem.fromActivity(widget.log),
-                    activity: widget.activity),
+                  item: _DayItem.fromActivity(widget.log),
+                  activity: widget.activity,
+                ),
               ),
             ),
           Padding(
@@ -2018,21 +2224,27 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(widget.activity?.name ?? 'Активність',
-                          style: AppTextStyles.h3
-                              .copyWith(fontWeight: FontWeight.w800)),
+                      child: Text(
+                        widget.activity?.name ?? 'Активність',
+                        style: AppTextStyles.h3.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     _TimeStamp(
-                        time: _fmt(widget.log.scheduledAt),
-                        missed: widget.missed),
+                      time: _fmt(widget.log.scheduledAt),
+                      missed: widget.missed,
+                    ),
                   ],
                 ),
                 if (widget.activity != null &&
                     widget.activity!.durationMin > 0) ...[
                   const SizedBox(height: 10),
                   _InfoChip(
-                      icon: icon, label: '${widget.activity!.durationMin} хв'),
+                    icon: icon,
+                    label: '${widget.activity!.durationMin} хв',
+                  ),
                 ],
               ],
             ),
@@ -2053,10 +2265,14 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
             },
             onSnooze: (min) {
               _stopVideo();
-              widget.ref.read(activitiesRepositoryProvider).snoozeLog(
-                  widget.log.id,
-                  _snoozeFrom(widget.log.scheduledAt)
-                      .add(Duration(minutes: min)));
+              widget.ref
+                  .read(activitiesRepositoryProvider)
+                  .snoozeLog(
+                    widget.log.id,
+                    _snoozeFrom(
+                      widget.log.scheduledAt,
+                    ).add(Duration(minutes: min)),
+                  );
             },
           ),
         ],
@@ -2065,13 +2281,13 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
   }
 
   IconData _actIcon(String? t) => switch (t) {
-        'walk' => Icons.directions_walk_rounded,
-        'workout' => Icons.fitness_center_rounded,
-        'gym' => Icons.fitness_center_rounded,
-        'yoga' => Icons.self_improvement_rounded,
-        'cycling' => Icons.directions_bike_rounded,
-        _ => Icons.directions_run_rounded,
-      };
+    'walk' => Icons.directions_walk_rounded,
+    'workout' => Icons.fitness_center_rounded,
+    'gym' => Icons.fitness_center_rounded,
+    'yoga' => Icons.self_improvement_rounded,
+    'cycling' => Icons.directions_bike_rounded,
+    _ => Icons.directions_run_rounded,
+  };
 
   String _fmt(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -2120,14 +2336,17 @@ class _ActiveWellbeingCard extends ConsumerWidget {
   final bool missed;
   final WellbeingSchedule? wellbeingSchedule;
 
-  const _ActiveWellbeingCard(
-      {required this.scheduledAt,
-      required this.memberId,
-      this.missed = false,
-      this.wellbeingSchedule});
+  const _ActiveWellbeingCard({
+    required this.scheduledAt,
+    required this.memberId,
+    this.missed = false,
+    this.wellbeingSchedule,
+  });
 
   Future<void> _skip(WidgetRef ref) {
-    return ref.read(wellbeingRepositoryProvider).insertLog(
+    return ref
+        .read(wellbeingRepositoryProvider)
+        .insertLog(
           WellbeingLogsCompanion.insert(
             memberId: memberId,
             mood: 0,
@@ -2138,10 +2357,9 @@ class _ActiveWellbeingCard extends ConsumerWidget {
   }
 
   void _open(BuildContext context) => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => WellbeingCheckScreen(memberId: memberId)),
-      );
+    context,
+    MaterialPageRoute(builder: (_) => WellbeingCheckScreen(memberId: memberId)),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2155,8 +2373,9 @@ class _ActiveWellbeingCard extends ConsumerWidget {
         child: Column(
           children: [
             _IconHeader(
-                illustration: 'assets/illustrations/elly-hospital.png',
-                accent: iconColor),
+              illustration: 'assets/illustrations/elly-hospital.png',
+              accent: iconColor,
+            ),
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -2170,8 +2389,9 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                           missed
                               ? 'Пропущений зріз'
                               : 'Час перевірити самопочуття',
-                          style: AppTextStyles.h3
-                              .copyWith(fontWeight: FontWeight.w800),
+                          style: AppTextStyles.h3.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -2180,11 +2400,13 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   const _InfoChip(
-                      icon: Icons.favorite_rounded, label: 'Самопочуття'),
+                    icon: Icons.favorite_rounded,
+                    label: 'Самопочуття',
+                  ),
                   const SizedBox(height: 8),
                   const _CommentNote(
-                      text:
-                          'Оцініть настрій і, за потреби, опишіть симптоми'),
+                    text: 'Оцініть настрій і, за потреби, опишіть симптоми',
+                  ),
                 ],
               ),
             ),
@@ -2210,12 +2432,16 @@ class _ActiveAppointmentCard extends StatelessWidget {
   final WidgetRef ref;
   final bool missed;
 
-  const _ActiveAppointmentCard(
-      {required this.appointment, required this.ref, this.missed = false});
+  const _ActiveAppointmentCard({
+    required this.appointment,
+    required this.ref,
+    this.missed = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = colorFromHex(appointment.color) ?? const Color(0xFF72A8C7);
+    final iconColor =
+        colorFromHex(appointment.color) ?? const Color(0xFF72A8C7);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -2230,7 +2456,8 @@ class _ActiveAppointmentCard extends StatelessWidget {
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (_) => _ScheduleItemDetailsSheet(
-                  item: _DayItem.fromAppointment(appointment)),
+                item: _DayItem.fromAppointment(appointment),
+              ),
             ),
           ),
           Padding(
@@ -2242,20 +2469,27 @@ class _ActiveAppointmentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(appointment.doctorType,
-                          style: AppTextStyles.h3
-                              .copyWith(fontWeight: FontWeight.w800)),
+                      child: Text(
+                        appointment.doctorType,
+                        style: AppTextStyles.h3.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     _TimeStamp(
-                        time: _fmt(appointment.scheduledAt), missed: missed),
+                      time: _fmt(appointment.scheduledAt),
+                      missed: missed,
+                    ),
                   ],
                 ),
                 if (appointment.location != null &&
                     appointment.location!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   _InfoChip(
-                      icon: Icons.place_rounded, label: appointment.location!),
+                    icon: Icons.place_rounded,
+                    label: appointment.location!,
+                  ),
                 ],
               ],
             ),
@@ -2271,9 +2505,11 @@ class _ActiveAppointmentCard extends StatelessWidget {
             onSnooze: (min) => ref
                 .read(doctorAppointmentsRepositoryProvider)
                 .reschedule(
-                    appointment.id,
-                    _snoozeFrom(appointment.scheduledAt)
-                        .add(Duration(minutes: min))),
+                  appointment.id,
+                  _snoozeFrom(
+                    appointment.scheduledAt,
+                  ).add(Duration(minutes: min)),
+                ),
           ),
         ],
       ),
@@ -2318,21 +2554,30 @@ class _ActionRow extends StatelessWidget {
             onSelected: (v) => v == -1 ? onSkip() : onSnooze!(v),
             offset: const Offset(0, -8),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             itemBuilder: (_) => [
               if (canSnooze) ...[
                 const PopupMenuItem(
-                    value: 10, child: Text('Перенести на 10 хв')),
+                  value: 10,
+                  child: Text('Перенести на 10 хв'),
+                ),
                 const PopupMenuItem(
-                    value: 30, child: Text('Перенести на 30 хв')),
+                  value: 30,
+                  child: Text('Перенести на 30 хв'),
+                ),
                 const PopupMenuItem(
-                    value: 60, child: Text('Перенести на 1 год')),
+                  value: 60,
+                  child: Text('Перенести на 1 год'),
+                ),
                 const PopupMenuDivider(),
               ],
               PopupMenuItem(
                 value: -1,
-                child: Text(skipLabel,
-                    style: const TextStyle(color: AppColors.danger)),
+                child: Text(
+                  skipLabel,
+                  style: const TextStyle(color: AppColors.danger),
+                ),
               ),
             ],
             child: Container(
@@ -2343,8 +2588,11 @@ class _ActionRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.schedule_rounded,
-                  size: 22, color: AppColors.textSub),
+              child: const Icon(
+                Icons.schedule_rounded,
+                size: 22,
+                color: AppColors.textSub,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -2358,11 +2606,14 @@ class _ActionRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Text('Виконати',
-                      style: AppTextStyles.bodyMd.copyWith(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800)),
+                  child: Text(
+                    'Виконати',
+                    style: AppTextStyles.bodyMd.copyWith(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -2372,7 +2623,6 @@ class _ActionRow extends StatelessWidget {
     );
   }
 }
-
 
 // ─── Empty State ───────────────────────────────────────────────────────────────
 
@@ -2387,15 +2637,22 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.medication_rounded,
-                size: 64, color: AppColors.primary),
+            const Icon(
+              Icons.medication_rounded,
+              size: 64,
+              color: AppColors.primary,
+            ),
             const SizedBox(height: 24),
-            Text('Ласкаво просимо до Elly',
-                style: AppTextStyles.h2, textAlign: TextAlign.center),
+            Text(
+              'Ласкаво просимо до Elly',
+              style: AppTextStyles.h2,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 12),
-            Text('Додайте свій профіль щоб розпочати',
-                style: AppTextStyles.bodyMd
-                    .copyWith(color: AppColors.textSub)),
+            Text(
+              'Додайте свій профіль щоб розпочати',
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+            ),
           ],
         ),
       ),

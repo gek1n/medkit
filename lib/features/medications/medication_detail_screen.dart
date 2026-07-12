@@ -41,15 +41,16 @@ List<Map<String, dynamic>> _parsePhases(String? phasesJson) {
 // Індекс фази, яка є активною на вказану дату (durationDays == null —
 // постійна фаза, завжди останній варіант, якщо жодна попередня не підійшла).
 int? _activePhaseIndex(
-    Medication med, List<Map<String, dynamic>> phases, DateTime date) {
+  Medication med,
+  List<Map<String, dynamic>> phases,
+  DateTime date,
+) {
   if (phases.isEmpty) return null;
   final day = DateTime(date.year, date.month, date.day);
   final daysElapsed = day
-      .difference(DateTime(
-        med.startDate.year,
-        med.startDate.month,
-        med.startDate.day,
-      ))
+      .difference(
+        DateTime(med.startDate.year, med.startDate.month, med.startDate.day),
+      )
       .inDays;
 
   int accumulated = 0;
@@ -70,8 +71,7 @@ double? _dailyConsumption(Medication med, List<Schedule> schedules) {
     final idx = _activePhaseIndex(med, phases, DateTime.now());
     if (idx == null) return null;
     final activePhase = phases[idx];
-    final times =
-        List<String>.from(activePhase['times'] as List? ?? const []);
+    final times = List<String>.from(activePhase['times'] as List? ?? const []);
     if (times.isEmpty) return null;
     final doseAmount =
         (activePhase['doseAmount'] as num?)?.toDouble() ?? med.doseAmount;
@@ -93,16 +93,16 @@ Color _pillBarColor(int remaining, int total) {
 }
 
 String _stockUnitLabel(String form) => switch (form) {
-      'tablet' || 'capsule' => 'ТАБЛЕТКИ / КАПСУЛИ',
-      'syrup' => 'СИРОП',
-      'drops' => 'КРАПЛІ',
-      'injection' => 'ІН\'ЄКЦІЇ',
-      'suppository' => 'СВІЧКИ',
-      'vial' => 'ФЛАКОН',
-      'cream' => 'КРЕМ',
-      'inhaler' => 'ІНГАЛЯТОР',
-      _ => 'ЗАЛИШОК',
-    };
+  'tablet' || 'capsule' => 'ТАБЛЕТКИ / КАПСУЛИ',
+  'syrup' => 'СИРОП',
+  'drops' => 'КРАПЛІ',
+  'injection' => 'ІН\'ЄКЦІЇ',
+  'suppository' => 'СВІЧКИ',
+  'vial' => 'ФЛАКОН',
+  'cream' => 'КРЕМ',
+  'inhaler' => 'ІНГАЛЯТОР',
+  _ => 'ЗАЛИШОК',
+};
 
 String _daysWordUk(int n) {
   final mod10 = n % 10;
@@ -142,14 +142,13 @@ String _doseSubtitle(Medication med) {
 // Спільний вигляд секцій-карток на кремовому фоні екрана: біла поверхня,
 // м'яка тінь (як у медіа-картках "Сьогодні"), акцентна обводка кольору ліків.
 BoxDecoration _softCard(Color accent) => BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: accent.withValues(alpha: 0.25)),
-      boxShadow: const [
-        BoxShadow(
-            color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-      ],
-    );
+  color: AppColors.surface,
+  borderRadius: BorderRadius.circular(14),
+  border: Border.all(color: accent.withValues(alpha: 0.25)),
+  boxShadow: const [
+    BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+  ],
+);
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -171,12 +170,14 @@ class MedicationDetailScreen extends ConsumerWidget {
       body: SafeArea(
         child: medAsync.when(
           loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primary)),
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
           error: (_, _) => const Center(child: Text('Помилка')),
           data: (med) {
             if (med == null) {
-              WidgetsBinding.instance
-                  .addPostFrameCallback((_) => Navigator.pop(context));
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => Navigator.pop(context),
+              );
               return const SizedBox.shrink();
             }
             return _DetailBody(med: med, memberId: memberId);
@@ -269,8 +270,8 @@ class _HeroSection extends StatelessWidget {
         : null;
     final courseLabel = daysLeftInCourse != null
         ? (daysLeftInCourse > 0
-            ? '$daysLeftInCourse ${_daysWordUk(daysLeftInCourse)} курсу'
-            : 'курс завершено')
+              ? '$daysLeftInCourse ${_daysWordUk(daysLeftInCourse)} курсу'
+              : 'курс завершено')
         : 'постійний курс';
 
     return Container(
@@ -285,17 +286,20 @@ class _HeroSection extends StatelessWidget {
             runSpacing: 8,
             children: [
               _FactChip(
-                  icon: Icons.medication_outlined,
-                  label: '$doseAmountStr ${med.doseUnit} на прийом',
-                  accent: accent),
+                icon: Icons.medication_outlined,
+                label: '$doseAmountStr ${med.doseUnit} на прийом',
+                accent: accent,
+              ),
               _FactChip(
-                  icon: Icons.repeat_rounded,
-                  label: '$timesPerDay ${_timesWordUk(timesPerDay)}/день',
-                  accent: accent),
+                icon: Icons.repeat_rounded,
+                label: '$timesPerDay ${_timesWordUk(timesPerDay)}/день',
+                accent: accent,
+              ),
               _FactChip(
-                  icon: Icons.timer_outlined,
-                  label: courseLabel,
-                  accent: accent),
+                icon: Icons.timer_outlined,
+                label: courseLabel,
+                accent: accent,
+              ),
             ],
           ),
         ],
@@ -308,8 +312,11 @@ class _FactChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color accent;
-  const _FactChip(
-      {required this.icon, required this.label, required this.accent});
+  const _FactChip({
+    required this.icon,
+    required this.label,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -325,9 +332,13 @@ class _FactChip extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: accent),
           const SizedBox(width: 6),
-          Text(label,
-              style: AppTextStyles.bodyMd.copyWith(
-                  fontWeight: FontWeight.w600, color: AppColors.textMain)),
+          Text(
+            label,
+            style: AppTextStyles.bodyMd.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMain,
+            ),
+          ),
         ],
       ),
     );
@@ -340,8 +351,11 @@ class _StockSection extends ConsumerWidget {
   final Medication med;
   final List<Schedule> schedules;
   final Color accent;
-  const _StockSection(
-      {required this.med, required this.schedules, required this.accent});
+  const _StockSection({
+    required this.med,
+    required this.schedules,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -349,7 +363,10 @@ class _StockSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(
-            icon: Icons.inventory_2_outlined, label: 'Залишок', accent: accent),
+          icon: Icons.inventory_2_outlined,
+          label: 'Залишок',
+          accent: accent,
+        ),
         const SizedBox(height: 10),
         isPercentTrackedForm(med.form)
             ? _buildPercentCard(context, ref)
@@ -398,11 +415,16 @@ class _StockSection extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.medication_outlined,
-                  size: 13, color: AppColors.textMuted),
+              const Icon(
+                Icons.medication_outlined,
+                size: 13,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 5),
-              Text(_stockUnitLabel(med.form),
-                  style: AppTextStyles.labelSm.copyWith(fontSize: 11)),
+              Text(
+                _stockUnitLabel(med.form),
+                style: AppTextStyles.labelSm.copyWith(fontSize: 11),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -416,8 +438,9 @@ class _StockSection extends ConsumerWidget {
                     const TextSpan(text: 'Залишилось: '),
                     TextSpan(
                       text: '${med.remainingCount} ${med.doseUnit}',
-                      style: AppTextStyles.bodyMd
-                          .copyWith(fontWeight: FontWeight.w700),
+                      style: AppTextStyles.bodyMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -426,7 +449,9 @@ class _StockSection extends ConsumerWidget {
                 Text(
                   'на ${daysLeft.toStringAsFixed(1)} дн.',
                   style: AppTextStyles.bodyMd.copyWith(
-                      color: accent, fontWeight: FontWeight.w700),
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
             ],
           ),
@@ -447,13 +472,11 @@ class _StockSection extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: accent.withValues(alpha: 0.4)),
+                border: Border.all(color: accent.withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.shopping_bag_outlined,
-                      size: 18, color: accent),
+                  Icon(Icons.shopping_bag_outlined, size: 18, color: accent),
                   const SizedBox(width: 8),
                   Expanded(
                     child: RichText(
@@ -463,13 +486,15 @@ class _StockSection extends ConsumerWidget {
                           const TextSpan(text: 'Потрібно докупити: '),
                           TextSpan(
                             text: '$toBuy ${med.doseUnit}',
-                            style: AppTextStyles.labelMd
-                                .copyWith(color: accent),
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: accent,
+                            ),
                           ),
                           TextSpan(
                             text: ' ($toBuyPeriodLabel)',
-                            style: AppTextStyles.bodySm
-                                .copyWith(color: AppColors.textMuted),
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -489,10 +514,13 @@ class _StockSection extends ConsumerWidget {
                 side: BorderSide(color: accent.withValues(alpha: 0.4)),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: Text('+ Поповнити упаковку',
-                  style: AppTextStyles.labelMd.copyWith(color: accent)),
+              child: Text(
+                '+ Поповнити упаковку',
+                style: AppTextStyles.labelMd.copyWith(color: accent),
+              ),
             ),
           ),
         ],
@@ -510,12 +538,16 @@ class _StockSection extends ConsumerWidget {
           controller: ctrl,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: InputDecoration(suffixText: med.doseUnit, hintText: 'Кількість'),
+          decoration: InputDecoration(
+            suffixText: med.doseUnit,
+            hintText: 'Кількість',
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Скасувати')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Скасувати'),
+          ),
           TextButton(
             onPressed: () {
               final v = int.tryParse(ctrl.text.trim());
@@ -555,11 +587,16 @@ class _StockSection extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.water_drop_outlined,
-                  size: 13, color: AppColors.textMuted),
+              const Icon(
+                Icons.water_drop_outlined,
+                size: 13,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 5),
-              Text(_stockUnitLabel(med.form),
-                  style: AppTextStyles.labelSm.copyWith(fontSize: 11)),
+              Text(
+                _stockUnitLabel(med.form),
+                style: AppTextStyles.labelSm.copyWith(fontSize: 11),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -584,9 +621,13 @@ class _StockSection extends ConsumerWidget {
                       ),
                     ),
                     Center(
-                      child: Text('$percent%',
-                          style: AppTextStyles.caption.copyWith(
-                              fontWeight: FontWeight.w800, fontSize: 10)),
+                      child: Text(
+                        '$percent%',
+                        style: AppTextStyles.caption.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -596,21 +637,28 @@ class _StockSection extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Залишилось ~$percent%',
-                        style: AppTextStyles.bodyMd
-                            .copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      'Залишилось ~$percent%',
+                      style: AppTextStyles.bodyMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 3),
                     if (daysLeft != null)
                       Text(
                         '~${daysLeft.toStringAsFixed(0)} днів при поточній витраті',
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.textSub),
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.textSub,
+                        ),
                       ),
                     if (openedAt != null) ...[
                       const SizedBox(height: 2),
-                      Text(_openedAgoLabel(openedAt),
-                          style: AppTextStyles.caption
-                              .copyWith(color: AppColors.textMuted)),
+                      Text(
+                        _openedAgoLabel(openedAt),
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -618,8 +666,10 @@ class _StockSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text('Оновити оцінку залишку:',
-              style: AppTextStyles.labelSm.copyWith(fontSize: 11)),
+          Text(
+            'Оновити оцінку залишку:',
+            style: AppTextStyles.labelSm.copyWith(fontSize: 11),
+          ),
           const SizedBox(height: 6),
           Row(
             children: presets.asMap().entries.map((e) {
@@ -627,7 +677,9 @@ class _StockSection extends ConsumerWidget {
               final selected = percent == p;
               return Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(right: e.key < presets.length - 1 ? 6 : 0),
+                  padding: EdgeInsets.only(
+                    right: e.key < presets.length - 1 ? 6 : 0,
+                  ),
                   child: GestureDetector(
                     onTap: () => ref
                         .read(medicationsRepositoryProvider)
@@ -638,9 +690,10 @@ class _StockSection extends ConsumerWidget {
                         color: selected ? accent : Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: selected
-                                ? accent
-                                : accent.withValues(alpha: 0.3)),
+                          color: selected
+                              ? accent
+                              : accent.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Text(
                         '~$p%',
@@ -668,10 +721,13 @@ class _StockSection extends ConsumerWidget {
                 side: BorderSide(color: accent.withValues(alpha: 0.4)),
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: Text('+ Відкрив новий флакон',
-                  style: AppTextStyles.labelMd.copyWith(color: accent)),
+              child: Text(
+                '+ Відкрив новий флакон',
+                style: AppTextStyles.labelMd.copyWith(color: accent),
+              ),
             ),
           ),
         ],
@@ -718,13 +774,15 @@ class _MedPhotoBlock extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6)),
+              color: Color(0x0F000000),
+              blurRadius: 16,
+              offset: Offset(0, 6),
+            ),
           ],
         ),
         child: Center(
-            child: Icon(medFormIcon(med.form), size: 28, color: accent)),
+          child: Icon(medFormIcon(med.form), size: 28, color: accent),
+        ),
       );
     }
 
@@ -747,9 +805,10 @@ class _MedPhotoBlock extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
               BoxShadow(
-                  color: Color(0x0F000000),
-                  blurRadius: 16,
-                  offset: Offset(0, 6)),
+                color: Color(0x0F000000),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
             ],
           ),
           child: Image.memory(
@@ -757,7 +816,7 @@ class _MedPhotoBlock extends StatelessWidget {
             width: double.infinity,
             height: 190,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               width: double.infinity,
               height: 190,
               color: accent.withValues(alpha: 0.1),
@@ -783,8 +842,11 @@ class _PhasesSection extends StatelessWidget {
     final activeIdx = _activePhaseIndex(med, phases, DateTime.now());
 
     final rows = <Widget>[];
-    var cursor =
-        DateTime(med.startDate.year, med.startDate.month, med.startDate.day);
+    var cursor = DateTime(
+      med.startDate.year,
+      med.startDate.month,
+      med.startDate.day,
+    );
     for (var i = 0; i < phases.length; i++) {
       final phase = phases[i];
       final dur = phase['durationDays'] as int?;
@@ -802,72 +864,88 @@ class _PhasesSection extends StatelessWidget {
       final isActive = i == activeIdx;
 
       if (i > 0) rows.add(const SizedBox(height: 10));
-      rows.add(Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isActive
-                ? accent.withValues(alpha: 0.4)
-                : AppColors.border,
+      rows.add(
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isActive
+                  ? accent.withValues(alpha: 0.4)
+                  : AppColors.border,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'Етап ${i + 1}',
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: isActive ? accent : AppColors.textMain,
+                    ),
+                  ),
+                  if (isActive) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'зараз',
+                        style: AppTextStyles.caption.copyWith(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                end != null
+                    ? '${_fmtShortDate(start)} — ${_fmtShortDate(end)}'
+                    : 'з ${_fmtShortDate(start)}, постійно',
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$doseAmountStr ${med.doseUnit} · ${times.join(", ")}',
+                style: AppTextStyles.bodyMd,
+              ),
+              if (comment != null && comment.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  comment,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textMuted,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Етап ${i + 1}',
-                  style: AppTextStyles.labelMd.copyWith(
-                      color: isActive ? accent : AppColors.textMain),
-                ),
-                if (isActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: accent,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text('зараз',
-                        style: AppTextStyles.caption.copyWith(
-                            fontSize: 10,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              end != null
-                  ? '${_fmtShortDate(start)} — ${_fmtShortDate(end)}'
-                  : 'з ${_fmtShortDate(start)}, постійно',
-              style:
-                  AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-            ),
-            const SizedBox(height: 2),
-            Text('$doseAmountStr ${med.doseUnit} · ${times.join(", ")}',
-                style: AppTextStyles.bodyMd),
-            if (comment != null && comment.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(comment,
-                  style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.textMuted,
-                      fontStyle: FontStyle.italic)),
-            ],
-          ],
-        ),
-      ));
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(icon: Icons.timeline_rounded, label: 'Етапи курсу', accent: accent),
+        _SectionTitle(
+          icon: Icons.timeline_rounded,
+          label: 'Етапи курсу',
+          accent: accent,
+        ),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: _softCard(accent),
@@ -882,8 +960,19 @@ class _PhasesSection extends StatelessWidget {
 
   String _fmtShortDate(DateTime d) {
     const m = [
-      '', 'січ', 'лют', 'бер', 'кві', 'тра', 'чер',
-      'лип', 'сер', 'вер', 'жов', 'лис', 'гру',
+      '',
+      'січ',
+      'лют',
+      'бер',
+      'кві',
+      'тра',
+      'чер',
+      'лип',
+      'сер',
+      'вер',
+      'жов',
+      'лис',
+      'гру',
     ];
     return '${d.day} ${m[d.month]}';
   }
@@ -905,25 +994,44 @@ class _InfoBlock extends StatelessWidget {
       'with' => '🥗 Під час їжі',
       _ => '✓ Незалежно від їжі',
     };
-    final endLabel =
-        med.endDate != null ? 'до ${_fmt(med.endDate!)}' : 'постійно';
+    final endLabel = med.endDate != null
+        ? 'до ${_fmt(med.endDate!)}'
+        : 'постійно';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(icon: Icons.info_outline_rounded, label: 'Деталі', accent: accent),
+        _SectionTitle(
+          icon: Icons.info_outline_rounded,
+          label: 'Деталі',
+          accent: accent,
+        ),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: _softCard(accent),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _InfoRow(Icons.event_repeat_rounded, 'Прийом', _repeatFull(med.repeatType, config), accent),
+              _InfoRow(
+                Icons.event_repeat_rounded,
+                'Прийом',
+                _repeatFull(med.repeatType, config),
+                accent,
+              ),
               _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel, accent),
-              _InfoRow(Icons.timer_rounded, 'Курс',
-                  'з ${_fmt(med.startDate)} $endLabel', accent),
+              _InfoRow(
+                Icons.timer_rounded,
+                'Курс',
+                'з ${_fmt(med.startDate)} $endLabel',
+                accent,
+              ),
               if (med.instructions != null && med.instructions!.isNotEmpty)
-                _InfoRow(Icons.edit_note_rounded, 'Примітка', med.instructions!, accent),
+                _InfoRow(
+                  Icons.edit_note_rounded,
+                  'Примітка',
+                  med.instructions!,
+                  accent,
+                ),
             ],
           ),
         ),
@@ -932,18 +1040,18 @@ class _InfoBlock extends StatelessWidget {
   }
 
   String _repeatFull(String type, Map config) => switch (type) {
-        'daily' => 'Щодня',
-        'alternate' => 'Через день',
-        'every_n' => 'Кожні ${config['n'] ?? '?'} дні',
-        'cycle' =>
-          '${config['on'] ?? '?'} днів / ${config['off'] ?? '?'} відпочинок',
-        'weekdays' => () {
-            const names = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
-            final days = (config['days'] as List? ?? []).cast<int>();
-            return days.map((d) => names[d]).join(', ');
-          }(),
-        _ => 'Щодня',
-      };
+    'daily' => 'Щодня',
+    'alternate' => 'Через день',
+    'every_n' => 'Кожні ${config['n'] ?? '?'} дні',
+    'cycle' =>
+      '${config['on'] ?? '?'} днів / ${config['off'] ?? '?'} відпочинок',
+    'weekdays' => () {
+      const names = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+      final days = (config['days'] as List? ?? []).cast<int>();
+      return days.map((d) => names[d]).join(', ');
+    }(),
+    _ => 'Щодня',
+  };
 
   Map _decodeJson(String json) {
     try {
@@ -955,8 +1063,19 @@ class _InfoBlock extends StatelessWidget {
 
   String _fmt(DateTime d) {
     const m = [
-      '', 'січ', 'лют', 'бер', 'кві', 'тра', 'чер',
-      'лип', 'сер', 'вер', 'жов', 'лис', 'гру',
+      '',
+      'січ',
+      'лют',
+      'бер',
+      'кві',
+      'тра',
+      'чер',
+      'лип',
+      'сер',
+      'вер',
+      'жов',
+      'лис',
+      'гру',
     ];
     return '${d.day} ${m[d.month]} ${d.year}';
   }
@@ -980,9 +1099,10 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: 8),
           SizedBox(
             width: 86,
-            child: Text(label,
-                style: AppTextStyles.caption
-                    .copyWith(color: AppColors.textSub)),
+            child: Text(
+              label,
+              style: AppTextStyles.caption.copyWith(color: AppColors.textSub),
+            ),
           ),
           Expanded(child: Text(value, style: AppTextStyles.bodyMd)),
         ],
@@ -995,8 +1115,11 @@ class _SectionTitle extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color accent;
-  const _SectionTitle(
-      {required this.icon, required this.label, required this.accent});
+  const _SectionTitle({
+    required this.icon,
+    required this.label,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1020,10 +1143,16 @@ class _ActionRow extends ConsumerWidget {
   final Medication med;
   const _ActionRow({required this.med});
 
-  void _openIfAllowed(BuildContext context, WidgetRef ref, VoidCallback action) {
+  void _openIfAllowed(
+    BuildContext context,
+    WidgetRef ref,
+    VoidCallback action,
+  ) {
     if (isMemberBlockedByPlan(ref, med.memberId)) {
       Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const EllyDeniedScreen()));
+        context,
+        MaterialPageRoute(builder: (_) => const EllyDeniedScreen()),
+      );
       return;
     }
     action();
@@ -1037,8 +1166,8 @@ class _ActionRow extends ConsumerWidget {
           child: _ActBtn(
             label: 'Зупинити',
             isDestructive: true,
-            onTap: () => _openIfAllowed(
-                context, ref, () => _confirmStop(context, ref)),
+            onTap: () =>
+                _openIfAllowed(context, ref, () => _confirmStop(context, ref)),
           ),
         ),
         const SizedBox(width: 8),
@@ -1050,8 +1179,8 @@ class _ActionRow extends ConsumerWidget {
               ref,
               () => ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content:
-                        Text('Функція призупинення скоро буде доступна')),
+                  content: Text('Функція призупинення скоро буде доступна'),
+                ),
               ),
             ),
           ),
@@ -1063,8 +1192,8 @@ class _ActionRow extends ConsumerWidget {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => AddMedicationScreen(
-                    memberId: med.memberId, existing: med),
+                builder: (_) =>
+                    AddMedicationScreen(memberId: med.memberId, existing: med),
               ),
             ),
           ),
@@ -1089,8 +1218,10 @@ class _ActionRow extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Зупинити',
-                style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger)),
+            child: Text(
+              'Зупинити',
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger),
+            ),
           ),
         ],
       ),
@@ -1124,9 +1255,7 @@ class _ActBtn extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDestructive
-                ? const Color(0xFFFECACA)
-                : AppColors.border,
+            color: isDestructive ? const Color(0xFFFECACA) : AppColors.border,
           ),
         ),
         child: Center(
@@ -1149,8 +1278,11 @@ class _BackHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onBack;
-  const _BackHeader(
-      {required this.title, required this.subtitle, required this.onBack});
+  const _BackHeader({
+    required this.title,
+    required this.subtitle,
+    required this.onBack,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1166,15 +1298,20 @@ class _BackHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: AppTextStyles.h2,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-                Text(subtitle,
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: AppColors.textSub),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  style: AppTextStyles.h2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSub,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -1183,4 +1320,3 @@ class _BackHeader extends StatelessWidget {
     );
   }
 }
-
