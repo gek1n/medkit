@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -11,17 +12,25 @@ import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
 
-/// Один можливий "глядач" видимості — ЛИШЕ незалежний учасник сімейної
-/// групи ([FamilyPeer], Фаза 2) зі своїм власним акаунтом і пристроєм.
-/// Локальні профілі (dependent/member, керовані цим пристроєм) тут
-/// принципово не показуються — власник і так має до них повний доступ,
-/// "видимість" як окреме право для них не має сенсу: нема кому давати
-/// доступ, крім самого власника.
+/// Один можливий "глядач" видимості — незалежний учасник сімейної групи
+/// ([FamilyPeer], Фаза 2) зі своїм власним акаунтом і пристроєм, АБО хтось,
+/// кого я знаю через автопредставлення ([KnownFamilyMember], Фаза 5), але з
+/// ким ще нема справжнього зашифрованого каналу ([isPending]). Локальні
+/// профілі (dependent/member, керовані цим пристроєм) тут принципово не
+/// показуються — власник і так має до них повний доступ, "видимість" як
+/// окреме право для них не має сенсу: нема кому давати доступ, крім самого
+/// власника.
 class _ViewerInfo {
   final String personUuid;
   final String name;
   final int avatarIndex;
-  const _ViewerInfo({required this.personUuid, required this.name, required this.avatarIndex});
+  final bool isPending;
+  const _ViewerInfo({
+    required this.personUuid,
+    required this.name,
+    required this.avatarIndex,
+    this.isPending = false,
+  });
 }
 
 /// Налаштування, кому з автономних учасників сім'ї видно завдання/
@@ -40,6 +49,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(allMembersProvider);
     final peersAsync = ref.watch(_familyPeersProvider);
+    final knownAsync = ref.watch(_knownFamilyMembersProvider);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -80,9 +90,23 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                   }
                   final subjectUuid = subject!.personUuid!;
 
+                  final peers = peersAsync.valueOrNull ?? const [];
+                  final peerUuids = peers.map((p) => p.personUuid).toSet();
                   final viewers = <_ViewerInfo>[
-                    for (final p in peersAsync.valueOrNull ?? const [])
+                    for (final p in peers)
                       _ViewerInfo(personUuid: p.personUuid, name: p.name, avatarIndex: p.avatarIndex),
+                    // Візитівки без каналу (автопредставлення, Фаза 5) — уже
+                    // реальний [FamilyPeer] на той самий personUuid завжди
+                    // пріоритетніший, на випадок якщо два провайдери на
+                    // мить розсинхронізовані.
+                    for (final k in knownAsync.valueOrNull ?? const [])
+                      if (!peerUuids.contains(k.personUuid))
+                        _ViewerInfo(
+                          personUuid: k.personUuid,
+                          name: k.name,
+                          avatarIndex: k.avatarIndex,
+                          isPending: true,
+                        ),
                   ];
 
                   if (viewers.isEmpty) {
@@ -144,6 +168,10 @@ class FamilyVisibilityScreen extends ConsumerWidget {
 
 final _familyPeersProvider = StreamProvider<List<FamilyPeer>>((ref) {
   return ref.watch(familyPeersRepositoryProvider).watchAll();
+});
+
+final _knownFamilyMembersProvider = StreamProvider<List<KnownFamilyMember>>((ref) {
+  return ref.watch(familyPeersRepositoryProvider).watchKnownMembers();
 });
 
 /// Головний перемикач: чи синхронізується медкартка цього профілю на інші
@@ -275,6 +303,14 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
       );
     } on FamilyGrantDeniedException {
       if (mounted) setState(() => _denied = true);
+      return;
+    }
+    // Дозвіл збережено локально й спрацює одразу, щойно зʼявиться справжній
+    // канал — але поки його нема (це лише візитівка з автопредставлення),
+    // просимо платящого звести нас із цим учасником.
+    if (widget.viewer.isPending && value) {
+      await FamilyPeerSyncService(ref.read(databaseProvider))
+          .requestIntroduction(widget.viewer.personUuid);
     }
   }
 
@@ -298,7 +334,18 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
             children: [
               AvatarImage(index: widget.viewer.avatarIndex, size: 36),
               const SizedBox(width: AppDimensions.sm),
-              Text(widget.viewer.name, style: AppTextStyles.labelLg),
+              Expanded(child: Text(widget.viewer.name, style: AppTextStyles.labelLg)),
+              if (widget.viewer.isPending)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text('Очікуємо з\'єднання',
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.primary, fontWeight: FontWeight.w700)),
+                ),
             ],
           ),
           if (_loading)

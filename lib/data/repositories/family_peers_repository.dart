@@ -21,19 +21,22 @@ class FamilyPeersRepository {
       (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid)))
           .write(FamilyPeersCompanion(lastSyncedAt: Value(at)));
 
-  /// Що САМ цей пір дозволив мені — прилітає через grants_summary при
+  /// Що САМ цей пір дозволив мені (+ чи активна його Family-підписка, якщо
+  /// саме він мій прямий інвайтер) — прилітає через grants_summary при
   /// кожному синку (FamilyGrants живе лише на пристрої субʼєкта).
   Future<void> updateGrantedToMe(
     String personUuid, {
     required bool notify,
     required bool view,
     required bool edit,
+    required bool payerPlanActive,
   }) =>
       (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid))).write(
         FamilyPeersCompanion(
           notifyGranted: Value(notify),
           viewGranted: Value(view),
           editGranted: Value(edit),
+          payerPlanActive: Value(payerPlanActive),
         ),
       );
 
@@ -66,6 +69,26 @@ class FamilyPeersRepository {
 
   Future<void> deleteSharedEntity(String uuid) =>
       (_db.delete(_db.sharedEntities)..where((t) => t.uuid.equals(uuid))).go();
+
+  // ── Автопредставлення: "візитівки" без каналу (Фаза 5) ──────────────────
+
+  Stream<List<KnownFamilyMember>> watchKnownMembers() =>
+      _db.select(_db.knownFamilyMembers).watch();
+
+  Future<KnownFamilyMember?> getKnownMember(String personUuid) =>
+      (_db.select(_db.knownFamilyMembers)..where((t) => t.personUuid.equals(personUuid)))
+          .getSingleOrNull();
+
+  /// Не перезаписує, якщо для цього personUuid вже є справжній [FamilyPeers]
+  /// канал — реальні дані завжди старші за просту візитівку.
+  Future<void> upsertKnownMember(KnownFamilyMembersCompanion member) async {
+    final personUuid = member.personUuid.value;
+    if (await getByUuid(personUuid) != null) return;
+    await _db.into(_db.knownFamilyMembers).insertOnConflictUpdate(member);
+  }
+
+  Future<void> removeKnownMember(String personUuid) =>
+      (_db.delete(_db.knownFamilyMembers)..where((t) => t.personUuid.equals(personUuid))).go();
 
   Future<void> deleteSharedEntitiesForSubjects(List<String> subjectPersonUuids) =>
       (_db.delete(_db.sharedEntities)..where((t) => t.subjectPersonUuid.isIn(subjectPersonUuids))).go();

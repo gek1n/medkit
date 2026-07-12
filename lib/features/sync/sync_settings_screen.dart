@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/database_provider.dart';
@@ -9,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_screen_header.dart';
+import '../../shared/widgets/recovery_key_dialog.dart';
 
 /// Опційна зашифрована синхронізація з сервером — окремо від "Резервної
 /// копії" (Google Drive/iCloud). Тут дані ще й лишаються на нашому сервері
@@ -47,7 +47,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
 
   Future<void> _enableNoAccountSync() async {
     final recoveryKey = AccountService.generateRecoveryKey();
-    final saved = await _showRecoveryKeyDialog(recoveryKey);
+    final saved = await showRecoveryKeyDialog(context, recoveryKey);
     if (saved != true || !mounted) return;
 
     setState(() => _busy = true);
@@ -72,7 +72,7 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     if (provider == null || !mounted) return;
 
     final recoveryKey = AccountService.generateRecoveryKey();
-    final saved = await _showRecoveryKeyDialog(recoveryKey);
+    final saved = await showRecoveryKeyDialog(context, recoveryKey);
     if (saved != true || !mounted) return;
 
     setState(() => _busy = true);
@@ -246,56 +246,6 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<bool?> _showRecoveryKeyDialog(String recoveryKey) {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Ваш recovery key'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Збережіть цей код у надійному місці. Це єдиний спосіб відновити '
-              'дані на новому пристрої — без нього ми теж не зможемо допомогти.',
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: recoveryKey));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Скопійовано')),
-                );
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primaryLighter, width: 2),
-                ),
-                child: Text(
-                  recoveryKey,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.h3.copyWith(color: AppColors.primary, letterSpacing: 1.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Скасувати')),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Я зберіг(ла) код'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<String?> _askRecoveryKey({required String title, required String subtitle}) {

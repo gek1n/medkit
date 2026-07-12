@@ -1,4 +1,4 @@
-package com.medkit.medkit
+package com.ellyapp.medkit
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

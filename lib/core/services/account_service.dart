@@ -31,6 +31,14 @@ class AccountService {
   static const _syncModeKey = 'sync_mode';
   static const _accountIdKey = 'sync_account_id';
   static const _syncKeyKey = 'sync_encryption_key';
+  static const _recoveryKeyHashKey = 'sync_recovery_key_hash';
+  // На відміну від recovery key (ніколи не зберігається як є) — це
+  // одностороння похідна (sha256), кешувати безпечно: сама по собі не дає
+  // доступу до розшифровки нічого, лише дозволяє серверу підтвердити "цей
+  // пристрій знає ключ від акаунта X" для API, що не потребують такого
+  // самого рівня захисту, як видалення акаунта (напр. SubscriptionService —
+  // /subscription/status/verify викликаються часто, повторно просити ввести
+  // recovery key щоразу було б неможливим UX).
 
   static const _alphabet = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
   static const _groups = 6;
@@ -76,6 +84,7 @@ class AccountService {
     required SyncMode mode,
     required String accountId,
     required SecretKey syncKey,
+    required String recoveryKeyHash,
   }) async {
     await _secureStorage.write(key: _syncModeKey, value: mode.name);
     await _secureStorage.write(key: _accountIdKey, value: accountId, iOptions: _syncedIOSOptions);
@@ -84,6 +93,7 @@ class AccountService {
       value: base64Encode(await syncKey.extractBytes()),
       iOptions: _syncedIOSOptions,
     );
+    await _secureStorage.write(key: _recoveryKeyHashKey, value: recoveryKeyHash, iOptions: _syncedIOSOptions);
   }
 
   /// Створює новий акаунт синхронізації з щойно згенерованим recovery key.
@@ -92,7 +102,7 @@ class AccountService {
     final hash = _recoveryKeyHash(normalized);
     final accountId = await _apiClient.create(recoveryKeyHash: hash);
     final syncKey = await _deriveSyncKey(normalized);
-    await _persist(mode: SyncMode.noAccount, accountId: accountId, syncKey: syncKey);
+    await _persist(mode: SyncMode.noAccount, accountId: accountId, syncKey: syncKey, recoveryKeyHash: hash);
   }
 
   /// Відновлює доступ до акаунта на новому пристрої за вже наявним recovery key.
@@ -101,7 +111,7 @@ class AccountService {
     final hash = _recoveryKeyHash(normalized);
     final accountId = await _apiClient.login(recoveryKeyHash: hash);
     final syncKey = await _deriveSyncKey(normalized);
-    await _persist(mode: SyncMode.noAccount, accountId: accountId, syncKey: syncKey);
+    await _persist(mode: SyncMode.noAccount, accountId: accountId, syncKey: syncKey, recoveryKeyHash: hash);
   }
 
   /// Google Sign-In — повертає ID-токен для перевірки на сервері. Просить
@@ -153,7 +163,7 @@ class AccountService {
       authToken: token,
     );
     final syncKey = await _deriveSyncKey(normalized);
-    await _persist(mode: SyncMode.account, accountId: accountId, syncKey: syncKey);
+    await _persist(mode: SyncMode.account, accountId: accountId, syncKey: syncKey, recoveryKeyHash: hash);
   }
 
   /// Крок 1 відновлення через акаунт: знаходить account_id за Google/Apple
@@ -169,8 +179,9 @@ class AccountService {
   /// довести recovery key, щоб вивести й зберегти ключ шифрування локально.
   Future<void> attachRecoveryKey({required String accountId, required String recoveryKeyDisplay}) async {
     final normalized = normalize(recoveryKeyDisplay);
+    final hash = _recoveryKeyHash(normalized);
     final syncKey = await _deriveSyncKey(normalized);
-    await _persist(mode: SyncMode.account, accountId: accountId, syncKey: syncKey);
+    await _persist(mode: SyncMode.account, accountId: accountId, syncKey: syncKey, recoveryKeyHash: hash);
   }
 
   /// Вимикає синхронізацію — локальні дані не чіпає, лише прибирає локальні
@@ -179,6 +190,7 @@ class AccountService {
     await _secureStorage.delete(key: _syncModeKey);
     await _secureStorage.delete(key: _accountIdKey, iOptions: _syncedIOSOptions);
     await _secureStorage.delete(key: _syncKeyKey, iOptions: _syncedIOSOptions);
+    await _secureStorage.delete(key: _recoveryKeyHashKey, iOptions: _syncedIOSOptions);
   }
 
   /// GDPR — остаточно видаляє акаунт і всі дані на сервері, потім вимикає
@@ -202,6 +214,10 @@ class AccountService {
 
   Future<String?> currentAccountId() async {
     return _secureStorage.read(key: _accountIdKey, iOptions: _syncedIOSOptions);
+  }
+
+  Future<String?> currentRecoveryKeyHash() async {
+    return _secureStorage.read(key: _recoveryKeyHashKey, iOptions: _syncedIOSOptions);
   }
 
   Future<SecretKey?> currentSyncKey() async {

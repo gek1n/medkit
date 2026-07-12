@@ -154,7 +154,7 @@ flutter test             # тести
   `channel_state`) уникає цього класу проблем взагалі, незалежно від backend'у.
   ⚠️ **Що лишається зробити руками (не можна з коду):**
   - Firebase Console: додати Android/iOS застосунки (package/bundle ID —
-    `com.medkit.medkit`) → покласти `google-services.json` в `android/app/`,
+    `com.ellyapp.medkit`) → покласти `google-services.json` в `android/app/`,
     `GoogleService-Info.plist` в `ios/Runner/` (в Xcode, з увімкненим target
     membership); Service account JSON → `medkit_private/firebase-service-account.json`
   - Xcode: capability **Background Modes → Remote notifications** (інакше
@@ -195,7 +195,7 @@ flutter test             # тести
   ⚠️ **Обидва канали потребують нативного налаштування, яке не можна
   зробити з коду:** Google Sign-In — OAuth client + SHA-1 (Android) в Google
   Cloud Console; iCloud — увімкнене iCloud capability в Xcode
-  (Signing & Capabilities) з containerId `iCloud.com.medkit.medkit` (можна
+  (Signing & Capabilities) з containerId `iCloud.com.ellyapp.medkit` (можна
   змінити в `icloud_backup_service.dart`), потребує Apple Developer акаунт.
   Без цього обидва впадуть з помилкою входу/контейнера — це очікувано, не
   баг. Ще не тестувалось наживо.

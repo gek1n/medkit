@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "964528755773",
+    "project_id": "elly-18aa1",
+    "storage_bucket": "elly-18aa1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:964528755773:android:077090d6bb66ad05a58654",
+        "android_client_info": {
+          "package_name": "com.ellyapp.medkit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbNXplnwD4WY_-ceAFHPSgZI1h6loB2OM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

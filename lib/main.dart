@@ -9,14 +9,19 @@ import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
 import 'core/providers/database_provider.dart';
 import 'core/providers/font_scale_provider.dart';
+import 'core/providers/plan_provider.dart';
+import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/billing_lifecycle_service.dart';
 import 'core/services/family_group_service.dart';
 import 'core/services/family_peer_sync_service.dart';
 import 'core/services/family_sync_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/subscription_service.dart';
 import 'core/services/sync_service.dart';
 import 'data/repositories/family_peers_repository.dart';
+import 'features/plans/billing_lifecycle_dialogs.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
 import 'core/theme/app_theme.dart';
@@ -178,6 +183,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   late final PageController _pageController;
   bool _syncing = false;
   bool _familySyncing = false;
+  bool _billingSyncing = false;
   StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   static const _screens = [
@@ -201,6 +207,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     unawaited(FamilyPeersRepository(ref.read(databaseProvider)).clearSharedCache());
     _syncIfEnabled();
     _familySyncIfNeeded();
+    _billingSyncIfNeeded();
     // "Розбуди" push від family_sync (relay/send) приходить як data-message —
     // поки застосунок відкритий, його треба явно підхопити тут; коли
     // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.
@@ -224,6 +231,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _syncIfEnabled();
       _familySyncIfNeeded();
+      _billingSyncIfNeeded();
     }
   }
 
@@ -270,6 +278,46 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     }
   }
 
+  /// Той самий resume/cold-start тригер, що й family-синк вище — оновлює
+  /// кеш статусу підписки (SubscriptionService), перераховує realPlanProvider
+  /// (той пише в planProvider через ref.listen у build(), див. нижче), і
+  /// перевіряє грейс-період/розпад ВЛАСНОЇ сім'ї (BillingLifecycleService).
+  /// No-op, якщо синк вимкнено — SubscriptionService.refreshFromServer сам
+  /// про це подбає.
+  Future<void> _billingSyncIfNeeded() async {
+    if (_billingSyncing) return;
+    _billingSyncing = true;
+    try {
+      await SubscriptionService.refreshFromServer();
+      ref.invalidate(realPlanProvider);
+
+      final result = await BillingLifecycleService.checkGraceAndMaybeDisband(ref.read(databaseProvider));
+      if (!mounted) return;
+      switch (result) {
+        case GraceCheckResult.graceStarted:
+        case GraceCheckResult.graceOngoing:
+          final timeLeft = await BillingLifecycleService.timeLeftInGrace();
+          if (mounted) {
+            unawaited(showGracePeriodPopup(context, timeLeft: timeLeft));
+          }
+        case GraceCheckResult.disbanded:
+          if (mounted) {
+            unawaited(showAccessChangedModal(
+              context,
+              reason:
+                  'Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.',
+            ));
+          }
+        case GraceCheckResult.none:
+          break;
+      }
+    } catch (_) {
+      // Тиха невдача — див. коментар до _syncIfEnabled.
+    } finally {
+      _billingSyncing = false;
+    }
+  }
+
   void _goToTab(int i) {
     setState(() => _index = i);
     _pageController.animateToPage(
@@ -286,6 +334,17 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
         _goToTab(next);
         Future.microtask(
             () => ref.read(requestedTabIndexProvider.notifier).state = null);
+      }
+    });
+    // Міст: planProvider лишається тим самим bare StateProvider, яким
+    // користується весь інший код застосунку, — але тепер його значення
+    // веде реальний (сервер+сім'я-обізнаний) realPlanProvider, а не лише
+    // ручні тапи в PlansScreen. docs/multifamily_billing_plan.md, "Тестовий
+    // режим біллінгу".
+    ref.listen<AsyncValue<AppPlan>>(realPlanProvider, (previous, next) {
+      final plan = next.valueOrNull;
+      if (plan != null) {
+        ref.read(planProvider.notifier).state = plan;
       }
     });
     return Scaffold(

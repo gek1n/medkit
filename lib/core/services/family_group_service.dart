@@ -11,6 +11,7 @@ import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 import 'attachment_cleanup_service.dart';
+import 'family_peer_sync_service.dart';
 import 'family_sync_service.dart';
 import 'pairing_api_client.dart';
 import 'pairing_crypto_service.dart';
@@ -230,20 +231,16 @@ class FamilyGroupService {
   }
 
   /// Викликати лише після явного підтвердження користувача на екрані згоди.
+  ///
+  /// `owner.familyId` НІКОЛИ не чіпається тут — це поле означає лише "сім'я,
+  /// яку я створив і за яку плачу", а не "у яких сімʼях я гість". Те, що я
+  /// приєднався до чужої групи, відстежується виключно через новий запис
+  /// `FamilyPeers` нижче (мультисемейність: можна одночасно платити за свою
+  /// сім'ю і бути гостем у довільній кількості чужих).
   Future<void> acceptInvite(GroupInvitePreview preview) async {
     final membersRepo = MembersRepository(_db);
     final owner = await membersRepo.getOwner();
     if (owner == null) throw const GroupJoinException('Немає власного профілю');
-
-    if (owner.familyId != null && owner.familyId != preview.familyId) {
-      throw const GroupJoinException(
-        'Ваш профіль уже належить до іншої сімейної групи. Спершу вийдіть із неї.',
-      );
-    }
-
-    await membersRepo.update(
-      MembersCompanion(id: Value(owner.id), familyId: Value(preview.familyId)),
-    );
 
     await SharedChannelKeyStorage.store(preview.channelId, preview.syncKey);
     await FamilyPeersRepository(_db).upsert(
@@ -253,6 +250,8 @@ class FamilyGroupService {
         name: preview.inviterName,
         avatarIndex: Value(preview.inviterAvatarIndex),
         channelId: preview.channelId,
+        // Я скановував ЙОГО код — це він мене запросив, не витрачає мій ліміт.
+        invitedMe: const Value(true),
       ),
     );
 
@@ -311,7 +310,18 @@ class FamilyGroupService {
           name: card['name'] as String? ?? 'Учасник родини',
           avatarIndex: Value(card['avatarIndex'] as int? ?? 0),
           channelId: invite.channelId,
+          // Це відповідь на МОЄ запрошення (звичайне чи конверсія) — я його
+          // не запрошував, я запросив ЙОГО, тому invitedMe=false (за
+          // замовчуванням), витрачає мій ліміт слотів.
         ));
+
+        // Я (хаб цієї сім'ї) знайомлю нового учасника з усіма, хто вже в
+        // групі, і навпаки — обміном візитівок (Фаза 5, автопредставлення).
+        try {
+          await FamilyPeerSyncService(_db).introduceNewPeer(card['personUuid'] as String);
+        } catch (_) {
+          // Best-effort — підхопиться наступним новим учасником чи synk-раундом.
+        }
         await repo.removePendingInvite(invite.channelId);
 
         // "Локальний → Автономний" підтверджено: людина, якою я щойно

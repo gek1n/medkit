@@ -24,6 +24,21 @@ class FamilyPeers extends Table {
   // живе лише на пристрої субʼєкта, тому без цього обміну я б не мав жодного
   // способу дізнатись, що мені взагалі дозволено.
 
+  BoolColumn get invitedMe => boolean().withDefault(const Constant(false))();
+  // true — це ВІН мене запросив (я скановував його код, або конверсія
+  // "Локальний → Автономний" на його боці); false — це Я його запросив, або
+  // звʼязок зʼявився через автопредставлення (Фаза 5). Рахувати слоти плану
+  // потрібно лише за false-рядками — вхідні запрошення не мають витрачати
+  // мій ліміт. Плюшки Family дарує лише той, у кого invitedMe==true.
+
+  BoolColumn get payerPlanActive => boolean().withDefault(const Constant(false))();
+  // Те саме, що notify/view/editGranted — прилітає через grants_summary,
+  // ЙОГО повідомлення про ЙОГО власний білінг (Фаза 6, per-peer: він включає
+  // це поле лише для пірів, яких сам запросив у свою оплачувану Family).
+  // Мій ефективний план рахується як max(власний кеш, family якщо є хоч
+  // один рядок invitedMe==true && payerPlanActive==true) — завжди
+  // динамічно, ніколи не кешується статичним булевим прапорцем.
+
   @override
   Set<Column> get primaryKey => {personUuid};
 }
@@ -55,6 +70,25 @@ class SharedEntities extends Table {
 
   @override
   Set<Column> get primaryKey => {uuid};
+}
+
+/// "Візитівка" людини, яку я ЗНАЮ (бачу в списку "Видимість для сім'ї"), але
+/// з якою ще НЕМАЄ справжнього зашифрованого каналу — навмисно окремо від
+/// [FamilyPeers] (там лише реально встановлені канали). Заповнюється через
+/// автопредставлення: коли хтось приєднується до сімейної групи, платящий
+/// розсилає візитівки (ім'я/аватар/personUuid, БЕЗ доступу до даних) всім
+/// існуючим учасникам цієї ж групи і навпаки. Канал створюється лениво —
+/// лише коли субʼєкт явно вмикає видимість для когось із цього списку (тоді
+/// й рядок тут видаляється, замінений на справжній [FamilyPeers]).
+class KnownFamilyMembers extends Table {
+  TextColumn get personUuid => text()();
+  TextColumn get familyId => text()();
+  TextColumn get name => text()();
+  IntColumn get avatarIndex => integer().withDefault(const Constant(0))();
+  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {personUuid};
 }
 
 /// Канал запрошення до сімейної групи, який я сам створив як інвайтер, і
