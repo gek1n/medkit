@@ -51,12 +51,13 @@ part 'app_database.g.dart';
   FamilyGrants,
   SharedSubjects,
   SharedEntities,
+  KnownFamilyMembers,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -363,6 +364,32 @@ class AppDatabase extends _$AppDatabase {
             // локального профілю — convertingMemberId позначає, який саме.
             try {
               await m.addColumn(pendingGroupInvites, pendingGroupInvites.convertingMemberId);
+            } catch (_) {}
+          }
+          if (from < 22) {
+            // Напрямок звʼязку: хто кого запросив. Потрібно для коректного
+            // підрахунку слотів (вхідні запрошення не мають витрачати МІЙ
+            // ліміт) і щоб знати, хто може дарувати Family-плюшки. Існуючі
+            // (вже засинкані) рядки — напрямок невідомий, false за
+            // замовчуванням: безпечний варіант, просто не порахує чужий слот
+            // як свій, поки звʼязок не пересоздасться.
+            try {
+              await m.addColumn(familyPeers, familyPeers.invitedMe);
+            } catch (_) {}
+          }
+          if (from < 23) {
+            // Автопредставлення: "візитівки" людей, яких я знаю через сім'ю,
+            // але з якими ще нема справжнього зашифрованого каналу.
+            try {
+              await m.createTable(knownFamilyMembers);
+            } catch (_) {}
+          }
+          if (from < 24) {
+            // Реальний білінг: чи активна Family-підписка піра, який мене
+            // запросив — прилітає через grants_summary, той самий канал, що
+            // й notify/view/editGranted.
+            try {
+              await m.addColumn(familyPeers, familyPeers.payerPlanActive);
             } catch (_) {}
           }
         },

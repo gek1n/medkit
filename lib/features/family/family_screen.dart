@@ -69,7 +69,12 @@ class _FamilyBody extends ConsumerWidget {
     // незалежний FamilyPeer (Members більше не мають ролі 'member'), тому
     // ліміт рахується за кількістю пірів.
     final localCount = members.length;
-    final peersCount = ref.watch(_familyPeersProvider).valueOrNull?.length ?? 0;
+    // Лише пірі, яких запросив Я (invitedMe == false), витрачають мій ліміт
+    // слотів — вхідні запрошення (мене хтось запросив до своєї сім'ї) не
+    // повинні його займати.
+    final peersCount = (ref.watch(_familyPeersProvider).valueOrNull ?? [])
+        .where((p) => !p.invitedMe)
+        .length;
     final localLimitReached =
         limits.maxLocalMembers != 0 && localCount >= limits.maxLocalMembers;
     final autonomousLimitReached = limits.maxAutonomousMembers == 0
@@ -130,7 +135,7 @@ class _FamilyBody extends ConsumerWidget {
               const SizedBox(height: AppDimensions.xl),
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
               const SizedBox(height: AppDimensions.xl),
-              const _FamilyGroupSection(),
+              _FamilyGroupSection(ownerFamilyId: owner.familyId),
               const SizedBox(height: 100),
             ]),
           ),
@@ -435,7 +440,9 @@ class _MemberActionsSheet extends ConsumerWidget {
     // "Автономний" тепер завжди означає незалежний FamilyPeer, а не
     // локальний Member-рядок — тому ліміт плану рахується за кількістю
     // пірів, а не за роллю цього профілю (він завжди dependent/owner тут).
-    final peersCount = ref.watch(_familyPeersProvider).valueOrNull?.length ?? 0;
+    final peersCount = (ref.watch(_familyPeersProvider).valueOrNull ?? [])
+        .where((p) => !p.invitedMe)
+        .length;
     final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
         ? true
         : peersCount >= plan.limits.maxAutonomousMembers;
@@ -823,15 +830,17 @@ class _FamilyUpgradeBanner extends StatelessWidget {
 // окреме налаштування (Фаза 3/4), тут лише сам факт членства.
 
 class _FamilyGroupSection extends ConsumerWidget {
-  const _FamilyGroupSection();
+  final String? ownerFamilyId;
+  const _FamilyGroupSection({required this.ownerFamilyId});
 
-  Future<void> _confirmLeaveGroup(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmLeaveGroup(
+      BuildContext context, WidgetRef ref, String familyId, String groupLabel) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Покинути сімейну групу?'),
+        title: Text('Покинути "$groupLabel"?'),
         content: const Text(
-          'Усі учасники групи втратять доступ до ваших даних, а ви — до того, чим вони з вами ділились.',
+          'Учасники цієї групи втратять доступ до ваших даних, а ви — до того, чим вони з вами ділились. Інших сімейних груп це не торкнеться.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
@@ -844,9 +853,10 @@ class _FamilyGroupSection extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
-    await FamilyPeerSyncService(ref.read(databaseProvider)).leaveGroup();
+    await FamilyPeerSyncService(ref.read(databaseProvider)).leaveGroup(familyId);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ви покинули сімейну групу')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Ви покинули "$groupLabel"')));
     }
   }
 
@@ -855,21 +865,46 @@ class _FamilyGroupSection extends ConsumerWidget {
     final peersAsync = ref.watch(_familyPeersProvider);
     final peers = peersAsync.valueOrNull ?? [];
     final plan = ref.watch(planProvider);
+    // Слоти рахуються лише за тими, кого запросив Я (invitedMe==false) —
+    // вхідні запрошення до чужих груп ліміт не займають.
+    final invitedByMeCount = peers.where((p) => !p.invitedMe).length;
     final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
         ? true
-        : peers.length >= plan.limits.maxAutonomousMembers;
+        : invitedByMeCount >= plan.limits.maxAutonomousMembers;
+
+    // Мультисемейність: один пристрій може одночасно вести власну сім'ю і
+    // бути гостем у довільній кількості чужих — кожна familyId стає своєю
+    // візуальною секцією з окремою кнопкою "Покинути".
+    final groups = <String, List<FamilyPeer>>{};
+    for (final p in peers) {
+      groups.putIfAbsent(p.familyId, () => []).add(p);
+    }
+    final ownGroup = ownerFamilyId != null ? groups.remove(ownerFamilyId) : null;
+    final orderedEntries = [
+      if (ownGroup != null) MapEntry(ownerFamilyId!, ownGroup),
+      ...groups.entries,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionLabel('Сімейна група'),
         const SizedBox(height: AppDimensions.md),
-        if (peers.isNotEmpty) ...[
-          ...peers.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                child: _PeerCard(peer: p),
-              )),
-          const SizedBox(height: AppDimensions.sm),
+        for (final entry in orderedEntries) ...[
+          _FamilyGroupSubsection(
+            familyId: entry.key,
+            peers: entry.value,
+            isOwnFamily: entry.key == ownerFamilyId,
+            // Лічильник слотів і корона — лише для "моєї" секції (я
+            // платящий саме тут); у чужій сім'ї я гість, це не моя квота.
+            slotsLabel: entry.key == ownerFamilyId
+                ? '$invitedByMeCount з ${plan.limits.maxAutonomousMembers}'
+                : null,
+            showPayerBadge: entry.key == ownerFamilyId && plan == AppPlan.family,
+            onLeave: (label) =>
+                _confirmLeaveGroup(context, ref, entry.key, label),
+          ),
+          const SizedBox(height: AppDimensions.md),
         ],
         Row(
           children: [
@@ -901,16 +936,67 @@ class _FamilyGroupSection extends ConsumerWidget {
             ),
           ],
         ),
-        if (peers.isNotEmpty) ...[
-          const SizedBox(height: AppDimensions.sm),
-          Center(
-            child: TextButton(
-              onPressed: () => _confirmLeaveGroup(context, ref),
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-              child: const Text('Покинути сімейну групу'),
-            ),
+      ],
+    );
+  }
+}
+
+/// Одна секція — одна сімейна група (одна `familyId`). Або "моя" (я плачу і
+/// запрошую) — тоді без підпису-приналежності, або "чужа" (мене туди
+/// запросили) — тоді підпис "Сім'я {ім'я того, хто запросив}".
+class _FamilyGroupSubsection extends StatelessWidget {
+  final String familyId;
+  final List<FamilyPeer> peers;
+  final bool isOwnFamily;
+  final String? slotsLabel;
+  final bool showPayerBadge;
+  final void Function(String label) onLeave;
+  const _FamilyGroupSubsection({
+    required this.familyId,
+    required this.peers,
+    required this.isOwnFamily,
+    this.slotsLabel,
+    this.showPayerBadge = false,
+    required this.onLeave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inviter = peers.where((p) => p.invitedMe).firstOrNull;
+    final label = isOwnFamily ? 'Моя сім\'я' : 'Сім\'я ${inviter?.name ?? peers.first.name}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+          child: Row(
+            children: [
+              Text(label, style: AppTextStyles.labelMd.copyWith(color: AppColors.textSub)),
+              if (showPayerBadge) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.workspace_premium_rounded, size: 15, color: AppColors.primary),
+              ],
+              if (slotsLabel != null) ...[
+                const Spacer(),
+                Text(slotsLabel!,
+                    style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textMuted, fontWeight: FontWeight.w600)),
+              ],
+            ],
           ),
-        ],
+        ),
+        ...peers.map((p) => Padding(
+              padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+              child: _PeerCard(peer: p),
+            )),
+        Center(
+          child: TextButton(
+            onPressed: () => onLeave(label),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Покинути'),
+          ),
+        ),
       ],
     );
   }

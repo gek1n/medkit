@@ -15,7 +15,7 @@ import 'package:path_provider/path_provider.dart';
 /// Developer акаунта. Без цього `gather`/`upload`/`download` кинуть виняток
 /// про відсутній контейнер.
 class ICloudBackupService {
-  static const _containerId = 'iCloud.com.medkit.medkit';
+  static const _containerId = 'iCloud.com.ellyapp.medkit';
   static const _backupFileName = 'medkit_backup.zip';
   static const _keysFileName = 'medkit_backup_keys.bin';
 

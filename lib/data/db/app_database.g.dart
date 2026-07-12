@@ -10664,6 +10664,36 @@ class $FamilyPeersTable extends FamilyPeers
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _invitedMeMeta = const VerificationMeta(
+    'invitedMe',
+  );
+  @override
+  late final GeneratedColumn<bool> invitedMe = GeneratedColumn<bool>(
+    'invited_me',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invited_me" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payerPlanActiveMeta = const VerificationMeta(
+    'payerPlanActive',
+  );
+  @override
+  late final GeneratedColumn<bool> payerPlanActive = GeneratedColumn<bool>(
+    'payer_plan_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("payer_plan_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     personUuid,
@@ -10676,6 +10706,8 @@ class $FamilyPeersTable extends FamilyPeers
     notifyGranted,
     viewGranted,
     editGranted,
+    invitedMe,
+    payerPlanActive,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10772,6 +10804,21 @@ class $FamilyPeersTable extends FamilyPeers
         ),
       );
     }
+    if (data.containsKey('invited_me')) {
+      context.handle(
+        _invitedMeMeta,
+        invitedMe.isAcceptableOrUnknown(data['invited_me']!, _invitedMeMeta),
+      );
+    }
+    if (data.containsKey('payer_plan_active')) {
+      context.handle(
+        _payerPlanActiveMeta,
+        payerPlanActive.isAcceptableOrUnknown(
+          data['payer_plan_active']!,
+          _payerPlanActiveMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -10821,6 +10868,14 @@ class $FamilyPeersTable extends FamilyPeers
         DriftSqlType.bool,
         data['${effectivePrefix}edit_granted'],
       )!,
+      invitedMe: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invited_me'],
+      )!,
+      payerPlanActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}payer_plan_active'],
+      )!,
     );
   }
 
@@ -10841,6 +10896,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
   final bool notifyGranted;
   final bool viewGranted;
   final bool editGranted;
+  final bool invitedMe;
+  final bool payerPlanActive;
   const FamilyPeer({
     required this.personUuid,
     required this.familyId,
@@ -10852,6 +10909,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     required this.notifyGranted,
     required this.viewGranted,
     required this.editGranted,
+    required this.invitedMe,
+    required this.payerPlanActive,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10868,6 +10927,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     map['notify_granted'] = Variable<bool>(notifyGranted);
     map['view_granted'] = Variable<bool>(viewGranted);
     map['edit_granted'] = Variable<bool>(editGranted);
+    map['invited_me'] = Variable<bool>(invitedMe);
+    map['payer_plan_active'] = Variable<bool>(payerPlanActive);
     return map;
   }
 
@@ -10885,6 +10946,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       notifyGranted: Value(notifyGranted),
       viewGranted: Value(viewGranted),
       editGranted: Value(editGranted),
+      invitedMe: Value(invitedMe),
+      payerPlanActive: Value(payerPlanActive),
     );
   }
 
@@ -10904,6 +10967,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       notifyGranted: serializer.fromJson<bool>(json['notifyGranted']),
       viewGranted: serializer.fromJson<bool>(json['viewGranted']),
       editGranted: serializer.fromJson<bool>(json['editGranted']),
+      invitedMe: serializer.fromJson<bool>(json['invitedMe']),
+      payerPlanActive: serializer.fromJson<bool>(json['payerPlanActive']),
     );
   }
   @override
@@ -10920,6 +10985,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       'notifyGranted': serializer.toJson<bool>(notifyGranted),
       'viewGranted': serializer.toJson<bool>(viewGranted),
       'editGranted': serializer.toJson<bool>(editGranted),
+      'invitedMe': serializer.toJson<bool>(invitedMe),
+      'payerPlanActive': serializer.toJson<bool>(payerPlanActive),
     };
   }
 
@@ -10934,6 +11001,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     bool? notifyGranted,
     bool? viewGranted,
     bool? editGranted,
+    bool? invitedMe,
+    bool? payerPlanActive,
   }) => FamilyPeer(
     personUuid: personUuid ?? this.personUuid,
     familyId: familyId ?? this.familyId,
@@ -10945,6 +11014,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     notifyGranted: notifyGranted ?? this.notifyGranted,
     viewGranted: viewGranted ?? this.viewGranted,
     editGranted: editGranted ?? this.editGranted,
+    invitedMe: invitedMe ?? this.invitedMe,
+    payerPlanActive: payerPlanActive ?? this.payerPlanActive,
   );
   FamilyPeer copyWithCompanion(FamilyPeersCompanion data) {
     return FamilyPeer(
@@ -10970,6 +11041,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       editGranted: data.editGranted.present
           ? data.editGranted.value
           : this.editGranted,
+      invitedMe: data.invitedMe.present ? data.invitedMe.value : this.invitedMe,
+      payerPlanActive: data.payerPlanActive.present
+          ? data.payerPlanActive.value
+          : this.payerPlanActive,
     );
   }
 
@@ -10985,7 +11060,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('notifyGranted: $notifyGranted, ')
           ..write('viewGranted: $viewGranted, ')
-          ..write('editGranted: $editGranted')
+          ..write('editGranted: $editGranted, ')
+          ..write('invitedMe: $invitedMe, ')
+          ..write('payerPlanActive: $payerPlanActive')
           ..write(')'))
         .toString();
   }
@@ -11002,6 +11079,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     notifyGranted,
     viewGranted,
     editGranted,
+    invitedMe,
+    payerPlanActive,
   );
   @override
   bool operator ==(Object other) =>
@@ -11016,7 +11095,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           other.lastSyncedAt == this.lastSyncedAt &&
           other.notifyGranted == this.notifyGranted &&
           other.viewGranted == this.viewGranted &&
-          other.editGranted == this.editGranted);
+          other.editGranted == this.editGranted &&
+          other.invitedMe == this.invitedMe &&
+          other.payerPlanActive == this.payerPlanActive);
 }
 
 class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
@@ -11030,6 +11111,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
   final Value<bool> notifyGranted;
   final Value<bool> viewGranted;
   final Value<bool> editGranted;
+  final Value<bool> invitedMe;
+  final Value<bool> payerPlanActive;
   final Value<int> rowid;
   const FamilyPeersCompanion({
     this.personUuid = const Value.absent(),
@@ -11042,6 +11125,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.notifyGranted = const Value.absent(),
     this.viewGranted = const Value.absent(),
     this.editGranted = const Value.absent(),
+    this.invitedMe = const Value.absent(),
+    this.payerPlanActive = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FamilyPeersCompanion.insert({
@@ -11055,6 +11140,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.notifyGranted = const Value.absent(),
     this.viewGranted = const Value.absent(),
     this.editGranted = const Value.absent(),
+    this.invitedMe = const Value.absent(),
+    this.payerPlanActive = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : personUuid = Value(personUuid),
        familyId = Value(familyId),
@@ -11071,6 +11158,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Expression<bool>? notifyGranted,
     Expression<bool>? viewGranted,
     Expression<bool>? editGranted,
+    Expression<bool>? invitedMe,
+    Expression<bool>? payerPlanActive,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -11084,6 +11173,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       if (notifyGranted != null) 'notify_granted': notifyGranted,
       if (viewGranted != null) 'view_granted': viewGranted,
       if (editGranted != null) 'edit_granted': editGranted,
+      if (invitedMe != null) 'invited_me': invitedMe,
+      if (payerPlanActive != null) 'payer_plan_active': payerPlanActive,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11099,6 +11190,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Value<bool>? notifyGranted,
     Value<bool>? viewGranted,
     Value<bool>? editGranted,
+    Value<bool>? invitedMe,
+    Value<bool>? payerPlanActive,
     Value<int>? rowid,
   }) {
     return FamilyPeersCompanion(
@@ -11112,6 +11205,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       notifyGranted: notifyGranted ?? this.notifyGranted,
       viewGranted: viewGranted ?? this.viewGranted,
       editGranted: editGranted ?? this.editGranted,
+      invitedMe: invitedMe ?? this.invitedMe,
+      payerPlanActive: payerPlanActive ?? this.payerPlanActive,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11149,6 +11244,12 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     if (editGranted.present) {
       map['edit_granted'] = Variable<bool>(editGranted.value);
     }
+    if (invitedMe.present) {
+      map['invited_me'] = Variable<bool>(invitedMe.value);
+    }
+    if (payerPlanActive.present) {
+      map['payer_plan_active'] = Variable<bool>(payerPlanActive.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11168,6 +11269,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
           ..write('notifyGranted: $notifyGranted, ')
           ..write('viewGranted: $viewGranted, ')
           ..write('editGranted: $editGranted, ')
+          ..write('invitedMe: $invitedMe, ')
+          ..write('payerPlanActive: $payerPlanActive, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -12639,6 +12742,376 @@ class SharedEntitiesCompanion extends UpdateCompanion<SharedEntity> {
   }
 }
 
+class $KnownFamilyMembersTable extends KnownFamilyMembers
+    with TableInfo<$KnownFamilyMembersTable, KnownFamilyMember> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnownFamilyMembersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _personUuidMeta = const VerificationMeta(
+    'personUuid',
+  );
+  @override
+  late final GeneratedColumn<String> personUuid = GeneratedColumn<String>(
+    'person_uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _familyIdMeta = const VerificationMeta(
+    'familyId',
+  );
+  @override
+  late final GeneratedColumn<String> familyId = GeneratedColumn<String>(
+    'family_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _avatarIndexMeta = const VerificationMeta(
+    'avatarIndex',
+  );
+  @override
+  late final GeneratedColumn<int> avatarIndex = GeneratedColumn<int>(
+    'avatar_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    personUuid,
+    familyId,
+    name,
+    avatarIndex,
+    addedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'known_family_members';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnownFamilyMember> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('person_uuid')) {
+      context.handle(
+        _personUuidMeta,
+        personUuid.isAcceptableOrUnknown(data['person_uuid']!, _personUuidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_personUuidMeta);
+    }
+    if (data.containsKey('family_id')) {
+      context.handle(
+        _familyIdMeta,
+        familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_familyIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('avatar_index')) {
+      context.handle(
+        _avatarIndexMeta,
+        avatarIndex.isAcceptableOrUnknown(
+          data['avatar_index']!,
+          _avatarIndexMeta,
+        ),
+      );
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {personUuid};
+  @override
+  KnownFamilyMember map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnownFamilyMember(
+      personUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}person_uuid'],
+      )!,
+      familyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}family_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      avatarIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}avatar_index'],
+      )!,
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $KnownFamilyMembersTable createAlias(String alias) {
+    return $KnownFamilyMembersTable(attachedDatabase, alias);
+  }
+}
+
+class KnownFamilyMember extends DataClass
+    implements Insertable<KnownFamilyMember> {
+  final String personUuid;
+  final String familyId;
+  final String name;
+  final int avatarIndex;
+  final DateTime addedAt;
+  const KnownFamilyMember({
+    required this.personUuid,
+    required this.familyId,
+    required this.name,
+    required this.avatarIndex,
+    required this.addedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['person_uuid'] = Variable<String>(personUuid);
+    map['family_id'] = Variable<String>(familyId);
+    map['name'] = Variable<String>(name);
+    map['avatar_index'] = Variable<int>(avatarIndex);
+    map['added_at'] = Variable<DateTime>(addedAt);
+    return map;
+  }
+
+  KnownFamilyMembersCompanion toCompanion(bool nullToAbsent) {
+    return KnownFamilyMembersCompanion(
+      personUuid: Value(personUuid),
+      familyId: Value(familyId),
+      name: Value(name),
+      avatarIndex: Value(avatarIndex),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory KnownFamilyMember.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnownFamilyMember(
+      personUuid: serializer.fromJson<String>(json['personUuid']),
+      familyId: serializer.fromJson<String>(json['familyId']),
+      name: serializer.fromJson<String>(json['name']),
+      avatarIndex: serializer.fromJson<int>(json['avatarIndex']),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'personUuid': serializer.toJson<String>(personUuid),
+      'familyId': serializer.toJson<String>(familyId),
+      'name': serializer.toJson<String>(name),
+      'avatarIndex': serializer.toJson<int>(avatarIndex),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
+    };
+  }
+
+  KnownFamilyMember copyWith({
+    String? personUuid,
+    String? familyId,
+    String? name,
+    int? avatarIndex,
+    DateTime? addedAt,
+  }) => KnownFamilyMember(
+    personUuid: personUuid ?? this.personUuid,
+    familyId: familyId ?? this.familyId,
+    name: name ?? this.name,
+    avatarIndex: avatarIndex ?? this.avatarIndex,
+    addedAt: addedAt ?? this.addedAt,
+  );
+  KnownFamilyMember copyWithCompanion(KnownFamilyMembersCompanion data) {
+    return KnownFamilyMember(
+      personUuid: data.personUuid.present
+          ? data.personUuid.value
+          : this.personUuid,
+      familyId: data.familyId.present ? data.familyId.value : this.familyId,
+      name: data.name.present ? data.name.value : this.name,
+      avatarIndex: data.avatarIndex.present
+          ? data.avatarIndex.value
+          : this.avatarIndex,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnownFamilyMember(')
+          ..write('personUuid: $personUuid, ')
+          ..write('familyId: $familyId, ')
+          ..write('name: $name, ')
+          ..write('avatarIndex: $avatarIndex, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(personUuid, familyId, name, avatarIndex, addedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnownFamilyMember &&
+          other.personUuid == this.personUuid &&
+          other.familyId == this.familyId &&
+          other.name == this.name &&
+          other.avatarIndex == this.avatarIndex &&
+          other.addedAt == this.addedAt);
+}
+
+class KnownFamilyMembersCompanion extends UpdateCompanion<KnownFamilyMember> {
+  final Value<String> personUuid;
+  final Value<String> familyId;
+  final Value<String> name;
+  final Value<int> avatarIndex;
+  final Value<DateTime> addedAt;
+  final Value<int> rowid;
+  const KnownFamilyMembersCompanion({
+    this.personUuid = const Value.absent(),
+    this.familyId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.avatarIndex = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnownFamilyMembersCompanion.insert({
+    required String personUuid,
+    required String familyId,
+    required String name,
+    this.avatarIndex = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : personUuid = Value(personUuid),
+       familyId = Value(familyId),
+       name = Value(name);
+  static Insertable<KnownFamilyMember> custom({
+    Expression<String>? personUuid,
+    Expression<String>? familyId,
+    Expression<String>? name,
+    Expression<int>? avatarIndex,
+    Expression<DateTime>? addedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (personUuid != null) 'person_uuid': personUuid,
+      if (familyId != null) 'family_id': familyId,
+      if (name != null) 'name': name,
+      if (avatarIndex != null) 'avatar_index': avatarIndex,
+      if (addedAt != null) 'added_at': addedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnownFamilyMembersCompanion copyWith({
+    Value<String>? personUuid,
+    Value<String>? familyId,
+    Value<String>? name,
+    Value<int>? avatarIndex,
+    Value<DateTime>? addedAt,
+    Value<int>? rowid,
+  }) {
+    return KnownFamilyMembersCompanion(
+      personUuid: personUuid ?? this.personUuid,
+      familyId: familyId ?? this.familyId,
+      name: name ?? this.name,
+      avatarIndex: avatarIndex ?? this.avatarIndex,
+      addedAt: addedAt ?? this.addedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (personUuid.present) {
+      map['person_uuid'] = Variable<String>(personUuid.value);
+    }
+    if (familyId.present) {
+      map['family_id'] = Variable<String>(familyId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (avatarIndex.present) {
+      map['avatar_index'] = Variable<int>(avatarIndex.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnownFamilyMembersCompanion(')
+          ..write('personUuid: $personUuid, ')
+          ..write('familyId: $familyId, ')
+          ..write('name: $name, ')
+          ..write('avatarIndex: $avatarIndex, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $MembersTable members = $MembersTable(this);
@@ -12667,6 +13140,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FamilyGrantsTable familyGrants = $FamilyGrantsTable(this);
   late final $SharedSubjectsTable sharedSubjects = $SharedSubjectsTable(this);
   late final $SharedEntitiesTable sharedEntities = $SharedEntitiesTable(this);
+  late final $KnownFamilyMembersTable knownFamilyMembers =
+      $KnownFamilyMembersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12694,5 +13169,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     familyGrants,
     sharedSubjects,
     sharedEntities,
+    knownFamilyMembers,
   ];
 }

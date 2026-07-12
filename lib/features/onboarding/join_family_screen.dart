@@ -99,13 +99,16 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       // його боці, FamilyGroupInviteScreen/_FamilyGroupSection) — той, кого
       // запросили, приєднується як частина цієї ж сімейної групи, а не як
       // самостійна покупка власного плану.
+      // familyId НЕ пишеться в Members тут: це поле означає лише "сім'я, яку
+      // я створив і за яку плачу", а не "у яку сім'ю я приєднався" — щойно
+      // створений профіль ще не веде власної сім'ї. Членство в цій групі
+      // відображається нижче через FamilyPeers.
       final db = ref.read(databaseProvider);
       final memberId = await ref.read(membersRepositoryProvider).insert(
             MembersCompanion.insert(
               name: profileName,
               avatarIndex: Value(profileAvatarIndex),
               role: const Value('owner'),
-              familyId: Value(familyId),
             ),
           );
       final me = await ref.read(membersRepositoryProvider).getById(memberId);
@@ -143,6 +146,8 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
         name: inviterName,
         avatarIndex: Value(inviterAvatarIndex),
         channelId: channelId,
+        // Я приєднався за ЙОГО кодом конверсії — це він мене запросив.
+        invitedMe: const Value(true),
       ));
       for (final p in FamilyPermission.values) {
         await FamilyVisibilityService.setAllowed(

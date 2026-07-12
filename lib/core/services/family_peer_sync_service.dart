@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:drift/drift.dart';
@@ -9,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../providers/notification_settings_provider.dart';
+import '../providers/plan_provider.dart';
 import 'family_sync_api_client.dart';
 import 'family_visibility_service.dart';
 import 'file_encryption_service.dart';
@@ -18,6 +20,7 @@ import 'photo_service.dart';
 import 'push_token_service.dart';
 import 'relay_api_client.dart';
 import 'shared_channel_key_storage.dart';
+import 'subscription_service.dart';
 import 'sync_crypto_service.dart';
 
 /// N-way обмін реальними даними між учасниками сімейної групи (Фаза 4) —
@@ -100,17 +103,27 @@ class FamilyPeerSyncService {
   // FamilyGrants живе лише на пристрої субʼєкта — без цього обміну пір не
   // мав би жодного способу дізнатись, що йому дозволено (напр. щоб показати
   // себе у списку "Сповіщення" отримувача). Надсилається щоразу — дешево,
-  // без діффу, бо це лише 3 булеви значення.
+  // без діффу, бо це лише кілька булевих значень.
   Future<void> _pushGrantsSummary(FamilyPeer peer, SecretKey key) async {
     final owner =
         await (_db.select(_db.members)..where((t) => t.role.equals('owner'))).getSingleOrNull();
     final ownerUuid = owner?.personUuid;
     if (ownerUuid == null) return;
 
+    // payerPlanActive — per-peer, НЕ глобальний прапорець: включається лише
+    // для пірів, яких я сам запросив (invitedMe==false) у МОЮ оплачувану
+    // сім'ю (peer.familyId == owner.familyId) — інакше я б розкривав свій
+    // білінг-статус і тим, хто мене запросив, кому це знати не потрібно.
+    final payerPlanActive = owner!.familyId != null &&
+        peer.familyId == owner.familyId &&
+        !peer.invitedMe &&
+        await SubscriptionService.cachedPlan() == AppPlan.family;
+
     final json = {
       'notify': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.notify),
       'view': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.view),
       'edit': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.edit),
+      'payerPlanActive': payerPlanActive,
     };
     final entity = {
       'type': 'grants_summary',
@@ -678,6 +691,7 @@ class FamilyPeerSyncService {
           notify: json['notify'] as bool? ?? false,
           view: json['view'] as bool? ?? false,
           edit: json['edit'] as bool? ?? false,
+          payerPlanActive: json['payerPlanActive'] as bool? ?? false,
         );
         continue;
       }
@@ -697,6 +711,24 @@ class FamilyPeerSyncService {
         if (entity.deleted) continue;
         final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
         await _handleRemoteReminder(json, entity);
+        continue;
+      }
+      if (entity.type == 'known_member') {
+        if (entity.deleted) continue;
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _handleKnownMember(json);
+        continue;
+      }
+      if (entity.type == 'request_introduction') {
+        if (entity.deleted) continue;
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _handleIntroductionRequest(json, peer);
+        continue;
+      }
+      if (entity.type == 'introduction') {
+        if (entity.deleted) continue;
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _handleIntroduction(json, peer);
         continue;
       }
       if (entity.deleted) {
@@ -1046,19 +1078,196 @@ class FamilyPeerSyncService {
     await repo.deleteSharedSubjectsForChannel(peer.channelId);
   }
 
-  /// Вийти з сімейної групи повністю: відʼєднатись від УСІХ пірів і
-  /// очистити власний familyId — на відміну від [removePeer] (один пір),
-  /// тут прибирається геть усе, включно з даними, поділеними мені будь-ким.
-  Future<void> leaveGroup() async {
+  /// Вийти з ОДНІЄЇ конкретної сімейної групи: відʼєднатись лише від пірів
+  /// цієї [familyId] — на відміну від [removePeer] (один пір), тут
+  /// прибирається все, поділене мені всередині цієї групи. З мультисімейністю
+  /// пристрій може одночасно бути в кількох групах (`FamilyPeers.familyId`
+  /// різний по рядках) — вихід з однієї не повинен чіпати інші.
+  ///
+  /// Якщо [familyId] збігається з власною `owner.familyId` (я платник цієї
+  /// групи) — додатково скидається й вона: я більше не веду цю сім'ю.
+  Future<void> leaveGroup(String familyId) async {
     final repo = FamilyPeersRepository(_db);
     final peers = await repo.allPeers();
-    for (final peer in peers) {
+    for (final peer in peers.where((p) => p.familyId == familyId)) {
       await removePeer(peer.personUuid);
     }
     final owner = await (_db.select(_db.members)..where((t) => t.role.equals('owner'))).getSingleOrNull();
-    if (owner != null) {
+    if (owner != null && owner.familyId == familyId) {
       await (_db.update(_db.members)..where((t) => t.id.equals(owner.id)))
           .write(const MembersCompanion(familyId: Value(null)));
     }
+  }
+
+  // ── Автопредставлення + лениве створення каналів (Фаза 5) ────────────────
+  // Топологія "зірка через платящого": двоє запрошених НЕ бачать одне одного
+  // взагалі, поки платящий (хаб, через якого обидва приєднались) не
+  // познайомить їх — розсилка ЛИШЕ візитівок (ім'я/аватар/personUuid), без
+  // доступу до даних. Справжній попарний канал створюється лениво, тільки
+  // коли хтось явно вмикає видимість для когось із цього списку.
+
+  static Uint8List _randomBytes(int length) {
+    final random = Random.secure();
+    return Uint8List.fromList(List.generate(length, (_) => random.nextInt(256)));
+  }
+
+  Future<void> _sendCard({
+    required String toChannelId,
+    required String type,
+    required String uuid,
+    required Map<String, dynamic> json,
+  }) async {
+    final keyBytes = await SharedChannelKeyStorage.read(toChannelId);
+    if (keyBytes == null) return;
+    final key = SecretKey(keyBytes);
+    final entity = {
+      'type': type,
+      'uuid': uuid,
+      'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+    };
+    try {
+      await _api.push(channelId: toChannelId, entities: [entity]);
+    } catch (_) {
+      // Best-effort, той самий компроміс, що й для proposeEdit/photo_request —
+      // без черги повторних спроб. Пропущене знайомство не критичне: людина
+      // просто не побачить цього учасника у списку "Видимість", поки не
+      // станеться інший привід для синку (напр. ще один новий учасник).
+    }
+  }
+
+  /// Викликати з [FamilyGroupService.refreshPeers] одразу після підтвердження
+  /// НОВОГО піра — я (платящий-хаб цієї сімʼї) знайомлю його з усіма, хто вже
+  /// в групі, і навпаки, обміном візитівок в обидва боки.
+  Future<void> introduceNewPeer(String newPeerPersonUuid) async {
+    final repo = FamilyPeersRepository(_db);
+    final newPeer = await repo.getByUuid(newPeerPersonUuid);
+    if (newPeer == null) return;
+    final allPeers = await repo.allPeers();
+    final existingPeers = allPeers
+        .where((p) => p.familyId == newPeer.familyId && p.personUuid != newPeer.personUuid)
+        .toList();
+    if (existingPeers.isEmpty) return;
+
+    Map<String, dynamic> cardOf(FamilyPeer p) => {
+          'personUuid': p.personUuid,
+          'name': p.name,
+          'avatarIndex': p.avatarIndex,
+          'familyId': p.familyId,
+        };
+
+    for (final existing in existingPeers) {
+      await _sendCard(
+        toChannelId: existing.channelId,
+        type: 'known_member',
+        uuid: 'known_member_${newPeer.personUuid}',
+        json: cardOf(newPeer),
+      );
+      await _sendCard(
+        toChannelId: newPeer.channelId,
+        type: 'known_member',
+        uuid: 'known_member_${existing.personUuid}',
+        json: cardOf(existing),
+      );
+    }
+  }
+
+  Future<void> _handleKnownMember(Map<String, dynamic> json) async {
+    final personUuid = json['personUuid'] as String?;
+    final familyId = json['familyId'] as String?;
+    if (personUuid == null || familyId == null) return;
+    await FamilyPeersRepository(_db).upsertKnownMember(KnownFamilyMembersCompanion.insert(
+      personUuid: personUuid,
+      familyId: familyId,
+      name: json['name'] as String? ?? 'Учасник родини',
+      avatarIndex: Value(json['avatarIndex'] as int? ?? 0),
+    ));
+  }
+
+  /// Викликати з UI ("Видимість для сім'ї"), коли субʼєкт вмикає видимість
+  /// для когось із [KnownFamilyMembers] — надсилає прохання платящому (моєму
+  /// прямому запрошувачу в цій сім'ї) звести мене з цільовим учасником.
+  Future<void> requestIntroduction(String targetPersonUuid) async {
+    final repo = FamilyPeersRepository(_db);
+    final known = await repo.getKnownMember(targetPersonUuid);
+    if (known == null) return;
+    final peers = await repo.allPeers();
+    final broker = peers.where((p) => p.familyId == known.familyId && p.invitedMe).firstOrNull;
+    if (broker == null) return;
+
+    await _sendCard(
+      toChannelId: broker.channelId,
+      type: 'request_introduction',
+      uuid: _uuid.v4(),
+      json: {'targetPersonUuid': targetPersonUuid},
+    );
+    final keyBytes = await SharedChannelKeyStorage.read(broker.channelId);
+    if (keyBytes != null) await _ping(broker.channelId, SecretKey(keyBytes));
+  }
+
+  /// На боці платящого (брокера): [fromPeer] попросив звести його з
+  /// `targetPersonUuid` — обидва вже мої прямі пірі (я їх запрошував), тож
+  /// генерую свіжий канал+ключ для цієї ПАРИ і пересилаю обом їхніми
+  /// існуючими каналами зі мною. Я сам у цьому новому каналі не берусь —
+  /// лише одноразово брокерю знайомство.
+  Future<void> _handleIntroductionRequest(Map<String, dynamic> json, FamilyPeer fromPeer) async {
+    final targetUuid = json['targetPersonUuid'] as String?;
+    if (targetUuid == null || targetUuid == fromPeer.personUuid) return;
+    final repo = FamilyPeersRepository(_db);
+    final target = await repo.getByUuid(targetUuid);
+    if (target == null || target.familyId != fromPeer.familyId) return;
+
+    final newChannelId = _uuid.v4();
+    final newKeyBytes = _randomBytes(32);
+    final newKeyB64 = base64Encode(newKeyBytes);
+
+    await _sendCard(
+      toChannelId: fromPeer.channelId,
+      type: 'introduction',
+      uuid: 'introduction_${target.personUuid}',
+      json: {
+        'peerPersonUuid': target.personUuid,
+        'peerName': target.name,
+        'peerAvatarIndex': target.avatarIndex,
+        'channelId': newChannelId,
+        'key': newKeyB64,
+      },
+    );
+    await _sendCard(
+      toChannelId: target.channelId,
+      type: 'introduction',
+      uuid: 'introduction_${fromPeer.personUuid}',
+      json: {
+        'peerPersonUuid': fromPeer.personUuid,
+        'peerName': fromPeer.name,
+        'peerAvatarIndex': fromPeer.avatarIndex,
+        'channelId': newChannelId,
+        'key': newKeyB64,
+      },
+    );
+  }
+
+  /// На боці одного з двох знайомлених: платящий-брокер [fromPeer] надіслав
+  /// готовий канал+ключ до нового піра — встановлюю справжній [FamilyPeers]
+  /// запис і прибираю тимчасову візитівку з [KnownFamilyMembers].
+  /// invitedMe=false для ОБОХ сторін: знайомство через платящого не дає
+  /// жодній зі сторін права дарувати Family-плюшки одна одній — дарує лише
+  /// прямий інвайтер.
+  Future<void> _handleIntroduction(Map<String, dynamic> json, FamilyPeer fromPeer) async {
+    final peerUuid = json['peerPersonUuid'] as String?;
+    final newChannelId = json['channelId'] as String?;
+    final keyB64 = json['key'] as String?;
+    if (peerUuid == null || newChannelId == null || keyB64 == null) return;
+
+    final repo = FamilyPeersRepository(_db);
+    await SharedChannelKeyStorage.store(newChannelId, base64Decode(keyB64));
+    await repo.upsert(FamilyPeersCompanion.insert(
+      personUuid: peerUuid,
+      familyId: fromPeer.familyId,
+      name: json['peerName'] as String? ?? 'Учасник родини',
+      avatarIndex: Value(json['peerAvatarIndex'] as int? ?? 0),
+      channelId: newChannelId,
+      invitedMe: const Value(false),
+    ));
+    await repo.removeKnownMember(peerUuid);
   }
 }
