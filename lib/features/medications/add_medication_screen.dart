@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
@@ -8,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/ai_usage_service.dart';
 import '../../core/services/camera_permission_service.dart';
+import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -113,6 +115,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     final plan = ref.read(planProvider);
     final canScan =
         plan.isPaid ? true : await AiUsageService.canPhotoScan();
+    if (!canScan) unawaited(MarketingTopicsService.markHitScanLimit());
     if (mounted) setState(() => _canScan = canScan);
   }
 

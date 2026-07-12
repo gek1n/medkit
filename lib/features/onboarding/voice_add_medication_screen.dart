@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../core/services/ai_consent_service.dart';
 import '../../core/services/ai_usage_service.dart';
+import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/nlu_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -96,6 +99,7 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
     // Онбординг завжди відбувається до вибору платного плану, тому тут
     // безумовно діє безкоштовний ліміт (як і для сканування рецепта).
     if (!await AiUsageService.canUseVoiceCommand()) {
+      unawaited(MarketingTopicsService.markHitVoiceLimit());
       _setError(
           'Безкоштовний ліміт голосових команд вичерпано. Можна оновити план пізніше в Профілі.');
       return;

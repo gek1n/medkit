@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/providers/real_plan_provider.dart';
 import '../../core/services/family_peer_sync_service.dart';
+import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -23,6 +26,14 @@ class PlansScreen extends ConsumerStatefulWidget {
 class _PlansScreenState extends ConsumerState<PlansScreen> {
   bool _isYearly = false;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // "Покинутий кошик" — відкрила екран тарифів, але поки не купила.
+    // Прибирається одразу після успішної покупки, [_selectPaid].
+    MarketingTopicsService.markViewedPlansNoPurchase();
+  }
 
   /// Свідома зміна тарифу ГЕТЬ від Family (не невдала оплата — окремий
   /// сценарій грейс-періоду, `BillingLifecycleService`) — попереджаємо ДО
@@ -105,6 +116,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       );
       ref.read(planProvider.notifier).state = plan;
       ref.invalidate(realPlanProvider);
+      unawaited(MarketingTopicsService.clearPurchaseIntentTopics());
       if (!mounted) return;
       if (outcome.newRecoveryKeyDisplay != null) {
         await showRecoveryKeyDialog(context, outcome.newRecoveryKeyDisplay!);
