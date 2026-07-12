@@ -4,16 +4,14 @@ import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-/// Керує ключем шифрування локальної БД (SQLCipher) і одноразовим
-/// перешифруванням наявної незашифрованої БД (для пристроїв, де вона вже
-/// існувала до впровадження шифрування).
+/// Керує ключем шифрування локальної БД (SQLCipher) і перешифруванням
+/// наявної незашифрованої БД (для пристроїв, де вона вже існувала до
+/// впровадження шифрування).
 class DbEncryptionService {
   static const _secureStorage = FlutterSecureStorage();
   static const _keyStorageKey = 'db_encryption_key';
-  static const _migratedPrefsKey = 'db_encryption_migrated';
 
   /// Повертає готовий до використання ключ (у форматі SQLCipher raw-key,
   /// напр. "x'AB12...'") і гарантує, що файл БД на диску зашифрований саме
@@ -22,14 +20,16 @@ class DbEncryptionService {
   static Future<String> ensureEncryptedDatabase(File dbFile) async {
     final key = await _getOrCreateKey();
 
-    final prefs = await SharedPreferences.getInstance();
-    final alreadyMigrated = prefs.getBool(_migratedPrefsKey) ?? false;
-
-    if (!alreadyMigrated && await dbFile.exists()) {
+    // Виконується на кожному запуску (не одноразово через прапорець у
+    // SharedPreferences) — _rekeyIfPlaintext сам по собі безпечний і
+    // ідемпотентний: якщо файл вже зашифрований цим ключем, спроба
+    // прочитати його без PRAGMA key просто впаде і мовчки проковтнеться.
+    // Прапорець-гейт раніше "згорав" ще до появи незашифрованого файлу
+    // (напр. якщо БД на пристрої з'являлась пізніше за перший запуск) і
+    // назавжди блокував перешифрування — саме це й спричиняло
+    // "file is not a database" при відкритті через Drift з ключем.
+    if (await dbFile.exists()) {
       _rekeyIfPlaintext(dbFile, key);
-    }
-    if (!alreadyMigrated) {
-      await prefs.setBool(_migratedPrefsKey, true);
     }
 
     return key;
