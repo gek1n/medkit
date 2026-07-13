@@ -12,6 +12,7 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/lab_results_repository.dart';
 import '../../shared/widgets/documents_section.dart';
+import '../../shared/widgets/lab_test_picker.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
 import '../../shared/widgets/specialty_picker.dart';
@@ -26,9 +27,9 @@ class AddLabResultScreen extends ConsumerStatefulWidget {
 }
 
 class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
-  late final TextEditingController _testNameController;
   late final TextEditingController _notesController;
   String? _specialty;
+  String? _testName;
   late DateTime _date;
   List<String> _documentPaths = [];
   bool _isSaving = false;
@@ -37,9 +38,9 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
   void initState() {
     super.initState();
     final ex = widget.existing;
-    _testNameController = TextEditingController(text: ex?.testName ?? '');
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _specialty = ex?.specialty;
+    _testName = ex?.testName;
     _date = ex?.takenAt ?? DateTime.now();
     if (ex != null) {
       _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
@@ -48,7 +49,6 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
 
   @override
   void dispose() {
-    _testNameController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -56,6 +56,11 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
   Future<void> _pickSpecialty() async {
     final picked = await showSpecialtyPicker(context, current: _specialty);
     if (picked != null) setState(() => _specialty = picked);
+  }
+
+  Future<void> _pickTestName() async {
+    final picked = await showLabTestPicker(context, current: _testName);
+    if (picked != null) setState(() => _testName = picked);
   }
 
   Future<void> _pickDate() async {
@@ -93,9 +98,8 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
     }
     setState(() => _isSaving = true);
     try {
-      final testNameVal = _testNameController.text.trim().isEmpty
-          ? null
-          : _testNameController.text.trim();
+      final testNameTrimmed = _testName?.trim() ?? '';
+      final testNameVal = testNameTrimmed.isEmpty ? null : testNameTrimmed;
       final notesVal = _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim();
@@ -176,9 +180,10 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
                     const SizedBox(height: AppDimensions.lg),
                     MkFieldLabel('Назва аналізу'),
                     const SizedBox(height: 6),
-                    MkTextField(
-                      controller: _testNameController,
-                      hint: 'Загальний аналіз крові…',
+                    MkTapField(
+                      value: _testName ?? 'Оберіть назву аналізу',
+                      filled: _testName != null,
+                      onTap: _pickTestName,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     MkFieldLabel('Дата'),

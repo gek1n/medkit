@@ -9,26 +9,35 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
 const _consentKind = 'scan';
 
 enum _ScanState { checkingConsent, needsConsent, pickingPhotos, scanning, results, error }
 
+/// Чернетка одного розпізнаного препарату на екрані перегляду результатів
+/// сканування. [included] — це і є явна згода користувача додати саме цей
+/// препарат: за замовчуванням false (те, що розпізнав ІІ, ще не підтверджено),
+/// стає true лише коли користувач сам відмітив чекбокс.
 class _MedDraft {
-  bool included = true;
+  bool included = false;
+  bool expanded;
   late TextEditingController nameController;
   late TextEditingController doseController;
-  final String? doseUnit;
-  final List<String>? scheduleTimes;
-  final String? foodRelation;
+  String form;
+  List<String> scheduleTimes;
+  String foodRelation;
+  int durationDays;
   final List<String>? sideEffects;
 
-  _MedDraft(ScannedMedication m)
-      : doseUnit = m.doseUnit,
-        scheduleTimes = m.scheduleTimes,
-        foodRelation = m.foodRelation,
-        sideEffects = m.sideEffects {
+  _MedDraft(ScannedMedication m, {required bool expandByDefault})
+      : form = m.form ?? 'tablet',
+        scheduleTimes = List.of(m.scheduleTimes ?? const ['morning']),
+        foodRelation = m.foodRelation ?? 'any',
+        durationDays = m.durationDays ?? 7,
+        sideEffects = m.sideEffects,
+        expanded = expandByDefault {
     nameController = TextEditingController(text: m.name);
     doseController = TextEditingController(text: m.doseAmount?.toString() ?? '');
   }
@@ -40,9 +49,11 @@ class _MedDraft {
 
   ScannedMedication toScannedMedication() => ScannedMedication(
         name: nameController.text.trim(),
+        form: form,
         doseAmount: double.tryParse(doseController.text.replaceAll(',', '.')),
-        doseUnit: doseUnit,
+        doseUnit: unitForMedForm(form),
         scheduleTimes: scheduleTimes,
+        durationDays: durationDays,
         foodRelation: foodRelation,
         sideEffects: sideEffects,
       );
@@ -130,7 +141,11 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
         return;
       }
       setState(() {
-        _drafts = results.map((m) => _MedDraft(m)).toList();
+        _drafts = results
+            .asMap()
+            .entries
+            .map((e) => _MedDraft(e.value, expandByDefault: e.key == 0))
+            .toList();
         _state = _ScanState.results;
       });
     } catch (e) {
@@ -241,10 +256,20 @@ class _ConsentBody extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
             border: Border.all(color: const Color(0xFFFDE68A)),
           ),
-          child: Text(
-            '⚠️ Дозування, розклад і довідкова інформація про побічні ефекти — '
-            'орієнтовні. Завжди звіряйте з інструкцією до препарату.',
-            style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
+          child: Text.rich(
+            TextSpan(
+              style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
+              children: [
+                const TextSpan(text: '⚠️ Дозування, розклад і довідкова інформація про побічні ефекти — орієнтовні. '),
+                TextSpan(
+                  text: 'Завжди звіряйте з інструкцією до препарату.',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: const Color(0xFF92400E),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
@@ -378,13 +403,7 @@ class _ResultsBody extends StatefulWidget {
 }
 
 class _ResultsBodyState extends State<_ResultsBody> {
-  static const _foodLabels = {'before': 'До їжі', 'after': 'Після їжі', 'any': 'Незалежно від їжі'};
-  static const _scheduleLabels = {
-    'morning': 'Вранці',
-    'afternoon': 'Вдень',
-    'evening': 'Ввечері',
-    'night': 'Вночі',
-  };
+  int get _selectedCount => widget.drafts.where((d) => d.included).length;
 
   @override
   Widget build(BuildContext context) {
@@ -396,8 +415,15 @@ class _ResultsBodyState extends State<_ResultsBody> {
             children: [
               Text('Розпізнано ${widget.drafts.length}. Перевірте перед додаванням:',
                   style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(
+                'Розгорніть препарат, перевірте дані і поставте галочку, щоб підтвердити додавання.',
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+              ),
               const SizedBox(height: AppDimensions.md),
-              ...widget.drafts.map(_buildDraftCard),
+              ...widget.drafts.map(
+                (d) => _DraftCard(draft: d, onChanged: () => setState(() {})),
+              ),
             ],
           ),
         ),
@@ -406,123 +432,345 @@ class _ResultsBodyState extends State<_ResultsBody> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: widget.onConfirm,
+              onPressed: _selectedCount == 0 ? null : widget.onConfirm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.border,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
               ),
-              child: Text('Додати обрані',
-                  style: AppTextStyles.bodyMd
-                      .copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
+              child: Text(
+                _selectedCount == 0 ? 'Оберіть препарати' : 'Додати обрані ($_selectedCount)',
+                style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
             ),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildDraftCard(_MedDraft d) {
-    return StatefulBuilder(
-      builder: (context, setCardState) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6)),
-          ],
+// ────────────────────────────── draft card (accordion) ─────────────────────
+
+class _DraftCard extends StatefulWidget {
+  final _MedDraft draft;
+  final VoidCallback onChanged;
+  const _DraftCard({required this.draft, required this.onChanged});
+
+  @override
+  State<_DraftCard> createState() => _DraftCardState();
+}
+
+class _DraftCardState extends State<_DraftCard> {
+  static const _foodLabels = {'before': 'До їжі', 'after': 'Після їжі', 'any': 'Незалежно від їжі'};
+  static const _scheduleLabels = {
+    'morning': 'Вранці',
+    'afternoon': 'Вдень',
+    'evening': 'Ввечері',
+    'night': 'Вночі',
+  };
+
+  _MedDraft get d => widget.draft;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(
+          color: d.included ? AppColors.primary : AppColors.border,
+          width: d.included ? 1.5 : 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Checkbox(
-                  value: d.included,
-                  onChanged: (v) => setCardState(() => d.included = v ?? true),
-                  activeColor: AppColors.primary,
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: d.nameController,
-                    style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
-                    decoration: const InputDecoration(isDense: true, border: InputBorder.none),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            onTap: () => setState(() => d.expanded = !d.expanded),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.nameController.text.trim().isEmpty
+                              ? 'Без назви'
+                              : d.nameController.text.trim(),
+                          style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          [
+                            medFormLabels[d.form] ?? d.form,
+                            if (d.doseController.text.trim().isNotEmpty)
+                              '${d.doseController.text.trim()} ${unitForMedForm(d.form)}',
+                          ].join(' · '),
+                          style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => d.included = !d.included);
+                      widget.onChanged();
+                    },
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: d.included ? AppColors.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                          color: d.included ? AppColors.primary : AppColors.border,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: d.included
+                          ? const Icon(Icons.check_rounded, size: 17, color: Colors.white)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    d.expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textMuted,
+                  ),
+                ],
+              ),
             ),
+          ),
+          if (d.expanded)
             Padding(
-              padding: const EdgeInsets.only(left: 40),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 80,
-                        child: TextField(
-                          controller: d.doseController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            hintText: 'Доза',
-                            suffixText: d.doseUnit,
-                          ),
+                  const Divider(color: AppColors.border),
+                  const SizedBox(height: 8),
+                  Text('НАЗВА', style: AppTextStyles.labelSm),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: TextField(
+                      controller: d.nameController,
+                      onChanged: (_) => setState(() {}),
+                      style: AppTextStyles.bodyMd,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Text('ФОРМА ВИПУСКУ', style: AppTextStyles.labelSm),
+                  const SizedBox(height: 8),
+                  FormChips(selected: d.form, onSelect: (f) => setState(() => d.form = f)),
+                  const SizedBox(height: 14),
+
+                  Text('ДОЗА', style: AppTextStyles.labelSm),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: 130,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.bg,
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: TextField(
+                        controller: d.doseController,
+                        onChanged: (_) => setState(() {}),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: AppTextStyles.bodyMd,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: InputBorder.none,
+                          suffixText: unitForMedForm(d.form),
                         ),
                       ),
-                      if (d.scheduleTimes != null && d.scheduleTimes!.isNotEmpty) ...[
-                        const SizedBox(width: 10),
-                        Expanded(
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Text('ЧАС ПРИЙОМУ', style: AppTextStyles.labelSm),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _scheduleLabels.entries.map((e) {
+                      final sel = d.scheduleTimes.contains(e.key);
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          if (sel) {
+                            d.scheduleTimes.remove(e.key);
+                          } else {
+                            d.scheduleTimes.add(e.key);
+                          }
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: sel ? AppColors.primary : AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: sel ? AppColors.primary : AppColors.border),
+                          ),
                           child: Text(
-                            d.scheduleTimes!.map((s) => _scheduleLabels[s] ?? s).join(' + '),
-                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                            e.value,
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: sel ? Colors.white : AppColors.textMain,
+                            ),
                           ),
                         ),
-                      ],
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+
+                  Text('ТРИВАЛІСТЬ КУРСУ', style: AppTextStyles.labelSm),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _StepperButton(
+                        icon: Icons.remove_rounded,
+                        onTap: d.durationDays > 1 ? () => setState(() => d.durationDays--) : null,
+                      ),
+                      SizedBox(
+                        width: 64,
+                        child: Text(
+                          '${d.durationDays} дн.',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      _StepperButton(
+                        icon: Icons.add_rounded,
+                        onTap: () => setState(() => d.durationDays++),
+                      ),
                     ],
                   ),
-                  if (d.foodRelation != null || (d.sideEffects?.isNotEmpty ?? false)) ...[
-                    const SizedBox(height: 8),
+                  const SizedBox(height: 14),
+
+                  Text('ЗВ\'ЯЗОК З ЇЖЕЮ', style: AppTextStyles.labelSm),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _foodLabels.entries.map((e) {
+                      final sel = d.foodRelation == e.key;
+                      return GestureDetector(
+                        onTap: () => setState(() => d.foodRelation = e.key),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: sel ? AppColors.primary : AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: sel ? AppColors.primary : AppColors.border),
+                          ),
+                          child: Text(
+                            e.value,
+                            style: AppTextStyles.labelMd.copyWith(
+                              color: sel ? Colors.white : AppColors.textMain,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  if (d.sideEffects?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 14),
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: AppColors.warningLight,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFFFDE68A)),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (d.foodRelation != null)
-                            Text('🍽 ${_foodLabels[d.foodRelation] ?? d.foodRelation}',
-                                style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E))),
-                          if (d.sideEffects?.isNotEmpty ?? false)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text('⚡ Можливі побічні ефекти: ${d.sideEffects!.join(', ')}',
-                                  style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E))),
+                      child: Text.rich(
+                        TextSpan(
+                          style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
+                          children: [
+                            TextSpan(text: '⚡ Можливі побічні ефекти: ${d.sideEffects!.join(', ')}. '),
+                            const TextSpan(
+                              text: 'Звірте з інструкцією до препарату.',
+                              style: TextStyle(fontWeight: FontWeight.w800),
                             ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '⚠️ Довідково, не гарантовано. Звірте з інструкцією до препарату.',
-                            style: AppTextStyles.caption.copyWith(color: const Color(0xFF92400E)),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
+
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() => d.included = true);
+                        widget.onChanged();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                        ),
+                      ),
+                      child: Text(
+                        d.included ? 'Підтверджено ✓' : 'Все вірно, підтвердити',
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _StepperButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: onTap == null ? AppColors.bg : AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border),
         ),
+        child: Icon(icon, size: 16, color: onTap == null ? AppColors.textMuted : AppColors.primary),
       ),
     );
   }

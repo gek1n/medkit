@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../core/services/symptom_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -11,6 +12,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
+import 'symptom_picker_sheet.dart';
 import 'wellbeing_history_screen.dart';
 
 class WellbeingCheckScreen extends ConsumerStatefulWidget {
@@ -35,18 +37,6 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
     (3, '😐', 'Норм', Color(0xFFE9F4EC)),
     (4, '🙂', 'Добре', Color(0xFFDCFCE7)),
     (5, '😄', 'Відмінно', Color(0xFFDCFCE7)),
-  ];
-
-  // Common symptoms (keys for i18n, displayed as labels)
-  static const _commonSymptoms = [
-    ('headache', 'головний біль'),
-    ('nausea', 'нудота'),
-    ('dizziness', 'запаморочення'),
-    ('weakness', 'слабість'),
-    ('shortness_of_breath', 'задишка'),
-    ('rash', 'висип'),
-    ('pain', 'біль'),
-    ('fever', 'температура'),
   ];
 
   @override
@@ -226,116 +216,51 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                   SectionLabel('Є симптоми?'),
                   const SizedBox(height: 4),
                   Text(
-                    'З побічок ваших ліків + часто зустрічаються у вас',
+                    'Оберіть зі списку поширених або додайте своє',
                     style: AppTextStyles.bodySm,
                   ),
                   const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ..._commonSymptoms.map((s) {
-                        final sel = _symptoms.contains(s.$1);
-                        return GestureDetector(
-                          onTap: () => setState(() {
-                            if (sel) {
-                              _symptoms.remove(s.$1);
-                            } else {
-                              _symptoms.add(s.$1);
-                            }
-                          }),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? const Color(0xFFFEE2E2)
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: sel
-                                    ? const Color(0xFFFECACA)
-                                    : AppColors.border,
-                                width: sel ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Text(
-                              s.$2,
-                              style: AppTextStyles.labelMd.copyWith(
-                                color: sel
-                                    ? const Color(0xFF991B1B)
-                                    : AppColors.textSub,
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                      ..._symptoms.where((s) => s.startsWith('custom_')).map((
-                        s,
-                      ) {
-                        final label = s.substring(7);
-                        return GestureDetector(
-                          onTap: () => setState(() => _symptoms.remove(s)),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: const Color(0xFFFECACA),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  label,
-                                  style: AppTextStyles.labelMd.copyWith(
-                                    color: const Color(0xFF991B1B),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.close_rounded,
-                                  size: 14,
-                                  color: Color(0xFF991B1B),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                      GestureDetector(
-                        onTap: () => _addCustomSymptom(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.4),
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: Text(
-                            '＋ своє',
-                            style: AppTextStyles.labelMd.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
+                  GestureDetector(
+                    onTap: _openSymptomPicker,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
                       ),
-                    ],
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.medical_information_outlined,
+                              size: 18,
+                              color: _symptoms.isEmpty
+                                  ? AppColors.textMuted
+                                  : AppColors.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _symptoms.isEmpty
+                                  ? 'Симптоми не обрано'
+                                  : _symptoms.map(SymptomLibraryService.labelFor).join(', '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.bodyMd.copyWith(
+                                color: _symptoms.isEmpty
+                                    ? AppColors.textMuted
+                                    : AppColors.textMain,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right_rounded,
+                              color: AppColors.textMuted),
+                        ],
+                      ),
+                    ),
                   ),
 
                   const Padding(
@@ -407,31 +332,21 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
     );
   }
 
-  Future<void> _addCustomSymptom(BuildContext context) async {
-    final ctrl = TextEditingController();
-    final result = await showDialog<String>(
+  Future<void> _openSymptomPicker() async {
+    final result = await showModalBottomSheet<Set<String>>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Додати симптом', style: AppTextStyles.h3),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Назва симптому'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Скасувати'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, ctrl.text.trim()),
-            child: const Text('Додати'),
-          ),
-        ],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusXl)),
       ),
+      builder: (_) => SymptomPickerSheet(initialSelected: _symptoms),
     );
-    if (result != null && result.isNotEmpty) {
-      setState(() => _symptoms.add('custom_$result'));
+    if (result != null) {
+      setState(() {
+        _symptoms
+          ..clear()
+          ..addAll(result);
+      });
     }
   }
 
@@ -977,17 +892,6 @@ class _LogCard extends StatelessWidget {
 
   static const _moodEmoji = ['', '😣', '😕', '😐', '🙂', '😄'];
 
-  static const _symptomLabels = {
-    'headache': 'головний біль',
-    'nausea': 'нудота',
-    'dizziness': 'запаморочення',
-    'weakness': 'слабість',
-    'shortness_of_breath': 'задишка',
-    'rash': 'висип',
-    'pain': 'біль',
-    'fever': 'температура',
-  };
-
   @override
   Widget build(BuildContext context) {
     final h = log.loggedAt.hour;
@@ -1057,9 +961,7 @@ class _LogCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              s.startsWith('custom_')
-                                  ? s.substring(7)
-                                  : (_symptomLabels[s] ?? s),
+                              SymptomLibraryService.labelFor(s),
                               style: AppTextStyles.caption.copyWith(
                                 color: const Color(0xFF991B1B),
                                 fontWeight: FontWeight.w600,

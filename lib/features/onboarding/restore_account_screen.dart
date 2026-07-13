@@ -1,96 +1,106 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 
-import '../../core/providers/database_provider.dart';
-import '../../core/services/account_service.dart';
-import '../../core/services/sync_service.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/services/backup_service.dart';
+import '../../core/services/backup_settings_service.dart';
+import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_back_button.dart';
-import '../today/providers/today_providers.dart';
-import 'privacy_gate_screen.dart';
 
-/// Онбординг-варіант "Відновити акаунт" — вхід через Google/Apple, щоб
-/// знайти вже наявний акаунт синхронізації (`AccountService.findAccountViaOAuth`),
-/// а тоді повне відновлення даних (`SyncService.pullChanges(fullRestore: true)`).
-/// Recovery key просимо, лише якщо ключ шифрування ще не підхопився сам через
-/// iCloud Keychain (secure storage) — на новому Android чи новому Apple ID
-/// його доведеться ввести вручну.
-class RestoreAccountScreen extends ConsumerStatefulWidget {
+/// Онбординг-варіант "Відновити акаунт" — підключення до Google Drive/iCloud
+/// (той самий сховок, куди складено "Резервну копію" в Профілі) і пароль
+/// бекапу. Відновлює ПОВНІСТЮ: БД, фото/PDF медкартки, обліковий запис
+/// синхронізації (а отже й сімейні зв'язки) і план підписки — все, що було
+/// в blob'і ключів ([BackupCryptoService]) та архіві на момент створення
+/// копії. `SubscriptionService.restorePurchases()` викликається додатково —
+/// best-effort підтвердження активної покупки в App Store/Google Play, якщо
+/// обліковий запис синхронізації з якоїсь причини не підхопився.
+class RestoreAccountScreen extends StatefulWidget {
   const RestoreAccountScreen({super.key});
 
   @override
-  ConsumerState<RestoreAccountScreen> createState() => _RestoreAccountScreenState();
+  State<RestoreAccountScreen> createState() => _RestoreAccountScreenState();
 }
 
-class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
-  final _accountService = AccountService();
+class _RestoreAccountScreenState extends State<RestoreAccountScreen> {
+  final _backupService = BackupService();
   bool _busy = false;
   String? _error;
 
-  Future<void> _restore(String provider) async {
+  Future<void> _restore(BackupTarget target, BackupMode mode) async {
+    final passphrase = await _askPassphrase();
+    if (passphrase == null) return;
+
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final accountId = await _accountService.findAccountViaOAuth(provider);
+      await _backupService.restoreBackup(target: target, passphrase: passphrase);
+      await BackupSettingsService.savePassphrase(passphrase);
+      await BackupSettingsService.setMode(mode);
+      await BackupSettingsService.markBackedUpNow();
 
-      final existingKey = await _accountService.currentSyncKey();
-      if (existingKey == null) {
-        if (!mounted) return;
-        final recoveryKey = await _askRecoveryKey();
-        if (recoveryKey == null) {
-          if (mounted) setState(() => _busy = false);
-          return;
-        }
-        await _accountService.attachRecoveryKey(accountId: accountId, recoveryKeyDisplay: recoveryKey);
+      try {
+        await SubscriptionService.restorePurchases();
+      } catch (_) {
+        // Best-effort — обліковий запис синхронізації, відновлений вище,
+        // вже несе актуальний статус підписки з сервера.
       }
 
-      final db = ref.read(databaseProvider);
-      await SyncService(db).pullChanges(fullRestore: true);
-
       if (!mounted) return;
-      final container = ProviderScope.containerOf(context, listen: false);
-      container.invalidate(generateTodayIntakesProvider);
-      container.invalidate(tomorrowIntakesProvider);
-      container.invalidate(generateTodayActivityLogsProvider);
-      container.invalidate(tomorrowActivityLogsProvider);
-
-      if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const PrivacyGateScreen()),
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text('Дані відновлено'),
+          content: const Text(
+            'Усі ваші ліки, розклад, медкартка і підписка відновлені. '
+            'Перезапустіть застосунок, щоб зміни набули дії.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: const Text('Гаразд'),
+            ),
+          ],
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Не вдалося увійти: перевірте зʼєднання та спробуйте ще раз';
+        _error = 'Не вдалося відновити: перевірте пароль і з\'єднання, спробуйте ще раз';
       });
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<String?> _askRecoveryKey() {
+  Future<String?> _askPassphrase() {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Recovery key'),
+        title: const Text('Пароль резервної копії'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Вхід підтверджено. Введіть recovery key, щоб відновити ключ шифрування на цьому пристрої.',
+              'Введіть пароль, який ви вказали при створенні резервної копії.',
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(hintText: 'XXXX-XXXX-XXXX-XXXX-XXXX-XXXX'),
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Пароль'),
             ),
           ],
         ),
@@ -115,30 +125,31 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              MkBackButton(
-                  onTap: _busy ? null : () => Navigator.of(context).pop()),
+              MkBackButton(onTap: _busy ? null : () => Navigator.of(context).pop()),
               const SizedBox(height: 20),
               Text('Відновити акаунт', style: AppTextStyles.h2),
               const SizedBox(height: 6),
               Text(
-                'Увійдіть, щоб відновити ваші дані з попереднього пристрою',
+                'Підключіться до сховища, де зберігається ваша резервна копія',
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
               const SizedBox(height: 32),
               if (_busy)
                 const Expanded(child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
               else ...[
-                _AuthButton(
-                  icon: Icons.g_mobiledata_rounded,
-                  label: 'Продовжити з Google',
-                  onTap: () => _restore('google'),
+                _SourceButton(
+                  icon: Icons.cloud_rounded,
+                  label: 'Google Drive',
+                  onTap: () => _restore(BackupTarget.googleDrive, BackupMode.googleDrive),
                 ),
-                const SizedBox(height: 12),
-                _AuthButton(
-                  icon: Icons.apple_rounded,
-                  label: 'Продовжити з Apple',
-                  onTap: () => _restore('apple'),
-                ),
+                if (Platform.isIOS) ...[
+                  const SizedBox(height: 12),
+                  _SourceButton(
+                    icon: Icons.cloud_queue_rounded,
+                    label: 'iCloud',
+                    onTap: () => _restore(BackupTarget.iCloud, BackupMode.iCloud),
+                  ),
+                ],
               ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
@@ -152,11 +163,11 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
   }
 }
 
-class _AuthButton extends StatelessWidget {
+class _SourceButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _AuthButton({required this.icon, required this.label, required this.onTap});
+  const _SourceButton({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

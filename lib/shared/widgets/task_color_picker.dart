@@ -14,7 +14,7 @@ class TaskColorPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('ЦВІТ КАРТОЧКИ', style: AppTextStyles.labelSm),
+        Text('КОЛІР КАРТКИ', style: AppTextStyles.labelSm),
         const SizedBox(height: 10),
         Wrap(
           spacing: 12,

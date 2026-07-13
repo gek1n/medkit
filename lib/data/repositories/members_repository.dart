@@ -45,8 +45,32 @@ class MembersRepository {
       ));
     }
   }
+
+  /// Самовідновлення: якщо серед наявних локальних профілів немає жодного
+  /// з role='owner' (пошкоджені дані — не мало так бути, але онбординг/join
+  /// мають створювати owner завжди), підвищуємо найдавніший профіль до
+  /// owner, а не додаємо новий рядок. Інакше власний профіль користувача
+  /// назавжди застрягає в гілках коду "не owner" — видно чужі дії
+  /// (запросити/видалити/переглянути як) на своїй же картці в Сім'ї, і
+  /// бейдж "пропущено", розрахований лише для не-owner.
+  /// Не займається множинними owner — той сценарій виявляє [getOwner]
+  /// сам (кидає виняток), це окрема, серйозніша проблема даних.
+  Future<void> ensureOwnerRole() async {
+    final owner = await getOwner();
+    if (owner != null) return;
+    final all = await _db.select(_db.members).get();
+    if (all.isEmpty) return;
+    all.sort((a, b) => a.id.compareTo(b.id));
+    await update(MembersCompanion(id: Value(all.first.id), role: const Value('owner')));
+  }
 }
 
 final membersRepositoryProvider = Provider<MembersRepository>((ref) {
   return MembersRepository(ref.watch(databaseProvider));
+});
+
+/// Запускається один раз при старті застосунку, перед тим як показати
+/// онбординг чи основний UI — див. [MembersRepository.ensureOwnerRole].
+final ensureOwnerRoleProvider = FutureProvider<void>((ref) {
+  return ref.watch(membersRepositoryProvider).ensureOwnerRole();
 });

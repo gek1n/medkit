@@ -11,6 +11,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/chronic_conditions_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import 'add_chronic_condition_screen.dart';
+import 'chronic_condition_detail_screen.dart';
 
 final _conditionsProvider = StreamProvider.family<List<ChronicCondition>, int>((ref, memberId) {
   return ref.watch(chronicConditionsRepositoryProvider).watchByMember(memberId);
@@ -26,28 +27,37 @@ class ChronicConditionsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: MkAddFab(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddChronicConditionScreen(memberId: memberId)),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            MkListHeader(
-              title: 'Хронічні захворювання',
-              onAdd: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AddChronicConditionScreen(memberId: memberId)),
-              ),
-            ),
+            const MkListHeader(title: 'Хронічні захворювання'),
             Expanded(
-              child: conditionsAsync.when(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => ref.invalidate(_conditionsProvider(memberId)),
+                child: conditionsAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
                 data: (conditions) {
                   if (conditions.isEmpty) {
-                    return const MkEmptyState(
-                      hint: 'Натисніть "+ Додати" щоб додати перший діагноз',
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        MkEmptyState(
+                          hint: 'Натисніть "+ Додати" щоб додати перший діагноз',
+                        ),
+                      ],
                     );
                   }
                   return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
                         AppDimensions.screenPadding, AppDimensions.md, AppDimensions.screenPadding, 48),
                     itemCount: conditions.length,
@@ -58,16 +68,14 @@ class ChronicConditionsScreen extends ConsumerWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AddChronicConditionScreen(
-                              memberId: memberId,
-                              existing: conditions[i],
-                            ),
+                            builder: (_) => ChronicConditionDetailScreen(condition: conditions[i]),
                           ),
                         ),
                       ),
                     ),
                   );
                 },
+                ),
               ),
             ),
           ],

@@ -7,6 +7,7 @@ import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/section_label.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
@@ -31,21 +32,19 @@ class AppointmentsHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: MkAddFab(
+        onPressed: () => currentMemberAsync.whenData((m) {
+          if (m == null) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AddAppointmentScreen(memberId: m.id)),
+          );
+        }),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            _Header(
-              onAdd: () => currentMemberAsync.whenData((m) {
-                if (m == null) return;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        AddAppointmentScreen(memberId: m.id),
-                  ),
-                );
-              }),
-            ),
+            const _Header(),
             Expanded(
               child: aptsAsync.when(
                 loading: () => const Center(
@@ -70,8 +69,7 @@ class AppointmentsHistoryScreen extends ConsumerWidget {
 // ────────────────────────────── header ──────────────────────────────
 
 class _Header extends StatelessWidget {
-  final void Function() onAdd;
-  const _Header({required this.onAdd});
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
@@ -84,15 +82,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
               child:
-                  Text('Список записів', style: AppTextStyles.h3)),
-          GestureDetector(
-            onTap: onAdd,
-            child: Text(
-              '+ Додати',
-              style: AppTextStyles.labelMd
-                  .copyWith(color: AppColors.primary),
-            ),
-          ),
+                  Text('Візити до лікарів', style: AppTextStyles.h3)),
         ],
       ),
     );

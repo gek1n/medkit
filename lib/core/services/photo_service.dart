@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import 'file_encryption_service.dart';
@@ -88,6 +89,20 @@ class PhotoService {
 
     final plainBytes = await File(path).readAsBytes();
     return _saveBytes(plainBytes, '.pdf');
+  }
+
+  /// Розшифровує вкладення у тимчасовий файл і відкриває системне меню
+  /// "Поділитися" (на практиці — єдиний кросплатформний спосіб відкрити
+  /// PDF/фото в іншому застосунку без власного in-app в'ювера).
+  static Future<void> shareDecrypted(String relative) async {
+    final bytes = await decryptedBytes(relative);
+    final dir = await getTemporaryDirectory();
+    final filename = p.basename(relative);
+    final file = await (await File(p.join(dir.path, filename)).create(recursive: true))
+        .writeAsBytes(bytes);
+    await SharePlus.instance.share(
+      ShareParams(files: [XFile(file.path, mimeType: isPdf(relative) ? 'application/pdf' : null)]),
+    );
   }
 
   static Future<void> delete(String relative) async {

@@ -11,6 +11,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/vaccinations_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import 'add_vaccination_screen.dart';
+import 'vaccination_detail_screen.dart';
 
 final _vaccinationsProvider = StreamProvider.family<List<Vaccination>, int>((ref, memberId) {
   return ref.watch(vaccinationsRepositoryProvider).watchByMember(memberId);
@@ -26,25 +27,33 @@ class VaccinationsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: MkAddFab(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddVaccinationScreen(memberId: memberId)),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            MkListHeader(
-              title: 'Щеплення',
-              onAdd: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AddVaccinationScreen(memberId: memberId)),
-              ),
-            ),
+            const MkListHeader(title: 'Щеплення'),
             Expanded(
-              child: vaccinationsAsync.when(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => ref.invalidate(_vaccinationsProvider(memberId)),
+                child: vaccinationsAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
                 data: (vaccinations) {
                   if (vaccinations.isEmpty) {
-                    return const MkEmptyState(
-                      hint: 'Натисніть "+ Додати" щоб додати перше щеплення',
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        MkEmptyState(
+                          hint: 'Натисніть "+ Додати" щоб додати перше щеплення',
+                        ),
+                      ],
                     );
                   }
                   // Ті, де скоро/прострочена ревакцинація — першими: саме це
@@ -56,6 +65,7 @@ class VaccinationsScreen extends ConsumerWidget {
                       return b.givenAt.compareTo(a.givenAt);
                     });
                   return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
                         AppDimensions.screenPadding, AppDimensions.md, AppDimensions.screenPadding, 48),
                     itemCount: sorted.length,
@@ -66,14 +76,14 @@ class VaccinationsScreen extends ConsumerWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                AddVaccinationScreen(memberId: memberId, existing: sorted[i]),
+                            builder: (_) => VaccinationDetailScreen(vaccination: sorted[i]),
                           ),
                         ),
                       ),
                     ),
                   );
                 },
+                ),
               ),
             ),
           ],

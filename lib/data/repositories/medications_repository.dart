@@ -36,6 +36,14 @@ class MedicationsRepository {
             ..where((t) => t.memberId.equals(memberId) & t.isActive.equals(true)))
           .get();
 
+  /// Усі ліки члена сім'ї — і активні, і зупинені (isActive=false лишається
+  /// в БД через [softDelete], не видаляється фізично) — для архіву.
+  Stream<List<Medication>> watchAllByMember(int memberId) =>
+      (_db.select(_db.medications)
+            ..where((t) => t.memberId.equals(memberId))
+            ..orderBy([(t) => OrderingTerm.desc(t.startDate)]))
+          .watch();
+
   Future<Medication?> getById(int id) =>
       (_db.select(_db.medications)..where((t) => t.id.equals(id)))
           .getSingleOrNull();

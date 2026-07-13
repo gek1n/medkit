@@ -3,15 +3,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../core/services/backup_service.dart';
+import '../../core/services/backup_settings_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
-/// На Android — Google Drive (appDataFolder), на iOS — iCloud. Обидва
-/// зберігають лише вже зашифровані на пристрої дані (SQLCipher БД +
-/// AES-GCM фото) плюс окремо зашифрований паролем бекапу конверт із ключами
-/// шифрування. Без цього пароля відновити дані з хмари неможливо навіть
-/// маючи повний доступ до самого Drive/iCloud акаунта.
+/// Єдиний розділ "Резервна копія" — заміняє собою колишні окремі "Резервна
+/// копія" і "Синхронізація". Три варіанти: лише на пристрої (з попередженням
+/// про втрату даних при перевстановленні), Google Drive (iOS+Android) і
+/// iCloud (лише iOS). Для хмарних режимів — частота автобекапу (раз на день/
+/// тиждень), який фактично запускається на resume застосунку (`_Shell` у
+/// main.dart), а не через нативний background scheduler.
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
 
@@ -21,37 +24,95 @@ class BackupScreen extends StatefulWidget {
 
 class _BackupScreenState extends State<BackupScreen> {
   final _backupService = BackupService();
+  bool _loading = true;
   bool _busy = false;
+  BackupMode _mode = BackupMode.local;
+  BackupFrequency _frequency = BackupFrequency.daily;
+  DateTime? _lastBackupAt;
 
-  BackupTarget get _target => Platform.isIOS ? BackupTarget.iCloud : BackupTarget.googleDrive;
-  String get _targetName => Platform.isIOS ? 'iCloud' : 'Google Drive';
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final mode = await BackupSettingsService.currentMode();
+    final frequency = await BackupSettingsService.currentFrequency();
+    final lastAt = await BackupSettingsService.lastBackupAt();
+    if (!mounted) return;
+    setState(() {
+      _mode = mode;
+      _frequency = frequency;
+      _lastBackupAt = lastAt;
+      _loading = false;
+    });
+  }
+
+  BackupTarget? get _target => switch (_mode) {
+        BackupMode.local => null,
+        BackupMode.googleDrive => BackupTarget.googleDrive,
+        BackupMode.iCloud => BackupTarget.iCloud,
+      };
+
+  // ⚠️ Навмисно НЕ питає пароль і НЕ створює бекап одразу при виборі хмарного
+  // режиму — на щойно встановленому застосунку тут ще нема з чим порівняти
+  // "новий пароль" від "пароль наявної копії в хмарі", а негайний
+  // silent-бекап перезаписав би саме ту копію, яку користувач, можливо,
+  // прийшов сюди відновити. Вибір режиму лише вмикає автобекап на майбутнє —
+  // перший реальний бекап чи відновлення завжди явна дія користувача нижче
+  // ("Створити зараз" / "Відновити з резервної копії").
+  Future<void> _selectMode(BackupMode mode) async {
+    if (mode == _mode) return;
+    await BackupSettingsService.setMode(mode);
+    if (!mounted) return;
+    setState(() => _mode = mode);
+  }
+
+  Future<void> _selectFrequency(BackupFrequency frequency) async {
+    if (frequency == _frequency) return;
+    await BackupSettingsService.setFrequency(frequency);
+    if (!mounted) return;
+    setState(() => _frequency = frequency);
+  }
 
   Future<void> _createBackup() async {
-    final passphrase = await _askPassphrase(
-      title: 'Пароль для резервної копії',
-      subtitle: 'Придумайте пароль. Без нього відновити дані буде неможливо — навіть нам.',
-      confirmRequired: true,
-    );
-    if (passphrase == null) return;
+    final target = _target;
+    if (target == null) return;
+
+    var passphrase = await BackupSettingsService.savedPassphrase();
+    if (passphrase == null) {
+      final entered = await _askPassphrase(
+        title: 'Пароль для резервної копії',
+        subtitle: 'Придумайте пароль. Без нього відновити дані буде неможливо — навіть нам.',
+        confirmRequired: true,
+      );
+      if (entered == null) return;
+      passphrase = entered;
+      await BackupSettingsService.savePassphrase(passphrase);
+    }
 
     setState(() => _busy = true);
     try {
-      await _backupService.createBackup(target: _target, passphrase: passphrase);
+      await _backupService.createBackup(target: target, passphrase: passphrase);
+      await BackupSettingsService.markBackedUpNow();
       if (!mounted) return;
+      setState(() => _lastBackupAt = DateTime.now());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Резервну копію збережено у $_targetName')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Помилка: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _restoreBackup() async {
+    final target = _target;
+    if (target == null) return;
+
     final confirmed = await _confirmRestore();
     if (confirmed != true) return;
 
@@ -64,7 +125,8 @@ class _BackupScreenState extends State<BackupScreen> {
 
     setState(() => _busy = true);
     try {
-      await _backupService.restoreBackup(target: _target, passphrase: passphrase);
+      await _backupService.restoreBackup(target: target, passphrase: passphrase);
+      await BackupSettingsService.savePassphrase(passphrase);
       if (!mounted) return;
       await showDialog<void>(
         context: context,
@@ -80,12 +142,18 @@ class _BackupScreenState extends State<BackupScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не вдалося відновити: невірний пароль або копія відсутня')),
+        const SnackBar(content: Text('Не вдалося відновити: невірний пароль або копія відсутня')),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  String get _targetName => switch (_mode) {
+        BackupMode.googleDrive => 'Google Drive',
+        BackupMode.iCloud => 'iCloud',
+        BackupMode.local => '',
+      };
 
   Future<bool?> _confirmRestore() {
     return showDialog<bool>(
@@ -177,44 +245,189 @@ class _BackupScreenState extends State<BackupScreen> {
           children: [
             const MkScreenHeader(title: 'Резервна копія'),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _busy
-                    ? const Center(child: CircularProgressIndicator())
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.backup_rounded,
-                              size: 48, color: AppColors.primary),
-                          const SizedBox(height: 16),
-                          Text('Резервна копія в $_targetName',
-                              style: AppTextStyles.h2),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Ліки, розклад і фото зберігаються у вашому особистому '
-                            '$_targetName вже зашифрованими. Elly і хмара не бачать '
-                            'ваші дані — розшифрувати їх можна лише паролем, який '
-                            'знаєте тільки ви.',
-                            style: AppTextStyles.bodyMd
-                                .copyWith(color: AppColors.textSub),
-                          ),
-                          const SizedBox(height: 28),
-                          FilledButton.icon(
-                            onPressed: _createBackup,
-                            icon: const Icon(Icons.cloud_upload_outlined),
-                            label: const Text('Створити резервну копію'),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: _restoreBackup,
-                            icon: const Icon(Icons.cloud_download_outlined),
-                            label: const Text('Відновити з резервної копії'),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: const EdgeInsets.all(AppDimensions.screenPadding),
+                      children: [
+                        Text(
+                          'Ліки, розклад, медкартка (фото/PDF) і всі інші дані — обирайте, '
+                          'де зберігати резервну копію.',
+                          style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+                        ),
+                        const SizedBox(height: AppDimensions.lg),
+                        _ModeCard(
+                          icon: Icons.phonelink_off_rounded,
+                          title: 'Тільки на пристрої',
+                          subtitle: 'При перевстановленні застосунку всі дані буде втрачено',
+                          selected: _mode == BackupMode.local,
+                          warning: _mode == BackupMode.local,
+                          onTap: _busy ? null : () => _selectMode(BackupMode.local),
+                        ),
+                        const SizedBox(height: AppDimensions.md),
+                        _ModeCard(
+                          icon: Icons.cloud_rounded,
+                          title: 'Google Drive',
+                          subtitle: 'Зашифровано на пристрої — Elly і Google не бачать ваші дані',
+                          selected: _mode == BackupMode.googleDrive,
+                          onTap: _busy ? null : () => _selectMode(BackupMode.googleDrive),
+                        ),
+                        if (Platform.isIOS) ...[
+                          const SizedBox(height: AppDimensions.md),
+                          _ModeCard(
+                            icon: Icons.cloud_queue_rounded,
+                            title: 'iCloud',
+                            subtitle: 'Зашифровано на пристрої — Elly і Apple не бачать ваші дані',
+                            selected: _mode == BackupMode.iCloud,
+                            onTap: _busy ? null : () => _selectMode(BackupMode.iCloud),
                           ),
                         ],
-                      ),
-              ),
+                        if (_mode != BackupMode.local) ...[
+                          const SizedBox(height: AppDimensions.xl),
+                          Text('ЧАСТОТА АВТОБЕКАПУ', style: AppTextStyles.labelSm),
+                          const SizedBox(height: AppDimensions.sm),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _FrequencyChip(
+                                  label: 'Раз на день',
+                                  selected: _frequency == BackupFrequency.daily,
+                                  onTap: _busy
+                                      ? null
+                                      : () => _selectFrequency(BackupFrequency.daily),
+                                ),
+                              ),
+                              const SizedBox(width: AppDimensions.sm),
+                              Expanded(
+                                child: _FrequencyChip(
+                                  label: 'Раз на тиждень',
+                                  selected: _frequency == BackupFrequency.weekly,
+                                  onTap: _busy
+                                      ? null
+                                      : () => _selectFrequency(BackupFrequency.weekly),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppDimensions.md),
+                          Text(
+                            _lastBackupAt == null
+                                ? 'Резервної копії ще не було'
+                                : 'Останній бекап: ${_formatDate(_lastBackupAt!)}',
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                          ),
+                          const SizedBox(height: AppDimensions.lg),
+                          if (_busy)
+                            const Center(child: CircularProgressIndicator())
+                          else ...[
+                            FilledButton.icon(
+                              onPressed: () => _createBackup(),
+                              icon: const Icon(Icons.cloud_upload_outlined),
+                              label: const Text('Створити резервну копію зараз'),
+                            ),
+                            const SizedBox(height: AppDimensions.sm),
+                            OutlinedButton.icon(
+                              onPressed: _restoreBackup,
+                              icon: const Icon(Icons.cloud_download_outlined),
+                              label: const Text('Відновити з резервної копії'),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime dt) =>
+      '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} '
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+}
+
+class _ModeCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final bool warning;
+  final VoidCallback? onTap;
+
+  const _ModeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    this.warning = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryLight : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? 2 : 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 24, color: warning ? AppColors.warning : AppColors.primary),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppTextStyles.labelLg),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: warning ? AppColors.warning : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected) const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FrequencyChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+  const _FrequencyChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryLight : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          border: Border.all(color: selected ? AppColors.primary : AppColors.border),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.labelMd.copyWith(
+            color: selected ? AppColors.primary : AppColors.textMain,
+          ),
         ),
       ),
     );

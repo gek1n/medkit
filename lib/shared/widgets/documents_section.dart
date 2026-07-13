@@ -1,15 +1,12 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import 'photo_gallery_viewer.dart';
 
 /// Список вкладень (фото + PDF) з можливістю додавати/видаляти/переглядати
 /// декілька документів — заміна одиночного `PhotoAttachmentBox` там, де
@@ -18,12 +15,16 @@ class DocumentsSection extends StatefulWidget {
   final List<String> paths;
   final void Function(List<String>) onChanged;
   final String label;
+  /// Лише перегляд (тап відкриває файл) — без "Додати" й без хрестика
+  /// видалення на мініатюрах. Для екранів перегляду запису медкартки.
+  final bool readOnly;
 
   const DocumentsSection({
     super.key,
     required this.paths,
     required this.onChanged,
     this.label = 'Документи',
+    this.readOnly = false,
   });
 
   @override
@@ -57,16 +58,18 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   }
 
   Future<void> _open(String rel) async {
-    final bytes = await _decrypted(rel);
-    final isPdf = PhotoService.isPdf(rel);
-    final dir = await getTemporaryDirectory();
-    final filename = p.basename(rel);
-    final file = await (await File(p.join(dir.path, filename)).create(recursive: true))
-        .writeAsBytes(bytes);
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: isPdf ? 'application/pdf' : null)],
-      ),
+    if (PhotoService.isPdf(rel)) {
+      await PhotoService.shareDecrypted(rel);
+      return;
+    }
+    // Фото — перегляд і масштабування прямо в застосунку, з гортанням між
+    // усіма фото цього ж запису (PDF пропускаємо, для них лишається шеринг).
+    final images = widget.paths.where((p) => !PhotoService.isPdf(p)).toList();
+    if (!mounted) return;
+    await showPhotoGalleryViewer(
+      context,
+      imagePaths: images,
+      initialIndex: images.indexOf(rel).clamp(0, images.length - 1),
     );
   }
 
@@ -79,42 +82,46 @@ class _DocumentsSectionState extends State<DocumentsSection> {
           children: [
             Text(widget.label, style: AppTextStyles.labelMd),
             const Spacer(),
-            if (_busy)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              GestureDetector(
-                onTap: _add,
-                child: Text('Додати',
-                    style: AppTextStyles.labelSm.copyWith(color: AppColors.primary)),
-              ),
+            if (!widget.readOnly)
+              if (_busy)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                GestureDetector(
+                  onTap: _add,
+                  child: Text('Додати',
+                      style: AppTextStyles.labelSm.copyWith(color: AppColors.primary)),
+                ),
           ],
         ),
         const SizedBox(height: 8),
         if (widget.paths.isEmpty)
-          GestureDetector(
-            onTap: _busy ? null : _add,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.attach_file_rounded, color: AppColors.primary),
-                  const SizedBox(height: 6),
-                  Text('Додати фото чи PDF',
-                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub)),
-                ],
-              ),
-            ),
-          )
+          widget.readOnly
+              ? Text('Немає документів',
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted))
+              : GestureDetector(
+                  onTap: _busy ? null : _add,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.attach_file_rounded, color: AppColors.primary),
+                        const SizedBox(height: 6),
+                        Text('Додати фото чи PDF',
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub)),
+                      ],
+                    ),
+                  ),
+                )
         else
           Wrap(
             spacing: 8,
@@ -125,7 +132,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                       isPdf: PhotoService.isPdf(rel),
                       loadBytes: () => _decrypted(rel),
                       onTap: () => _open(rel),
-                      onRemove: () => _remove(rel),
+                      onRemove: widget.readOnly ? null : () => _remove(rel),
                     ))
                 .toList(),
           ),
@@ -139,7 +146,7 @@ class _DocumentTile extends StatelessWidget {
   final bool isPdf;
   final Future<Uint8List> Function() loadBytes;
   final VoidCallback onTap;
-  final VoidCallback onRemove;
+  final VoidCallback? onRemove;
 
   const _DocumentTile({
     required this.path,
@@ -193,19 +200,20 @@ class _DocumentTile extends StatelessWidget {
                   ),
           ),
         ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-            onTap: onRemove,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-              child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+        if (onRemove != null)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
