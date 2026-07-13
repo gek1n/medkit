@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
@@ -184,7 +185,7 @@ class _RootRouter extends ConsumerWidget {
         // онбординг) — лишаємо хоч debugPrint, щоб було що подивитись у
         // консолі при наступному репродукуванні.
         debugPrint('🔴 currentMemberProvider error: $e\n$st');
-        return _DatabaseErrorScreen(error: e);
+        return _DatabaseErrorScreen(error: e, stackTrace: st);
       },
       data: (member) =>
           member == null ? const OnboardingScreen() : const _Shell(),
@@ -192,16 +193,28 @@ class _RootRouter extends ConsumerWidget {
   }
 }
 
-class _DatabaseErrorScreen extends ConsumerWidget {
+class _DatabaseErrorScreen extends ConsumerStatefulWidget {
   final Object error;
-  const _DatabaseErrorScreen({required this.error});
+  final StackTrace? stackTrace;
+  const _DatabaseErrorScreen({required this.error, this.stackTrace});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DatabaseErrorScreen> createState() =>
+      _DatabaseErrorScreenState();
+}
+
+class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
+  bool _showDetails = false;
+
+  String get _detailsText =>
+      '${widget.error}\n\n${widget.stackTrace ?? ''}';
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -234,6 +247,41 @@ class _DatabaseErrorScreen extends ConsumerWidget {
                 ),
                 child: const Text('Спробувати ще раз'),
               ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => setState(() => _showDetails = !_showDetails),
+                child: Text(
+                    _showDetails ? 'Сховати деталі' : 'Показати деталі помилки'),
+              ),
+              if (_showDetails) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    _detailsText,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textSub,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _detailsText));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Скопійовано')),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  label: const Text('Копіювати текст помилки'),
+                ),
+              ],
             ],
           ),
         ),
