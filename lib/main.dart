@@ -174,9 +174,70 @@ class _RootRouter extends ConsumerWidget {
 
     return memberAsync.when(
       loading: () => const _LoadingScreen(),
-      error: (_, _) => const OnboardingScreen(),
+      // НІКОЛИ не показувати онбординг при помилці читання БД — дані
+      // фізично на диску, просто зараз не читаються (напр. розсинхрон
+      // ключа шифрування). Раніше тут стояло `=> const OnboardingScreen()`,
+      // що ховало будь-яку помилку і виглядало як "акаунт зник" — юзер
+      // проходив онбординг заново, хоча дані нікуди не ділись.
+      error: (e, st) {
+        // Раніше ця помилка була взагалі не видна нікому (мовчки йшли на
+        // онбординг) — лишаємо хоч debugPrint, щоб було що подивитись у
+        // консолі при наступному репродукуванні.
+        debugPrint('🔴 currentMemberProvider error: $e\n$st');
+        return _DatabaseErrorScreen(error: e);
+      },
       data: (member) =>
           member == null ? const OnboardingScreen() : const _Shell(),
+    );
+  }
+}
+
+class _DatabaseErrorScreen extends ConsumerWidget {
+  final Object error;
+  const _DatabaseErrorScreen({required this.error});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  size: 48, color: AppColors.textMuted),
+              const SizedBox(height: 16),
+              Text('Не вдалося завантажити дані', style: AppTextStyles.h3),
+              const SizedBox(height: 8),
+              Text(
+                'Ваші дані нікуди не зникли — сталася технічна помилка при '
+                'їх читанні. Спробуйте ще раз; якщо не допоможе — '
+                'перезапустіть застосунок.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  ref.invalidate(databaseProvider);
+                  ref.invalidate(currentMemberProvider);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Спробувати ще раз'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

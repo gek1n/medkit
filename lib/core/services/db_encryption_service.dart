@@ -29,7 +29,7 @@ class DbEncryptionService {
     // назавжди блокував перешифрування — саме це й спричиняло
     // "file is not a database" при відкритті через Drift з ключем.
     if (await dbFile.exists()) {
-      _rekeyIfPlaintext(dbFile, key);
+      await _rekeyIfPlaintext(dbFile, key);
     }
 
     return key;
@@ -55,19 +55,53 @@ class DbEncryptionService {
   /// Якщо файл — незашифрована SQLite-база (стара версія застосунку),
   /// перешифровує її на місці через PRAGMA rekey. Якщо файл вже зашифрований
   /// цим-таки ключем — нічого не робить.
-  static void _rekeyIfPlaintext(File dbFile, String key) {
+  ///
+  /// Спершу перевіряємо заголовок файлу по байтах (без відкриття
+  /// FFI-з'єднання) і відкриваємо реальне sqlite3-з'єднання лише якщо
+  /// точно знаємо, що rekey треба. Раніше тут завжди відкривався "пробний"
+  /// FFI-хендл до файлу на кожному запуску прямо перед тим, як Drift
+  /// відкриває своє реальне з'єднання у фоновому ізоляті — зайвий ризик
+  /// гонки за той самий файл без потреби (у 99% запусків файл вже
+  /// зашифрований, і пробне з'єднання було чистою тратою).
+  static Future<void> _rekeyIfPlaintext(File dbFile, String key) async {
+    if (!await _looksLikePlaintextSqlite(dbFile)) return;
     final db = sqlite3.open(dbFile.path);
     try {
-      // Незашифрована SQLCipher-база читається без PRAGMA key як звичайна
-      // SQLite — якщо це вдається, це стара plaintext-база.
-      db.execute('SELECT count(*) FROM sqlite_master;');
       db.execute('PRAGMA rekey = "$key";');
     } catch (_) {
-      // Файл або вже зашифрований, або пошкоджений — у будь-якому разі
-      // rekey тут не застосовний, БД відкриється як зазвичай через Drift
-      // з PRAGMA key і або спрацює (вже зашифрована цим ключем), або ні.
+      // Малоймовірно (заголовок уже перевірили побайтово), але про всяк
+      // випадок — не блокуємо запуск, Drift далі спробує відкрити з
+      // реальним ключем сам.
     } finally {
       db.dispose();
+    }
+  }
+
+  // SQLite-файл завжди починається з 16-байтового магічного заголовка
+  // "SQLite format 3" + null-термінатор. У зашифрованого SQLCipher-файлу
+  // цей заголовок сам зашифрований і виглядає як випадкові байти — тож
+  // побайтовий збіг тут однозначно означає "це стара незашифрована база".
+  // Порівнюємо саме списком байтів (не Dart-рядком) — рядок з null-байтом
+  // усередині небезпечно тримати як текстовий літерал у джерельному коді.
+  static const List<int> _sqliteMagic = [
+    0x53, 0x51, 0x4C, 0x69, 0x74, 0x65, 0x20, 0x66, // "SQLite f"
+    0x6F, 0x72, 0x6D, 0x61, 0x74, 0x20, 0x33, 0x00, // "ormat 3\0"
+  ];
+
+  static Future<bool> _looksLikePlaintextSqlite(File dbFile) async {
+    RandomAccessFile? raf;
+    try {
+      raf = await dbFile.open();
+      final header = await raf.read(_sqliteMagic.length);
+      if (header.length < _sqliteMagic.length) return false;
+      for (var i = 0; i < _sqliteMagic.length; i++) {
+        if (header[i] != _sqliteMagic[i]) return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      await raf?.close();
     }
   }
 
