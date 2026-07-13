@@ -25,8 +25,14 @@ class LabResultsRepository {
   Future<int> insert(LabResultsCompanion result) =>
       _db.into(_db.labResults).insert(result);
 
-  Future<bool> update(LabResultsCompanion result) =>
-      _db.update(_db.labResults).replace(result);
+  // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
+  // екрани редагування передають лише змінені поля без memberId.
+  Future<bool> update(LabResultsCompanion result) async {
+    final rows = await (_db.update(_db.labResults)
+          ..where((t) => t.id.equals(result.id.value)))
+        .write(result);
+    return rows > 0;
+  }
 
   Future<int> delete(int id) =>
       (_db.delete(_db.labResults)..where((t) => t.id.equals(id))).go();

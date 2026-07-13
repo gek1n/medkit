@@ -58,12 +58,15 @@ class MedicationsRepository {
     return id;
   }
 
+  // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
+  // партіальні виклики (не лише повне збереження форми) інакше падали б,
+  // як це вже сталось із MembersRepository/LabResultsRepository.
   Future<bool> update(MedicationsCompanion med) async {
-    final result = await _db.update(_db.medications).replace(
-          med.copyWith(updatedAt: Value(DateTime.now())),
-        );
+    final rows = await (_db.update(_db.medications)
+          ..where((t) => t.id.equals(med.id.value)))
+        .write(med.copyWith(updatedAt: Value(DateTime.now())));
     if (med.id.present) await _triggerFamilySyncForMedication(med.id.value);
-    return result;
+    return rows > 0;
   }
 
   Future<void> decrementRemaining(int id) async {

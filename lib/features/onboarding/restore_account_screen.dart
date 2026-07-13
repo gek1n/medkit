@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/database_provider.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/backup_settings_service.dart';
 import '../../core/services/subscription_service.dart';
@@ -9,6 +11,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../today/providers/today_providers.dart';
 
 /// Онбординг-варіант "Відновити акаунт" — підключення до Google Drive/iCloud
 /// (той самий сховок, куди складено "Резервну копію" в Профілі) і пароль
@@ -18,21 +21,27 @@ import '../../shared/widgets/mk_back_button.dart';
 /// копії. `SubscriptionService.restorePurchases()` викликається додатково —
 /// best-effort підтвердження активної покупки в App Store/Google Play, якщо
 /// обліковий запис синхронізації з якоїсь причини не підхопився.
-class RestoreAccountScreen extends StatefulWidget {
+class RestoreAccountScreen extends ConsumerStatefulWidget {
   const RestoreAccountScreen({super.key});
 
   @override
-  State<RestoreAccountScreen> createState() => _RestoreAccountScreenState();
+  ConsumerState<RestoreAccountScreen> createState() => _RestoreAccountScreenState();
 }
 
-class _RestoreAccountScreenState extends State<RestoreAccountScreen> {
+class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
   final _backupService = BackupService();
   bool _busy = false;
   String? _error;
 
   Future<void> _restore(BackupTarget target, BackupMode mode) async {
     final passphrase = await _askPassphrase();
-    if (passphrase == null) return;
+    if (passphrase == null || !mounted) return;
+
+    // Captured тут, ще ДО restoreBackup() — щойно нижче перепідключиться
+    // БД, currentMemberProvider побачить відновленого власника і
+    // _RootRouter замінить OnboardingScreen на _Shell, розаттачивши цей
+    // State (а з ним і `context`).
+    final container = ProviderScope.containerOf(context, listen: false);
 
     setState(() {
       _busy = true;
@@ -51,27 +60,17 @@ class _RestoreAccountScreenState extends State<RestoreAccountScreen> {
         // вже несе актуальний статус підписки з сервера.
       }
 
+      // ⚠️ restoreBackup() підмінює і сам файл БД, і ключ шифрування в
+      // secure storage "під ногами" у вже відкритого Drift-з'єднання — без
+      // цього invalidate воно продовжило б мовчки працювати зі старою
+      // (щойно створеною онбордингом, порожньою) базою, currentMemberProvider
+      // й далі бачив би null, і онбординг замість переходу на Сьогодні
+      // просто лишався б на кроці "Як почнемо?".
+      container.invalidate(databaseProvider);
+      container.invalidate(currentMemberProvider);
+
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          title: const Text('Дані відновлено'),
-          content: const Text(
-            'Усі ваші ліки, розклад, медкартка і підписка відновлені. '
-            'Перезапустіть застосунок, щоб зміни набули дії.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              child: const Text('Гаразд'),
-            ),
-          ],
-        ),
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
       setState(() {

@@ -18,6 +18,14 @@ class PhotoService {
   static const _dir = 'med_photos';
   static const _uuid = Uuid();
 
+  // Кеш розшифрованих байтів у пам'яті — стрічки (специфіка лікаря, архів
+  // ліків тощо) перебудовують FutureBuilder на кожен вхід/вихід картки з
+  // в'юпорта під час скролу, і без кешу кожен такий цикл наново читав файл
+  // з диска й розшифровував його. Обмежено кількістю записів (не байтами) —
+  // простий LRU через порядок вставки в LinkedHashMap.
+  static final _decryptedCache = <String, Uint8List>{};
+  static const _maxCacheEntries = 60;
+
   // Абсолютний шлях з відносного (файл на диску зашифрований — для
   // відображення використовуйте decryptedBytes, а не Image.file напряму).
   static Future<String> absolutePath(String relative) async {
@@ -26,11 +34,25 @@ class PhotoService {
   }
 
   /// Розшифровані байти вкладення (фото чи PDF) — готові для Image.memory()
-  /// або запису у тимчасовий файл для перегляду/шерингу.
+  /// або запису у тимчасовий файл для перегляду/шерингу. Кешується в пам'яті
+  /// за відносним шляхом — той самий файл ніколи не міняється на диску, тож
+  /// повторне звернення безпечно повертає закешовані байти.
   static Future<Uint8List> decryptedBytes(String relative) async {
+    final cached = _decryptedCache.remove(relative);
+    if (cached != null) {
+      _decryptedCache[relative] = cached; // touch — лишається "свіжим" для LRU
+      return cached;
+    }
+
     final abs = await absolutePath(relative);
     final blob = await File(abs).readAsBytes();
-    return FileEncryptionService.decryptBytes(blob);
+    final bytes = await FileEncryptionService.decryptBytes(blob);
+
+    _decryptedCache[relative] = bytes;
+    if (_decryptedCache.length > _maxCacheEntries) {
+      _decryptedCache.remove(_decryptedCache.keys.first);
+    }
+    return bytes;
   }
 
   /// true, якщо вкладення за розширенням — PDF, а не зображення (для UI:
@@ -109,6 +131,7 @@ class PhotoService {
     final abs = await absolutePath(relative);
     final f = File(abs);
     if (f.existsSync()) f.deleteSync();
+    _decryptedCache.remove(relative);
     unawaited(PhotoSyncQueue.markPendingDelete(relative));
   }
 

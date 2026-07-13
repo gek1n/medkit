@@ -17,8 +17,14 @@ class VaccinationsRepository {
   Future<int> insert(VaccinationsCompanion vaccination) =>
       _db.into(_db.vaccinations).insert(vaccination);
 
-  Future<bool> update(VaccinationsCompanion vaccination) =>
-      _db.update(_db.vaccinations).replace(vaccination);
+  // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
+  // екрани редагування передають лише змінені поля без memberId.
+  Future<bool> update(VaccinationsCompanion vaccination) async {
+    final rows = await (_db.update(_db.vaccinations)
+          ..where((t) => t.id.equals(vaccination.id.value)))
+        .write(vaccination);
+    return rows > 0;
+  }
 
   Future<int> delete(int id) =>
       (_db.delete(_db.vaccinations)..where((t) => t.id.equals(id))).go();

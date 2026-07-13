@@ -1,13 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/database_provider.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/backup_settings_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_screen_header.dart';
+import '../today/providers/today_providers.dart';
 
 /// Єдиний розділ "Резервна копія" — заміняє собою колишні окремі "Резервна
 /// копія" і "Синхронізація". Три варіанти: лише на пристрої (з попередженням
@@ -15,14 +18,14 @@ import '../../shared/widgets/mk_screen_header.dart';
 /// iCloud (лише iOS). Для хмарних режимів — частота автобекапу (раз на день/
 /// тиждень), який фактично запускається на resume застосунку (`_Shell` у
 /// main.dart), а не через нативний background scheduler.
-class BackupScreen extends StatefulWidget {
+class BackupScreen extends ConsumerStatefulWidget {
   const BackupScreen({super.key});
 
   @override
-  State<BackupScreen> createState() => _BackupScreenState();
+  ConsumerState<BackupScreen> createState() => _BackupScreenState();
 }
 
-class _BackupScreenState extends State<BackupScreen> {
+class _BackupScreenState extends ConsumerState<BackupScreen> {
   final _backupService = BackupService();
   bool _loading = true;
   bool _busy = false;
@@ -121,19 +124,31 @@ class _BackupScreenState extends State<BackupScreen> {
       subtitle: 'Введіть пароль, який ви вказали при створенні копії.',
       confirmRequired: false,
     );
-    if (passphrase == null) return;
+    if (passphrase == null || !mounted) return;
+
+    // Captured before invalidate() нижче — щойно БД перепідключиться,
+    // ProviderScope-дерево вище може перебудуватись.
+    final container = ProviderScope.containerOf(context, listen: false);
 
     setState(() => _busy = true);
     try {
       await _backupService.restoreBackup(target: target, passphrase: passphrase);
       await BackupSettingsService.savePassphrase(passphrase);
+
+      // ⚠️ restoreBackup() підмінює файл БД і ключ шифрування в secure
+      // storage "під ногами" у вже відкритого Drift-з'єднання — без цього
+      // invalidate застосунок і далі мовчки показував би стару БД, поки
+      // користувач не перезапустить його вручну.
+      container.invalidate(databaseProvider);
+      container.invalidate(currentMemberProvider);
+
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           title: const Text('Готово'),
-          content: const Text('Дані відновлено. Перезапустіть застосунок, щоб зміни набули дії.'),
+          content: const Text('Дані відновлено.'),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Гаразд')),
           ],

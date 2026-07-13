@@ -28,8 +28,16 @@ class MembersRepository {
     return _db.into(_db.members).insert(withUuid);
   }
 
-  Future<bool> update(MembersCompanion member) =>
-      _db.update(_db.members).replace(member);
+  // ⚠️ Навмисно НЕ .replace() — той вимагає всі required-колонки (напр.
+  // name) присутніми в companion, а більшість викликів тут — часткові
+  // оновлення (лише fontSize, лише role тощо). .write() з явним where
+  // оновлює лише передані поля, решта рядка лишається незмінною.
+  Future<bool> update(MembersCompanion member) async {
+    final rows = await (_db.update(_db.members)
+          ..where((t) => t.id.equals(member.id.value)))
+        .write(member);
+    return rows > 0;
+  }
 
   Future<int> delete(int id) =>
       (_db.delete(_db.members)..where((t) => t.id.equals(id))).go();

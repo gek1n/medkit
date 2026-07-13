@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../backup/backup_screen.dart';
+import '../../core/services/backup_settings_service.dart';
 import 'debug_log_screen.dart';
 import '../export/export_data_screen.dart';
 import '../help/help_faq_screen.dart';
@@ -108,6 +109,7 @@ class _ProfileBody extends ConsumerWidget {
                   ),
                   _HeroSection(member: member, plan: plan),
                   const SizedBox(height: AppDimensions.lg),
+                  const _BackupReminderBanner(),
                   if (!plan.isPaid) _UpgradeBanner(),
                   const SizedBox(height: AppDimensions.xl),
                   _ProfileSectionHeader("Здоров'я та вправи",
@@ -257,6 +259,69 @@ class _PlanBadge extends StatelessWidget {
                 .copyWith(fontWeight: FontWeight.w700, color: color),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ────────────────────────────── backup reminder banner ──────────────────────
+
+/// Постійний банер, поки резервна копія вимкнена (BackupMode.local) —
+/// доповнює одноразовий push з BackupReminderService для тих, хто банер
+/// просто пропустив. Зникає сам, щойно користувач вмикає Google Drive/iCloud.
+class _BackupReminderBanner extends ConsumerWidget {
+  const _BackupReminderBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(backupModeProvider).valueOrNull;
+    if (mode != BackupMode.local) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimensions.screenPadding,
+        0,
+        AppDimensions.screenPadding,
+        AppDimensions.lg,
+      ),
+      child: GestureDetector(
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BackupScreen()),
+          );
+          ref.invalidate(backupModeProvider);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBEB),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 20, color: Color(0xFF78350F)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Резервна копія вимкнена',
+                        style: AppTextStyles.labelMd.copyWith(color: const Color(0xFF78350F))),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Дані зберігаються лише на цьому пристрої — увімкніть, щоб не втратити їх',
+                      style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF78350F)),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF78350F)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -660,10 +725,13 @@ class _AccountSection extends ConsumerWidget {
           icon: Icons.backup_rounded,
           label: 'Резервна копія',
           color: AppColors.warning,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const BackupScreen()),
-          ),
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BackupScreen()),
+            );
+            ref.invalidate(backupModeProvider);
+          },
         ),
         _RowItem(
           icon: Icons.privacy_tip_rounded,

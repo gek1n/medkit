@@ -165,6 +165,20 @@ class NotificationService {
     return _plugin.show(id, title, body, _details());
   }
 
+  // ── Нагадування про резервну копію ───────────────────────────────────
+
+  static const backupReminderNotificationId = 9100000;
+
+  static Future<void> showBackupReminder() {
+    return _plugin.show(
+      backupReminderNotificationId,
+      'Захистіть свої дані',
+      'Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. '
+          'Увімкніть у Профілі, щоб не втратити їх.',
+      _details(),
+    );
+  }
+
   // ── Залишок ліків ─────────────────────────────────────────────────────
 
   static int lowStockNotificationId(int medicationId) =>
