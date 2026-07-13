@@ -14,6 +14,7 @@ import 'core/providers/plan_provider.dart';
 import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/app_logger.dart';
 import 'core/services/billing_lifecycle_service.dart';
 import 'core/services/family_group_service.dart';
 import 'core/services/family_peer_sync_service.dart';
@@ -43,6 +44,14 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      AppLogger.log('app_start');
+      // FlutterError.onError ловить помилки під час build/layout/paint
+      // (напр. кинуте виключення всередині widget.build) — вони НЕ
+      // проходять через runZonedGuarded, бо Flutter обробляє їх сам.
+      FlutterError.onError = (details) {
+        AppLogger.logError('FlutterError', details.exception, details.stack);
+        FlutterError.presentError(details);
+      };
       // sqlite3 за замовчуванням шукає звичайний libsqlite3.so на Android —
       // це вказує йому натомість вантажити SQLCipher-збірку з
       // sqlcipher_flutter_libs. Без цього PRAGMA key ніхто не побачить.
@@ -62,7 +71,7 @@ void main() {
       await NotificationService.init();
       runApp(const ProviderScope(child: MedKitApp()));
     },
-    (error, stack) => debugPrint('🔴 MEDKIT CRASH: $error\n$stack'),
+    (error, stack) => AppLogger.logError('Zone', error, stack),
   );
 }
 
@@ -182,9 +191,9 @@ class _RootRouter extends ConsumerWidget {
       // проходив онбординг заново, хоча дані нікуди не ділись.
       error: (e, st) {
         // Раніше ця помилка була взагалі не видна нікому (мовчки йшли на
-        // онбординг) — лишаємо хоч debugPrint, щоб було що подивитись у
-        // консолі при наступному репродукуванні.
-        debugPrint('🔴 currentMemberProvider error: $e\n$st');
+        // онбординг) — тепер пишемо в AppLogger (файл на диску, доступний
+        // через "Журнал подій" у профілі) замість лише debugPrint.
+        AppLogger.logError('currentMemberProvider', e, st);
         return _DatabaseErrorScreen(error: e, stackTrace: st);
       },
       data: (member) =>

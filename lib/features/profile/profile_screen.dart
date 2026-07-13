@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../backup/backup_screen.dart';
+import 'debug_log_screen.dart';
 import '../export/export_data_screen.dart';
 import '../help/help_faq_screen.dart';
 import '../legal/privacy_policy_screen.dart';
@@ -10,6 +11,7 @@ import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_settings_screen.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -752,7 +754,56 @@ class _OtherSection extends StatelessWidget {
             MaterialPageRoute(builder: (_) => const ExportDataScreen()),
           ),
         ),
+        const _HiddenDebugLogTrigger(),
       ],
+    );
+  }
+}
+
+// 7 тапів по цьому рядку відкривають журнал подій — навмисно не винесено
+// в окремий видимий пункт меню, щоб не плутати звичайних користувачів.
+class _HiddenDebugLogTrigger extends StatefulWidget {
+  const _HiddenDebugLogTrigger();
+
+  @override
+  State<_HiddenDebugLogTrigger> createState() =>
+      _HiddenDebugLogTriggerState();
+}
+
+class _HiddenDebugLogTriggerState extends State<_HiddenDebugLogTrigger> {
+  int _taps = 0;
+  DateTime? _firstTapAt;
+
+  void _onTap() {
+    final now = DateTime.now();
+    if (_firstTapAt == null || now.difference(_firstTapAt!) > const Duration(seconds: 3)) {
+      _firstTapAt = now;
+      _taps = 1;
+      return;
+    }
+    _taps++;
+    if (_taps >= 7) {
+      _taps = 0;
+      _firstTapAt = null;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DebugLogScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.screenPadding,
+          vertical: 12,
+        ),
+        child: Text('Elly', style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
+      ),
     );
   }
 }
@@ -806,6 +857,7 @@ class _LogoutButton extends ConsumerWidget {
       ),
     ).then((confirmed) async {
       if (confirmed != true) return;
+      AppLogger.log('logout_confirmed');
       // Каскадне видалення members у БД не проходить через репозиторії
       // окремих фіч, тож заплановані OS-нагадування (intake/activity/
       // appointment/wellbeing/vaccination) самі по собі не скасовуються —
