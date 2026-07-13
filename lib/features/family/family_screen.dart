@@ -100,7 +100,14 @@ class _FamilyBody extends ConsumerWidget {
     final others = members.where((m) => m.id != owner.id).toList();
     final blocked = localLimitReached && autonomousLimitReached;
 
-    return CustomScrollView(
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        ref.invalidate(allMembersProvider);
+        ref.invalidate(_familyPeersProvider);
+      },
+      child: CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         if (activeMember != null && activeMember.role != 'owner')
           SliverToBoxAdapter(
@@ -144,6 +151,7 @@ class _FamilyBody extends ConsumerWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }

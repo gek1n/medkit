@@ -20,7 +20,6 @@ import '../../shared/widgets/specialty_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
-import 'appointments_history_screen.dart';
 
 class AddAppointmentScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -257,15 +256,6 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       : (_isPastVisit ? 'Записати візит' : 'Запис до лікаря')) +
                   memberNameSuffix(ref, widget.memberId),
               onBack: () => Navigator.pop(context),
-              trailingLabel: isEdit ? null : 'Список',
-              onTrailing: isEdit
-                  ? null
-                  : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AppointmentsHistoryScreen(),
-                      ),
-                    ),
               onDelete: isEdit ? _delete : null,
             ),
             Expanded(

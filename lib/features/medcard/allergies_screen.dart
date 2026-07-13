@@ -11,6 +11,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/allergies_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import 'add_allergy_screen.dart';
+import 'allergy_detail_screen.dart';
 
 final _allergiesProvider = StreamProvider.family<List<Allergy>, int>((ref, memberId) {
   return ref.watch(allergiesRepositoryProvider).watchByMember(memberId);
@@ -26,25 +27,33 @@ class AllergiesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: MkAddFab(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddAllergyScreen(memberId: memberId)),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            MkListHeader(
-              title: 'Алергії',
-              onAdd: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AddAllergyScreen(memberId: memberId)),
-              ),
-            ),
+            const MkListHeader(title: 'Алергії'),
             Expanded(
-              child: allergiesAsync.when(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => ref.invalidate(_allergiesProvider(memberId)),
+                child: allergiesAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
                 data: (allergies) {
                   if (allergies.isEmpty) {
-                    return const MkEmptyState(
-                      hint: 'Натисніть "+ Додати" щоб додати першу алергію',
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        MkEmptyState(
+                          hint: 'Натисніть "+ Додати" щоб додати першу алергію',
+                        ),
+                      ],
                     );
                   }
                   // Найтяжчі — першими: це та інформація, яку варто побачити
@@ -54,6 +63,7 @@ class AllergiesScreen extends ConsumerWidget {
                           .weight
                           .compareTo(AllergySeverity.fromDb(a.severity).weight));
                   return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
                         AppDimensions.screenPadding, AppDimensions.md, AppDimensions.screenPadding, 48),
                     itemCount: sorted.length,
@@ -64,14 +74,14 @@ class AllergiesScreen extends ConsumerWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                AddAllergyScreen(memberId: memberId, existing: sorted[i]),
+                            builder: (_) => AllergyDetailScreen(allergy: sorted[i]),
                           ),
                         ),
                       ),
                     ),
                   );
                 },
+                ),
               ),
             ),
           ],

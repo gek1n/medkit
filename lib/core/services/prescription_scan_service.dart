@@ -4,26 +4,32 @@ import 'package:http/http.dart' as http;
 
 class ScannedMedication {
   final String name;
+  final String? form; // tablet | capsule | suppository | vial | syrup | drops | cream | inhaler | injection
   final double? doseAmount;
   final String? doseUnit;
   final List<String>? scheduleTimes; // morning | afternoon | evening | night
+  final int? durationDays;
   final String? foodRelation; // before | after | any — довідкове, не гарантоване
   final List<String>? sideEffects; // довідкове, не гарантоване
 
   const ScannedMedication({
     required this.name,
+    this.form,
     this.doseAmount,
     this.doseUnit,
     this.scheduleTimes,
+    this.durationDays,
     this.foodRelation,
     this.sideEffects,
   });
 
   factory ScannedMedication.fromJson(Map<String, dynamic> json) => ScannedMedication(
         name: json['name'] as String,
+        form: json['form'] as String?,
         doseAmount: (json['doseAmount'] as num?)?.toDouble(),
         doseUnit: json['doseUnit'] as String?,
         scheduleTimes: (json['scheduleTimes'] as List?)?.map((e) => e as String).toList(),
+        durationDays: (json['durationDays'] as num?)?.toInt(),
         foodRelation: json['foodRelation'] as String?,
         sideEffects: (json['sideEffects'] as List?)?.map((e) => e as String).toList(),
       );

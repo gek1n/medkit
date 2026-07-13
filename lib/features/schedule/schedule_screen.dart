@@ -163,18 +163,38 @@ class _ScheduleBody extends ConsumerWidget {
     );
 
     final q = search.trim().toLowerCase();
-    final owner = members.firstWhere(
-      (m) => m.role == 'owner',
-      orElse: () => members.first,
-    );
+    Member? owner;
+    for (final m in members) {
+      if (m.role == 'owner') {
+        owner = m;
+        break;
+      }
+    }
 
-    return CustomScrollView(
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        ref.invalidate(_scheduleMedsProvider(selectedMemberId));
+        ref.invalidate(_scheduleActivitiesProvider(selectedMemberId));
+        ref.invalidate(_scheduleAppointmentsProvider(selectedMemberId));
+        ref.invalidate(_scheduleWellbeingScheduleProvider(selectedMemberId));
+      },
+      child: CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        if (member.role != 'owner')
+        if (owner != null && member.id != owner.id)
           SliverToBoxAdapter(
             child: SwitchProfileBanner(
               name: member.name,
-              onReturn: () => onMemberChanged(owner.id),
+              onReturn: () {
+                // Скидаємо і глобальний activeMemberIdProvider — інакше при
+                // поверненні на цей екран (наприклад, через нижню навігацію)
+                // _selectedMemberId знову підхопить старе глобальне значення
+                // через ref.listen вище, і кнопка виглядатиме так, ніби
+                // нічого не робить.
+                ref.read(activeMemberIdProvider.notifier).state = null;
+                onMemberChanged(owner!.id);
+              },
             ),
           ),
         // Header
@@ -509,6 +529,7 @@ class _ScheduleBody extends ConsumerWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }

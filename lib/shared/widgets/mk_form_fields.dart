@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'mk_back_button.dart';
 
@@ -165,6 +166,29 @@ class MkFormHeader extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Рядок "мітка — значення" для екрана перегляду (не редагування) запису
+/// медкартки — той самий шрифт/відступи по всій медкартці.
+class MkDetailRow extends StatelessWidget {
+  final String label;
+  final Widget value;
+  const MkDetailRow({super.key, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppDimensions.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MkFieldLabel(label),
+          const SizedBox(height: 6),
+          value,
         ],
       ),
     );

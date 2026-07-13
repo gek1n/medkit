@@ -8,10 +8,13 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
+import '../appointments/appointments_history_screen.dart';
 import '../today/providers/today_providers.dart';
+import '../wellbeing/wellbeing_history_screen.dart';
 import 'allergies_screen.dart';
 import 'chronic_conditions_screen.dart';
 import 'lab_results_screen.dart';
+import 'medication_archive_screen.dart';
 import 'specialty_history_screen.dart';
 import 'surgeries_screen.dart';
 import 'vaccinations_screen.dart';
@@ -127,6 +130,20 @@ class _MedCardBody extends StatelessWidget {
               48,
             ),
             children: [
+              // Головний розділ — виділений окремо стилем картки й
+              // відступом, щоб не губився серед решти однакових плиток.
+              _MedCardHighlightTile(
+                icon: Icons.timeline_rounded,
+                title: 'Історія лікування за напрямками',
+                subtitle: 'Візити й аналізи одного лікаря — все в одному місці',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SpecialtyHistoryScreen(memberId: memberId),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.lg),
               _MedCardTile(
                 icon: Icons.biotech_rounded,
                 iconColor: AppColors.info,
@@ -141,14 +158,40 @@ class _MedCardBody extends StatelessWidget {
               ),
               const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
-                icon: Icons.history_rounded,
+                icon: Icons.medication_liquid_rounded,
                 iconColor: AppColors.primary,
-                title: 'Історія за напрямком',
-                subtitle: 'Візити й аналізи одного лікаря — все в одному місці',
+                title: 'Архів ліків',
+                subtitle: 'Усі препарати й статус лікування',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => SpecialtyHistoryScreen(memberId: memberId),
+                    builder: (_) => MedicationArchiveScreen(memberId: memberId),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+              _MedCardTile(
+                icon: Icons.event_note_rounded,
+                iconColor: AppColors.primary,
+                title: 'Візити до лікарів',
+                subtitle: 'Усі записи всієї сім\'ї',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AppointmentsHistoryScreen(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+              _MedCardTile(
+                icon: Icons.mood_rounded,
+                iconColor: AppColors.primary,
+                title: 'Історія самопочуття',
+                subtitle: 'Настрій та симптоми за весь час',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => WellbeingHistoryScreen(memberId: memberId),
                   ),
                 ),
               ),
@@ -208,6 +251,67 @@ class _MedCardBody extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Той самий розділ, що й [_MedCardTile], але виділений кольором/рамкою —
+/// для головного, найважливішого пункту медкартки (Історія лікування).
+class _MedCardHighlightTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _MedCardHighlightTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: AppColors.primary, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              ),
+              child: Icon(icon, size: 22, color: Colors.white),
+            ),
+            const SizedBox(width: AppDimensions.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppTextStyles.labelLg.copyWith(color: AppColors.primaryDark)),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTextStyles.bodySm.copyWith(color: AppColors.primaryDark),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+          ],
+        ),
+      ),
     );
   }
 }

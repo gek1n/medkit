@@ -73,7 +73,13 @@ class _MedicationsBody extends ConsumerWidget {
     final medsAsync =
         ref.watch(_medicationsByMemberProvider(selectedMemberId));
 
-    return CustomScrollView(
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        ref.invalidate(_medicationsByMemberProvider(selectedMemberId));
+      },
+      child: CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(child: _buildHeader(context)),
         if (members.length > 1)
@@ -145,6 +151,7 @@ class _MedicationsBody extends ConsumerWidget {
           ),
         ),
       ],
+      ),
     );
   }
 

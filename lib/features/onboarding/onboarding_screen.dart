@@ -9,26 +9,17 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/services/prescription_scan_service.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
+import '../medications/add_medication_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'join_family_screen.dart';
 import 'privacy_gate_screen.dart';
 import 'restore_account_screen.dart';
-import 'voice_add_medication_screen.dart';
-
-TimeOfDay _onboardingDefaultTime(String s) => switch (s) {
-  'morning' => const TimeOfDay(hour: 8, minute: 0),
-  'afternoon' => const TimeOfDay(hour: 13, minute: 0),
-  'evening' => const TimeOfDay(hour: 19, minute: 0),
-  'night' => const TimeOfDay(hour: 22, minute: 0),
-  _ => const TimeOfDay(hour: 8, minute: 0),
-};
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -45,8 +36,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _nameController = TextEditingController();
   int _avatarIndex = 0;
 
-  // Step 3: ліки (скан)
-  final List<ScannedMedication> _scannedMedDrafts = [];
+  // Step 3: ліки — стандартна карточка додавання (форма + скан фото),
+  // memberId ще не існує на цьому кроці, тож MedicationsCompanion
+  // повертається як чернетка (фіктивний memberId) і записується в БД лише
+  // в _finish(), коли власний профіль вже створено.
+  final List<MedicationsCompanion> _medicationDrafts = [];
 
   // Step 5: activity/wellbeing toggles
   bool _walkEnabled = true;
@@ -54,16 +48,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   bool _isSaving = false;
 
-  Future<void> _openVoiceFromOnboarding() async {
-    final result = await Navigator.push<VoiceMedicationResult>(
+  Future<void> _openAddMedication() async {
+    final saved = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const VoiceAddMedicationScreen()),
+      MaterialPageRoute(
+        builder: (_) => AddMedicationScreen(
+          onDraftCreated: (draft) => _medicationDrafts.add(draft),
+        ),
+      ),
     );
-    if (result == null) return;
-    if (result.drafts.isNotEmpty && mounted) {
-      setState(() => _scannedMedDrafts.addAll(result.drafts));
-    }
-    if (result.advance) _next();
+    if (saved == true) _next();
   }
 
   @override
@@ -124,44 +118,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
       );
 
-      if (_scannedMedDrafts.isNotEmpty) {
+      if (_medicationDrafts.isNotEmpty) {
         final medRepo = container.read(medicationsRepositoryProvider);
-        final medsNow = DateTime.now();
-        for (final m in _scannedMedDrafts) {
-          final times = (m.scheduleTimes ?? const ['morning'])
-              .map(
-                (s) =>
-                    '${_onboardingDefaultTime(s).hour.toString().padLeft(2, '0')}:${_onboardingDefaultTime(s).minute.toString().padLeft(2, '0')}',
-              )
-              .toList();
-          final phasesJson = jsonEncode([
-            {
-              'times': times,
-              'durationDays': 7,
-              'doseAmount': m.doseAmount ?? 1.0,
-            },
-          ]);
-          await medRepo.insert(
-            MedicationsCompanion.insert(
-              memberId: ownerId,
-              name: m.name,
-              form: const Value('tablet'),
-              doseAmount: m.doseAmount ?? 1.0,
-              doseUnit: Value(m.doseUnit ?? 'табл.'),
-              foodRelation: Value(m.foodRelation ?? 'after'),
-              repeatType: const Value('daily'),
-              repeatConfig: const Value('{}'),
-              startDate: medsNow,
-              endDate: Value(
-                DateTime(
-                  medsNow.year,
-                  medsNow.month,
-                  medsNow.day,
-                ).add(const Duration(days: 7)),
-              ),
-              phases: Value(phasesJson),
-            ),
-          );
+        for (final draft in _medicationDrafts) {
+          await medRepo.insert(draft.copyWith(memberId: Value(ownerId)));
         }
         container.invalidate(generateTodayIntakesProvider);
         container.invalidate(tomorrowIntakesProvider);
@@ -258,9 +218,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
       3 => _StepMedications(
         key: const ValueKey(3),
-        onNext: _next,
         onSkip: _skip,
-        onVoice: _openVoiceFromOnboarding,
+        onAddMedication: _openAddMedication,
       ),
       4 => _StepActivities(
         key: const ValueKey(4),
@@ -273,7 +232,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _ => PrivacyGateStep(
         key: const ValueKey(5),
         isBusy: _isSaving,
-        hasMedications: _scannedMedDrafts.isNotEmpty,
+        hasMedications: _medicationDrafts.isNotEmpty,
         onConfirm: _finish,
       ),
     };
@@ -617,15 +576,13 @@ class _StepName extends StatelessWidget {
 // ─── Step 3: Ліки ────────────────────────────────────────────────────────────
 
 class _StepMedications extends StatelessWidget {
-  final VoidCallback onNext;
   final VoidCallback onSkip;
-  final VoidCallback onVoice;
+  final VoidCallback onAddMedication;
 
   const _StepMedications({
     super.key,
-    required this.onNext,
     required this.onSkip,
-    required this.onVoice,
+    required this.onAddMedication,
   });
 
   @override
@@ -638,14 +595,14 @@ class _StepMedications extends StatelessWidget {
           Text('Ліки', style: AppTextStyles.h2),
           const SizedBox(height: 6),
           Text(
-            'Додайте для кожного — голосом або вручну',
+            'Скануйте фото рецепта або введіть вручну',
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 24),
 
-          // Voice button
+          // Add medication button
           GestureDetector(
-            onTap: onVoice,
+            onTap: onAddMedication,
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -655,7 +612,7 @@ class _StepMedications extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.mic_rounded,
+                    Icons.medication_rounded,
                     color: Colors.white,
                     size: 24,
                   ),
@@ -665,14 +622,14 @@ class _StepMedications extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Додати голосом',
+                          'Додати ліки',
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Скажіть назву, дозу і розклад — AI заповнить все за вас',
+                          'Скан фото рецепта або назва, доза і розклад вручну',
                           style: AppTextStyles.bodySm.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                           ),

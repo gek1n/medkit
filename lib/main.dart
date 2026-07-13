@@ -15,6 +15,8 @@ import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
 import 'core/services/app_lock_service.dart';
 import 'core/services/app_logger.dart';
+import 'core/services/backup_service.dart';
+import 'core/services/backup_settings_service.dart';
 import 'core/services/db_encryption_service.dart';
 import 'core/services/billing_lifecycle_service.dart';
 import 'core/services/family_group_service.dart';
@@ -26,6 +28,7 @@ import 'core/services/review_prompt_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/services/sync_service.dart';
 import 'data/repositories/family_peers_repository.dart';
+import 'data/repositories/members_repository.dart';
 import 'features/plans/billing_lifecycle_dialogs.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
@@ -181,6 +184,13 @@ class _RootRouter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Гейтимо на самовідновлення ролі owner ДО першого читання
+    // currentMemberProvider — інакше на пошкоджених даних (жоден профіль не
+    // позначений owner) встигає промайнути кадр зі старим/неправильним
+    // станом. Сама перевірка — один SELECT, у нормальному випадку instant.
+    final repairAsync = ref.watch(ensureOwnerRoleProvider);
+    if (repairAsync.isLoading) return const _LoadingScreen();
+
     final memberAsync = ref.watch(currentMemberProvider);
 
     return memberAsync.when(
@@ -386,6 +396,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   bool _syncing = false;
   bool _familySyncing = false;
   bool _billingSyncing = false;
+  bool _backingUp = false;
   StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   static const _screens = [
@@ -410,6 +421,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     _syncIfEnabled();
     _familySyncIfNeeded();
     _billingSyncIfNeeded();
+    _backupIfDue();
     unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
     unawaited(ReviewPromptService.recordInstallIfNeeded());
     unawaited(ReviewPromptService.maybeShow());
@@ -437,6 +449,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       _syncIfEnabled();
       _familySyncIfNeeded();
       _billingSyncIfNeeded();
+      _backupIfDue();
       unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
       unawaited(ReviewPromptService.maybeShow());
     }
@@ -522,6 +535,40 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       // Тиха невдача — див. коментар до _syncIfEnabled.
     } finally {
       _billingSyncing = false;
+    }
+  }
+
+  /// Автоматичний бекап за розкладом (розділ "Резервна копія" в Профілі) —
+  /// той самий resume/cold-start тригер, що й усе вище. Flutter не має
+  /// надійного background scheduler без нативних плагінів (WorkManager/
+  /// BGTaskScheduler), тож замість цього перевіряємо на кожному відкритті
+  /// застосунку: чи минуло достатньо часу з останнього бекапу за обраною
+  /// частотою — і якщо так, тихо робимо новий, паролем, збереженим на цьому
+  /// пристрої при першому вмиканні хмарного режиму. No-op у режимі "тільки
+  /// на пристрої" чи якщо пароль ще не було задано.
+  Future<void> _backupIfDue() async {
+    if (_backingUp) return;
+    _backingUp = true;
+    try {
+      if (!await BackupSettingsService.isDue()) return;
+      final passphrase = await BackupSettingsService.savedPassphrase();
+      if (passphrase == null) return;
+
+      final mode = await BackupSettingsService.currentMode();
+      final target = switch (mode) {
+        BackupMode.googleDrive => BackupTarget.googleDrive,
+        BackupMode.iCloud => BackupTarget.iCloud,
+        BackupMode.local => null,
+      };
+      if (target == null) return;
+
+      await BackupService().createBackup(target: target, passphrase: passphrase);
+      await BackupSettingsService.markBackedUpNow();
+    } catch (_) {
+      // Тиха невдача — див. коментар до _syncIfEnabled. Спробуємо знову на
+      // наступному resume.
+    } finally {
+      _backingUp = false;
     }
   }
 

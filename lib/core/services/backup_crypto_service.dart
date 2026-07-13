@@ -5,16 +5,31 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Пакує ключі шифрування БД і файлів у один маленький blob, захищений
-/// паролем бекапу (Argon2id -> AES-256-GCM, той самий підхід, що і в
-/// `pairing_crypto_service.dart`). Сам бекап (medkit.db + med_photos/) вже
-/// зашифрований цими ключами на диску — хмара (Google Drive/iCloud) ніколи
-/// не бачить plaintext, а без пароля бекапу ключі з архіву не витягнути,
+/// Пакує ВЕСЬ secure storage пристрою (не лише ключі шифрування БД/файлів,
+/// а й обліковий запис синхронізації з AccountService, і per-канальні ключі
+/// SharedChannelKeyStorage для сімейної синхронізації) в один маленький blob,
+/// захищений паролем бекапу (Argon2id -> AES-256-GCM, той самий підхід, що і
+/// в `pairing_crypto_service.dart`). Сам бекап (medkit.db + med_photos/) вже
+/// зашифрований ключами звідси на диску — хмара (Google Drive/iCloud) ніколи
+/// не бачить plaintext, а без пароля бекапу нічого з архіву не витягнути,
 /// навіть маючи повний доступ до хмарного сховища.
+///
+/// Навмисно readAll(), а не список конкретних ключів — так відновлення
+/// лишається повним автоматично і для розділів, доданих ПІСЛЯ написання
+/// цього файлу (будь-що нове, що зберігається через secure storage, саме
+/// потрапить у бекап без окремої правки тут).
 class BackupCryptoService {
   static const _secureStorage = FlutterSecureStorage();
-  static const _dbKeyStorageKey = 'db_encryption_key';
-  static const _fileKeyStorageKey = 'file_encryption_key';
+  static const _syncedIOSOptions = IOSOptions(synchronizable: true);
+  // Ключі AccountService навмисно пишуться з synchronizable:true (iCloud
+  // Keychain) — readAll() з дефолтними опціями на iOS їх не бачить, тож
+  // читаємо/пишемо і цю групу окремо, щоб жодного значення не загубити.
+  static const _syncedKeyNames = {
+    'sync_mode',
+    'sync_account_id',
+    'sync_encryption_key',
+    'sync_recovery_key_hash',
+  };
   static final _cipher = AesGcm.with256bits();
 
   static Uint8List _generateSalt() {
@@ -32,17 +47,20 @@ class BackupCryptoService {
     return argon2.deriveKeyFromPassword(password: passphrase, nonce: salt);
   }
 
-  /// Читає обидва ключі з secure storage поточного пристрою і шифрує їх
-  /// паролем бекапу. Повертає готовий до запису у файл blob:
-  /// [salt(16)][nonce(12)][ciphertext][mac(16)].
+  /// Читає УВЕСЬ secure storage поточного пристрою (ключі шифрування БД/
+  /// файлів, обліковий запис синхронізації, канальні ключі сімейної
+  /// синхронізації — і будь-що додане пізніше) і шифрує паролем бекапу.
+  /// Повертає готовий до запису у файл blob: [salt(16)][nonce(12)][ciphertext][mac(16)].
   static Future<Uint8List> wrapKeys(String passphrase) async {
-    final dbKey = await _secureStorage.read(key: _dbKeyStorageKey);
-    final fileKey = await _secureStorage.read(key: _fileKeyStorageKey);
-    if (dbKey == null || fileKey == null) {
+    final entries = <String, String>{
+      ...await _secureStorage.readAll(),
+      ...await _secureStorage.readAll(iOptions: _syncedIOSOptions),
+    };
+    if (entries.isEmpty) {
       throw StateError('Ключі шифрування не знайдено на цьому пристрої');
     }
 
-    final envelope = utf8.encode(jsonEncode({'dbKey': dbKey, 'fileKey': fileKey}));
+    final envelope = utf8.encode(jsonEncode(entries));
 
     final salt = _generateSalt();
     final key = await _deriveKey(passphrase, salt);
@@ -57,8 +75,8 @@ class BackupCryptoService {
     ]);
   }
 
-  /// Обернена операція — розшифровує blob паролем бекапу і записує обидва
-  /// ключі в secure storage ЦЬОГО пристрою (перезаписуючи наявні, якщо є —
+  /// Обернена операція — розшифровує blob паролем бекапу і записує усі
+  /// значення в secure storage ЦЬОГО пристрою (перезаписуючи наявні, якщо є —
   /// виклик відновлення завжди має бути свідомим рішенням користувача).
   /// Кидає виняток, якщо пароль невірний.
   static Future<void> unwrapAndInstallKeys(Uint8List blob, String passphrase) async {
@@ -79,7 +97,13 @@ class BackupCryptoService {
     final plain = await _cipher.decrypt(box, secretKey: key);
 
     final envelope = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
-    await _secureStorage.write(key: _dbKeyStorageKey, value: envelope['dbKey'] as String);
-    await _secureStorage.write(key: _fileKeyStorageKey, value: envelope['fileKey'] as String);
+    for (final entry in envelope.entries) {
+      final synced = _syncedKeyNames.contains(entry.key);
+      await _secureStorage.write(
+        key: entry.key,
+        value: entry.value as String,
+        iOptions: synced ? _syncedIOSOptions : const IOSOptions(),
+      );
+    }
   }
 }

@@ -15,11 +15,11 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
+import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
@@ -37,17 +37,29 @@ TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
 };
 
 class AddMedicationScreen extends ConsumerStatefulWidget {
-  final int memberId;
+  final int? memberId;
   final Medication? existing;
   // Транзитний префіл із голосової команди (не з БД, на відміну від
   // [existing]) — та ж модель, що й для скану рецепта.
   final ScannedMedication? voicePrefill;
+  // Онбординг: власного профілю ще не існує в БД на момент показу цього
+  // екрана (створюється лише в кінці онбордингу, інакше _RootRouter
+  // перемкнув би застосунок на головний екран до завершення решти кроків).
+  // Коли задано — стандартний флоу створення (форма + скан) лишається без
+  // змін, але замість запису в БД компаньйон (з фіктивним memberId, який
+  // викликач підмінить на реальний) повертається сюди, а екран одразу
+  // закривається з результатом true.
+  final void Function(MedicationsCompanion draft)? onDraftCreated;
   const AddMedicationScreen({
     super.key,
-    required this.memberId,
+    this.memberId,
     this.existing,
     this.voicePrefill,
-  });
+    this.onDraftCreated,
+  }) : assert(
+         memberId != null || onDraftCreated != null,
+         'AddMedicationScreen needs either memberId or onDraftCreated',
+       );
 
   @override
   ConsumerState<AddMedicationScreen> createState() =>
@@ -118,11 +130,29 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   // скану (завжди true для платних планів).
   bool? _canScan;
 
+  // null = необмежено (платний план) — тоді лічильник у банері не показуємо.
+  int? _scansRemaining;
+
   Future<void> _refreshScanAvailability() async {
     final plan = ref.read(planProvider);
-    final canScan = plan.isPaid ? true : await AiUsageService.canPhotoScan();
-    if (!canScan) unawaited(MarketingTopicsService.markHitScanLimit());
-    if (mounted) setState(() => _canScan = canScan);
+    if (plan.isPaid) {
+      if (mounted) {
+        setState(() {
+          _canScan = true;
+          _scansRemaining = null;
+        });
+      }
+      return;
+    }
+    final used = await AiUsageService.getPhotoScansUsed();
+    final remaining = (AiUsageService.photoScanLimit - used).clamp(0, AiUsageService.photoScanLimit);
+    if (remaining == 0) unawaited(MarketingTopicsService.markHitScanLimit());
+    if (mounted) {
+      setState(() {
+        _canScan = remaining > 0;
+        _scansRemaining = remaining;
+      });
+    }
   }
 
   @override
@@ -212,18 +242,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     super.dispose();
   }
 
-  static String _unitForForm(String form) => switch (form) {
-    'tablet' => 'табл.',
-    'capsule' => 'капс.',
-    'syrup' => 'мл',
-    'drops' => 'крап.',
-    'cream' => 'г',
-    'inhaler' => 'вдих',
-    'injection' => 'мл',
-    'suppository' => 'свіча',
-    'vial' => 'фл.',
-    _ => 'шт.',
-  };
+  static String _unitForForm(String form) => unitForMedForm(form);
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
@@ -280,12 +299,39 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       ).add(Duration(days: totalDays));
     }
 
+    final isPercentForm = isPercentTrackedForm(_form);
+    final ex = widget.existing;
+
+    if (widget.onDraftCreated != null) {
+      // Онбординг — memberId ще не існує, реальний підставить викликач.
+      widget.onDraftCreated!(
+        MedicationsCompanion.insert(
+          memberId: 0,
+          name: name,
+          form: Value(_form),
+          doseAmount: doseAmount,
+          doseUnit: Value(doseUnit),
+          foodRelation: Value(_foodRelation),
+          repeatType: Value(_repeatType),
+          repeatConfig: Value(jsonEncode(repeatConfig)),
+          startDate: now,
+          endDate: Value(endDate),
+          totalCount: Value(isPercentForm ? 0 : _availableCount),
+          remainingCount: Value(isPercentForm ? 0 : _availableCount),
+          stockPercent: Value(_trackStock && isPercentForm ? 100 : null),
+          openedAt: Value(_trackStock && isPercentForm ? now : null),
+          photoPaths: Value(jsonEncode(_photoPaths)),
+          phases: Value(phasesJson),
+          color: Value(_colorHex),
+        ),
+      );
+      if (mounted) Navigator.of(context).pop(true);
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final medRepo = ref.read(medicationsRepositoryProvider);
-
-      final isPercentForm = isPercentTrackedForm(_form);
-      final ex = widget.existing;
 
       if (ex != null) {
         await medRepo.update(
@@ -317,7 +363,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       } else {
         await medRepo.insert(
           MedicationsCompanion.insert(
-            memberId: widget.memberId,
+            memberId: widget.memberId!,
             name: name,
             form: Value(_form),
             doseAmount: doseAmount,
@@ -404,7 +450,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             _BackHeader(
               title:
                   (isEdit ? 'Редагувати ліки' : 'Ліки') +
-                  memberNameSuffix(ref, widget.memberId),
+                  (widget.memberId != null
+                      ? memberNameSuffix(ref, widget.memberId!)
+                      : ''),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -421,7 +469,10 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                       // Scan CTA
                       GestureDetector(
                         onTap: _isSaving ? null : _openScan,
-                        child: _ScanCta(locked: _canScan == false),
+                        child: _ScanCta(
+                          locked: _canScan == false,
+                          remaining: _scansRemaining,
+                        ),
                       ),
                       const _OrDivider(),
                     ],
@@ -438,7 +489,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     // Form (перша — визначає одиницю)
                     _FormLabel('Форма випуску'),
                     const SizedBox(height: 8),
-                    _FormChips(
+                    FormChips(
                       selected: _form,
                       onSelect: (f) => setState(() => _form = f),
                     ),
@@ -557,7 +608,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                               ? 'Зберігаємо...'
                               : (isEdit
                                     ? 'Зберегти зміни'
-                                    : 'Зберегти та переглянути розклад →'),
+                                    : widget.onDraftCreated != null
+                                        ? 'Зберегти і продовжити →'
+                                        : 'Зберегти та переглянути розклад →'),
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
@@ -605,10 +658,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       await _refreshScanAvailability();
     }
 
-    if (results.length == 1) {
-      _prefillFrom(results.first);
-      return;
-    }
+    // Екран сканування вже дав користувачу перевірити й відредагувати кожен
+    // препарат окремо (акордеон з чекбоксом-згодою) — тут лише зберігаємо
+    // те, що підтверджено, без додаткового кроку "прев'ю у формі".
     await _bulkSaveScanned(results);
   }
 
@@ -617,6 +669,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   // рецепта на вже змонтованому екрані, обгорнуто в setState там).
   void _applyPrefill(ScannedMedication m) {
     _nameController.text = m.name;
+    if (m.form != null) _form = m.form!;
     if (m.foodRelation != null) _foodRelation = m.foodRelation!;
     final times = (m.scheduleTimes ?? const ['morning'])
         .map(_defaultTimeForSchedule)
@@ -624,68 +677,62 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _phases = [
       _MedPhase(
         times: times,
-        durationDays: 7,
+        durationDays: m.durationDays ?? 7,
         doseAmount: m.doseAmount ?? 1.0,
       ),
     ];
   }
 
-  void _prefillFrom(ScannedMedication m) {
-    setState(() => _applyPrefill(m));
+  MedicationsCompanion _companionFromScanned(ScannedMedication m, DateTime now) {
+    final times = (m.scheduleTimes ?? const ['morning'])
+        .map(
+          (s) =>
+              '${_defaultTimeForSchedule(s).hour.toString().padLeft(2, '0')}:${_defaultTimeForSchedule(s).minute.toString().padLeft(2, '0')}',
+        )
+        .toList();
+    final duration = m.durationDays ?? 7;
+    final form = m.form ?? 'tablet';
+    final phasesJson = jsonEncode([
+      {
+        'times': times,
+        'durationDays': duration,
+        'doseAmount': m.doseAmount ?? 1.0,
+      },
+    ]);
 
-    if (m.foodRelation != null || (m.sideEffects?.isNotEmpty ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '⚠️ Довідкова інформація (їжа/побічні ефекти) не гарантована — звірте з інструкцією',
-          ),
-        ),
-      );
-    }
+    return MedicationsCompanion.insert(
+      memberId: widget.memberId ?? 0,
+      name: m.name,
+      form: Value(form),
+      doseAmount: m.doseAmount ?? 1.0,
+      doseUnit: Value(m.doseUnit ?? _unitForForm(form)),
+      foodRelation: Value(m.foodRelation ?? 'after'),
+      repeatType: const Value('daily'),
+      repeatConfig: const Value('{}'),
+      startDate: now,
+      endDate: Value(
+        DateTime(now.year, now.month, now.day).add(Duration(days: duration)),
+      ),
+      phases: Value(phasesJson),
+    );
   }
 
   Future<void> _bulkSaveScanned(List<ScannedMedication> meds) async {
+    final now = DateTime.now();
+
+    if (widget.onDraftCreated != null) {
+      for (final m in meds) {
+        widget.onDraftCreated!(_companionFromScanned(m, now));
+      }
+      if (mounted) Navigator.of(context).pop(true);
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final medRepo = ref.read(medicationsRepositoryProvider);
-      final now = DateTime.now();
-
       for (final m in meds) {
-        final times = (m.scheduleTimes ?? const ['morning'])
-            .map(
-              (s) =>
-                  '${_defaultTimeForSchedule(s).hour.toString().padLeft(2, '0')}:${_defaultTimeForSchedule(s).minute.toString().padLeft(2, '0')}',
-            )
-            .toList();
-        final phasesJson = jsonEncode([
-          {
-            'times': times,
-            'durationDays': 7,
-            'doseAmount': m.doseAmount ?? 1.0,
-          },
-        ]);
-
-        await medRepo.insert(
-          MedicationsCompanion.insert(
-            memberId: widget.memberId,
-            name: m.name,
-            form: const Value('tablet'),
-            doseAmount: m.doseAmount ?? 1.0,
-            doseUnit: Value(m.doseUnit ?? _unitForForm('tablet')),
-            foodRelation: Value(m.foodRelation ?? 'after'),
-            repeatType: const Value('daily'),
-            repeatConfig: const Value('{}'),
-            startDate: now,
-            endDate: Value(
-              DateTime(
-                now.year,
-                now.month,
-                now.day,
-              ).add(const Duration(days: 7)),
-            ),
-            phases: Value(phasesJson),
-          ),
-        );
+        await medRepo.insert(_companionFromScanned(m, now));
       }
 
       ref.invalidate(generateTodayIntakesProvider);
@@ -699,7 +746,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             ),
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
@@ -760,7 +807,9 @@ class _BackHeader extends StatelessWidget {
 
 class _ScanCta extends StatelessWidget {
   final bool locked;
-  const _ScanCta({this.locked = false});
+  // null = платний план (необмежено, лічильник не показуємо).
+  final int? remaining;
+  const _ScanCta({this.locked = false, this.remaining});
 
   @override
   Widget build(BuildContext context) {
@@ -853,6 +902,16 @@ class _ScanCta extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.85),
                   ),
                 ),
+                if (remaining != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '$remaining сканувань залишилось для тарифу Elly Free',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -927,86 +986,6 @@ class _TextField extends StatelessWidget {
   }
 }
 
-// ─── Form chips ───────────────────────────────────────────────────────────────
-
-class _FormChips extends StatelessWidget {
-  final String selected;
-  final void Function(String) onSelect;
-
-  const _FormChips({required this.selected, required this.onSelect});
-
-  static const _forms = [
-    'tablet',
-    'capsule',
-    'suppository',
-    'vial',
-    'syrup',
-    'drops',
-    'cream',
-    'inhaler',
-    'injection',
-  ];
-
-  static const _formLabels = {
-    'tablet': 'Таблетка',
-    'capsule': 'Капсула',
-    'suppository': 'Свічі',
-    'vial': 'Флакон',
-    'syrup': 'Сироп',
-    'drops': 'Краплі',
-    'cream': 'Крем',
-    'inhaler': 'Інгалятор',
-    'injection': 'Ін\'єкція',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _forms
-          .map(
-            (f) => GestureDetector(
-              onTap: () => onSelect(f),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: selected == f ? AppColors.primary : AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: selected == f ? AppColors.primary : AppColors.border,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      medFormIcon(f),
-                      size: 16,
-                      color: selected == f ? Colors.white : AppColors.textMain,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _formLabels[f]!,
-                      style: AppTextStyles.labelMd.copyWith(
-                        color: selected == f
-                            ? Colors.white
-                            : AppColors.textMain,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
 
 class _DashedAdd extends StatelessWidget {
   final String label;

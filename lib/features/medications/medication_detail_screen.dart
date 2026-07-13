@@ -1173,21 +1173,6 @@ class _ActionRow extends ConsumerWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _ActBtn(
-            label: 'Пауза',
-            onTap: () => _openIfAllowed(
-              context,
-              ref,
-              () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Функція призупинення скоро буде доступна'),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActBtn(
             label: 'Редагувати',
             onTap: () => Navigator.push(
               context,

@@ -11,6 +11,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/surgeries_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import 'add_surgery_screen.dart';
+import 'surgery_detail_screen.dart';
 
 final _surgeriesProvider = StreamProvider.family<List<Surgery>, int>((ref, memberId) {
   return ref.watch(surgeriesRepositoryProvider).watchByMember(memberId);
@@ -26,28 +27,37 @@ class SurgeriesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: MkAddFab(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddSurgeryScreen(memberId: memberId)),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            MkListHeader(
-              title: 'Операції та госпіталізації',
-              onAdd: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AddSurgeryScreen(memberId: memberId)),
-              ),
-            ),
+            const MkListHeader(title: 'Операції та госпіталізації'),
             Expanded(
-              child: surgeriesAsync.when(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => ref.invalidate(_surgeriesProvider(memberId)),
+                child: surgeriesAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
                 data: (surgeries) {
                   if (surgeries.isEmpty) {
-                    return const MkEmptyState(
-                      hint: 'Натисніть "+ Додати" щоб додати перший запис',
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        MkEmptyState(
+                          hint: 'Натисніть "+ Додати" щоб додати перший запис',
+                        ),
+                      ],
                     );
                   }
                   return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
                         AppDimensions.screenPadding, AppDimensions.md, AppDimensions.screenPadding, 48),
                     itemCount: surgeries.length,
@@ -58,14 +68,14 @@ class SurgeriesScreen extends ConsumerWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                AddSurgeryScreen(memberId: memberId, existing: surgeries[i]),
+                            builder: (_) => SurgeryDetailScreen(surgery: surgeries[i]),
                           ),
                         ),
                       ),
                     ),
                   );
                 },
+                ),
               ),
             ),
           ],

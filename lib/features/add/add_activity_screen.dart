@@ -189,6 +189,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       final repeatDays = jsonEncode(_weekdays.toList()..sort());
       final youtubeUrl = _youtubeController.text.trim();
       final int activityId;
+      // Activities.durationMin — окреме поле від ActivitySlots.durationMin
+      // (яке справді редагує користувач через "Тривалість" на слоті). Якщо
+      // тут не задати його явно, БД підставляє свій дефолт (30) незалежно
+      // від того, що обрав користувач на слотах — і Today показує "30 хв"
+      // навіть коли тривалість ніде не вказана. Тож дзеркалимо перший слот.
+      final activityDuration = _slots.isNotEmpty ? (_slots.first.duration ?? 0) : 0;
 
       if (widget.existing != null) {
         await repo.updateActivity(
@@ -196,6 +202,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             id: Value(widget.existing!.id),
             name: Value(name),
             type: Value(_type!),
+            durationMin: Value(activityDuration),
             repeatDays: Value(repeatDays),
             reminderBeforeMin: Value(_reminder ? 10 : 0),
             youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
@@ -209,6 +216,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             memberId: widget.memberId,
             name: name,
             type: Value(_type!),
+            durationMin: Value(activityDuration),
             repeatDays: Value(repeatDays),
             reminderBeforeMin: Value(_reminder ? 10 : 0),
             youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),

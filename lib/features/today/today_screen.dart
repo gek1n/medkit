@@ -334,7 +334,18 @@ class _TodayContent extends ConsumerWidget {
               scheduleItems.isEmpty &&
               doneItems.isNotEmpty;
 
-          return CustomScrollView(
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              ref.invalidate(generateTodayIntakesProvider);
+              ref.invalidate(generateTodayActivityLogsProvider);
+              await Future.wait([
+                ref.read(generateTodayIntakesProvider.future),
+                ref.read(generateTodayActivityLogsProvider.future),
+              ]);
+            },
+            child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               if (showSwitchBanner)
                 SliverToBoxAdapter(
@@ -483,6 +494,7 @@ class _TodayContent extends ConsumerWidget {
                   ),
                 ),
             ],
+          ),
           );
         },
       ),
@@ -1338,7 +1350,7 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _DetailRow(label: 'Час', value: _fmt(item.scheduledAt)),
-              if (activity != null)
+              if (activity != null && activity!.durationMin > 0)
                 _DetailRow(
                   label: 'Тривалість',
                   value: '${activity!.durationMin} хв',
@@ -1418,10 +1430,7 @@ class _ScheduleRow extends StatelessWidget {
                 ? () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => WellbeingHistoryScreen(
-                        memberId: memberId,
-                        initialDays: 7,
-                      ),
+                      builder: (_) => WellbeingHistoryScreen(memberId: memberId),
                     ),
                   )
                 : null,

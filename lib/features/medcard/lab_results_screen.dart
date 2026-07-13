@@ -9,7 +9,9 @@ import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/lab_results_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_list_widgets.dart';
 import 'add_lab_result_screen.dart';
+import 'lab_result_detail_screen.dart';
 
 final _labResultsProvider = StreamProvider.family<List<LabResult>, int>((
   ref,
@@ -28,6 +30,12 @@ class LabResultsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: MkAddFab(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => AddLabResultScreen(memberId: memberId)),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -39,32 +47,27 @@ class LabResultsScreen extends ConsumerWidget {
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   const SizedBox(width: 12),
                   Expanded(child: Text('Аналізи', style: AppTextStyles.h3)),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddLabResultScreen(memberId: memberId),
-                      ),
-                    ),
-                    child: Text(
-                      '+ Додати',
-                      style: AppTextStyles.labelMd.copyWith(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
             Expanded(
-              child: resultsAsync.when(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => ref.invalidate(_labResultsProvider(memberId)),
+                child: resultsAsync.when(
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
                 data: (results) {
-                  if (results.isEmpty) return const _EmptyState();
+                  if (results.isEmpty) {
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [_EmptyState()],
+                    );
+                  }
                   return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
                       AppDimensions.screenPadding,
                       AppDimensions.md,
@@ -79,16 +82,14 @@ class LabResultsScreen extends ConsumerWidget {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => AddLabResultScreen(
-                              memberId: memberId,
-                              existing: results[i],
-                            ),
+                            builder: (_) => LabResultDetailScreen(result: results[i]),
                           ),
                         ),
                       ),
                     ),
                   );
                 },
+                ),
               ),
             ),
           ],

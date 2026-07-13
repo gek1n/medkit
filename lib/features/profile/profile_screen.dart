@@ -9,7 +9,6 @@ import '../help/help_faq_screen.dart';
 import '../legal/privacy_policy_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
-import '../sync/sync_settings_screen.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/services/notification_service.dart';
@@ -22,7 +21,6 @@ import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../today/providers/today_providers.dart';
-import '../wellbeing/wellbeing_history_screen.dart';
 import 'anti_stress/anti_stress_picker_screen.dart';
 import 'family_visibility_screen.dart';
 import 'privacy_screen.dart';
@@ -190,12 +188,6 @@ class _HeroSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(member.name, style: AppTextStyles.h3),
-                        const SizedBox(height: 2),
-                        Text(
-                          'sgek1n@gmail.com',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.textSub),
-                        ),
                         const SizedBox(height: 8),
                         _PlanBadge(plan: plan),
                       ],
@@ -497,17 +489,6 @@ class _HealthSection extends StatelessWidget {
     return _SectionCard(
       children: [
         _RowItem(
-          icon: Icons.history_rounded,
-          label: 'Історія самопочуття',
-          color: AppColors.primary,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => WellbeingHistoryScreen(memberId: memberId),
-            ),
-          ),
-        ),
-        _RowItem(
           icon: Icons.self_improvement_rounded,
           label: 'Антистрес-вправи',
           color: AppColors.primary,
@@ -673,15 +654,6 @@ class _AccountSection extends ConsumerWidget {
               builder: (_) =>
                   FamilyVisibilityScreen(subjectMemberId: memberId),
             ),
-          ),
-        ),
-        _RowItem(
-          icon: Icons.sync_rounded,
-          label: 'Синхронізація',
-          color: AppColors.warning,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SyncSettingsScreen()),
           ),
         ),
         _RowItem(

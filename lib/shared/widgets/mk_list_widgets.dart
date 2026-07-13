@@ -4,12 +4,12 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'mk_back_button.dart';
 
-/// Заголовок екрана-списку медкартки: назад + назва + "+ Додати".
+/// Заголовок екрана-списку медкартки: назад + назва. Кнопка додавання — це
+/// плаваюча кнопка внизу справа (як на Сьогодні), не в заголовку.
 class MkListHeader extends StatelessWidget {
   final String title;
-  final VoidCallback onAdd;
 
-  const MkListHeader({super.key, required this.title, required this.onAdd});
+  const MkListHeader({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +21,24 @@ class MkListHeader extends StatelessWidget {
           MkBackButton(onTap: () => Navigator.pop(context)),
           const SizedBox(width: 12),
           Expanded(child: Text(title, style: AppTextStyles.h3)),
-          GestureDetector(
-            onTap: onAdd,
-            child: Text('+ Додати', style: AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
-          ),
         ],
       ),
+    );
+  }
+}
+
+/// Плаваюча кнопка "+" внизу справа — той самий стиль, що й на Сьогодні,
+/// для всіх списків медкартки.
+class MkAddFab extends StatelessWidget {
+  final VoidCallback onPressed;
+  const MkAddFab({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: onPressed,
+      backgroundColor: AppColors.primary,
+      child: const Icon(Icons.add_rounded, color: Colors.white),
     );
   }
 }

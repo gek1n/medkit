@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/symptom_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -11,43 +12,26 @@ import 'wellbeing_check_screen.dart';
 
 // ────────────────────────────── provider ──────────────────────────────
 
-typedef _WK = ({int memberId, int days});
-
+// StreamProvider — реактивний, без періоду: показуємо всю історію, гортати
+// можна скільки завгодно (SliverList вже лінивий сам по собі).
 final _wellbeingHistoryProvider =
-    FutureProvider.family<List<WellbeingLog>, _WK>((ref, k) async {
-  final to = DateTime.now().add(const Duration(days: 1));
-  final from = DateTime.now().subtract(Duration(days: k.days));
-  final logs = await ref
+    StreamProvider.family<List<WellbeingLog>, int>((ref, memberId) {
+  return ref
       .watch(wellbeingRepositoryProvider)
-      .getByMemberAndDateRange(k.memberId, from, to);
-  // "Пропустити" не несе реальних даних про настрій — не показуємо в історії.
-  return logs.reversed.where((l) => !l.skipped).toList(); // descending
+      .watchByMember(memberId)
+      // "Пропустити" не несе реальних даних про настрій — не показуємо в історії.
+      .map((logs) => logs.where((l) => !l.skipped).toList());
 });
 
 // ────────────────────────────── screen ──────────────────────────────
 
-class WellbeingHistoryScreen extends ConsumerStatefulWidget {
+class WellbeingHistoryScreen extends ConsumerWidget {
   final int memberId;
-  final int initialDays;
-  const WellbeingHistoryScreen({
-    super.key,
-    required this.memberId,
-    this.initialDays = 30,
-  });
+  const WellbeingHistoryScreen({super.key, required this.memberId});
 
   @override
-  ConsumerState<WellbeingHistoryScreen> createState() =>
-      _WellbeingHistoryScreenState();
-}
-
-class _WellbeingHistoryScreenState
-    extends ConsumerState<WellbeingHistoryScreen> {
-  late int _days = widget.initialDays;
-
-  @override
-  Widget build(BuildContext context) {
-    final key = (memberId: widget.memberId, days: _days);
-    final logsAsync = ref.watch(_wellbeingHistoryProvider(key));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(_wellbeingHistoryProvider(memberId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -55,12 +39,7 @@ class _WellbeingHistoryScreenState
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
         error: (e, _) => Center(child: Text('Помилка: $e')),
-        data: (logs) => _HistoryBody(
-          memberId: widget.memberId,
-          days: _days,
-          logs: logs,
-          onDaysChanged: (d) => setState(() => _days = d),
-        ),
+        data: (logs) => _HistoryBody(memberId: memberId, logs: logs),
       ),
     );
   }
@@ -70,15 +49,11 @@ class _WellbeingHistoryScreenState
 
 class _HistoryBody extends StatelessWidget {
   final int memberId;
-  final int days;
   final List<WellbeingLog> logs;
-  final ValueChanged<int> onDaysChanged;
 
   const _HistoryBody({
     required this.memberId,
-    required this.days,
     required this.logs,
-    required this.onDaysChanged,
   });
 
   // Group logs by date (yMd), return sorted desc
@@ -107,10 +82,7 @@ class _HistoryBody extends StatelessWidget {
               children: [
                 _Header(memberId: memberId),
                 const SizedBox(height: AppDimensions.md),
-                _PeriodChips(
-                    current: days, onChanged: onDaysChanged),
-                const SizedBox(height: AppDimensions.md),
-                _MiniChart(logs: logs, days: days),
+                _MiniChart(logs: logs),
                 const SizedBox(height: AppDimensions.md),
                 _AiInsight(),
                 const SizedBox(height: AppDimensions.lg),
@@ -200,61 +172,12 @@ class _Header extends StatelessWidget {
 
 // ────────────────────────────── period chips ──────────────────────────────
 
-class _PeriodChips extends StatelessWidget {
-  final int current;
-  final ValueChanged<int> onChanged;
-
-  const _PeriodChips(
-      {required this.current, required this.onChanged});
-
-  static const _opts = [
-    (7, 'Тиждень'),
-    (30, 'Місяць'),
-    (90, '3 місяці'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.screenPadding),
-      child: Row(
-        children: _opts.map((o) {
-          final sel = current == o.$1;
-          return Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: GestureDetector(
-              onTap: () => onChanged(o.$1),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: sel ? AppColors.primary : const Color(0xFFF1F5F9),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusFull),
-                ),
-                child: Text(
-                  o.$2,
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: sel ? Colors.white : AppColors.textSub,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
 // ────────────────────────────── mini chart ──────────────────────────────
 
 class _MiniChart extends StatelessWidget {
   final List<WellbeingLog> logs;
-  final int days;
 
-  const _MiniChart({required this.logs, required this.days});
+  const _MiniChart({required this.logs});
 
   static const _moodEmoji = ['', '😣', '😕', '😐', '🙂', '😄'];
 
@@ -496,17 +419,6 @@ class _LogCard extends StatelessWidget {
 
   static const _moodEmoji = ['', '😣', '😕', '😐', '🙂', '😄'];
 
-  static const _symptomLabels = {
-    'headache': 'головний біль',
-    'nausea': 'нудота',
-    'dizziness': 'запаморочення',
-    'weakness': 'слабість',
-    'shortness_of_breath': 'задишка',
-    'rash': 'висип',
-    'pain': 'біль',
-    'fever': 'температура',
-  };
-
   IconData _timeIcon() {
     final h = log.loggedAt.hour;
     return h < 12
@@ -585,8 +497,6 @@ class _LogCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded,
-              size: 16, color: AppColors.textMuted),
         ],
       ),
     );
@@ -595,11 +505,7 @@ class _LogCard extends StatelessWidget {
   List<String> _parseSymptoms(String json) {
     try {
       final List<dynamic> keys = jsonDecode(json);
-      return keys.map((k) {
-        final s = k as String;
-        if (s.startsWith('custom_')) return s.substring(7);
-        return _symptomLabels[s] ?? s;
-      }).toList();
+      return keys.map((k) => SymptomLibraryService.labelFor(k as String)).toList();
     } catch (_) {
       return [];
     }
