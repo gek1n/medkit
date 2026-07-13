@@ -69,9 +69,6 @@ class BackupService {
     }
 
     final encoded = ZipEncoder().encode(archive);
-    if (encoded == null) {
-      throw StateError('Не вдалося створити архів резервної копії');
-    }
     return Uint8List.fromList(encoded);
   }
 
