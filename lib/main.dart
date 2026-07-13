@@ -109,12 +109,20 @@ class _AppLockGateState extends State<_AppLockGate> {
   @override
   void initState() {
     super.initState();
+    _checkLock();
+  }
+
+  Future<void> _checkLock() async {
+    final enabled = await AppLockService.isEnabled();
+    if (!enabled) {
+      if (mounted) setState(() => _unlocked = true);
+      return;
+    }
     // authenticate() сама повертає true, якщо на пристрої взагалі не
     // налаштовано жодного способу автентифікації — див. AppLockService.
-    AppLockService.authenticate().then((ok) {
-      if (!mounted) return;
-      setState(() => _unlocked = ok);
-    });
+    final ok = await AppLockService.authenticate();
+    if (!mounted) return;
+    setState(() => _unlocked = ok);
   }
 
   @override
