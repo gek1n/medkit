@@ -17,8 +17,14 @@ class SurgeriesRepository {
   Future<int> insert(SurgeriesCompanion surgery) =>
       _db.into(_db.surgeries).insert(surgery);
 
-  Future<bool> update(SurgeriesCompanion surgery) =>
-      _db.update(_db.surgeries).replace(surgery);
+  // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
+  // екрани редагування передають лише змінені поля без memberId.
+  Future<bool> update(SurgeriesCompanion surgery) async {
+    final rows = await (_db.update(_db.surgeries)
+          ..where((t) => t.id.equals(surgery.id.value)))
+        .write(surgery);
+    return rows > 0;
+  }
 
   Future<int> delete(int id) =>
       (_db.delete(_db.surgeries)..where((t) => t.id.equals(id))).go();

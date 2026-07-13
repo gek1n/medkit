@@ -17,8 +17,14 @@ class ChronicConditionsRepository {
   Future<int> insert(ChronicConditionsCompanion condition) =>
       _db.into(_db.chronicConditions).insert(condition);
 
-  Future<bool> update(ChronicConditionsCompanion condition) =>
-      _db.update(_db.chronicConditions).replace(condition);
+  // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
+  // екрани редагування передають лише змінені поля без memberId.
+  Future<bool> update(ChronicConditionsCompanion condition) async {
+    final rows = await (_db.update(_db.chronicConditions)
+          ..where((t) => t.id.equals(condition.id.value)))
+        .write(condition);
+    return rows > 0;
+  }
 
   Future<int> delete(int id) =>
       (_db.delete(_db.chronicConditions)..where((t) => t.id.equals(id))).go();

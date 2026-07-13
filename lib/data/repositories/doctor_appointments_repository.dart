@@ -47,8 +47,14 @@ class DoctorAppointmentsRepository {
   Future<int> insert(DoctorAppointmentsCompanion appointment) =>
       _db.into(_db.doctorAppointments).insert(appointment);
 
-  Future<bool> update(DoctorAppointmentsCompanion appointment) =>
-      _db.update(_db.doctorAppointments).replace(appointment);
+  // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
+  // екрани редагування передають лише змінені поля без memberId.
+  Future<bool> update(DoctorAppointmentsCompanion appointment) async {
+    final rows = await (_db.update(_db.doctorAppointments)
+          ..where((t) => t.id.equals(appointment.id.value)))
+        .write(appointment);
+    return rows > 0;
+  }
 
   Future<int> delete(int id) =>
       (_db.delete(_db.doctorAppointments)..where((t) => t.id.equals(id))).go();

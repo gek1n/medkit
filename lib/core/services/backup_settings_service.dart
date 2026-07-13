@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -72,3 +73,9 @@ class BackupSettingsService {
     return DateTime.now().difference(last) >= interval;
   }
 }
+
+/// Для UI (напр. банер-нагадування в Профілі) — інвалідовувати після
+/// повернення з BackupScreen, де режим міг змінитись.
+final backupModeProvider = FutureProvider<BackupMode>((ref) {
+  return BackupSettingsService.currentMode();
+});

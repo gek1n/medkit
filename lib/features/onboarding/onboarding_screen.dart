@@ -53,11 +53,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => AddMedicationScreen(
-          onDraftCreated: (draft) => _medicationDrafts.add(draft),
+          onDraftCreated: (draft) => setState(() => _medicationDrafts.add(draft)),
         ),
       ),
     );
     if (saved == true) _next();
+  }
+
+  void _removeMedicationDraft(int index) {
+    setState(() => _medicationDrafts.removeAt(index));
   }
 
   @override
@@ -218,8 +222,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
       3 => _StepMedications(
         key: const ValueKey(3),
+        drafts: _medicationDrafts,
         onSkip: _skip,
+        onNext: _next,
         onAddMedication: _openAddMedication,
+        onRemoveDraft: _removeMedicationDraft,
       ),
       4 => _StepActivities(
         key: const ValueKey(4),
@@ -576,17 +583,24 @@ class _StepName extends StatelessWidget {
 // ─── Step 3: Ліки ────────────────────────────────────────────────────────────
 
 class _StepMedications extends StatelessWidget {
+  final List<MedicationsCompanion> drafts;
   final VoidCallback onSkip;
+  final VoidCallback onNext;
   final VoidCallback onAddMedication;
+  final void Function(int index) onRemoveDraft;
 
   const _StepMedications({
     super.key,
+    required this.drafts,
     required this.onSkip,
+    required this.onNext,
     required this.onAddMedication,
+    required this.onRemoveDraft,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasDrafts = drafts.isNotEmpty;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
@@ -599,6 +613,21 @@ class _StepMedications extends StatelessWidget {
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 24),
+
+          // Вже додані на цьому кроці — інакше повернення назад виглядає
+          // так, ніби нічого не збереглося, хоча чернетки нікуди не ділись.
+          if (hasDrafts) ...[
+            ...drafts.asMap().entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _DraftMedRow(
+                      name: e.value.name.value,
+                      onRemove: () => onRemoveDraft(e.key),
+                    ),
+                  ),
+                ),
+            const SizedBox(height: 12),
+          ],
 
           // Add medication button
           GestureDetector(
@@ -622,7 +651,7 @@ class _StepMedications extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Додати ліки',
+                          hasDrafts ? 'Додати ще ліки' : 'Додати ліки',
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
@@ -676,7 +705,39 @@ class _StepMedications extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          _SkipLink(label: 'Пропустити — додам пізніше', onTap: onSkip),
+          if (hasDrafts)
+            _NextButton(label: 'Далі →', onTap: onNext)
+          else
+            _SkipLink(label: 'Пропустити — додам пізніше', onTap: onSkip),
+        ],
+      ),
+    );
+  }
+}
+
+class _DraftMedRow extends StatelessWidget {
+  final String name;
+  final VoidCallback onRemove;
+  const _DraftMedRow({required this.name, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(child: Text(name, style: AppTextStyles.bodyMd)),
+          GestureDetector(
+            onTap: onRemove,
+            child: const Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+          ),
         ],
       ),
     );

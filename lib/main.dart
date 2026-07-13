@@ -15,6 +15,7 @@ import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
 import 'core/services/app_lock_service.dart';
 import 'core/services/app_logger.dart';
+import 'core/services/backup_reminder_service.dart';
 import 'core/services/backup_service.dart';
 import 'core/services/backup_settings_service.dart';
 import 'core/services/db_encryption_service.dart';
@@ -226,6 +227,19 @@ class _DatabaseErrorScreen extends ConsumerStatefulWidget {
 class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
   bool _showDetails = false;
   bool _resetting = false;
+  // Кількість разів, коли ця помилка повторилась ПІСЛЯ явного "Спробувати
+  // ще раз" — 0 при першій появі екрана. Деструктивний "Скинути" не можна
+  // пропонувати одразу: помилка може бути транзитною (напр. тимчасовий
+  // лок файлу після відновлення бекапу, повільний диск), і без цього
+  // порогу користувач міг би втратити всі дані через звичайний глюк
+  // з'єднання замість того, щоб просто спробувати ще раз.
+  int _retryCount = 0;
+
+  @override
+  void didUpdateWidget(_DatabaseErrorScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _retryCount++;
+  }
 
   String get _detailsText =>
       '${widget.error}\n\n${widget.stackTrace ?? ''}';
@@ -319,7 +333,16 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
                 ),
                 child: const Text('Спробувати ще раз'),
               ),
-              if (_isKeyMismatch) ...[
+              if (_isKeyMismatch && _retryCount == 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Якщо після повторної спроби помилка лишиться — з\'явиться '
+                  'додаткова дія.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                ),
+              ],
+              if (_isKeyMismatch && _retryCount >= 1) ...[
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: _resetting ? null : _resetLocalDatabase,
@@ -425,6 +448,8 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
     unawaited(ReviewPromptService.recordInstallIfNeeded());
     unawaited(ReviewPromptService.maybeShow());
+    unawaited(BackupReminderService.recordInstallIfNeeded());
+    unawaited(BackupReminderService.maybeRemind());
     // "Розбуди" push від family_sync (relay/send) приходить як data-message —
     // поки застосунок відкритий, його треба явно підхопити тут; коли
     // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.
@@ -452,6 +477,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       _backupIfDue();
       unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
       unawaited(ReviewPromptService.maybeShow());
+      unawaited(BackupReminderService.maybeRemind());
     }
   }
 

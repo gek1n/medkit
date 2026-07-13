@@ -247,26 +247,32 @@ class _Timeline extends StatelessWidget {
                 ),
         );
 
-    return ListView(
+    // Плоский список — заголовки секцій теж елементи ListView.builder, щоб
+    // картки з фото будувались (і декодувались) лише біля в'юпорта, а не
+    // всі одразу — при великій кількості записів це і викликало гальмування.
+    final items = <Widget>[
+      if (upcoming.isNotEmpty) ...[
+        const SectionLabel('Заплановані'),
+        const SizedBox(height: AppDimensions.sm),
+        ...upcoming.map(entryTile),
+        const SizedBox(height: AppDimensions.md),
+      ],
+      if (past.isNotEmpty) ...[
+        const SectionLabel('Минулі'),
+        const SizedBox(height: AppDimensions.sm),
+        ...past.map(entryTile),
+      ],
+    ];
+
+    return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.screenPadding,
         AppDimensions.md,
         AppDimensions.screenPadding,
         48,
       ),
-      children: [
-        if (upcoming.isNotEmpty) ...[
-          const SectionLabel('Заплановані'),
-          const SizedBox(height: AppDimensions.sm),
-          ...upcoming.map(entryTile),
-          const SizedBox(height: AppDimensions.md),
-        ],
-        if (past.isNotEmpty) ...[
-          const SectionLabel('Минулі'),
-          const SizedBox(height: AppDimensions.sm),
-          ...past.map(entryTile),
-        ],
-      ],
+      itemCount: items.length,
+      itemBuilder: (context, i) => items[i],
     );
   }
 }
@@ -418,7 +424,13 @@ class _FeedCard extends StatelessWidget {
                               ),
                             );
                           }
-                          return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                          // cacheWidth — декодувати одразу під розмір
+                          // прев'ю (84 lp), а не повне фото на кілька МБ.
+                          return Image.memory(
+                            snapshot.data!,
+                            fit: BoxFit.cover,
+                            cacheWidth: 168,
+                          );
                         },
                       ),
                     ),
