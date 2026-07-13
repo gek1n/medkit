@@ -48,6 +48,15 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
       _error = null;
     });
     try {
+      // Закриваємо поточне (порожнє, щойно створене онбордингом) з'єднання
+      // ДО того, як restoreBackup() підмінить сам файл medkit.db і ключ у
+      // secure storage — інакше фонова ізолят-БД лишається живою поверх
+      // файлу, який міняється в неї "під ногами", а це гонка, здатна
+      // лишити диск у стані, де ключ і вміст файлу не відповідають один
+      // одному (SqliteException(26) "file is not a database" при
+      // наступному відкритті).
+      await container.read(databaseProvider).close();
+
       await _backupService.restoreBackup(target: target, passphrase: passphrase);
       await BackupSettingsService.savePassphrase(passphrase);
       await BackupSettingsService.setMode(mode);

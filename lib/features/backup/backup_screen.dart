@@ -132,13 +132,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
     setState(() => _busy = true);
     try {
+      // Закриваємо активне з'єднання ДО підміни файлу/ключа — інакше
+      // фонова ізолят-БД лишається живою поверх файлу, який змінюється в
+      // неї "під ногами" (гонка, здатна лишити ключ і вміст файлу
+      // неузгодженими — SqliteException(26) "file is not a database" при
+      // наступному відкритті).
+      await container.read(databaseProvider).close();
+
       await _backupService.restoreBackup(target: target, passphrase: passphrase);
       await BackupSettingsService.savePassphrase(passphrase);
 
       // ⚠️ restoreBackup() підмінює файл БД і ключ шифрування в secure
-      // storage "під ногами" у вже відкритого Drift-з'єднання — без цього
-      // invalidate застосунок і далі мовчки показував би стару БД, поки
-      // користувач не перезапустить його вручну.
+      // storage — без цього invalidate застосунок і далі мовчки показував
+      // би стару БД, поки користувач не перезапустить його вручну.
       container.invalidate(databaseProvider);
       container.invalidate(currentMemberProvider);
 
