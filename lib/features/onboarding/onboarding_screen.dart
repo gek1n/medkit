@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../data/db/app_database.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/prescription_scan_service.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -80,6 +82,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Введіть своє ім\'я')));
       return;
+    }
+    // Крок 1 → крок 2: перший природний момент попросити дозвіл на
+    // сповіщення (не одразу на холодному старті, до першого екрана).
+    if (_step == 0) {
+      unawaited(NotificationService.requestPermissions());
     }
     if (_step < _totalSteps - 1) {
       setState(() => _step++);

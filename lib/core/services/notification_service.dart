@@ -18,6 +18,11 @@ class NotificationService {
   static const _channelDesc =
       'Нагадування про ліки, активності, візити та самопочуття';
 
+  /// Лише реєстрація плагіна/каналу/таймзони — без системного діалогу
+  /// дозволу. Викликається одразу при старті застосунку (main.dart), щоб
+  /// планування нагадувань було готове до роботи. Сам запит дозволу —
+  /// окремо, [requestPermissions], викликається з онбордингу в потрібний
+  /// момент (не одразу на холодному старті, до появи будь-якого екрана).
   static Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
@@ -34,7 +39,11 @@ class NotificationService {
     await _plugin.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
     );
+  }
 
+  /// Системний діалог "Дозволити сповіщення" — викликається явно з
+  /// онбордингу (крок 1 → крок 2), а не на холодному старті.
+  static Future<void> requestPermissions() async {
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await android?.requestNotificationsPermission();
