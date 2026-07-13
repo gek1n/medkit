@@ -18,6 +18,19 @@ class DbEncryptionService {
   /// цим ключем (виконує одноразову PRAGMA rekey-міграцію, якщо на пристрої
   /// лишилась стара незашифрована база).
   static Future<String> ensureEncryptedDatabase(File dbFile) async {
+    if (!await dbFile.exists()) {
+      // Файлу БД немає — це або справжній перший запуск, або
+      // перевстановлення після Delete App. iOS НЕ чистить Keychain при
+      // видаленні застосунку (на відміну від Documents/бази), тож там
+      // цілком міг лишитись ключ від попередньої інсталяції. Довіряти
+      // такому ключу небезпечно: файлу, якого нема, фізично не може бути
+      // зашифровано старим ключем. Тому для будь-якого нового файлу
+      // завжди генеруємо СВІЖИЙ ключ і перезаписуємо Keychain — так ключ
+      // і файл гарантовано лишаються парою, і "чужий" ключ зі старої
+      // інсталяції більше не може спричинити розсинхрон.
+      return _generateAndStoreKey();
+    }
+
     final key = await _getOrCreateKey();
 
     // Виконується на кожному запуску (не одноразово через прапорець у
@@ -28,9 +41,7 @@ class DbEncryptionService {
     // (напр. якщо БД на пристрої з'являлась пізніше за перший запуск) і
     // назавжди блокував перешифрування — саме це й спричиняло
     // "file is not a database" при відкритті через Drift з ключем.
-    if (await dbFile.exists()) {
-      await _rekeyIfPlaintext(dbFile, key);
-    }
+    await _rekeyIfPlaintext(dbFile, key);
 
     return key;
   }
@@ -42,7 +53,10 @@ class DbEncryptionService {
     if (existing != null && existing.isNotEmpty) {
       return existing;
     }
+    return _generateAndStoreKey();
+  }
 
+  static Future<String> _generateAndStoreKey() async {
     final random = Random.secure();
     final bytes = List<int>.generate(32, (_) => random.nextInt(256));
     final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
@@ -50,6 +64,20 @@ class DbEncryptionService {
 
     await _secureStorage.write(key: _keyStorageKey, value: key);
     return key;
+  }
+
+  /// Видаляє файл БД разом із ключем шифрування — єдиний вихід із стану
+  /// "PRAGMA key встановлено, але файл усе одно нечитабельний" (SqliteException
+  /// code 26, "file is not a database"): це означає, що збережений ключ
+  /// фізично не той, яким зашифровано файл (типово — залишок Keychain від
+  /// попередньої інсталяції), а без правильного ключа розшифрувати дані
+  /// криптографічно неможливо в принципі. Викликається лише явно, з
+  /// підтвердженням користувача.
+  static Future<void> resetCorruptedDatabase(File dbFile) async {
+    if (await dbFile.exists()) {
+      await dbFile.delete();
+    }
+    await _secureStorage.delete(key: _keyStorageKey);
   }
 
   /// Якщо файл — незашифрована SQLite-база (стара версія застосунку),

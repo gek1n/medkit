@@ -15,6 +15,7 @@ import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
 import 'core/services/app_lock_service.dart';
 import 'core/services/app_logger.dart';
+import 'core/services/db_encryption_service.dart';
 import 'core/services/billing_lifecycle_service.dart';
 import 'core/services/family_group_service.dart';
 import 'core/services/family_peer_sync_service.dart';
@@ -214,9 +215,61 @@ class _DatabaseErrorScreen extends ConsumerStatefulWidget {
 
 class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
   bool _showDetails = false;
+  bool _resetting = false;
 
   String get _detailsText =>
       '${widget.error}\n\n${widget.stackTrace ?? ''}';
+
+  // SQLITE_NOTADB (code 26): PRAGMA key встановлено, але перший реальний
+  // read падає — означає, що ключ у Keychain не той, яким зашифровано файл
+  // на диску (типово після Delete App + перевстановлення). "Спробувати ще
+  // раз" тут ніколи не допоможе: без правильного ключа розшифрувати дані
+  // криптографічно неможливо, тож для цього конкретного випадку показуємо
+  // окрему, явно деструктивну дію.
+  //
+  // NativeDatabase.createInBackground працює через ізолят — Drift
+  // серіалізує помилку в рядок ще на боці фонового ізоляту (bool `_serialize`
+  // у DriftCommunication), тож на момент, коли вона долітає сюди, це вже НЕ
+  // `SqliteException`, а обгортка `DriftRemoteException` над самим лише
+  // текстом. Перевіряти доводиться за текстом, `is SqliteException` тут
+  // завжди буде false.
+  bool get _isKeyMismatch =>
+      widget.error.toString().contains('(code 26)') ||
+      widget.error.toString().contains('file is not a database');
+
+  Future<void> _resetLocalDatabase() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Скинути локальну базу?'),
+        content: const Text(
+            'Ключ шифрування не збігається з файлом бази на цьому '
+            'пристрої — розшифрувати наявні дані неможливо. Це видалить '
+            'пошкоджений файл локально і дасть змогу почати заново. Дію '
+            'неможливо скасувати.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Скасувати'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Скинути'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _resetting = true);
+    AppLogger.log('db_reset_after_key_mismatch');
+    final file = await DbEncryptionService.databaseFile();
+    await DbEncryptionService.resetCorruptedDatabase(file);
+    if (!mounted) return;
+    ref.invalidate(databaseProvider);
+    ref.invalidate(currentMemberProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,6 +309,27 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
                 ),
                 child: const Text('Спробувати ще раз'),
               ),
+              if (_isKeyMismatch) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: _resetting ? null : _resetLocalDatabase,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _resetting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Скинути локальну базу'),
+                ),
+              ],
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => setState(() => _showDetails = !_showDetails),
