@@ -472,6 +472,10 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
     with SingleTickerProviderStateMixin {
   final _speech = SpeechToText();
   bool _sttReady = false;
+  // STT-рушій стартує не миттєво — якщо почати говорити одразу по тапу,
+  // перше слово губиться. Показуємо "Говоріть" лише коли рушій підтвердив
+  // через onStatus, що дійсно вже захоплює звук.
+  bool _micReady = false;
   _CommentMode _mode = _CommentMode.idle;
   String _transcript = '';
   int _seconds = 0;
@@ -485,7 +489,18 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
-    _speech.initialize().then((ok) {
+    _speech
+        .initialize(
+          onStatus: (status) {
+            if (!mounted) return;
+            if (status == 'listening') {
+              setState(() => _micReady = true);
+            } else if (_micReady) {
+              setState(() => _micReady = false);
+            }
+          },
+        )
+        .then((ok) {
       if (mounted) setState(() => _sttReady = ok);
     });
   }
@@ -503,6 +518,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
       _mode = _CommentMode.recording;
       _transcript = '';
       _seconds = 0;
+      _micReady = false;
     });
     widget.onListeningChanged?.call(true);
     // tick timer
@@ -557,6 +573,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
           _RecordingBlock(
             waveCtrl: _waveCtrl,
             timerLabel: _timerLabel,
+            micReady: _micReady,
             onStop: _stopRecording,
           )
         else if (_mode == _CommentMode.transcribed)
@@ -679,6 +696,7 @@ class _MicIdleButton extends StatelessWidget {
 class _RecordingBlock extends StatelessWidget {
   final AnimationController waveCtrl;
   final String timerLabel;
+  final bool micReady;
   final VoidCallback onStop;
 
   static const _barHeights = [
@@ -713,6 +731,7 @@ class _RecordingBlock extends StatelessWidget {
   const _RecordingBlock({
     required this.waveCtrl,
     required this.timerLabel,
+    required this.micReady,
     required this.onStop,
   });
 
@@ -793,7 +812,9 @@ class _RecordingBlock extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Говоріть… натисніть щоб зупинити',
+              micReady
+                  ? 'Говоріть… натисніть щоб зупинити'
+                  : 'Готуємось… зачекайте секунду',
               style: AppTextStyles.bodySm.copyWith(
                 color: const Color(0xFF3F8F5F),
                 fontWeight: FontWeight.w600,

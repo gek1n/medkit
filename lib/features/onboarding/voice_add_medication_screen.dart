@@ -45,6 +45,12 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
 
   _VoiceStage _stage = _VoiceStage.checkingConsent;
   bool _sttAvailable = false;
+  // STT-рушій стартує не миттєво по натисканню (ініціалізація мікрофону/
+  // аудіо-сесії займає якийсь час) — якщо користувач починає говорити
+  // одразу, як побачив "Слухаю", перше слово (найчастіше — назва ліків)
+  // губиться. Показуємо "Слухаю" лише коли рушій підтвердив через
+  // onStatus, що дійсно вже захоплює звук.
+  bool _micReady = false;
   String _transcript = '';
   String _errorMsg = '';
   int _attemptCount = 0;
@@ -88,6 +94,14 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
   Future<void> _initSpeech() async {
     final ok = await _speech.initialize(
       onError: (e) => _setError('Помилка розпізнавання: ${e.errorMsg}'),
+      onStatus: (status) {
+        if (!mounted) return;
+        if (status == 'listening') {
+          setState(() => _micReady = true);
+        } else if (_micReady) {
+          setState(() => _micReady = false);
+        }
+      },
     );
     if (mounted) setState(() => _sttAvailable = ok);
   }
@@ -108,6 +122,7 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
     setState(() {
       _stage = _VoiceStage.listening;
       _transcript = '';
+      _micReady = false;
       _attemptCount++;
     });
     await _speech.listen(
@@ -294,6 +309,7 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
                 _VoiceStage.listening => _ListeningBody(
                     transcript: _transcript,
                     attemptCount: _attemptCount,
+                    micReady: _micReady,
                     onStop: _stopListening,
                   ),
                 _VoiceStage.analyzing => const _AnalyzingBody(),
@@ -613,11 +629,13 @@ class _IdleBody extends StatelessWidget {
 class _ListeningBody extends StatelessWidget {
   final String transcript;
   final int attemptCount;
+  final bool micReady;
   final VoidCallback onStop;
 
   const _ListeningBody({
     required this.transcript,
     required this.attemptCount,
+    required this.micReady,
     required this.onStop,
   });
 
@@ -630,18 +648,29 @@ class _ListeningBody extends StatelessWidget {
         children: [
           GestureDetector(
             onTap: onStop,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-              child: const Center(child: Icon(Icons.stop_rounded, size: 40, color: Colors.white)),
+            child: AnimatedOpacity(
+              opacity: micReady ? 1.0 : 0.5,
+              duration: const Duration(milliseconds: 150),
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                child: const Center(child: Icon(Icons.stop_rounded, size: 40, color: Colors.white)),
+              ),
             ),
           ),
           const SizedBox(height: 28),
-          Text('Слухаю...', style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
+          Text(
+            micReady ? 'Слухаю...' : 'Готуємось...',
+            style: AppTextStyles.h2.copyWith(color: AppColors.primary),
+          ),
           const SizedBox(height: 8),
-          Text('Натисни на мікрофон щоб зупинити',
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub)),
+          Text(
+            micReady
+                ? 'Натисни на мікрофон щоб зупинити'
+                : 'Зачекайте секунду перед тим, як говорити',
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+          ),
           if (attemptCount > 1) ...[
             const SizedBox(height: 6),
             Text('Спроба $attemptCount',

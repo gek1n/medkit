@@ -40,6 +40,11 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
 
   _VoiceState _state = _VoiceState.checkingConsent;
   bool _sttAvailable = false;
+  // STT-рушій стартує не миттєво по натисканню — якщо почати говорити
+  // одразу, як побачив "Слухаю", перше слово (найчастіше назва ліків)
+  // губиться. Показуємо "Слухаю" лише коли рушій підтвердив через
+  // onStatus, що дійсно вже захоплює звук.
+  bool _micReady = false;
   String _transcript = '';
   NluResult? _result;
   String _errorMsg = '';
@@ -90,6 +95,14 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
   Future<void> _initSpeech() async {
     final ok = await _speech.initialize(
       onError: (e) => _setError('STT помилка: ${e.errorMsg}'),
+      onStatus: (status) {
+        if (!mounted) return;
+        if (status == 'listening') {
+          setState(() => _micReady = true);
+        } else if (_micReady) {
+          setState(() => _micReady = false);
+        }
+      },
     );
     if (mounted) setState(() => _sttAvailable = ok);
   }
@@ -110,6 +123,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     setState(() {
       _state = _VoiceState.listening;
       _transcript = '';
+      _micReady = false;
     });
     await _speech.listen(
       onResult: (r) {
@@ -213,6 +227,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
                 _VoiceState.listening => _ListeningBody(
                     anim: _pulseAnim,
                     transcript: _transcript,
+                    micReady: _micReady,
                     onStop: _stopListening,
                   ),
                 _VoiceState.analyzing => _AnalyzingBody(
@@ -579,11 +594,13 @@ class _IdleBody extends StatelessWidget {
 class _ListeningBody extends StatelessWidget {
   final Animation<double> anim;
   final String transcript;
+  final bool micReady;
   final VoidCallback onStop;
 
   const _ListeningBody({
     required this.anim,
     required this.transcript,
+    required this.micReady,
     required this.onStop,
   });
 
@@ -625,11 +642,14 @@ class _ListeningBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          Text('Слухаю...',
+          Text(micReady ? 'Слухаю...' : 'Готуємось...',
               style: AppTextStyles.h2
                   .copyWith(color: AppColors.primary)),
           const SizedBox(height: 8),
-          Text('Натисни на мікрофон щоб зупинити',
+          Text(
+              micReady
+                  ? 'Натисни на мікрофон щоб зупинити'
+                  : 'Зачекайте секунду перед тим, як говорити',
               style: AppTextStyles.bodyMd
                   .copyWith(color: AppColors.textSub)),
           if (transcript.isNotEmpty) ...[
