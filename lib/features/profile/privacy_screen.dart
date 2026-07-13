@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/ai_consent_service.dart';
+import '../../core/services/app_lock_service.dart';
 import '../../core/services/family_sync_service.dart';
 import '../../core/services/privacy_consent_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -49,6 +50,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   final Map<String, DateTime?> _dates = {};
   DateTime? _policyAcceptedAt;
   String? _policyAcceptedVersion;
+  bool _appLockEnabled = false;
   bool _loading = true;
 
   @override
@@ -63,7 +65,13 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
     }
     _policyAcceptedAt = await PrivacyConsentService.acceptedAt();
     _policyAcceptedVersion = await PrivacyConsentService.acceptedVersion();
+    _appLockEnabled = await AppLockService.isEnabled();
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _toggleAppLock(bool value) async {
+    setState(() => _appLockEnabled = value);
+    await AppLockService.setEnabled(value);
   }
 
   Future<void> _revoke(String kind) async {
@@ -147,6 +155,15 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                         AppDimensions.xl,
                       ),
                       children: [
+                        Text('Безпека',
+                            style: AppTextStyles.bodyMd.copyWith(
+                                fontSize: 15, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: AppDimensions.md),
+                        _AppLockTile(
+                          enabled: _appLockEnabled,
+                          onChanged: _toggleAppLock,
+                        ),
+                        const SizedBox(height: AppDimensions.xl),
                         Text('Політика конфіденційності',
                             style: AppTextStyles.bodyMd.copyWith(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
@@ -246,6 +263,62 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AppLockTile extends StatelessWidget {
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  const _AppLockTile({required this.enabled, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppDimensions.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: (enabled ? AppColors.primary : AppColors.textMuted)
+                  .withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            ),
+            child: Icon(Icons.lock_outline_rounded,
+                size: 20, color: enabled ? AppColors.primary : AppColors.textMuted),
+          ),
+          const SizedBox(width: AppDimensions.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Блокування застосунку', style: AppTextStyles.labelLg),
+                const SizedBox(height: 2),
+                Text(
+                  'Face ID, Touch ID або пароль пристрою при кожному відкритті Elly',
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: enabled,
+            onChanged: onChanged,
+            activeThumbColor: AppColors.primary,
+          ),
+        ],
       ),
     );
   }
