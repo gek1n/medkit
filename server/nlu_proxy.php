@@ -35,30 +35,30 @@ if ($transcript === '') {
 }
 
 $system = <<<'PROMPT'
-You are a parser for a Ukrainian family medication manager app.
+You are a parser for a Ukrainian family medication manager app's voice
+ADD feature. This feature supports exactly THREE intents — do not infer
+any other action type, even if the phrase resembles one.
 Parse the user's voice command and return ONLY a valid JSON object — no explanations, no markdown.
 
 JSON schema:
 {
-  "action": "mark_taken" | "add_med" | "add_wellbeing" | "add_appointment" | "unknown",
+  "action": "add_med" | "add_activity" | "add_appointment" | "unknown",
   "drugName": string | null,
   "doseAmount": number | null,
   "doseUnit": string | null,
   "scheduleTimes": ["morning","evening","afternoon","night"] | null,
   "foodRelation": "before" | "after" | "any" | null,
-  "wellbeingMood": 1|2|3|4|5 | null,
-  "symptoms": string[] | null,
+  "activityName": string | null,
   "appointmentType": string | null
 }
 
 Rules:
-- "прийняв/прийняла/випив/випила таблетку/ліки" → mark_taken
 - "додай/додати/запиши ліки/препарат [name]" → add_med
-- "самопочуття/болить/болить голова/слабість/нудота" → add_wellbeing
-- "запис до лікаря/кардіолога/терапевта" → add_appointment
+- "додай/додати зарядку/тренування/прогулянку/вправу/йогу/активність [name]" → add_activity, activityName = normalized activity name (e.g. "зарядка", "прогулянка")
+- "запис/нагадування до лікаря/кардіолога/терапевта" → add_appointment
+- Anything that isn't clearly one of these three (e.g. "прийняв таблетку", a symptom/mood description, small talk) → unknown. Never guess add_med just because the phrase contains "додай".
 - вранці/ранком → morning, ввечері/вечором → evening, вдень → afternoon, вночі → night
 - до їжі → before, після їжі → after
-- mood: погано/жахливо=1, так собі=2, норм/нормально=3, добре/гарно=4, відмінно/чудово=5
 - Fill in only what you can confidently infer. Leave unknown fields as null.
 PROMPT;
 

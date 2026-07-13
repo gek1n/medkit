@@ -18,7 +18,16 @@ import '../today/providers/today_providers.dart';
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
   final Activity? existing;
-  const AddActivityScreen({super.key, required this.memberId, this.existing});
+  // Транзитний префіл із голосової команди (не з БД).
+  final String? voicePrefillName;
+  final List<String>? voicePrefillTimes; // morning | afternoon | evening | night
+  const AddActivityScreen({
+    super.key,
+    required this.memberId,
+    this.existing,
+    this.voicePrefillName,
+    this.voicePrefillTimes,
+  });
 
   @override
   ConsumerState<AddActivityScreen> createState() => _AddActivityScreenState();
@@ -54,7 +63,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   void initState() {
     super.initState();
     final ex = widget.existing;
-    _nameController = TextEditingController(text: ex?.name ?? '');
+    _nameController = TextEditingController(
+      text: ex?.name ?? widget.voicePrefillName ?? '',
+    );
     _youtubeController = TextEditingController(text: ex?.youtubeUrl ?? '');
     _colorHex = ex?.color;
     if (ex != null) {
@@ -67,8 +78,38 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       _loadSlots(ex.id);
     } else {
       _loaded = true;
+      if (widget.voicePrefillName != null) {
+        _type = _inferType(widget.voicePrefillName!);
+      }
+      if (widget.voicePrefillTimes != null &&
+          widget.voicePrefillTimes!.isNotEmpty) {
+        _slots = widget.voicePrefillTimes!
+            .map((s) => (time: _defaultTimeForSchedule(s), duration: null))
+            .toList();
+      }
     }
   }
+
+  // Голос дає лише вільну назву активності ("зарядка", "прогулянка") —
+  // намагаємось підібрати відповідний тип з фіксованого списку карток,
+  // щоб іконка/колір теж підхопились, а не лишались дефолтним "Своє".
+  String? _inferType(String name) {
+    final n = name.toLowerCase();
+    for (final t in _types) {
+      if (n.contains(t.$3.toLowerCase()) || t.$3.toLowerCase().contains(n)) {
+        return t.$1;
+      }
+    }
+    return null;
+  }
+
+  static TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
+    'morning' => const TimeOfDay(hour: 8, minute: 0),
+    'afternoon' => const TimeOfDay(hour: 13, minute: 0),
+    'evening' => const TimeOfDay(hour: 19, minute: 0),
+    'night' => const TimeOfDay(hour: 22, minute: 0),
+    _ => const TimeOfDay(hour: 8, minute: 30),
+  };
 
   Future<void> _loadSlots(int activityId) async {
     final slots = await ref

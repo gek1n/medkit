@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class NluResult {
-  final String action; // mark_taken | add_med | add_appointment | unknown
+  // Голосове ADD підтримує рівно 3 дії: add_med | add_activity |
+  // add_appointment. Усе інше (mark_taken, самопочуття тощо) — unknown.
+  final String action;
   final String? drugName;
   final double? doseAmount;
   final String? doseUnit;
   final List<String>? scheduleTimes; // morning | evening | afternoon | night
   final String? foodRelation; // before | after | any
+  final String? activityName;
   final String? appointmentType;
   final String transcript;
 
@@ -19,6 +22,7 @@ class NluResult {
     this.doseUnit,
     this.scheduleTimes,
     this.foodRelation,
+    this.activityName,
     this.appointmentType,
   });
 
@@ -64,6 +68,7 @@ class NluService {
           ?.map((e) => e as String)
           .toList(),
       foodRelation: json['foodRelation'] as String?,
+      activityName: json['activityName'] as String?,
       appointmentType: json['appointmentType'] as String?,
     );
   }

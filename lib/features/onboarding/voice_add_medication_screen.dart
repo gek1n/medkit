@@ -47,6 +47,7 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
   bool _sttAvailable = false;
   String _transcript = '';
   String _errorMsg = '';
+  int _attemptCount = 0;
 
   static const _examples = [
     '"Еналаприл одна таблетка двічі на день після їжі"',
@@ -107,6 +108,7 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
     setState(() {
       _stage = _VoiceStage.listening;
       _transcript = '';
+      _attemptCount++;
     });
     await _speech.listen(
       onResult: (r) {
@@ -155,19 +157,92 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
         return;
       }
       if (!mounted) return;
-      setState(() {
-        _drafts.add(ScannedMedication(
+      setState(() => _stage = _VoiceStage.idle);
+      // Розпізнавання буває неточним ("Дистрептаза" → "дис") — даємо
+      // одразу перевірити й виправити назву, а не дізнаватись про помилку
+      // вже на кроці розкладу далі в онбордингу.
+      await _confirmDraft(
+        ScannedMedication(
           name: result.drugName!,
           doseAmount: result.doseAmount,
           doseUnit: result.doseUnit,
           scheduleTimes: result.scheduleTimes,
           foodRelation: result.foodRelation,
-        ));
-        _stage = _VoiceStage.idle;
-      });
+        ),
+      );
     } catch (e) {
       _setError('Помилка аналізу: $e');
     }
+  }
+
+  Future<void> _confirmDraft(ScannedMedication draft, {int? editIndex}) async {
+    final ctrl = TextEditingController(text: draft.name);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          editIndex == null ? 'Додати ці ліки?' : 'Редагувати ліки',
+          style: AppTextStyles.h3,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Перевірте назву — розпізнавання мови іноді помиляється:',
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'Назва ліків'),
+            ),
+          ],
+        ),
+        actions: [
+          if (editIndex != null)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: const Text('Видалити'),
+            )
+          else
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, null),
+              child: const Text('Скасувати'),
+            ),
+          TextButton(
+            onPressed: ctrl.text.trim().isEmpty
+                ? null
+                : () => Navigator.pop(ctx, true),
+            child: const Text('Зберегти'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    final name = ctrl.text.trim();
+    setState(() {
+      if (confirmed == true && name.isNotEmpty) {
+        final updated = ScannedMedication(
+          name: name,
+          doseAmount: draft.doseAmount,
+          doseUnit: draft.doseUnit,
+          scheduleTimes: draft.scheduleTimes,
+          foodRelation: draft.foodRelation,
+        );
+        if (editIndex != null) {
+          _drafts[editIndex] = updated;
+        } else {
+          _drafts.add(updated);
+        }
+      } else if (confirmed == false && editIndex != null) {
+        _drafts.removeAt(editIndex);
+      }
+      // confirmed == null (Скасувати на новому надиктовуванні) — нічого не
+      // змінюємо, попередні чернетки лишаються як були.
+    });
   }
 
   void _setError(String msg) {
@@ -214,13 +289,19 @@ class _VoiceAddMedicationScreenState extends State<VoiceAddMedicationScreen> {
                     drafts: _drafts,
                     onStart: _startListening,
                     onDone: _drafts.isNotEmpty ? _done : null,
+                    onEditDraft: (i) => _confirmDraft(_drafts[i], editIndex: i),
                   ),
                 _VoiceStage.listening => _ListeningBody(
                     transcript: _transcript,
+                    attemptCount: _attemptCount,
                     onStop: _stopListening,
                   ),
                 _VoiceStage.analyzing => const _AnalyzingBody(),
-                _VoiceStage.error => _ErrorBody(message: _errorMsg, onRetry: _retry),
+                _VoiceStage.error => _ErrorBody(
+                    message: _errorMsg,
+                    attemptCount: _attemptCount,
+                    onRetry: _retry,
+                  ),
               },
             ),
           ],
@@ -355,6 +436,7 @@ class _IdleBody extends StatelessWidget {
   final List<ScannedMedication> drafts;
   final VoidCallback onStart;
   final VoidCallback? onDone;
+  final ValueChanged<int> onEditDraft;
 
   const _IdleBody({
     required this.sttAvailable,
@@ -362,6 +444,7 @@ class _IdleBody extends StatelessWidget {
     required this.drafts,
     required this.onStart,
     required this.onDone,
+    required this.onEditDraft,
   });
 
   @override
@@ -431,7 +514,14 @@ class _IdleBody extends StatelessWidget {
         ),
         if (drafts.isNotEmpty) ...[
           const SizedBox(height: AppDimensions.xl),
-          Text('ДОДАНО (${drafts.length})', style: AppTextStyles.labelSm),
+          Row(
+            children: [
+              Text('ДОДАНО (${drafts.length})', style: AppTextStyles.labelSm),
+              const Spacer(),
+              Text('торкніться, щоб редагувати',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+            ],
+          ),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
@@ -444,23 +534,28 @@ class _IdleBody extends StatelessWidget {
                 final isLast = e.key == drafts.length - 1;
                 return Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppDimensions.md, vertical: 12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(e.value.name,
-                                style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-                          ),
-                          if (e.value.doseAmount != null)
-                            Text(
-                              '${e.value.doseAmount!.toStringAsFixed(e.value.doseAmount! % 1 == 0 ? 0 : 1)} ${e.value.doseUnit ?? ''}',
-                              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                    InkWell(
+                      onTap: () => onEditDraft(e.key),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimensions.md, vertical: 12),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(e.value.name,
+                                  style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
                             ),
-                        ],
+                            if (e.value.doseAmount != null)
+                              Text(
+                                '${e.value.doseAmount!.toStringAsFixed(e.value.doseAmount! % 1 == 0 ? 0 : 1)} ${e.value.doseUnit ?? ''}',
+                                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                              ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.edit_rounded, size: 16, color: AppColors.textMuted),
+                          ],
+                        ),
                       ),
                     ),
                     if (!isLast) const Divider(height: 1, color: AppColors.borderLight),
@@ -517,9 +612,14 @@ class _IdleBody extends StatelessWidget {
 
 class _ListeningBody extends StatelessWidget {
   final String transcript;
+  final int attemptCount;
   final VoidCallback onStop;
 
-  const _ListeningBody({required this.transcript, required this.onStop});
+  const _ListeningBody({
+    required this.transcript,
+    required this.attemptCount,
+    required this.onStop,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -542,6 +642,11 @@ class _ListeningBody extends StatelessWidget {
           const SizedBox(height: 8),
           Text('Натисни на мікрофон щоб зупинити',
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub)),
+          if (attemptCount > 1) ...[
+            const SizedBox(height: 6),
+            Text('Спроба $attemptCount',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+          ],
           if (transcript.isNotEmpty) ...[
             const SizedBox(height: 24),
             Container(
@@ -582,8 +687,13 @@ class _AnalyzingBody extends StatelessWidget {
 
 class _ErrorBody extends StatelessWidget {
   final String message;
+  final int attemptCount;
   final VoidCallback onRetry;
-  const _ErrorBody({required this.message, required this.onRetry});
+  const _ErrorBody({
+    required this.message,
+    required this.attemptCount,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -597,6 +707,11 @@ class _ErrorBody extends StatelessWidget {
           Text('Щось пішло не так', style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center, style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub)),
+          if (attemptCount > 1) ...[
+            const SizedBox(height: 8),
+            Text('Спроба $attemptCount',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+          ],
           const SizedBox(height: 32),
           ElevatedButton(
             onPressed: onRetry,

@@ -9,10 +9,12 @@ import '../../core/services/ai_usage_service.dart';
 import '../../core/services/drug_info_service.dart';
 import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/nlu_service.dart';
+import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../add/add_activity_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -243,12 +245,9 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
   void _handleConfirm(NluResult r) {
     switch (r.action) {
       case 'add_med':
-        _openAddMed();
-      case 'mark_taken':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Найближчий прийом відмічено ✓')),
-        );
-        Navigator.pop(context);
+        _openAddMed(r);
+      case 'add_activity':
+        _openAddActivity(r);
       case 'add_appointment':
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Відкриваємо форму запису...')),
@@ -263,23 +262,51 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
   }
 
   void _handleEditManually(NluResult r) {
-    if (r.action == 'add_med') {
-      _openAddMed();
-    } else {
-      Navigator.pop(context);
+    switch (r.action) {
+      case 'add_med':
+        _openAddMed(r);
+      case 'add_activity':
+        _openAddActivity(r);
+      default:
+        Navigator.pop(context);
     }
   }
 
-  void _openAddMed() {
-    final memberId =
-        ref.read(currentMemberProvider).valueOrNull?.id;
+  void _openAddMed(NluResult r) {
+    final memberId = ref.read(currentMemberProvider).valueOrNull?.id;
     if (memberId == null) return;
     Navigator.pop(context);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            AddMedicationScreen(memberId: memberId),
+        builder: (_) => AddMedicationScreen(
+          memberId: memberId,
+          voicePrefill: r.drugName == null
+              ? null
+              : ScannedMedication(
+                  name: r.drugName!,
+                  doseAmount: r.doseAmount,
+                  doseUnit: r.doseUnit,
+                  scheduleTimes: r.scheduleTimes,
+                  foodRelation: r.foodRelation,
+                ),
+        ),
+      ),
+    );
+  }
+
+  void _openAddActivity(NluResult r) {
+    final memberId = ref.read(currentMemberProvider).valueOrNull?.id;
+    if (memberId == null) return;
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddActivityScreen(
+          memberId: memberId,
+          voicePrefillName: r.activityName,
+          voicePrefillTimes: r.scheduleTimes,
+        ),
       ),
     );
   }
@@ -354,10 +381,10 @@ class _ConsentBody extends StatelessWidget {
           child: Text(
             'Розпізнавання голосу відбувається на пристрої. Але щоб зрозуміти '
             'команду, текст твоєї фрази надсилається сервісу Anthropic (Claude). '
-            'Передаються лише короткі структуровані команди (прийом ліків, '
-            'розклад, запис до лікаря) — вільний опис самопочуття чи симптомів '
-            'сюди ніколи не відправляється, для цього є окреме поле в '
-            'щоденнику самопочуття, яке лишається тільки на пристрої.',
+            'Ця функція розпізнає лише 3 команди: додати ліки, додати '
+            'активність або запис до лікаря — вільний опис самопочуття чи '
+            'симптомів сюди ніколи не відправляється, для цього є окреме поле '
+            'в щоденнику самопочуття, яке лишається тільки на пристрої.',
             style: AppTextStyles.bodyMd,
           ),
         ),
@@ -393,14 +420,15 @@ class _IdleBody extends StatelessWidget {
       {required this.sttAvailable, required this.onStart});
 
   static const _examples = [
-    (Icons.medication_rounded, Color(0xFFE9F4EC), '"Прийняв таблетку"',
-        'Відмітить найближчий прийом'),
-    (Icons.timer_rounded, Color(0xFFFFF1EB),
+    (Icons.medication_rounded, Color(0xFFE9F4EC),
         '"Додай Еналаприл 10 мг вранці та ввечері"',
-        'Відкриє форму з заповненими полями'),
+        'Відкриє форму ліків із заповненими полями'),
+    (Icons.fitness_center_rounded, Color(0xFFFFF1EB),
+        '"Додай зарядку двічі на день вранці і ввечері"',
+        'Відкриє форму активності із заповненими полями'),
     (Icons.calendar_month_rounded, Color(0xFFFFFBEB),
         '"Запис до кардіолога у пʼятницю о 10"',
-        'Додасть нагадування про прийом'),
+        'Відкриє форму запису до лікаря'),
   ];
 
   @override
@@ -700,6 +728,9 @@ class _ResultBody extends StatelessWidget {
     if (result.drugName != null) {
       rows.add(('ПРЕПАРАТ', result.drugName!));
     }
+    if (result.activityName != null) {
+      rows.add(('АКТИВНІСТЬ', result.activityName!));
+    }
     if (result.doseAmount != null) {
       final dose = result.doseAmount!
           .toStringAsFixed(result.doseAmount! % 1 == 0 ? 0 : 1);
@@ -717,8 +748,8 @@ class _ResultBody extends StatelessWidget {
   }
 
   String _actionLabel(String a) => switch (a) {
-        'mark_taken' => 'Відмітити прийом',
         'add_med' => 'Додати ліки',
+        'add_activity' => 'Додати активність',
         'add_appointment' => 'Запис до лікаря',
         _ => 'Невідома команда',
       };

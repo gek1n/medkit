@@ -10,6 +10,7 @@ import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../sync/sync_settings_screen.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -805,6 +806,11 @@ class _LogoutButton extends ConsumerWidget {
       ),
     ).then((confirmed) async {
       if (confirmed != true) return;
+      // Каскадне видалення members у БД не проходить через репозиторії
+      // окремих фіч, тож заплановані OS-нагадування (intake/activity/
+      // appointment/wellbeing/vaccination) самі по собі не скасовуються —
+      // робимо це явно, інакше вони спрацьовують і після виходу з акаунту.
+      await NotificationService.cancelAll();
       await ref
           .read(membersRepositoryProvider)
           .deleteAll();

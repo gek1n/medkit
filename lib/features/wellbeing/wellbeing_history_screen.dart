@@ -28,7 +28,12 @@ final _wellbeingHistoryProvider =
 
 class WellbeingHistoryScreen extends ConsumerStatefulWidget {
   final int memberId;
-  const WellbeingHistoryScreen({super.key, required this.memberId});
+  final int initialDays;
+  const WellbeingHistoryScreen({
+    super.key,
+    required this.memberId,
+    this.initialDays = 30,
+  });
 
   @override
   ConsumerState<WellbeingHistoryScreen> createState() =>
@@ -37,7 +42,7 @@ class WellbeingHistoryScreen extends ConsumerStatefulWidget {
 
 class _WellbeingHistoryScreenState
     extends ConsumerState<WellbeingHistoryScreen> {
-  int _days = 30;
+  late int _days = widget.initialDays;
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +169,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => Navigator.push(
+            onTap: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (_) =>

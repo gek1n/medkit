@@ -40,19 +40,16 @@ final currentMemberProvider = StreamProvider<Member?>((ref) {
       );
 });
 
-// Розмір шрифту, який реально застосовується для поточного профілю:
-// у локальних (dependent) профілів немає власного налаштування — вони
-// завжди успадковують розмір шрифту власника пристрою.
+// Розмір шрифту, який реально застосовується для поточного профілю.
+// Кожен профіль (включно з dependent) має власне поле fontSize, і екран
+// налаштувань дозволяє його редагувати завжди (canEditFontSize = true в
+// ProfileScreen) — тож тут просто читаємо значення активного профілю, без
+// підміни на власника. (Раніше тут форсовано підставлялось fontSize
+// власника для dependent-профілів — через що зміна розміру шрифту, поки
+// активний саме dependent, візуально взагалі нічого не міняла.)
 final effectiveFontSizeProvider = Provider<int>((ref) {
   final current = ref.watch(currentMemberProvider).valueOrNull;
-  if (current == null) return 2;
-  if (current.role != 'dependent') return current.fontSize;
-  final members = ref.watch(allMembersProvider).valueOrNull;
-  if (members == null) return current.fontSize;
-  for (final m in members) {
-    if (m.role == 'owner') return m.fontSize;
-  }
-  return current.fontSize;
+  return current?.fontSize ?? 2;
 });
 
 // Всі члени сім'ї

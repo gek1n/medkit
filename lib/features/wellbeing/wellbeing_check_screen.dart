@@ -27,6 +27,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
   final Set<String> _symptoms = {};
   final _commentController = TextEditingController();
   bool _isSaving = false;
+  bool _isListening = false;
 
   static const _moods = [
     (1, '😣', 'Погано', Color(0xFFFEE2E2)),
@@ -124,7 +125,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => Navigator.push(
+                      onTap: () => Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
@@ -272,6 +273,45 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                           ),
                         );
                       }),
+                      ..._symptoms.where((s) => s.startsWith('custom_')).map((
+                        s,
+                      ) {
+                        final label = s.substring(7);
+                        return GestureDetector(
+                          onTap: () => setState(() => _symptoms.remove(s)),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFFFECACA),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  label,
+                                  style: AppTextStyles.labelMd.copyWith(
+                                    color: const Color(0xFF991B1B),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: Color(0xFF991B1B),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
                       GestureDetector(
                         onTap: () => _addCustomSymptom(context),
                         child: Container(
@@ -323,13 +363,17 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _VoiceCommentField(controller: _commentController),
+                  _VoiceCommentField(
+                    controller: _commentController,
+                    onListeningChanged: (v) =>
+                        setState(() => _isListening = v),
+                  ),
                   const SizedBox(height: 32),
 
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isSaving ? null : _save,
+                      onPressed: (_isSaving || _isListening) ? null : _save,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -417,7 +461,8 @@ enum _CommentMode { idle, recording, transcribed }
 
 class _VoiceCommentField extends StatefulWidget {
   final TextEditingController controller;
-  const _VoiceCommentField({required this.controller});
+  final ValueChanged<bool>? onListeningChanged;
+  const _VoiceCommentField({required this.controller, this.onListeningChanged});
 
   @override
   State<_VoiceCommentField> createState() => _VoiceCommentFieldState();
@@ -459,6 +504,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
       _transcript = '';
       _seconds = 0;
     });
+    widget.onListeningChanged?.call(true);
     // tick timer
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
@@ -484,21 +530,16 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
 
   Future<void> _stopRecording() async {
     await _speech.stop();
+    widget.onListeningChanged?.call(false);
     if (!mounted) return;
     if (_transcript.trim().isNotEmpty) {
       widget.controller.text = _transcript.trim();
       setState(() => _mode = _CommentMode.transcribed);
     } else {
+      // Нічого нового не наговорили — лишаємо попередній текст (якщо він
+      // був) видимим у полі нижче, просто повертаємось у стан очікування.
       setState(() => _mode = _CommentMode.idle);
     }
-  }
-
-  void _reRecord() {
-    widget.controller.clear();
-    setState(() {
-      _mode = _CommentMode.idle;
-      _transcript = '';
-    });
   }
 
   String get _timerLabel {
@@ -519,7 +560,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
             onStop: _stopRecording,
           )
         else if (_mode == _CommentMode.transcribed)
-          _TranscribedBlock(text: _transcript, onReRecord: _reRecord)
+          _TranscribedBlock(text: _transcript, onReRecord: _startRecording)
         else
           _MicIdleButton(available: _sttReady, onTap: _startRecording),
 
@@ -819,71 +860,39 @@ class _TranscribedBlock extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(text, style: AppTextStyles.bodyMd.copyWith(height: 1.6)),
+          const SizedBox(height: 4),
+          Text(
+            'Текст можна редагувати нижче в полі',
+            style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+          ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  // "Edit" — text field below will already have the transcription
-                  onTap: () {},
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE3F1E7),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.edit_rounded,
-                          size: 15,
-                          color: Color(0xFF3F8F5F),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Редагувати',
-                          style: AppTextStyles.labelMd.copyWith(
-                            color: const Color(0xFF3F8F5F),
-                          ),
-                        ),
-                      ],
+          GestureDetector(
+            onTap: onReRecord,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.mic_rounded,
+                    size: 15,
+                    color: AppColors.textSub,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Записати знову',
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: AppColors.textSub,
                     ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onReRecord,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.mic_rounded,
-                          size: 15,
-                          color: AppColors.textSub,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Записати знову',
-                          style: AppTextStyles.labelMd.copyWith(
-                            color: AppColors.textSub,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -946,6 +955,17 @@ class _LogCard extends StatelessWidget {
   const _LogCard({required this.log});
 
   static const _moodEmoji = ['', '😣', '😕', '😐', '🙂', '😄'];
+
+  static const _symptomLabels = {
+    'headache': 'головний біль',
+    'nausea': 'нудота',
+    'dizziness': 'запаморочення',
+    'weakness': 'слабість',
+    'shortness_of_breath': 'задишка',
+    'rash': 'висип',
+    'pain': 'біль',
+    'fever': 'температура',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -1016,7 +1036,9 @@ class _LogCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              s.startsWith('custom_') ? s.substring(7) : s,
+                              s.startsWith('custom_')
+                                  ? s.substring(7)
+                                  : (_symptomLabels[s] ?? s),
                               style: AppTextStyles.caption.copyWith(
                                 color: const Color(0xFF991B1B),
                                 fontWeight: FontWeight.w600,

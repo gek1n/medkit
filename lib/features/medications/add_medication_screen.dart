@@ -39,7 +39,15 @@ TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
 class AddMedicationScreen extends ConsumerStatefulWidget {
   final int memberId;
   final Medication? existing;
-  const AddMedicationScreen({super.key, required this.memberId, this.existing});
+  // Транзитний префіл із голосової команди (не з БД, на відміну від
+  // [existing]) — та ж модель, що й для скану рецепта.
+  final ScannedMedication? voicePrefill;
+  const AddMedicationScreen({
+    super.key,
+    required this.memberId,
+    this.existing,
+    this.voicePrefill,
+  });
 
   @override
   ConsumerState<AddMedicationScreen> createState() =>
@@ -123,12 +131,17 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _refreshScanAvailability();
     final ex = widget.existing;
     if (ex == null) {
-      _phases = [
-        _MedPhase(
-          times: [const TimeOfDay(hour: 6, minute: 0)],
-          durationDays: 7,
-        ),
-      ];
+      final prefill = widget.voicePrefill;
+      if (prefill != null) {
+        _applyPrefill(prefill);
+      } else {
+        _phases = [
+          _MedPhase(
+            times: [const TimeOfDay(hour: 6, minute: 0)],
+            durationDays: 7,
+          ),
+        ];
+      }
       return;
     }
 
@@ -599,21 +612,26 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     await _bulkSaveScanned(results);
   }
 
+  // Спільна логіка заповнення форми — викликається і з initState (голосовий
+  // префіл, без setState — ще до першого build), і з _prefillFrom (скан
+  // рецепта на вже змонтованому екрані, обгорнуто в setState там).
+  void _applyPrefill(ScannedMedication m) {
+    _nameController.text = m.name;
+    if (m.foodRelation != null) _foodRelation = m.foodRelation!;
+    final times = (m.scheduleTimes ?? const ['morning'])
+        .map(_defaultTimeForSchedule)
+        .toList();
+    _phases = [
+      _MedPhase(
+        times: times,
+        durationDays: 7,
+        doseAmount: m.doseAmount ?? 1.0,
+      ),
+    ];
+  }
+
   void _prefillFrom(ScannedMedication m) {
-    setState(() {
-      _nameController.text = m.name;
-      if (m.foodRelation != null) _foodRelation = m.foodRelation!;
-      final times = (m.scheduleTimes ?? const ['morning'])
-          .map(_defaultTimeForSchedule)
-          .toList();
-      _phases = [
-        _MedPhase(
-          times: times,
-          durationDays: 7,
-          doseAmount: m.doseAmount ?? 1.0,
-        ),
-      ];
-    });
+    setState(() => _applyPrefill(m));
 
     if (m.foodRelation != null || (m.sideEffects?.isNotEmpty ?? false)) {
       ScaffoldMessenger.of(context).showSnackBar(

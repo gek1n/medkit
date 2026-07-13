@@ -15,28 +15,45 @@ class IntakesRepository {
   final Ref _ref;
   IntakesRepository(this._db, this._ref);
 
+  // Join з medications і фільтр isActive — інакше прийоми вже зупинених
+  // ліків (softDelete лише скасовує нагадування, рядки intakes лишаються)
+  // продовжують показуватись у розкладі на сьогодні/завтра.
   Stream<List<Intake>> watchByMemberAndDate(int memberId, DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
-    return (_db.select(_db.intakes)
-          ..where((t) =>
-              t.memberId.equals(memberId) &
-              t.scheduledAt.isBiggerOrEqualValue(start) &
-              t.scheduledAt.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
-        .watch();
+    final query = _db.select(_db.intakes).join([
+      innerJoin(
+        _db.medications,
+        _db.medications.id.equalsExp(_db.intakes.medicationId),
+      ),
+    ])
+      ..where(_db.intakes.memberId.equals(memberId) &
+          _db.intakes.scheduledAt.isBiggerOrEqualValue(start) &
+          _db.intakes.scheduledAt.isSmallerThanValue(end) &
+          _db.medications.isActive.equals(true))
+      ..orderBy([OrderingTerm.asc(_db.intakes.scheduledAt)]);
+    return query
+        .watch()
+        .map((rows) => rows.map((r) => r.readTable(_db.intakes)).toList());
   }
 
   Future<List<Intake>> getByMemberAndDate(int memberId, DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
-    return (_db.select(_db.intakes)
-          ..where((t) =>
-              t.memberId.equals(memberId) &
-              t.scheduledAt.isBiggerOrEqualValue(start) &
-              t.scheduledAt.isSmallerThanValue(end))
-          ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
-        .get();
+    final query = _db.select(_db.intakes).join([
+      innerJoin(
+        _db.medications,
+        _db.medications.id.equalsExp(_db.intakes.medicationId),
+      ),
+    ])
+      ..where(_db.intakes.memberId.equals(memberId) &
+          _db.intakes.scheduledAt.isBiggerOrEqualValue(start) &
+          _db.intakes.scheduledAt.isSmallerThanValue(end) &
+          _db.medications.isActive.equals(true))
+      ..orderBy([OrderingTerm.asc(_db.intakes.scheduledAt)]);
+    return query
+        .get()
+        .then((rows) => rows.map((r) => r.readTable(_db.intakes)).toList());
   }
 
   Future<int> insert(IntakesCompanion intake) async {

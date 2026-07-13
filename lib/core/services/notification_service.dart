@@ -94,6 +94,12 @@ class NotificationService {
 
   static Future<void> cancel(int id) => _plugin.cancel(id);
 
+  /// Скасовує геть усі заплановані на цьому пристрої нагадування. Потрібно
+  /// викликати при виході з акаунту / видаленні всіх даних — інакше вже
+  /// заплановані OS-alarm'и (zonedSchedule) лишаються жити незалежно від
+  /// БД і спрацьовують навіть після того, як профіль видалено.
+  static Future<void> cancelAll() => _plugin.cancelAll();
+
   // ── Ліки ──────────────────────────────────────────────────────────────
 
   static int intakeNotificationId(int intakeId) => 1000000 + intakeId;

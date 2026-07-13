@@ -24,6 +24,7 @@ import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_type_sheet.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
+import '../wellbeing/wellbeing_history_screen.dart';
 import 'providers/today_providers.dart';
 import 'widgets/family_status_strip.dart';
 
@@ -1417,7 +1418,10 @@ class _ScheduleRow extends StatelessWidget {
                 ? () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => WellbeingCheckScreen(memberId: memberId),
+                      builder: (_) => WellbeingHistoryScreen(
+                        memberId: memberId,
+                        initialDays: 7,
+                      ),
                     ),
                   )
                 : null,
