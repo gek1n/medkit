@@ -1087,6 +1087,17 @@ class $MedicationsTable extends Medications
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sideEffectsMeta = const VerificationMeta(
+    'sideEffects',
+  );
+  @override
+  late final GeneratedColumn<String> sideEffects = GeneratedColumn<String>(
+    'side_effects',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1112,6 +1123,7 @@ class $MedicationsTable extends Medications
     updatedAt,
     syncUuid,
     color,
+    sideEffects,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1283,6 +1295,15 @@ class $MedicationsTable extends Medications
         color.isAcceptableOrUnknown(data['color']!, _colorMeta),
       );
     }
+    if (data.containsKey('side_effects')) {
+      context.handle(
+        _sideEffectsMeta,
+        sideEffects.isAcceptableOrUnknown(
+          data['side_effects']!,
+          _sideEffectsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1384,6 +1405,10 @@ class $MedicationsTable extends Medications
         DriftSqlType.string,
         data['${effectivePrefix}color'],
       ),
+      sideEffects: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}side_effects'],
+      ),
     );
   }
 
@@ -1417,6 +1442,7 @@ class Medication extends DataClass implements Insertable<Medication> {
   final DateTime updatedAt;
   final String? syncUuid;
   final String? color;
+  final String? sideEffects;
   const Medication({
     required this.id,
     required this.memberId,
@@ -1441,6 +1467,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     required this.updatedAt,
     this.syncUuid,
     this.color,
+    this.sideEffects,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1481,6 +1508,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     }
     if (!nullToAbsent || color != null) {
       map['color'] = Variable<String>(color);
+    }
+    if (!nullToAbsent || sideEffects != null) {
+      map['side_effects'] = Variable<String>(sideEffects);
     }
     return map;
   }
@@ -1524,6 +1554,9 @@ class Medication extends DataClass implements Insertable<Medication> {
       color: color == null && nullToAbsent
           ? const Value.absent()
           : Value(color),
+      sideEffects: sideEffects == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sideEffects),
     );
   }
 
@@ -1556,6 +1589,7 @@ class Medication extends DataClass implements Insertable<Medication> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
       color: serializer.fromJson<String?>(json['color']),
+      sideEffects: serializer.fromJson<String?>(json['sideEffects']),
     );
   }
   @override
@@ -1585,6 +1619,7 @@ class Medication extends DataClass implements Insertable<Medication> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
       'color': serializer.toJson<String?>(color),
+      'sideEffects': serializer.toJson<String?>(sideEffects),
     };
   }
 
@@ -1612,6 +1647,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
     Value<String?> color = const Value.absent(),
+    Value<String?> sideEffects = const Value.absent(),
   }) => Medication(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -1636,6 +1672,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     color: color.present ? color.value : this.color,
+    sideEffects: sideEffects.present ? sideEffects.value : this.sideEffects,
   );
   Medication copyWithCompanion(MedicationsCompanion data) {
     return Medication(
@@ -1680,6 +1717,9 @@ class Medication extends DataClass implements Insertable<Medication> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
       color: data.color.present ? data.color.value : this.color,
+      sideEffects: data.sideEffects.present
+          ? data.sideEffects.value
+          : this.sideEffects,
     );
   }
 
@@ -1708,7 +1748,8 @@ class Medication extends DataClass implements Insertable<Medication> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncUuid: $syncUuid, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('sideEffects: $sideEffects')
           ..write(')'))
         .toString();
   }
@@ -1738,6 +1779,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     updatedAt,
     syncUuid,
     color,
+    sideEffects,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1765,7 +1807,8 @@ class Medication extends DataClass implements Insertable<Medication> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncUuid == this.syncUuid &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.sideEffects == this.sideEffects);
 }
 
 class MedicationsCompanion extends UpdateCompanion<Medication> {
@@ -1792,6 +1835,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
   final Value<String?> color;
+  final Value<String?> sideEffects;
   const MedicationsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -1816,6 +1860,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
     this.color = const Value.absent(),
+    this.sideEffects = const Value.absent(),
   });
   MedicationsCompanion.insert({
     this.id = const Value.absent(),
@@ -1841,6 +1886,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
     this.color = const Value.absent(),
+    this.sideEffects = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name),
        doseAmount = Value(doseAmount),
@@ -1869,6 +1915,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
     Expression<String>? color,
+    Expression<String>? sideEffects,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1894,6 +1941,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
       if (color != null) 'color': color,
+      if (sideEffects != null) 'side_effects': sideEffects,
     });
   }
 
@@ -1921,6 +1969,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
     Value<String?>? color,
+    Value<String?>? sideEffects,
   }) {
     return MedicationsCompanion(
       id: id ?? this.id,
@@ -1946,6 +1995,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
       color: color ?? this.color,
+      sideEffects: sideEffects ?? this.sideEffects,
     );
   }
 
@@ -2021,6 +2071,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     if (color.present) {
       map['color'] = Variable<String>(color.value);
     }
+    if (sideEffects.present) {
+      map['side_effects'] = Variable<String>(sideEffects.value);
+    }
     return map;
   }
 
@@ -2049,7 +2102,8 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncUuid: $syncUuid, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('sideEffects: $sideEffects')
           ..write(')'))
         .toString();
   }

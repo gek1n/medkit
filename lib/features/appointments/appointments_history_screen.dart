@@ -9,6 +9,7 @@ import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/section_label.dart';
+import '../../shared/widgets/specialty_picker.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
@@ -21,11 +22,25 @@ final _allAppointmentsProvider =
 
 // ────────────────────────────── screen ──────────────────────────────
 
-class AppointmentsHistoryScreen extends ConsumerWidget {
+class AppointmentsHistoryScreen extends ConsumerStatefulWidget {
   const AppointmentsHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppointmentsHistoryScreen> createState() =>
+      _AppointmentsHistoryScreenState();
+}
+
+class _AppointmentsHistoryScreenState
+    extends ConsumerState<AppointmentsHistoryScreen> {
+  String? _specialty;
+
+  Future<void> _pickSpecialty() async {
+    final picked = await showSpecialtyPicker(context, current: _specialty);
+    if (picked != null) setState(() => _specialty = picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final aptsAsync = ref.watch(_allAppointmentsProvider);
     final membersAsync = ref.watch(allMembersProvider);
     final currentMemberAsync = ref.watch(currentMemberProvider);
@@ -45,6 +60,18 @@ class AppointmentsHistoryScreen extends ConsumerWidget {
         child: Column(
           children: [
             const _Header(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _SpecialtyFilterChip(
+                  specialty: _specialty,
+                  onTap: _pickSpecialty,
+                  onClear: () => setState(() => _specialty = null),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.sm),
             Expanded(
               child: aptsAsync.when(
                 loading: () => const Center(
@@ -52,10 +79,13 @@ class AppointmentsHistoryScreen extends ConsumerWidget {
                         color: AppColors.primary)),
                 error: (e, _) =>
                     Center(child: Text('Помилка: $e')),
-                data: (apts) {
+                data: (allApts) {
                   final members = membersAsync.valueOrNull ?? [];
+                  final apts = _specialty == null
+                      ? allApts
+                      : allApts.where((a) => a.doctorType == _specialty).toList();
                   return _AppointmentsList(
-                      apts: apts, members: members);
+                      apts: apts, members: members, filtered: _specialty != null);
                 },
               ),
             ),
@@ -89,14 +119,69 @@ class _Header extends StatelessWidget {
   }
 }
 
+// ────────────────────────────── specialty filter chip ─────────────────────
+
+class _SpecialtyFilterChip extends StatelessWidget {
+  final String? specialty;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+  const _SpecialtyFilterChip({
+    required this.specialty,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final active = specialty != null;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primaryLight : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          border: Border.all(color: active ? AppColors.primary : AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.filter_list_rounded,
+              size: 16,
+              color: active ? AppColors.primary : AppColors.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              specialty ?? 'Усі напрямки',
+              style: AppTextStyles.labelMd.copyWith(
+                color: active ? AppColors.primary : AppColors.textSub,
+              ),
+            ),
+            if (active) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close_rounded, size: 16, color: AppColors.primary),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ────────────────────────────── list ──────────────────────────────
 
 class _AppointmentsList extends StatelessWidget {
   final List<DoctorAppointment> apts;
   final List<Member> members;
+  final bool filtered;
 
   const _AppointmentsList(
-      {required this.apts, required this.members});
+      {required this.apts, required this.members, this.filtered = false});
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +194,7 @@ class _AppointmentsList extends StatelessWidget {
         .reversed
         .toList(); // newest past first
 
-    if (apts.isEmpty) return _EmptyState();
+    if (apts.isEmpty) return _EmptyState(filtered: filtered);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -320,6 +405,9 @@ class _AppointmentCard extends StatelessWidget {
 // ────────────────────────────── empty ──────────────────────────────
 
 class _EmptyState extends StatelessWidget {
+  final bool filtered;
+  const _EmptyState({this.filtered = false});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -329,10 +417,13 @@ class _EmptyState extends StatelessWidget {
           const Icon(Icons.calendar_month_rounded,
               size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text('Записів ще немає', style: AppTextStyles.h3),
+          Text(filtered ? 'Немає візитів за цим напрямком' : 'Записів ще немає',
+              style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
-            'Натисніть "+ Додати" щоб створити перший',
+            filtered
+                ? 'Спробуйте обрати інший напрямок або скиньте фільтр'
+                : 'Натисніть "+ Додати" щоб створити перший',
             style: AppTextStyles.bodyMd
                 .copyWith(color: AppColors.textSub),
           ),

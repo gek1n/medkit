@@ -24,10 +24,16 @@ import '../plans/elly_denied_screen.dart';
 class AddAppointmentScreen extends ConsumerStatefulWidget {
   final int memberId;
   final DoctorAppointment? existing;
+  // Транзитний префіл із голосової команди (не з БД, на відміну від
+  // [existing]) — той самий підхід, що й voicePrefill в AddMedicationScreen.
+  // Дата/час не приходять — voice/parse на бекенді їх не розпізнає, тож
+  // лишаємо дефолтні (сьогодні), користувач підправить сам.
+  final String? voicePrefillDoctorType;
   const AddAppointmentScreen({
     super.key,
     required this.memberId,
     this.existing,
+    this.voicePrefillDoctorType,
   });
 
   @override
@@ -62,7 +68,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   void initState() {
     super.initState();
     final ex = widget.existing;
-    _doctorController = TextEditingController(text: ex?.doctorType ?? '');
+    _doctorController = TextEditingController(
+      text: ex?.doctorType ?? widget.voicePrefillDoctorType ?? '',
+    );
     _locationController = TextEditingController(text: ex?.location ?? '');
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _colorHex = ex?.color;

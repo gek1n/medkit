@@ -10,6 +10,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/lab_results_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
+import '../../shared/widgets/specialty_picker.dart';
 import 'add_lab_result_screen.dart';
 import 'lab_result_detail_screen.dart';
 
@@ -20,20 +21,32 @@ final _labResultsProvider = StreamProvider.family<List<LabResult>, int>((
   return ref.watch(labResultsRepositoryProvider).watchByMember(memberId);
 });
 
-class LabResultsScreen extends ConsumerWidget {
+class LabResultsScreen extends ConsumerStatefulWidget {
   final int memberId;
   const LabResultsScreen({super.key, required this.memberId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final resultsAsync = ref.watch(_labResultsProvider(memberId));
+  ConsumerState<LabResultsScreen> createState() => _LabResultsScreenState();
+}
+
+class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
+  String? _specialty;
+
+  Future<void> _pickSpecialty() async {
+    final picked = await showSpecialtyPicker(context, current: _specialty);
+    if (picked != null) setState(() => _specialty = picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final resultsAsync = ref.watch(_labResultsProvider(widget.memberId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       floatingActionButton: MkAddFab(
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => AddLabResultScreen(memberId: memberId)),
+          MaterialPageRoute(builder: (_) => AddLabResultScreen(memberId: widget.memberId)),
         ),
       ),
       body: SafeArea(
@@ -50,20 +63,35 @@ class LabResultsScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _SpecialtyFilterChip(
+                  specialty: _specialty,
+                  onTap: _pickSpecialty,
+                  onClear: () => setState(() => _specialty = null),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppDimensions.sm),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: () async => ref.invalidate(_labResultsProvider(memberId)),
+                onRefresh: () async => ref.invalidate(_labResultsProvider(widget.memberId)),
                 child: resultsAsync.when(
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
-                data: (results) {
+                data: (allResults) {
+                  final results = _specialty == null
+                      ? allResults
+                      : allResults.where((r) => r.specialty == _specialty).toList();
                   if (results.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [_EmptyState()],
+                      children: [_EmptyState(filtered: _specialty != null)],
                     );
                   }
                   return ListView.builder(
@@ -92,6 +120,58 @@ class LabResultsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SpecialtyFilterChip extends StatelessWidget {
+  final String? specialty;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+  const _SpecialtyFilterChip({
+    required this.specialty,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final active = specialty != null;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primaryLight : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          border: Border.all(color: active ? AppColors.primary : AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.filter_list_rounded,
+              size: 16,
+              color: active ? AppColors.primary : AppColors.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              specialty ?? 'Усі напрямки',
+              style: AppTextStyles.labelMd.copyWith(
+                color: active ? AppColors.primary : AppColors.textSub,
+              ),
+            ),
+            if (active) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close_rounded, size: 16, color: AppColors.primary),
+              ),
+            ],
           ],
         ),
       ),
@@ -169,7 +249,8 @@ class _LabResultCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final bool filtered;
+  const _EmptyState({this.filtered = false});
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -180,10 +261,13 @@ class _EmptyState extends StatelessWidget {
           children: [
             Image.asset('assets/illustrations/elly-docs.png', height: 140),
             const SizedBox(height: 16),
-            Text('Ще нічого не додано', style: AppTextStyles.h3),
+            Text(filtered ? 'Немає аналізів за цим напрямком' : 'Ще нічого не додано',
+                style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
-              'Натисніть "+ Додати" щоб додати перший аналіз',
+              filtered
+                  ? 'Спробуйте обрати інший напрямок або скиньте фільтр'
+                  : 'Натисніть "+ Додати" щоб додати перший аналіз',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),

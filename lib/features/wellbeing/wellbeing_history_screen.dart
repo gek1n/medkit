@@ -83,8 +83,6 @@ class _HistoryBody extends StatelessWidget {
                 _Header(memberId: memberId),
                 const SizedBox(height: AppDimensions.md),
                 _MiniChart(logs: logs),
-                const SizedBox(height: AppDimensions.md),
-                _AiInsight(),
                 const SizedBox(height: AppDimensions.lg),
               ],
             ),
@@ -297,54 +295,6 @@ class _MiniChart extends StatelessWidget {
                   ),
                 );
               }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ────────────────────────────── ai insight ──────────────────────────────
-
-class _AiInsight extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.screenPadding),
-      child: Container(
-        padding: const EdgeInsets.all(AppDimensions.md),
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius:
-              BorderRadius.circular(AppDimensions.radiusMd),
-          border: Border.all(color: AppColors.primaryLighter),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.auto_awesome_rounded, size: 16, color: Color(0xFF2F5F41)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: AppTextStyles.bodySm
-                      .copyWith(color: const Color(0xFF2F5F41)),
-                  children: const [
-                    TextSpan(
-                        text:
-                            'Головний біль зустрічається у '),
-                    TextSpan(
-                      text: '73% днів з пропущеним прийомом',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    TextSpan(
-                        text:
-                            '. Рекомендуємо не пропускати вечірній прийом.'),
-                  ],
-                ),
-              ),
             ),
           ],
         ),

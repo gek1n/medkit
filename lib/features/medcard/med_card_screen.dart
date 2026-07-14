@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/database_provider.dart';
-import '../../core/services/family_visibility_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/db/app_database.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -19,29 +16,12 @@ import 'specialty_history_screen.dart';
 import 'surgeries_screen.dart';
 import 'vaccinations_screen.dart';
 
-/// (subjectPersonUuid, viewerPersonUuid) — чи дозволив subject власнику
-/// пристрою бачити свою медкартку. Той самий патерн, що й
-/// `_viewAllowedProvider` на `family_screen.dart`, тут — власна копія, бо
-/// провайдер там приватний.
-final _medCardViewAllowedProvider = FutureProvider.family<bool, (String, String)>((
-  ref,
-  ids,
-) {
-  return FamilyVisibilityService.isAllowed(
-    ref.watch(databaseProvider),
-    ids.$1,
-    ids.$2,
-    FamilyPermission.view,
-  );
-});
-
 class MedCardScreen extends ConsumerWidget {
   const MedCardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final memberAsync = ref.watch(currentMemberProvider);
-    final membersAsync = ref.watch(allMembersProvider);
     final activeId = ref.watch(activeMemberIdProvider);
 
     return Scaffold(
@@ -54,40 +34,20 @@ class MedCardScreen extends ConsumerWidget {
           error: (e, _) => Center(child: Text('Помилка: $e')),
           data: (member) {
             if (member == null) return const SizedBox.shrink();
-            final members = membersAsync.valueOrNull ?? [];
-            Member? owner;
-            for (final m in members) {
-              if (m.role == 'owner') {
-                owner = m;
-                break;
-              }
-            }
+            // ⚠️ FamilyVisibilityService/FamilyGrants навмисно НЕ застосовується
+            // тут — currentMemberProvider/allMembersProvider завжди читають
+            // лише ЛОКАЛЬНУ таблицю Members (owner + dependent-профілі, якими
+            // керує власник цього пристрою напряму); незалежні автономні
+            // учасники в цій таблиці ніколи не з'являються (живуть виключно
+            // як FamilyPeers, див. members_table.dart). Той гейт вимагав явний
+            // грант видимості, якого для dependent-профілю просто нізвідки
+            // взятися — тож медкартка будь-якого локального dependent
+            // назавжди показувала б "Медкартка прихована".
             final showBanner = shouldShowSwitchBanner(activeId, member.role);
-            if (owner == null || owner.id == member.id) {
-              return _MedCardBody(
-                memberId: member.id,
-                memberName: member.name,
-                showSwitchBanner: showBanner,
-              );
-            }
-            if (member.personUuid == null || owner.personUuid == null) {
-              return const _AccessRestricted();
-            }
-            final allowedAsync = ref.watch(
-              _medCardViewAllowedProvider((member.personUuid!, owner.personUuid!)),
-            );
-            return allowedAsync.when(
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-              error: (e, _) => Center(child: Text('Помилка: $e')),
-              data: (allowed) => allowed
-                  ? _MedCardBody(
-                      memberId: member.id,
-                      memberName: member.name,
-                      showSwitchBanner: showBanner,
-                    )
-                  : const _AccessRestricted(),
+            return _MedCardBody(
+              memberId: member.id,
+              memberName: member.name,
+              showSwitchBanner: showBanner,
             );
           },
         ),
@@ -382,41 +342,6 @@ class _MedCardTile extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AccessRestricted extends StatelessWidget {
-  const _AccessRestricted();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.lock_outline_rounded,
-              size: 48,
-              color: AppColors.textMuted,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Медкартка прихована',
-              style: AppTextStyles.h3,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Цей профіль обмежив перегляд своєї медкартки в налаштуваннях приватності',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-            ),
-          ],
         ),
       ),
     );

@@ -13,7 +13,12 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
-  static const _channelId = 'medkit_reminders';
+  // ⚠️ v2 — Android забороняє міняти звук/важливість каналу після його
+  // першого створення (API 26+): на пристроях, де канал medkit_reminders
+  // уже існував без звуку, жодна зміна тут нижче не подіяла б, доки не
+  // з'явиться НОВИЙ channelId — тоді плагін створює канал заново вже з
+  // playSound: true. Не повертати назад на 'medkit_reminders'.
+  static const _channelId = 'medkit_reminders_v2';
   static const _channelName = 'Нагадування Elly';
   static const _channelDesc =
       'Нагадування про ліки, активності, візити та самопочуття';
