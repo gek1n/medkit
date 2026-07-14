@@ -84,6 +84,7 @@ class MedicationsRepository {
       if (settings.pushEnabled && settings.isMemberEnabled(med.memberId)) {
         await NotificationService.showLowStockAlert(
           medicationId: med.id,
+          memberName: await _memberName(med.memberId),
           medName: med.name,
           remaining: newRemaining,
           unit: med.doseUnit,
@@ -123,6 +124,7 @@ class MedicationsRepository {
       if (settings.pushEnabled && settings.isMemberEnabled(med.memberId)) {
         await NotificationService.showLowStockAlert(
           medicationId: med.id,
+          memberName: await _memberName(med.memberId),
           medName: med.name,
           remaining: clamped,
           unit: '%',
@@ -176,6 +178,13 @@ class MedicationsRepository {
 
   void _triggerFamilySync(int memberId) {
     unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
+  }
+
+  Future<String> _memberName(int memberId) async {
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(memberId)))
+        .getSingleOrNull();
+    return member?.name ?? '';
   }
 
   Future<void> _triggerFamilySyncForMedication(int medicationId) async {

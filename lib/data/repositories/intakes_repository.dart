@@ -112,12 +112,16 @@ class IntakesRepository {
           ..where((t) => t.id.equals(intake.medicationId)))
         .getSingleOrNull();
     if (med == null) return;
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(med.memberId)))
+        .getSingleOrNull();
 
     final settings = _ref.read(notificationSettingsProvider);
     final remindAt = settings.adjust(until, memberId: med.memberId);
     if (remindAt != null) {
       await NotificationService.scheduleIntakeReminder(
         intakeId: id,
+        memberName: member?.name ?? '',
         medName: med.name,
         dose: '${med.doseAmount} ${med.doseUnit}',
         scheduledAt: remindAt,

@@ -16,6 +16,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
 import '../plans/elly_denied_screen.dart';
+import '../today/providers/today_providers.dart';
 import 'add_medication_screen.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
@@ -1295,6 +1296,15 @@ class _ActionRow extends ConsumerWidget {
     );
     if (ok == true) {
       await ref.read(medicationsRepositoryProvider).softDelete(med.id);
+      // generateTodayIntakesProvider/tomorrowIntakesProvider — кешовані
+      // FutureProvider'и: якщо "Коротко про завтра" вже було відкрито до
+      // зупинки курсу, застарілий inтake для цих ліків лишався б там
+      // видимим (а назва відображалась би як "Ліки", бо список медикаментів
+      // для підпису вже реактивно оновився й перестав містити зупинений
+      // препарат — розсинхрон між застарілим списком intake і живим списком
+      // ліків).
+      ref.invalidate(generateTodayIntakesProvider);
+      ref.invalidate(tomorrowIntakesProvider);
       if (context.mounted) Navigator.pop(context);
     }
   }

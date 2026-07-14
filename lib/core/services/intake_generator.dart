@@ -40,6 +40,11 @@ class IntakeGenerator {
     if (!med.isActive) return;
     if (!_shouldTakeOnDate(med, day)) return;
 
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(med.memberId)))
+        .getSingleOrNull();
+    final memberName = member?.name ?? '';
+
     // Determine times to generate
     List<String> times;
 
@@ -140,6 +145,7 @@ class IntakeGenerator {
         if (remindAt != null) {
           await NotificationService.scheduleIntakeReminder(
             intakeId: intakeId,
+            memberName: memberName,
             medName: med.name,
             dose: dose,
             scheduledAt: remindAt,

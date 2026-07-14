@@ -28,6 +28,11 @@ class ActivityLogGenerator {
         );
         if (!repeatDays.contains(weekday)) continue;
 
+        final member = await (_db.select(_db.members)
+              ..where((t) => t.id.equals(activity.memberId)))
+            .getSingleOrNull();
+        final memberName = member?.name ?? '';
+
         final slots =
             await (_db.select(_db.activitySlots)
                   ..where((t) => t.activityId.equals(activity.id))
@@ -83,6 +88,7 @@ class ActivityLogGenerator {
             if (remindAt != null) {
               await NotificationService.scheduleActivityReminder(
                 logId: logId,
+                memberName: memberName,
                 activityName: activity.name,
                 scheduledAt: remindAt,
                 vibrationEnabled: settings.vibrationEnabled,
