@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../core/services/photo_service.dart';
@@ -2208,7 +2210,10 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
         children: [
           if (videoId != null)
             _playing
-                ? _InlineYoutubePlayer(videoId: videoId)
+                ? _InlineYoutubePlayer(
+                    videoId: videoId,
+                    sourceUrl: widget.activity!.youtubeUrl!,
+                  )
                 : _VideoMediaHeader(
                     thumbnailUrl: thumbnailUrl!,
                     accent: iconColor,
@@ -2310,7 +2315,8 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
 
 class _InlineYoutubePlayer extends StatefulWidget {
   final String videoId;
-  const _InlineYoutubePlayer({required this.videoId});
+  final String sourceUrl;
+  const _InlineYoutubePlayer({required this.videoId, required this.sourceUrl});
 
   @override
   State<_InlineYoutubePlayer> createState() => _InlineYoutubePlayerState();
@@ -2318,6 +2324,8 @@ class _InlineYoutubePlayer extends StatefulWidget {
 
 class _InlineYoutubePlayerState extends State<_InlineYoutubePlayer> {
   late final YoutubePlayerController _controller;
+  late final StreamSubscription<YoutubePlayerValue> _sub;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -2327,16 +2335,58 @@ class _InlineYoutubePlayerState extends State<_InlineYoutubePlayer> {
       autoPlay: true,
       params: const YoutubePlayerParams(showFullscreenButton: true),
     );
+    // Не всі відео можна відтворити у вбудованому плеєрі (вікові
+    // обмеження, заборона вбудовування власником, збої рекламного блоку
+    // на боці YouTube — напр. помилка 152-4) — коду такої помилки немає
+    // серед стандартних YoutubeError, тож ловимо будь-який error-стан і
+    // даємо запасний варіант "відкрити в YouTube" замість застряглого
+    // екрана з чужою помилкою.
+    _sub = _controller.stream.listen((value) {
+      if (value.hasError && !_hasError && mounted) {
+        setState(() => _hasError = true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _sub.cancel();
     _controller.close();
     super.dispose();
   }
 
+  Future<void> _openExternally() =>
+      launchUrl(Uri.parse(widget.sourceUrl), mode: LaunchMode.externalApplication);
+
   @override
   Widget build(BuildContext context) {
+    if (_hasError) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Container(
+          color: Colors.black,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, color: Colors.white70, size: 32),
+              const SizedBox(height: 8),
+              const Text(
+                'Не вдалося відтворити відео тут',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _openExternally,
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('Відкрити в YouTube'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return YoutubePlayer(controller: _controller);
   }
 }

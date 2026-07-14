@@ -27,7 +27,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/json')],
-          subject: 'MedKit — експорт даних',
+          subject: 'Elly — експорт даних',
         ),
       );
     } catch (e) {

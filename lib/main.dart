@@ -13,6 +13,7 @@ import 'core/providers/font_scale_provider.dart';
 import 'core/providers/plan_provider.dart';
 import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
+import 'core/services/affiliate_config_service.dart';
 import 'core/services/app_lock_service.dart';
 import 'core/services/app_logger.dart';
 import 'core/services/backup_reminder_service.dart';
@@ -74,6 +75,9 @@ void main() {
         debugPrint('🔶 Firebase не налаштований: $e');
       }
       await NotificationService.init();
+      // Fire-and-forget: не блокує запуск, а кнопка "Купити" сама
+      // з'явиться (AffiliateConfigService.revision) щойно конфіг підвантажиться.
+      unawaited(AffiliateConfigService.warmUp());
       runApp(const ProviderScope(child: MedKitApp()));
     },
     (error, stack) => AppLogger.logError('Zone', error, stack),
