@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
 import '../providers/notification_settings_provider.dart';
+import '../services/app_logger.dart';
 import '../services/notification_service.dart';
 import '../../data/db/app_database.dart';
 
@@ -18,56 +19,83 @@ class IntakeGenerator {
     final meds = await _db.select(_db.medications).get();
 
     for (final med in meds) {
-      if (!med.isActive) continue;
-      if (!_shouldTakeOnDate(med, day)) continue;
+      // Одна невдала спроба (напр. зіпсований JSON у phases, чи виняток від
+      // zonedSchedule — брак дозволу на точні будильники тощо) не повинна
+      // обривати генерацію для решти ліків — інакше одні погані ліки мовчки
+      // "з'їдають" нагадування для всіх наступних ліків/членів сім'ї в
+      // цьому ж виклику (решта цикла нижче по списку просто не виконалась б).
+      try {
+        await _generateForMedication(med, day, cutoff);
+      } catch (e, st) {
+        AppLogger.logError('IntakeGenerator.medication(id=${med.id})', e, st);
+      }
+    }
+  }
 
-      // Determine times to generate
-      List<String> times;
+  Future<void> _generateForMedication(
+    Medication med,
+    DateTime day,
+    DateTime cutoff,
+  ) async {
+    if (!med.isActive) return;
+    if (!_shouldTakeOnDate(med, day)) return;
 
-      if (med.phases != null) {
-        // Phase-based: find active phase
-        final phases = List<Map<String, dynamic>>.from(
-          jsonDecode(med.phases!) as List,
-        );
-        final daysElapsed = day
-            .difference(DateTime(
+    // Determine times to generate
+    List<String> times;
+
+    if (med.phases != null) {
+      // Phase-based: find active phase
+      final phases = List<Map<String, dynamic>>.from(
+        jsonDecode(med.phases!) as List,
+      );
+      final daysElapsed = day
+          .difference(
+            DateTime(
               med.startDate.year,
               med.startDate.month,
               med.startDate.day,
-            ))
-            .inDays;
+            ),
+          )
+          .inDays;
 
-        int accumulated = 0;
-        Map<String, dynamic>? activePhase;
-        for (final phase in phases) {
-          final dur = phase['durationDays'] as int?;
-          if (dur == null) {
-            activePhase = phase;
-            break;
-          }
-          accumulated += dur;
-          if (daysElapsed < accumulated) {
-            activePhase = phase;
-            break;
-          }
+      int accumulated = 0;
+      Map<String, dynamic>? activePhase;
+      for (final phase in phases) {
+        final dur = phase['durationDays'] as int?;
+        if (dur == null) {
+          activePhase = phase;
+          break;
         }
-        if (activePhase == null) continue; // past all phases
-        times = List<String>.from(activePhase['times'] as List);
-      } else {
-        // Legacy: use schedules table
-        final schedules = await (_db.select(_db.schedules)
-              ..where((t) => t.medicationId.equals(med.id))
-              ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-            .get();
-        times = schedules.map((s) => s.timeOfDay).toList();
+        accumulated += dur;
+        if (daysElapsed < accumulated) {
+          activePhase = phase;
+          break;
+        }
       }
+      if (activePhase == null) return; // past all phases
+      times = List<String>.from(activePhase['times'] as List);
+    } else {
+      // Legacy: use schedules table
+      final schedules =
+          await (_db.select(_db.schedules)
+                ..where((t) => t.medicationId.equals(med.id))
+                ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+              .get();
+      times = schedules.map((s) => s.timeOfDay).toList();
+    }
 
-      // Generate intakes for each time
-      for (final timeStr in times) {
+    // Generate intakes for each time
+    for (final timeStr in times) {
+      // Так само, як і в зовнішньому try/catch — одна погана позиція часу
+      // не повинна обривати генерацію решти прийомів для цих же ліків.
+      try {
         final parts = timeStr.split(':');
         final scheduledAt = DateTime(
-          day.year, day.month, day.day,
-          int.parse(parts[0]), int.parse(parts[1]),
+          day.year,
+          day.month,
+          day.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
         );
 
         // Не створюємо записи більш ніж на годину в минулому —
@@ -76,29 +104,35 @@ class IntakeGenerator {
         if (scheduledAt.isBefore(cutoff)) continue;
 
         // Check duplicate using medication + scheduledAt
-        final exists = await (_db.select(_db.intakes)
-              ..where((t) =>
-                  t.medicationId.equals(med.id) &
-                  t.scheduledAt.equals(scheduledAt)))
-            .getSingleOrNull();
+        final exists =
+            await (_db.select(_db.intakes)..where(
+                  (t) =>
+                      t.medicationId.equals(med.id) &
+                      t.scheduledAt.equals(scheduledAt),
+                ))
+                .getSingleOrNull();
         if (exists != null) continue;
 
         // For phase-based meds, use scheduleId = 0
         final scheduleId = med.phases != null
             ? 0
             : (await (_db.select(_db.schedules)
-                      ..where((t) => t.medicationId.equals(med.id))
-                      ..limit(1))
-                  .getSingleOrNull())
-                  ?.id ??
-                0;
+                            ..where((t) => t.medicationId.equals(med.id))
+                            ..limit(1))
+                          .getSingleOrNull())
+                      ?.id ??
+                  0;
 
-        final intakeId = await _db.into(_db.intakes).insert(IntakesCompanion.insert(
-          scheduleId: scheduleId,
-          medicationId: med.id,
-          memberId: med.memberId,
-          scheduledAt: scheduledAt,
-        ));
+        final intakeId = await _db
+            .into(_db.intakes)
+            .insert(
+              IntakesCompanion.insert(
+                scheduleId: scheduleId,
+                medicationId: med.id,
+                memberId: med.memberId,
+                scheduledAt: scheduledAt,
+              ),
+            );
 
         final settings = _ref.read(notificationSettingsProvider);
         final dose = '${med.doseAmount} ${med.doseUnit}';
@@ -113,13 +147,20 @@ class IntakeGenerator {
             repeatMinutes: settings.repeatMinutes,
           );
         }
+      } catch (e, st) {
+        AppLogger.logError(
+          'IntakeGenerator.time(medicationId=${med.id}, time=$timeStr)',
+          e,
+          st,
+        );
       }
     }
   }
 
   bool _shouldTakeOnDate(Medication med, DateTime date) {
-    if (date.isBefore(DateTime(
-        med.startDate.year, med.startDate.month, med.startDate.day))) {
+    if (date.isBefore(
+      DateTime(med.startDate.year, med.startDate.month, med.startDate.day),
+    )) {
       return false;
     }
 
@@ -157,9 +198,15 @@ class IntakeGenerator {
         return true;
 
       case 'alternate':
-        final diff = date.difference(DateTime(
-          med.startDate.year, med.startDate.month, med.startDate.day,
-        )).inDays;
+        final diff = date
+            .difference(
+              DateTime(
+                med.startDate.year,
+                med.startDate.month,
+                med.startDate.day,
+              ),
+            )
+            .inDays;
         return diff % 2 == 0;
 
       case 'weekdays':
@@ -169,17 +216,29 @@ class IntakeGenerator {
 
       case 'every_n':
         final n = config['n'] as int;
-        final diff = date.difference(DateTime(
-          med.startDate.year, med.startDate.month, med.startDate.day,
-        )).inDays;
+        final diff = date
+            .difference(
+              DateTime(
+                med.startDate.year,
+                med.startDate.month,
+                med.startDate.day,
+              ),
+            )
+            .inDays;
         return diff % n == 0;
 
       case 'cycle':
         final on = config['on'] as int;
         final off = config['off'] as int;
-        final diff = date.difference(DateTime(
-          med.startDate.year, med.startDate.month, med.startDate.day,
-        )).inDays;
+        final diff = date
+            .difference(
+              DateTime(
+                med.startDate.year,
+                med.startDate.month,
+                med.startDate.day,
+              ),
+            )
+            .inDays;
         return diff % (on + off) < on;
 
       default:

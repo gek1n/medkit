@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/affiliate_config_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -9,6 +10,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
+import '../../shared/widgets/affiliate_buy_button.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -285,10 +287,30 @@ class _DetailBody extends ConsumerWidget {
                 _SideEffectsSection(sideEffects: _parseSideEffects(med.sideEffects)),
                 const SizedBox(height: AppDimensions.xl),
               ],
-              if (med.totalCount > 0 || med.stockPercent != null) ...[
-                _StockSection(med: med, schedules: schedules, accent: accent),
-                const SizedBox(height: AppDimensions.xl),
-              ],
+              if (med.totalCount > 0 || med.stockPercent != null)
+                Column(
+                  children: [
+                    _StockSection(med: med, schedules: schedules, accent: accent),
+                    const SizedBox(height: AppDimensions.xl),
+                  ],
+                )
+              else
+                ValueListenableBuilder<int>(
+                  valueListenable: AffiliateConfigService.revision,
+                  builder: (context, _, _) {
+                    final hasLink = AffiliateConfigService.linkFor(
+                          AffiliateSection.medications,
+                        ) !=
+                        null;
+                    if (!hasLink) return const SizedBox.shrink();
+                    return Column(
+                      children: [
+                        const AffiliateBuyButton(section: AffiliateSection.medications),
+                        const SizedBox(height: AppDimensions.xl),
+                      ],
+                    );
+                  },
+                ),
               _ActionRow(med: med),
               const SizedBox(height: 40),
             ]),
@@ -581,6 +603,8 @@ class _StockSection extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          const AffiliateBuyButton(section: AffiliateSection.medications),
         ],
       ),
     );
