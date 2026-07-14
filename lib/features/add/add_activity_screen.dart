@@ -166,6 +166,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     await ref
         .read(activitiesRepositoryProvider)
         .softDelete(widget.existing!.id);
+    // Так само, як після збереження — інакше вже підвантажений "Коротко
+    // про завтра" лишається зі старим логом видаленої активності (назва
+    // при цьому "губиться", бо список активностей для підпису вже
+    // реактивно оновився й перестав містити видалену).
+    ref.invalidate(generateTodayActivityLogsProvider);
+    ref.invalidate(tomorrowActivityLogsProvider);
     if (mounted) Navigator.pop(context);
   }
 

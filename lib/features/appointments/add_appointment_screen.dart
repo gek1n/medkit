@@ -13,6 +13,7 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
+import '../today/providers/today_providers.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
@@ -218,8 +219,17 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         memberId: widget.memberId,
       );
       if (remindAt != null) {
+        final members = ref.read(allMembersProvider).valueOrNull ?? [];
+        String memberName = '';
+        for (final m in members) {
+          if (m.id == widget.memberId) {
+            memberName = m.name;
+            break;
+          }
+        }
         await NotificationService.scheduleAppointmentReminder(
           appointmentId: appointmentId,
+          memberName: memberName,
           doctorType: doctorType,
           location: locationVal,
           scheduledAt: remindAt,

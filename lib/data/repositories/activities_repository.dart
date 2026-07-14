@@ -112,12 +112,16 @@ class ActivitiesRepository {
           ..where((t) => t.id.equals(log.activityId)))
         .getSingleOrNull();
     if (activity == null) return;
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(log.memberId)))
+        .getSingleOrNull();
 
     final settings = _ref.read(notificationSettingsProvider);
     final remindAt = settings.adjust(newScheduledAt, memberId: log.memberId);
     if (remindAt != null) {
       await NotificationService.scheduleActivityReminder(
         logId: id,
+        memberName: member?.name ?? '',
         activityName: activity.name,
         scheduledAt: remindAt,
         vibrationEnabled: settings.vibrationEnabled,

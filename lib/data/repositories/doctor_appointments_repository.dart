@@ -89,6 +89,9 @@ class DoctorAppointmentsRepository {
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
     if (appt == null) return;
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(appt.memberId)))
+        .getSingleOrNull();
 
     final settings = _ref.read(notificationSettingsProvider);
     final rawReminderAt =
@@ -97,6 +100,7 @@ class DoctorAppointmentsRepository {
     if (remindAt != null) {
       await NotificationService.scheduleAppointmentReminder(
         appointmentId: id,
+        memberName: member?.name ?? '',
         doctorType: appt.doctorType,
         location: appt.location,
         scheduledAt: remindAt,

@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
+
+import 'app_logger.dart';
 
 /// Єдина точка планування локальних сповіщень: ліки, активності,
 /// прийоми лікарів, самопочуття та алерти про залишок ліків.
@@ -94,25 +97,71 @@ class NotificationService {
     DateTimeComponents? matchDateTimeComponents,
     bool vibrationEnabled = true,
   }) async {
-    if (matchDateTimeComponents == null && at.isBefore(DateTime.now())) return;
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(at, tz.local),
-      _details(vibrationEnabled: vibrationEnabled),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: matchDateTimeComponents,
-    );
+    if (matchDateTimeComponents == null && at.isBefore(DateTime.now())) {
+      AppLogger.log(
+        'NotificationService.schedule SKIPPED (у минулому) id=$id at=${at.toIso8601String()} title="$title"',
+      );
+      return;
+    }
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(at, tz.local),
+        _details(vibrationEnabled: vibrationEnabled),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: matchDateTimeComponents,
+      );
+      AppLogger.log(
+        'NotificationService.schedule OK id=$id at=${at.toIso8601String()} match=$matchDateTimeComponents title="$title"',
+      );
+    } catch (e, st) {
+      AppLogger.logError('NotificationService.schedule FAILED id=$id at=${at.toIso8601String()} title="$title"', e, st);
+      rethrow;
+    }
   }
 
-  static Future<void> cancel(int id) => _plugin.cancel(id);
+  static Future<void> cancel(int id) {
+    AppLogger.log('NotificationService.cancel id=$id');
+    return _plugin.cancel(id);
+  }
 
   /// Скасовує геть усі заплановані на цьому пристрої нагадування. Потрібно
   /// викликати при виході з акаунту / видаленні всіх даних — інакше вже
   /// заплановані OS-alarm'и (zonedSchedule) лишаються жити незалежно від
   /// БД і спрацьовують навіть після того, як профіль видалено.
-  static Future<void> cancelAll() => _plugin.cancelAll();
+  static Future<void> cancelAll() {
+    AppLogger.log('NotificationService.cancelAll');
+    return _plugin.cancelAll();
+  }
+
+  /// Знімок дозволів на сповіщення — викликати на cold-start/resume, щоб у
+  /// лозі був слід, чи були ще ввімкнені точні будильники/сповіщення в
+  /// момент, коли нагадування планувались. iOS не має еквівалента
+  /// "точних будильників" — там перевіряємо лише загальний дозвіл.
+  static Future<void> logDiagnostics() async {
+    try {
+      if (Platform.isAndroid) {
+        final android = _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        final exact = await android?.canScheduleExactNotifications();
+        final enabled = await android?.areNotificationsEnabled();
+        AppLogger.log(
+          'NotificationService.diagnostics android exactAlarms=$exact notificationsEnabled=$enabled',
+        );
+      } else if (Platform.isIOS) {
+        final ios = _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+        final settings = await ios?.checkPermissions();
+        AppLogger.log(
+          'NotificationService.diagnostics ios isEnabled=${settings?.isEnabled} isAlertEnabled=${settings?.isAlertEnabled}',
+        );
+      }
+    } catch (e, st) {
+      AppLogger.logError('NotificationService.diagnostics', e, st);
+    }
+  }
 
   // ── Ліки ──────────────────────────────────────────────────────────────
 
@@ -127,6 +176,7 @@ class NotificationService {
   /// ніколи не спрацює.
   static Future<void> scheduleIntakeReminder({
     required int intakeId,
+    required String memberName,
     required String medName,
     required String dose,
     required DateTime scheduledAt,
@@ -135,7 +185,7 @@ class NotificationService {
   }) async {
     await _zonedSchedule(
       id: intakeNotificationId(intakeId),
-      title: '💊 Час прийняти ліки',
+      title: '$memberName · 💊 Час прийняти ліки',
       body: '$medName — $dose',
       at: scheduledAt,
       vibrationEnabled: vibrationEnabled,
@@ -143,7 +193,7 @@ class NotificationService {
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: intakeRepeatNotificationId(intakeId),
-        title: '🔔 Ви ще не відмітили прийом',
+        title: '$memberName · 🔔 Ви ще не відмітили прийом',
         body: '$medName — $dose',
         at: scheduledAt.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
@@ -191,6 +241,7 @@ class NotificationService {
 
   static Future<void> showLowStockAlert({
     required int medicationId,
+    required String memberName,
     required String medName,
     required int remaining,
     required String unit,
@@ -198,7 +249,7 @@ class NotificationService {
   }) {
     return _plugin.show(
       lowStockNotificationId(medicationId),
-      '⚠️ Закінчуються ліки',
+      '$memberName · ⚠️ Закінчуються ліки',
       '$medName — залишилось $remaining $unit',
       _details(vibrationEnabled: vibrationEnabled),
     );
@@ -211,6 +262,7 @@ class NotificationService {
 
   static Future<void> scheduleActivityReminder({
     required int logId,
+    required String memberName,
     required String activityName,
     required DateTime scheduledAt,
     bool vibrationEnabled = true,
@@ -218,7 +270,7 @@ class NotificationService {
   }) async {
     await _zonedSchedule(
       id: activityNotificationId(logId),
-      title: '🚶 Час для активності',
+      title: '$memberName · 🚶 Час для активності',
       body: activityName,
       at: scheduledAt,
       vibrationEnabled: vibrationEnabled,
@@ -226,7 +278,7 @@ class NotificationService {
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: activityRepeatNotificationId(logId),
-        title: '🔔 Ви ще не відмітили активність',
+        title: '$memberName · 🔔 Ви ще не відмітили активність',
         body: activityName,
         at: scheduledAt.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
@@ -248,6 +300,7 @@ class NotificationService {
 
   static Future<void> scheduleAppointmentReminder({
     required int appointmentId,
+    required String memberName,
     required String doctorType,
     String? location,
     required DateTime scheduledAt,
@@ -261,7 +314,7 @@ class NotificationService {
         : doctorType;
     await _zonedSchedule(
       id: appointmentNotificationId(appointmentId),
-      title: '🩺 Прийом лікаря',
+      title: '$memberName · 🩺 Прийом лікаря',
       body: body,
       at: at,
       vibrationEnabled: vibrationEnabled,
@@ -269,7 +322,7 @@ class NotificationService {
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: appointmentRepeatNotificationId(appointmentId),
-        title: '🔔 Не забудьте про прийом лікаря',
+        title: '$memberName · 🔔 Не забудьте про прийом лікаря',
         body: body,
         at: at.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
@@ -289,6 +342,7 @@ class NotificationService {
 
   static Future<void> scheduleWellbeingDaily({
     required int memberId,
+    required String memberName,
     required int slotIndex,
     required int hour,
     required int minute,
@@ -299,7 +353,7 @@ class NotificationService {
     if (at.isBefore(now)) at = at.add(const Duration(days: 1));
     await _zonedSchedule(
       id: wellbeingNotificationId(memberId, slotIndex),
-      title: '💜 Зріз самопочуття',
+      title: '$memberName · 💜 Зріз самопочуття',
       body: 'Як ви себе почуваєте?',
       at: at,
       matchDateTimeComponents: DateTimeComponents.time,
@@ -329,6 +383,7 @@ class NotificationService {
   /// ігноруються всередині [_zonedSchedule].
   static Future<void> scheduleVaccinationReminder({
     required int vaccinationId,
+    required String memberName,
     required String name,
     required DateTime nextDoseAt,
     bool vibrationEnabled = true,
@@ -336,7 +391,7 @@ class NotificationService {
     final at = DateTime(nextDoseAt.year, nextDoseAt.month, nextDoseAt.day, 9);
     await _zonedSchedule(
       id: vaccinationNotificationId(vaccinationId),
-      title: '💉 Час ревакцинації',
+      title: '$memberName · 💉 Час ревакцинації',
       body: name,
       at: at,
       vibrationEnabled: vibrationEnabled,

@@ -17,6 +17,7 @@ import '../../data/repositories/vaccinations_repository.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
+import '../today/providers/today_providers.dart';
 
 class AddVaccinationScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -134,8 +135,17 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
       final nextDoseAt = _nextDoseAt;
       if (nextDoseAt != null) {
         final settings = ref.read(notificationSettingsProvider);
+        final members = ref.read(allMembersProvider).valueOrNull ?? [];
+        String memberName = '';
+        for (final m in members) {
+          if (m.id == widget.memberId) {
+            memberName = m.name;
+            break;
+          }
+        }
         await NotificationService.scheduleVaccinationReminder(
           vaccinationId: vaccinationId,
+          memberName: memberName,
           name: name,
           nextDoseAt: nextDoseAt,
           vibrationEnabled: settings.vibrationEnabled,

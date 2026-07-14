@@ -11,6 +11,7 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../today/providers/today_providers.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
@@ -109,6 +110,14 @@ class _AddWellbeingScheduleScreenState
 
       await NotificationService.cancelAllWellbeingForMember(widget.memberId);
       final settings = ref.read(notificationSettingsProvider);
+      final members = ref.read(allMembersProvider).valueOrNull ?? [];
+      String memberName = '';
+      for (final m in members) {
+        if (m.id == widget.memberId) {
+          memberName = m.name;
+          break;
+        }
+      }
       for (var i = 0; i < _slots.length; i++) {
         final now = DateTime.now();
         final raw = DateTime(
@@ -117,6 +126,7 @@ class _AddWellbeingScheduleScreenState
         if (at == null) continue;
         await NotificationService.scheduleWellbeingDaily(
           memberId: widget.memberId,
+          memberName: memberName,
           slotIndex: i,
           hour: at.hour,
           minute: at.minute,

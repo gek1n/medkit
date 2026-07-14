@@ -454,6 +454,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     unawaited(ReviewPromptService.maybeShow());
     unawaited(BackupReminderService.recordInstallIfNeeded());
     unawaited(BackupReminderService.maybeRemind());
+    unawaited(NotificationService.logDiagnostics());
     // "Розбуди" push від family_sync (relay/send) приходить як data-message —
     // поки застосунок відкритий, його треба явно підхопити тут; коли
     // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.
@@ -482,6 +483,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
       unawaited(ReviewPromptService.maybeShow());
       unawaited(BackupReminderService.maybeRemind());
+      unawaited(NotificationService.logDiagnostics());
     }
   }
 
