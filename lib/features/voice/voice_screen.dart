@@ -14,7 +14,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_button.dart';
 import '../add/add_activity_screen.dart';
+import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -241,8 +243,6 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
                         setState(() => _foodRelation = v),
                     onConfirm: () =>
                         _handleConfirm(_result!),
-                    onEditManually: () =>
-                        _handleEditManually(_result!),
                     onRetry: _reset,
                   ),
                 _VoiceState.error => _ErrorBody(
@@ -264,26 +264,12 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
       case 'add_activity':
         _openAddActivity(r);
       case 'add_appointment':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Відкриваємо форму запису...')),
-        );
-        Navigator.pop(context);
+        _openAddAppointment(r);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Не вдалося розпізнати команду')),
         );
-    }
-  }
-
-  void _handleEditManually(NluResult r) {
-    switch (r.action) {
-      case 'add_med':
-        _openAddMed(r);
-      case 'add_activity':
-        _openAddActivity(r);
-      default:
-        Navigator.pop(context);
     }
   }
 
@@ -321,6 +307,21 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
           memberId: memberId,
           voicePrefillName: r.activityName,
           voicePrefillTimes: r.scheduleTimes,
+        ),
+      ),
+    );
+  }
+
+  void _openAddAppointment(NluResult r) {
+    final memberId = ref.read(currentMemberProvider).valueOrNull?.id;
+    if (memberId == null) return;
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddAppointmentScreen(
+          memberId: memberId,
+          voicePrefillDoctorType: r.appointmentType,
         ),
       ),
     );
@@ -404,23 +405,7 @@ class _ConsentBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: onAgree,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              ),
-            ),
-            child: Text('Зрозуміло, погоджуюсь',
-                style: AppTextStyles.bodyMd
-                    .copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
-          ),
-        ),
+        MkButton(label: 'Зрозуміло, погоджуюсь', onTap: onAgree),
       ],
     );
   }
@@ -556,33 +541,10 @@ class _IdleBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: sttAvailable ? onStart : null,
-            icon: const Icon(Icons.mic_rounded, size: 20),
-            label: Text(
-              sttAvailable
-                  ? 'Утримуй і говори'
-                  : 'Мікрофон недоступний',
-              style: const TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 16),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.border,
-              padding:
-                  const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                    AppDimensions.radiusLg),
-              ),
-              elevation: 4,
-              shadowColor:
-                  AppColors.primary.withValues(alpha: 0.35),
-            ),
-          ),
+        MkButton(
+          label: sttAvailable ? 'Утримуй і говори' : 'Мікрофон недоступний',
+          icon: const Icon(Icons.mic_rounded, size: 20, color: Colors.white),
+          onTap: sttAvailable ? onStart : null,
         ),
       ],
     );
@@ -725,7 +687,6 @@ class _ResultBody extends StatelessWidget {
   final DrugReference? drugReference;
   final ValueChanged<int> onFoodChanged;
   final VoidCallback onConfirm;
-  final VoidCallback onEditManually;
   final VoidCallback onRetry;
 
   const _ResultBody({
@@ -734,7 +695,6 @@ class _ResultBody extends StatelessWidget {
     required this.drugReference,
     required this.onFoodChanged,
     required this.onConfirm,
-    required this.onEditManually,
     required this.onRetry,
   });
 
@@ -983,48 +943,7 @@ class _ResultBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppDimensions.xl),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: onConfirm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                    AppDimensions.radiusLg),
-              ),
-              elevation: 4,
-              shadowColor:
-                  AppColors.primary.withValues(alpha: 0.3),
-            ),
-            child: const Text('Підтвердити і додати',
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15)),
-          ),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: onEditManually,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.border),
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                    AppDimensions.radiusLg),
-              ),
-            ),
-            child: const Text('Редагувати вручну',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15)),
-          ),
-        ),
+        MkButton(label: 'Далі', onTap: onConfirm),
         const SizedBox(height: 10),
         TextButton(
           onPressed: onRetry,
@@ -1066,20 +985,7 @@ class _ErrorBody extends StatelessWidget {
                 .copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: onRetry,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 32, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                    AppDimensions.radiusLg),
-              ),
-            ),
-            child: const Text('Спробувати ще раз'),
-          ),
+          MkButton(label: 'Спробувати ще раз', isFullWidth: false, onTap: onRetry),
         ],
       ),
     );

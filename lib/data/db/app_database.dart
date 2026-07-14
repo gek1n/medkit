@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -390,6 +390,14 @@ class AppDatabase extends _$AppDatabase {
             // й notify/view/editGranted.
             try {
               await m.addColumn(familyPeers, familyPeers.payerPlanActive);
+            } catch (_) {}
+          }
+          if (from < 25) {
+            // Побічні ефекти, знайдені ІІ під час сканування рецепта —
+            // раніше показувались лише на екрані перегляду сканування й
+            // губились одразу після збереження ліків.
+            try {
+              await m.addColumn(medications, medications.sideEffects);
             } catch (_) {}
           }
         },

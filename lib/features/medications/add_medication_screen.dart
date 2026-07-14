@@ -19,6 +19,7 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
+import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
@@ -124,6 +125,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   // Card color (null = дефолтний колір типу завдання)
   String? _colorHex;
 
+  // Побічні ефекти, знайдені ІІ під час сканування рецепта/упаковки —
+  // null для ручного додавання чи редагування (форма немає поля для їх
+  // ручного введення, лише зберігає/показує те, що прийшло зі сканування).
+  List<String>? _sideEffects;
+
   bool _isSaving = false;
 
   // null = ще завантажується; true/false — чи лишились безкоштовні спроби
@@ -185,6 +191,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     try {
       _photoPaths = List<String>.from(jsonDecode(ex.photoPaths) as List);
     } catch (_) {}
+    if (ex.sideEffects != null) {
+      try {
+        _sideEffects = List<String>.from(jsonDecode(ex.sideEffects!) as List);
+      } catch (_) {}
+    }
 
     try {
       final cfg = jsonDecode(ex.repeatConfig) as Map<String, dynamic>;
@@ -323,6 +334,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           photoPaths: Value(jsonEncode(_photoPaths)),
           phases: Value(phasesJson),
           color: Value(_colorHex),
+          sideEffects: Value(_sideEffects == null ? null : jsonEncode(_sideEffects)),
         ),
       );
       if (mounted) Navigator.of(context).pop(true);
@@ -358,6 +370,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
+            sideEffects: Value(_sideEffects == null ? null : jsonEncode(_sideEffects)),
           ),
         );
       } else {
@@ -380,6 +393,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
+            sideEffects: Value(_sideEffects == null ? null : jsonEncode(_sideEffects)),
           ),
         );
       }
@@ -671,6 +685,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _nameController.text = m.name;
     if (m.form != null) _form = m.form!;
     if (m.foodRelation != null) _foodRelation = m.foodRelation!;
+    _sideEffects = m.sideEffects;
     final times = (m.scheduleTimes ?? const ['morning'])
         .map(_defaultTimeForSchedule)
         .toList();
@@ -714,6 +729,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
         DateTime(now.year, now.month, now.day).add(Duration(days: duration)),
       ),
       phases: Value(phasesJson),
+      sideEffects: Value(
+        m.sideEffects == null || m.sideEffects!.isEmpty ? null : jsonEncode(m.sideEffects),
+      ),
     );
   }
 
@@ -1048,13 +1066,6 @@ class _PhaseCard extends StatelessWidget {
     required this.onPickTime,
   });
 
-  static const _foodRelationLabels = {
-    'any': '✓ Незалежно від їжі',
-    'before': '🕐 До їжі',
-    'after': '🍽 Після їжі',
-    'with': '🥗 Під час їжі',
-  };
-
   static String _fmt(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
@@ -1163,40 +1174,43 @@ class _PhaseCard extends StatelessWidget {
                       style: AppTextStyles.labelSm.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: foodRelation,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 18,
-                            color: AppColors.textMuted,
-                          ),
-                          style: AppTextStyles.labelMd.copyWith(
-                            color: AppColors.textMain,
-                            fontSize: 12,
-                          ),
-                          items: _foodRelationLabels.entries
-                              .map(
-                                (e) => DropdownMenuItem(
-                                  value: e.key,
-                                  child: Text(
-                                    e.value,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () async {
+                        final picked = await showFoodRelationPicker(
+                          context,
+                          current: foodRelation,
+                        );
+                        if (picked != null) onFoodRelationChanged(picked);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 11,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                foodRelationLabels[foodRelation] ?? foodRelation,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.labelMd.copyWith(
+                                  color: AppColors.textMain,
+                                  fontSize: 12,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (v) {
-                            if (v != null) onFoodRelationChanged(v);
-                          },
+                              ),
+                            ),
+                            const Icon(
+                              Icons.expand_more_rounded,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
+                          ],
                         ),
                       ),
                     ),

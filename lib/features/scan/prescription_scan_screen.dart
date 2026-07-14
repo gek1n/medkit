@@ -9,7 +9,9 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/form_chips.dart';
+import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
 const _consentKind = 'scan';
@@ -27,14 +29,17 @@ class _MedDraft {
   late TextEditingController doseController;
   String form;
   List<String> scheduleTimes;
-  String foodRelation;
+  // null — ІІ не визначив зв'язок з їжею з фото; на відміну від 'any'
+  // (усвідомлений "незалежно від їжі"), тут свідомо НЕ підставляємо
+  // дефолт, щоб у списку нижче нічого не виглядало хибно "вже підтвердженим".
+  String? foodRelation;
   int durationDays;
   final List<String>? sideEffects;
 
   _MedDraft(ScannedMedication m, {required bool expandByDefault})
       : form = m.form ?? 'tablet',
         scheduleTimes = List.of(m.scheduleTimes ?? const ['morning']),
-        foodRelation = m.foodRelation ?? 'any',
+        foodRelation = m.foodRelation,
         durationDays = m.durationDays ?? 7,
         sideEffects = m.sideEffects,
         expanded = expandByDefault {
@@ -273,21 +278,7 @@ class _ConsentBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: onAgree,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
-            ),
-            child: Text('Зрозуміло, погоджуюсь',
-                style: AppTextStyles.bodyMd
-                    .copyWith(fontWeight: FontWeight.w700, fontSize: 16)),
-          ),
-        ),
+        MkButton(label: 'Зрозуміло, погоджуюсь', onTap: onAgree),
       ],
     );
   }
@@ -324,18 +315,18 @@ class _PickingBody extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onCamera,
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Камера'),
+              child: MkButton.secondary(
+                label: 'Камера',
+                icon: const Icon(Icons.camera_alt_outlined, size: 18, color: AppColors.primary),
+                onTap: onCamera,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onGallery,
-                icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Галерея'),
+              child: MkButton.secondary(
+                label: 'Галерея',
+                icon: const Icon(Icons.photo_library_outlined, size: 18, color: AppColors.primary),
+                onTap: onGallery,
               ),
             ),
           ],
@@ -370,21 +361,9 @@ class _PickingBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppDimensions.xl),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: onScan,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.border,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
-            ),
-            child: Text('Сканувати${images.isNotEmpty ? ' (${images.length})' : ''}',
-                style: AppTextStyles.bodyMd
-                    .copyWith(fontWeight: FontWeight.w700, fontSize: 15)),
-          ),
+        MkButton(
+          label: 'Сканувати${images.isNotEmpty ? ' (${images.length})' : ''}',
+          onTap: onScan,
         ),
       ],
     );
@@ -429,22 +408,9 @@ class _ResultsBodyState extends State<_ResultsBody> {
         ),
         Padding(
           padding: const EdgeInsets.all(AppDimensions.screenPadding),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _selectedCount == 0 ? null : widget.onConfirm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: AppColors.border,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
-              ),
-              child: Text(
-                _selectedCount == 0 ? 'Оберіть препарати' : 'Додати обрані ($_selectedCount)',
-                style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
-              ),
-            ),
+          child: MkButton(
+            label: _selectedCount == 0 ? 'Оберіть препарати' : 'Додати обрані ($_selectedCount)',
+            onTap: _selectedCount == 0 ? null : widget.onConfirm,
           ),
         ),
       ],
@@ -464,7 +430,6 @@ class _DraftCard extends StatefulWidget {
 }
 
 class _DraftCardState extends State<_DraftCard> {
-  static const _foodLabels = {'before': 'До їжі', 'after': 'Після їжі', 'any': 'Незалежно від їжі'};
   static const _scheduleLabels = {
     'morning': 'Вранці',
     'afternoon': 'Вдень',
@@ -675,7 +640,7 @@ class _DraftCardState extends State<_DraftCard> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _foodLabels.entries.map((e) {
+                    children: foodRelationLabels.entries.map((e) {
                       final sel = d.foodRelation == e.key;
                       return GestureDetector(
                         onTap: () => setState(() => d.foodRelation = e.key),
@@ -723,26 +688,12 @@ class _DraftCardState extends State<_DraftCard> {
                   ],
 
                   const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() => d.included = true);
-                        widget.onChanged();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                        ),
-                      ),
-                      child: Text(
-                        d.included ? 'Підтверджено ✓' : 'Все вірно, підтвердити',
-                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
-                      ),
-                    ),
+                  MkButton.secondary(
+                    label: d.included ? 'Підтверджено ✓' : 'Все вірно, підтвердити',
+                    onTap: () {
+                      setState(() => d.included = true);
+                      widget.onChanged();
+                    },
                   ),
                 ],
               ),
@@ -797,16 +748,7 @@ class _ErrorBody extends StatelessWidget {
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center, style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub)),
           const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: onRetry,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusLg)),
-            ),
-            child: const Text('Спробувати ще раз'),
-          ),
+          MkButton(label: 'Спробувати ще раз', isFullWidth: false, onTap: onRetry),
         ],
       ),
     );

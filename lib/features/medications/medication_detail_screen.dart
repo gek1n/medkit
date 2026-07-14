@@ -38,6 +38,60 @@ List<Map<String, dynamic>> _parsePhases(String? phasesJson) {
   }
 }
 
+// ── Побічні ефекти (від ІІ під час сканування) ─────────────────────────────
+
+List<String> _parseSideEffects(String? sideEffectsJson) {
+  if (sideEffectsJson == null) return const [];
+  try {
+    return List<String>.from(jsonDecode(sideEffectsJson) as List);
+  } catch (_) {
+    return const [];
+  }
+}
+
+class _SideEffectsSection extends StatelessWidget {
+  final List<String> sideEffects;
+  const _SideEffectsSection({required this.sideEffects});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppDimensions.md),
+      decoration: BoxDecoration(
+        color: AppColors.warningLight,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFF92400E)),
+              const SizedBox(width: 6),
+              Text(
+                'МОЖЛИВІ ПОБІЧНІ ЕФЕКТИ',
+                style: AppTextStyles.labelSm.copyWith(color: const Color(0xFF92400E)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            sideEffects.join(', '),
+            style: AppTextStyles.bodyMd.copyWith(color: const Color(0xFF92400E)),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Довідково від ІІ під час сканування — звірте з інструкцією до препарату.',
+            style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // Індекс фази, яка є активною на вказану дату (durationDays == null —
 // постійна фаза, завжди останній варіант, якщо жодна попередня не підійшла).
 int? _activePhaseIndex(
@@ -227,6 +281,10 @@ class _DetailBody extends ConsumerWidget {
               ],
               _InfoBlock(med: med, accent: accent),
               const SizedBox(height: AppDimensions.xl),
+              if (_parseSideEffects(med.sideEffects).isNotEmpty) ...[
+                _SideEffectsSection(sideEffects: _parseSideEffects(med.sideEffects)),
+                const SizedBox(height: AppDimensions.xl),
+              ],
               if (med.totalCount > 0 || med.stockPercent != null) ...[
                 _StockSection(med: med, schedules: schedules, accent: accent),
                 const SizedBox(height: AppDimensions.xl),
