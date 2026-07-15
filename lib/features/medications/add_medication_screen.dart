@@ -103,7 +103,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   final _nameController = TextEditingController();
 
   String _form = 'tablet';
-  String _foodRelation = 'after';
+  String _foodRelation = 'unspecified';
   String _repeatType = 'daily';
 
   // Phases
@@ -721,7 +721,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       form: Value(form),
       doseAmount: m.doseAmount ?? 1.0,
       doseUnit: Value(m.doseUnit ?? _unitForForm(form)),
-      foodRelation: Value(m.foodRelation ?? 'after'),
+      foodRelation: Value(m.foodRelation ?? 'unspecified'),
       repeatType: const Value('daily'),
       repeatConfig: const Value('{}'),
       startDate: now,

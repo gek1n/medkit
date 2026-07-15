@@ -8,6 +8,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/lab_results_repository.dart';
+import '../../shared/widgets/lab_test_picker.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/specialty_picker.dart';
@@ -31,10 +32,16 @@ class LabResultsScreen extends ConsumerStatefulWidget {
 
 class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
   String? _specialty;
+  String? _testName;
 
   Future<void> _pickSpecialty() async {
     final picked = await showSpecialtyPicker(context, current: _specialty);
     if (picked != null) setState(() => _specialty = picked);
+  }
+
+  Future<void> _pickTestName() async {
+    final picked = await showLabTestPicker(context, current: _testName);
+    if (picked != null) setState(() => _testName = picked);
   }
 
   @override
@@ -63,15 +70,27 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
                 ],
               ),
             ),
-            Padding(
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _SpecialtyFilterChip(
-                  specialty: _specialty,
-                  onTap: _pickSpecialty,
-                  onClear: () => setState(() => _specialty = null),
-                ),
+              child: Row(
+                children: [
+                  _FilterChip(
+                    icon: Icons.filter_list_rounded,
+                    label: _specialty ?? 'Усі напрямки',
+                    active: _specialty != null,
+                    onTap: _pickSpecialty,
+                    onClear: () => setState(() => _specialty = null),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    icon: Icons.biotech_outlined,
+                    label: _testName ?? 'Усі типи аналізів',
+                    active: _testName != null,
+                    onTap: _pickTestName,
+                    onClear: () => setState(() => _testName = null),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppDimensions.sm),
@@ -85,13 +104,15 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
                 ),
                 error: (e, _) => Center(child: Text('Помилка: $e')),
                 data: (allResults) {
-                  final results = _specialty == null
-                      ? allResults
-                      : allResults.where((r) => r.specialty == _specialty).toList();
+                  final results = allResults
+                      .where((r) => _specialty == null || r.specialty == _specialty)
+                      .where((r) => _testName == null || r.testName == _testName)
+                      .toList();
+                  final hasFilter = _specialty != null || _testName != null;
                   if (results.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: [_EmptyState(filtered: _specialty != null)],
+                      children: [_EmptyState(filtered: hasFilter)],
                     );
                   }
                   return ListView.builder(
@@ -127,19 +148,22 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
   }
 }
 
-class _SpecialtyFilterChip extends StatelessWidget {
-  final String? specialty;
+class _FilterChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
   final VoidCallback onTap;
   final VoidCallback onClear;
-  const _SpecialtyFilterChip({
-    required this.specialty,
+  const _FilterChip({
+    required this.icon,
+    required this.label,
+    required this.active,
     required this.onTap,
     required this.onClear,
   });
 
   @override
   Widget build(BuildContext context) {
-    final active = specialty != null;
     return InkWell(
       borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
       onTap: onTap,
@@ -154,13 +178,13 @@ class _SpecialtyFilterChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.filter_list_rounded,
+              icon,
               size: 16,
               color: active ? AppColors.primary : AppColors.textMuted,
             ),
             const SizedBox(width: 6),
             Text(
-              specialty ?? 'Усі напрямки',
+              label,
               style: AppTextStyles.labelMd.copyWith(
                 color: active ? AppColors.primary : AppColors.textSub,
               ),
@@ -261,12 +285,12 @@ class _EmptyState extends StatelessWidget {
           children: [
             Image.asset('assets/illustrations/elly-docs.png', height: 140),
             const SizedBox(height: 16),
-            Text(filtered ? 'Немає аналізів за цим напрямком' : 'Ще нічого не додано',
+            Text(filtered ? 'Немає аналізів за цим фільтром' : 'Ще нічого не додано',
                 style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
               filtered
-                  ? 'Спробуйте обрати інший напрямок або скиньте фільтр'
+                  ? 'Спробуйте змінити фільтри або скиньте їх'
                   : 'Натисніть "+ Додати" щоб додати перший аналіз',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),

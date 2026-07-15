@@ -39,10 +39,72 @@ class MembersRepository {
     return rows > 0;
   }
 
-  Future<int> delete(int id) =>
-      (_db.delete(_db.members)..where((t) => t.id.equals(id))).go();
+  // ⚠️ Явне каскадне видалення в транзакції — не покладаємось лише на
+  // ON DELETE CASCADE у схемі. Той FK-звʼязок задекларований для всіх
+  // таблиць нижче, але на пристроях, чия локальна база пройшла через
+  // кілька версій міграцій, обмеження могло фізично не застосуватись до
+  // вже наявних рядків (SQLite не завжди ретроактивно перебудовує FK при
+  // ALTER TABLE) — тоді видалення профілю мовчки лишало б усю його
+  // історію (ліки, аналізи, самопочуття, візити тощо) висіти в базі
+  // назавжди. sharedChannels/FamilyPeers тут навмисно НЕ займаємо —
+  // синхронізацію прибирає окремо [FamilySyncService.deleteMemberEverywhere],
+  // виклик якого йде ДО цього методу на обох call site-ах (Сім'я,
+  // Конфіденційність).
+  Future<int> delete(int id) => _db.transaction(() async {
+        final medIds = (await (_db.select(_db.medications)
+                  ..where((t) => t.memberId.equals(id)))
+                .get())
+            .map((m) => m.id)
+            .toList();
+        if (medIds.isNotEmpty) {
+          await (_db.delete(_db.schedules)..where((t) => t.medicationId.isIn(medIds))).go();
+          await (_db.delete(_db.symptoms)..where((t) => t.medicationId.isIn(medIds))).go();
+        }
+        await (_db.delete(_db.medications)..where((t) => t.memberId.equals(id))).go();
 
-  Future<void> deleteAll() => _db.delete(_db.members).go();
+        final activityIds = (await (_db.select(_db.activities)
+                  ..where((t) => t.memberId.equals(id)))
+                .get())
+            .map((a) => a.id)
+            .toList();
+        if (activityIds.isNotEmpty) {
+          await (_db.delete(_db.activitySlots)..where((t) => t.activityId.isIn(activityIds))).go();
+        }
+        await (_db.delete(_db.activityLogs)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.activities)..where((t) => t.memberId.equals(id))).go();
+
+        await (_db.delete(_db.intakes)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.doctorAppointments)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.labResults)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.allergies)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.chronicConditions)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.vaccinations)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.surgeries)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.wellbeingLogs)..where((t) => t.memberId.equals(id))).go();
+        await (_db.delete(_db.wellbeingSchedules)..where((t) => t.memberId.equals(id))).go();
+
+        return (_db.delete(_db.members)..where((t) => t.id.equals(id))).go();
+      });
+
+  // Той самий ризик, що й у [delete] — не покладаємось на ON DELETE CASCADE.
+  Future<void> deleteAll() => _db.transaction(() async {
+        await _db.delete(_db.schedules).go();
+        await _db.delete(_db.symptoms).go();
+        await _db.delete(_db.medications).go();
+        await _db.delete(_db.activitySlots).go();
+        await _db.delete(_db.activityLogs).go();
+        await _db.delete(_db.activities).go();
+        await _db.delete(_db.intakes).go();
+        await _db.delete(_db.doctorAppointments).go();
+        await _db.delete(_db.labResults).go();
+        await _db.delete(_db.allergies).go();
+        await _db.delete(_db.chronicConditions).go();
+        await _db.delete(_db.vaccinations).go();
+        await _db.delete(_db.surgeries).go();
+        await _db.delete(_db.wellbeingLogs).go();
+        await _db.delete(_db.wellbeingSchedules).go();
+        await _db.delete(_db.members).go();
+      });
 
   Future<void> ensureOwnerExists(String name) async {
     final owner = await getOwner();

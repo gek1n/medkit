@@ -23,7 +23,12 @@ final _allAppointmentsProvider =
 // ────────────────────────────── screen ──────────────────────────────
 
 class AppointmentsHistoryScreen extends ConsumerStatefulWidget {
-  const AppointmentsHistoryScreen({super.key});
+  // Якщо задано (напр. з Медкартки, де вже обраний конкретний профіль) —
+  // показує візити лише цього члена сім'ї. Без нього — усі візити родини,
+  // як і раніше (той самий шлях, яким Сім'я/Профіль можуть показати
+  // спільний календар).
+  final int? memberId;
+  const AppointmentsHistoryScreen({super.key, this.memberId});
 
   @override
   ConsumerState<AppointmentsHistoryScreen> createState() =>
@@ -48,13 +53,14 @@ class _AppointmentsHistoryScreenState
     return Scaffold(
       backgroundColor: AppColors.bg,
       floatingActionButton: MkAddFab(
-        onPressed: () => currentMemberAsync.whenData((m) {
-          if (m == null) return;
+        onPressed: () {
+          final targetId = widget.memberId ?? currentMemberAsync.valueOrNull?.id;
+          if (targetId == null) return;
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AddAppointmentScreen(memberId: m.id)),
+            MaterialPageRoute(builder: (_) => AddAppointmentScreen(memberId: targetId)),
           );
-        }),
+        },
       ),
       body: SafeArea(
         child: Column(
@@ -81,11 +87,13 @@ class _AppointmentsHistoryScreenState
                     Center(child: Text('Помилка: $e')),
                 data: (allApts) {
                   final members = membersAsync.valueOrNull ?? [];
-                  final apts = _specialty == null
-                      ? allApts
-                      : allApts.where((a) => a.doctorType == _specialty).toList();
+                  final apts = allApts
+                      .where((a) => widget.memberId == null || a.memberId == widget.memberId)
+                      .where((a) => _specialty == null || a.doctorType == _specialty)
+                      .toList();
+                  final hasFilter = _specialty != null;
                   return _AppointmentsList(
-                      apts: apts, members: members, filtered: _specialty != null);
+                      apts: apts, members: members, filtered: hasFilter);
                 },
               ),
             ),

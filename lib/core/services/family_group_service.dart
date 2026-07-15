@@ -10,6 +10,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
+import 'app_logger.dart';
 import 'attachment_cleanup_service.dart';
 import 'family_peer_sync_service.dart';
 import 'family_sync_service.dart';
@@ -335,9 +336,17 @@ class FamilyGroupService {
           await AttachmentCleanupService.deleteAllForMember(_db, convertingId);
           await MembersRepository(_db).delete(convertingId);
         }
-      } catch (_) {
+      } catch (e, st) {
         // Ще ніхто не відповів або тимчасово немає мережі — спробуємо ще
-        // раз на наступному тригері.
+        // раз на наступному тригері. Логуємо, а не проковтуємо мовчки —
+        // інакше "запрошення прийняте, а статус на пристрої запрошувача
+        // так і лишився Локальний" виглядає як загадка без жодного сліду
+        // в логах для діагностики.
+        AppLogger.logError(
+          'FamilyGroupService.refreshPeers(channelId=${invite.channelId})',
+          e,
+          st,
+        );
       }
     }
   }

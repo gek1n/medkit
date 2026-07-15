@@ -422,7 +422,7 @@ class _IdleBody extends StatelessWidget {
   static const _examples = [
     (Icons.medication_rounded, Color(0xFFE9F4EC),
         '"Додай Еналаприл 10 мг вранці та ввечері"',
-        'Відкриє форму ліків із заповненими полями'),
+        'Відкриє форму ліків із заповненими полями. Розпізнає не всі препарати — перевірте поля перед збереженням.'),
     (Icons.fitness_center_rounded, Color(0xFFFFF1EB),
         '"Додай зарядку двічі на день вранці і ввечері"',
         'Відкриє форму активності із заповненими полями'),
@@ -540,7 +540,14 @@ class _IdleBody extends StatelessWidget {
             }).toList(),
           ),
         ),
-        const SizedBox(height: AppDimensions.xl),
+        const SizedBox(height: AppDimensions.lg),
+        Text(
+          'Це експериментальна функція — розпізнавання може заповнити дані '
+          'неточно, завжди перевіряйте форму перед збереженням.',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+        ),
+        const SizedBox(height: AppDimensions.md),
         MkButton(
           label: sttAvailable ? 'Утримуй і говори' : 'Мікрофон недоступний',
           icon: const Icon(Icons.mic_rounded, size: 20, color: Colors.white),

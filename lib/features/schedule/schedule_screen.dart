@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/utils/avatars.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
@@ -14,6 +13,7 @@ import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_activity_screen.dart';
@@ -216,7 +216,7 @@ class _ScheduleBody extends ConsumerWidget {
                       child: Text('Розклад', style: AppTextStyles.h2),
                     ),
                     if (members.length > 1)
-                      _MemberSwitcherPill(
+                      MemberSwitcherPill(
                         members: members,
                         selected: member,
                         onSelect: onMemberChanged,
@@ -968,107 +968,6 @@ class _WellbeingScheduleCard extends StatelessWidget {
       icon: Icons.favorite_rounded,
       title: freqStr,
       subtitle: timesStr,
-    );
-  }
-}
-
-// ─── Member switcher pill ─────────────────────────────────────────────────────
-
-class _MemberSwitcherPill extends StatelessWidget {
-  final List<Member> members;
-  final Member selected;
-  final void Function(int) onSelect;
-
-  const _MemberSwitcherPill({
-    required this.members,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        builder: (_) => _MemberPickerSheet(
-          members: members,
-          selectedId: selected.id,
-          onSelect: onSelect,
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AvatarImage(index: selected.avatarIndex, size: 20),
-            const SizedBox(width: 6),
-            Text(selected.name, style: AppTextStyles.labelMd),
-            const SizedBox(width: 2),
-            const Icon(Icons.expand_more_rounded,
-                size: 16, color: AppColors.textMuted),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MemberPickerSheet extends StatelessWidget {
-  final List<Member> members;
-  final int selectedId;
-  final void Function(int) onSelect;
-
-  const _MemberPickerSheet({
-    required this.members,
-    required this.selectedId,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: SectionLabel('Оберіть профіль'),
-            ),
-            ...members.map((m) {
-              final sel = m.id == selectedId;
-              return ListTile(
-                onTap: () {
-                  onSelect(m.id);
-                  Navigator.pop(context);
-                },
-                leading: AvatarImage(index: m.avatarIndex, size: 36),
-                title: Text(m.name,
-                    style: AppTextStyles.bodyMd.copyWith(
-                        fontWeight:
-                            sel ? FontWeight.w700 : FontWeight.w400)),
-                trailing: sel
-                    ? const Icon(Icons.check_rounded, color: AppColors.primary)
-                    : null,
-              );
-            }),
-          ],
-        ),
-      ),
     );
   }
 }

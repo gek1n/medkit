@@ -21,6 +21,7 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_type_sheet.dart';
@@ -1666,13 +1667,6 @@ class _DoneAccordion extends StatelessWidget {
 
 // ─── Active Intake Card ────────────────────────────────────────────────────────
 
-const _foodRelationLabels = {
-  'any': 'Незалежно від їжі',
-  'before': 'До їжі',
-  'after': 'Після їжі',
-  'with': 'Під час їжі',
-};
-
 IconData _foodRelationIcon(String v) => switch (v) {
   'before' => Icons.schedule_rounded,
   'after' => Icons.restaurant_rounded,
@@ -1820,7 +1814,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                       _InfoChip(
                         icon: _foodRelationIcon(med!.foodRelation),
                         label:
-                            _foodRelationLabels[med!.foodRelation] ??
+                            foodRelationLabels[med!.foodRelation] ??
                             med!.foodRelation,
                       ),
                     ],

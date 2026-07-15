@@ -11,7 +11,7 @@ import '../../data/repositories/medications_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/form_chips.dart';
-import '../medications/add_medication_screen.dart';
+import '../medications/medication_detail_screen.dart';
 
 enum _MedStatus { ongoing, finished, cancelled }
 
@@ -106,7 +106,10 @@ class MedicationArchiveScreen extends ConsumerWidget {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => AddMedicationScreen(memberId: memberId, existing: sorted[i]),
+                              builder: (_) => MedicationDetailScreen(
+                                medicationId: sorted[i].id,
+                                memberId: memberId,
+                              ),
                             ),
                           ),
                         ),

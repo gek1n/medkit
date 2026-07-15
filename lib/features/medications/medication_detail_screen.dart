@@ -86,7 +86,8 @@ class _SideEffectsSection extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Довідково від ІІ під час сканування — звірте з інструкцією до препарату.',
+            'Визначено AI під час сканування — ця інформація може бути неточною. '
+            'Обов\'язково звірте з інструкцією до препарату.',
             style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
           ),
         ],

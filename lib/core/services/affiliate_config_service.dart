@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -75,9 +74,7 @@ class AffiliateConfigService {
     }
   }
 
-  /// Посилання для розділу в країні користувача (визначається з локалі
-  /// пристрою, не з мови інтерфейсу застосунку — та зараз захардкожена на
-  /// українську незалежно від реального регіону). null, якщо конфіг ще не
+  /// Посилання для розділу в країні користувача. null, якщо конфіг ще не
   /// підвантажився, чи партнерства для цієї країни/розділу нема — обидва
   /// випадки однаково вимикають кнопку "Купити".
   static String? linkFor(AffiliateSection section, {String? countryCodeOverride}) {
@@ -86,13 +83,15 @@ class AffiliateConfigService {
     return _cache![country]?[section.name];
   }
 
-  static String? _deviceCountryCode() {
-    // Platform.localeName — формат "мова_КРАЇНА" (напр. "uk_UA", "en_US"),
-    // іноді лише "мова" без країни (тоді визначити регіон неможливо).
-    final raw = Platform.localeName;
-    final parts = raw.split(RegExp(r'[_-]'));
-    if (parts.length < 2) return null;
-    final country = parts[1].toUpperCase();
-    return country.length == 2 ? country : null;
-  }
+  // Застосунок поки що не має ні вибору мови, ні реального визначення
+  // регіону (інтерфейс завжди українською незалежно від пристрою) — тож
+  // визначати країну з locale пристрою (Platform.localeName) сенсу нема:
+  // будь-який пристрій з нестандартним системним регіоном (типово — англ.
+  // локаль на емуляторах за замовчуванням) ховав би кнопку "Купити" навіть
+  // при правильно налаштованому конфізі. Поки єдиний ринок — Україна,
+  // просто дефолтимось на 'UA'; коли з'явиться реальний вибір
+  // мови/регіону в застосунку — підмінити цей метод на визначення з нього
+  // (НЕ з Platform.localeName, який завжди відображає пристрій, а не
+  // вибір користувача в застосунку).
+  static String? _deviceCountryCode() => 'UA';
 }

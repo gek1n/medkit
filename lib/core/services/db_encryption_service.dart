@@ -6,6 +6,23 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'app_logger.dart';
+
+/// Кидається, коли файл БД уже існує на диску, але secure storage не
+/// повертає ключ навіть після повторних спроб. Текст навмисно містить
+/// "file is not a database" — це той самий маркер, за яким
+/// `_DatabaseErrorScreen` у main.dart вже розпізнає "ключ не збігається з
+/// файлом" і показує деструктивний скидання БД замість автоматичного
+/// retry (retry тут безглуздий: без правильного ключа розшифрувати файл
+/// криптографічно неможливо).
+class DbKeyUnavailableException implements Exception {
+  final String message;
+  DbKeyUnavailableException(this.message);
+  @override
+  String toString() => 'DbKeyUnavailableException: $message '
+      '(file is not a database, code 26)';
+}
+
 /// Керує ключем шифрування локальної БД (SQLCipher) і перешифруванням
 /// наявної незашифрованої БД (для пристроїв, де вона вже існувала до
 /// впровадження шифрування).
@@ -48,12 +65,48 @@ class DbEncryptionService {
 
   /// Raw-key у форматі SQLCipher: x'64 hex-символи' (32 байти, без PBKDF2 —
   /// ми вже генеруємо криптографічно випадкове значення самі).
+  ///
+  /// ВАЖЛИВО: сюди потрапляємо лише коли файл БД на диску вже існує (див.
+  /// `ensureEncryptedDatabase`) — а отже правильний ключ ФІЗИЧНО мусить уже
+  /// десь лежати в secure storage. Якщо read() тут повертає null/порожньо,
+  /// це НЕ "перший запуск" (той випадок обробляється раніше й окремо) — це
+  /// втрата доступу до вже наявного ключа: транзієнтний збій Keystore,
+  /// або (найімовірніше після оновлення/відновлення пристрою) Android
+  /// Auto Backup відновив зашифрований SharedPreferences-файл без
+  /// прив'язаного до заліза Keystore-ключа, яким він сам зашифрований —
+  /// Keystore-ключі принципово ніколи не потрапляють у бекап.
+  ///
+  /// Раніше тут мовчки генерувався й ЗБЕРІГАВСЯ новий ключ поверх файлу,
+  /// зашифрованого старим — це саме та дія, що гарантовано перетворювала
+  /// "тимчасово недоступний ключ" на "файл більше ніколи не відкриється":
+  /// щоразу після цього Drift падав з (code 26) "file is not a database",
+  /// і єдиним виходом лишалось повне видалення застосунку користувачем
+  /// (звідси репорт "не сама ожила — допоміг лише повний перезапуск").
+  ///
+  /// Тепер: кілька спроб read() із короткою паузою (толеруємо транзієнтний
+  /// збій), а якщо ключа й далі нема — явна помилка замість тихого
+  /// самопошкодження, щоб користувач побачив той самий керований UX
+  /// скидання БД, що вже існує для випадку "ключ не збігається".
   static Future<String> _getOrCreateKey() async {
-    final existing = await _secureStorage.read(key: _keyStorageKey);
-    if (existing != null && existing.isNotEmpty) {
-      return existing;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final existing = await _secureStorage.read(key: _keyStorageKey);
+      if (existing != null && existing.isNotEmpty) {
+        return existing;
+      }
+      if (attempt < 2) {
+        await Future.delayed(Duration(milliseconds: 200 * (attempt + 1)));
+      }
     }
-    return _generateAndStoreKey();
+
+    AppLogger.log(
+      'DbEncryptionService: secure storage has no key for an existing '
+      'database file after 3 attempts — refusing to mint a replacement '
+      'key (would silently corrupt the file/key pairing)',
+      level: 'error',
+    );
+    throw DbKeyUnavailableException(
+      'Ключ шифрування відсутній у secure storage для наявного файлу БД',
+    );
   }
 
   static Future<String> _generateAndStoreKey() async {
