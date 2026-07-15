@@ -74,7 +74,30 @@ class DbEncryptionService {
       return _generateAndStoreKey();
     }
 
-    final key = await _getOrCreateKey();
+    var key = await _getOrCreateKey();
+
+    // Реальний кейс (звіт користувача): оновлення через TestFlight поки
+    // застосунок був згорнутий (не вбитий), потім "Відкрити" — Keychain
+    // повернув НЕПОРОЖНІЙ, але тимчасово НЕПРАВИЛЬНИЙ ключ (сам read() тут
+    // не впав, _getOrCreateKey() не бачить різниці). Наслідок долітав аж до
+    // Drift'ового PRAGMA user_version у фоновому ізоляті — "Спробувати ще
+    // раз" не допомагав (та ж застигла помилка з providers), а лише повний
+    // kill+relaunch чомусь давав Keychain прочитати правильне значення.
+    // Перевіряємо тут-і-зараз, ще ДО передачі ключа в Drift: якщо з ним
+    // файл не відкривається — кілька спроб перечитати Keychain НАНОВО
+    // (не з кешу _getOrCreateKey, а справжній read()), перш ніж здатись і
+    // віддати Drift-у те, що є (тоді спрацює вже наявний _isKeyMismatch UI
+    // у main.dart, як і раніше).
+    for (var attempt = 0; attempt < 3 && !_keyOpensDatabase(dbFile, key); attempt++) {
+      AppLogger.log(
+        'DbEncryptionService: key from secure storage does not open '
+        'existing db (attempt ${attempt + 1}/3) — re-reading Keychain '
+        'before giving up',
+        level: 'warn',
+      );
+      await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      key = await _getOrCreateKey();
+    }
 
     // Виконується на кожному запуску (не одноразово через прапорець у
     // SharedPreferences) — _rekeyIfPlaintext сам по собі безпечний і
@@ -87,6 +110,27 @@ class DbEncryptionService {
     await _rekeyIfPlaintext(dbFile, key);
 
     return key;
+  }
+
+  // Пробне (одноразове, короткочасне) відкриття тим самим шляхом, що й
+  // _rekeyIfPlaintext нижче — до того, як Drift відкриє СВОЄ реальне
+  // з'єднання у фоновому ізоляті, тож конкуренції за файл тут ще нема.
+  // PRAGMA user_version — той самий перший реальний read, на якому падає
+  // Drift при розсинхроні ключа (_SqliteVersionDelegate.schemaVersion) —
+  // навмисно та сама перевірка, а не щось дешевше на кшталт "файл існує".
+  static bool _keyOpensDatabase(File dbFile, String key) {
+    try {
+      final db = sqlite3.open(dbFile.path);
+      try {
+        db.execute('PRAGMA key = "$key";');
+        db.select('PRAGMA user_version;');
+        return true;
+      } finally {
+        db.dispose();
+      }
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Raw-key у форматі SQLCipher: x'64 hex-символи' (32 байти, без PBKDF2 —
