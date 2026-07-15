@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -22,6 +23,31 @@ class DbKeyUnavailableException implements Exception {
   String toString() => 'DbKeyUnavailableException: $message '
       '(file is not a database, code 26)';
 }
+
+/// iOS-специфічний випадок: Keychain-елемент фізично на місці, але зараз
+/// недосяжний, бо пристрій не розблоковували з моменту перезавантаження —
+/// flutter_secure_storage за замовчуванням пише ключ з accessibility
+/// `kSecAttrAccessibleWhenUnlocked` (див. `DbEncryptionService`, ми його не
+/// перевизначаємо). Якщо застосунок отримує керування у фоні до першого
+/// розблокування (silent push, BGTask), `SecItemCopyMatching` повертає
+/// `errSecInteractionNotAllowed` (OSStatus -25308) — це НЕ "ключа нема", а
+/// "зачекай на розблокування". На відміну від [DbKeyUnavailableException] —
+/// НЕ повинно показувати деструктивний скид бази, лише попросити
+/// розблокувати пристрій і повернутись.
+class DbTemporarilyLockedException implements Exception {
+  @override
+  String toString() =>
+      'DbTemporarilyLockedException: Keychain недоступний — пристрій '
+      'не розблокований (errSecInteractionNotAllowed)';
+}
+
+const _errSecInteractionNotAllowed = -25308;
+
+bool _isKeychainLockedError(Object e) =>
+    Platform.isIOS &&
+    e is PlatformException &&
+    e.code == 'Unexpected security result code' &&
+    e.details == _errSecInteractionNotAllowed;
 
 /// Керує ключем шифрування локальної БД (SQLCipher) і перешифруванням
 /// наявної незашифрованої БД (для пристроїв, де вона вже існувала до
@@ -89,7 +115,25 @@ class DbEncryptionService {
   /// скидання БД, що вже існує для випадку "ключ не збігається".
   static Future<String> _getOrCreateKey() async {
     for (var attempt = 0; attempt < 3; attempt++) {
-      final existing = await _secureStorage.read(key: _keyStorageKey);
+      String? existing;
+      try {
+        existing = await _secureStorage.read(key: _keyStorageKey);
+      } catch (e) {
+        if (_isKeychainLockedError(e)) {
+          if (attempt < 2) {
+            await Future.delayed(Duration(milliseconds: 200 * (attempt + 1)));
+            continue;
+          }
+          AppLogger.log(
+            'DbEncryptionService: iOS Keychain locked '
+            '(errSecInteractionNotAllowed) after 3 attempts — device not '
+            'unlocked since boot, NOT treating as key loss',
+            level: 'warn',
+          );
+          throw DbTemporarilyLockedException();
+        }
+        rethrow;
+      }
       if (existing != null && existing.isNotEmpty) {
         return existing;
       }

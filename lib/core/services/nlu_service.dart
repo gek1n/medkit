@@ -36,8 +36,6 @@ class NluResult {
 /// тільки локальне текстове поле на екрані самопочуття), щоб такий контент
 /// ніколи не залишав пристрій.
 class NluService {
-  // TODO: підняти цей ендпоінт на api.elly-medkit.com (проксі до Claude,
-  // без збереження транскрипту після відповіді) — поки що не розгорнутий.
   static const _proxyUrl = 'https://api.elly-medkit.com/voice/parse';
 
   NluService();
