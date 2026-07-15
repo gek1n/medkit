@@ -75,82 +75,83 @@ class _SpecialtyPickerSheetState extends State<_SpecialtyPickerSheet> {
         .where((s) => s.toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text('Напрямок лікаря', style: AppTextStyles.h3),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
+    return FractionallySizedBox(
+      heightFactor: 0.75,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: AppColors.border),
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (v) => setState(() => _query = v),
-                  decoration: InputDecoration(
-                    hintText: 'Пошук…',
-                    hintStyle: AppTextStyles.bodyMd.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search_rounded,
-                      size: 20,
-                      color: AppColors.textMuted,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Text('Напрямок лікаря', style: AppTextStyles.h3),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  style: AppTextStyles.bodyMd,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() => _query = v),
+                    decoration: InputDecoration(
+                      hintText: 'Пошук…',
+                      hintStyle: AppTextStyles.bodyMd.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: AppColors.textMuted,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    style: AppTextStyles.bodyMd,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  final s = filtered[index];
-                  final isOther = s == otherDoctorSpecialty;
-                  final selected = s == widget.current;
-                  return ListTile(
-                    title: Text(s, style: AppTextStyles.bodyLg),
-                    trailing: selected
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: AppColors.primary,
-                          )
-                        : null,
-                    onTap: isOther
-                        ? _pickOther
-                        : () => Navigator.pop(context, s),
-                  );
-                },
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final s = filtered[index];
+                    final isOther = s == otherDoctorSpecialty;
+                    final selected = s == widget.current;
+                    return ListTile(
+                      title: Text(s, style: AppTextStyles.bodyLg),
+                      trailing: selected
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: AppColors.primary,
+                            )
+                          : null,
+                      onTap: isOther
+                          ? _pickOther
+                          : () => Navigator.pop(context, s),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

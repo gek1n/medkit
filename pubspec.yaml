@@ -48,6 +48,7 @@ dependencies:
   url_launcher: ^6.3.2
   file_picker: 10.3.3
   in_app_purchase: ^3.2.0
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_test:

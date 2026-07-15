@@ -12,7 +12,20 @@
           "package_name": "com.ellyapp.medkit"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "964528755773-2vhjg24ig7srscncm9j5e2jb329t39ff.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ellyapp.medkit",
+            "certificate_hash": "52a70c4820032f1d9ff1b6b3b9e1ce9ac0954fc0"
+          }
+        },
+        {
+          "client_id": "964528755773-n4lo22v5npjjk8nlon0eertoaap8d2qp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAbNXplnwD4WY_-ceAFHPSgZI1h6loB2OM"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "964528755773-n4lo22v5npjjk8nlon0eertoaap8d2qp.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "964528755773-12qfbl80atmcj4ltur0rvul1l9effknq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.ellyapp.medkit"
+              }
+            }
+          ]
         }
       }
     }

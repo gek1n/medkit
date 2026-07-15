@@ -26,6 +26,7 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/shared_channels_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../today/providers/today_providers.dart';
 import 'privacy_gate_screen.dart';
 
 enum _JoinStage { entering, working, review }
@@ -221,6 +222,18 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   }
 
   void _goToDashboard({required bool hasMedications}) {
+    // Профіль і вся підтягнута через syncChannelForMember історія (в т.ч.
+    // самопочуття) щойно записані напряму через репозиторії/FamilySyncService,
+    // а не через звичайний потік "форма → repo.insert → реактивний Stream
+    // на екрані" — деякі глобальні провайдери (generateTodayIntakesProvider
+    // тощо) могли встигнути закешуватись ДО цього моменту порожніми ще на
+    // ранніх кроках онбордингу. Явно скидаємо їх тут, а не покладаємось на
+    // pull-to-refresh на Сьогодні — той самий патерн, що й після відновлення
+    // бекапу (RestoreAccountScreen).
+    ref.invalidate(databaseProvider);
+    ref.invalidate(currentMemberProvider);
+    ref.invalidate(generateTodayIntakesProvider);
+    ref.invalidate(generateTodayActivityLogsProvider);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PrivacyGateScreen(hasMedications: hasMedications),

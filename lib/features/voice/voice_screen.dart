@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/providers/voice_locale_provider.dart';
 import '../../core/services/ai_consent_service.dart';
 import '../../core/services/ai_usage_service.dart';
 import '../../core/services/drug_info_service.dart';
@@ -133,7 +134,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
         if (r.finalResult) _onSpeechDone();
       },
       listenOptions: SpeechListenOptions(
-        localeId: 'uk_UA',
+        localeId: ref.read(voiceLocaleProvider),
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
         partialResults: true,
@@ -225,6 +226,9 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
                 _VoiceState.idle => _IdleBody(
                     sttAvailable: _sttAvailable,
                     onStart: _startListening,
+                    selectedLocaleId: ref.watch(voiceLocaleProvider),
+                    onLocaleChanged: (id) =>
+                        ref.read(voiceLocaleProvider.notifier).set(id),
                   ),
                 _VoiceState.listening => _ListeningBody(
                     anim: _pulseAnim,
@@ -416,13 +420,19 @@ class _ConsentBody extends StatelessWidget {
 class _IdleBody extends StatelessWidget {
   final bool sttAvailable;
   final VoidCallback onStart;
-  const _IdleBody(
-      {required this.sttAvailable, required this.onStart});
+  final String selectedLocaleId;
+  final ValueChanged<String> onLocaleChanged;
+  const _IdleBody({
+    required this.sttAvailable,
+    required this.onStart,
+    required this.selectedLocaleId,
+    required this.onLocaleChanged,
+  });
 
   static const _examples = [
     (Icons.medication_rounded, Color(0xFFE9F4EC),
         '"Додай Еналаприл 10 мг вранці та ввечері"',
-        'Відкриє форму ліків із заповненими полями'),
+        'Відкриє форму ліків із заповненими полями. Розпізнає не всі препарати — перевірте поля перед збереженням.'),
     (Icons.fitness_center_rounded, Color(0xFFFFF1EB),
         '"Додай зарядку двічі на день вранці і ввечері"',
         'Відкриє форму активності із заповненими полями'),
@@ -466,6 +476,39 @@ class _IdleBody extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyMd
                 .copyWith(color: AppColors.textSub)),
+        const SizedBox(height: AppDimensions.lg),
+        Center(
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: voiceLocales.map((l) {
+              final selected = l.id == selectedLocaleId;
+              return GestureDetector(
+                onTap: () => onLocaleChanged(l.id),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.primary : AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                    border: Border.all(
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.border),
+                  ),
+                  child: Text(
+                    l.label,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: selected ? Colors.white : AppColors.textSub,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
         const SizedBox(height: AppDimensions.xl),
         Text('ПРИКЛАДИ КОМАНД',
             style: AppTextStyles.labelSm),
@@ -540,7 +583,14 @@ class _IdleBody extends StatelessWidget {
             }).toList(),
           ),
         ),
-        const SizedBox(height: AppDimensions.xl),
+        const SizedBox(height: AppDimensions.lg),
+        Text(
+          'Це експериментальна функція — розпізнавання може заповнити дані '
+          'неточно, завжди перевіряйте форму перед збереженням.',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+        ),
+        const SizedBox(height: AppDimensions.md),
         MkButton(
           label: sttAvailable ? 'Утримуй і говори' : 'Мікрофон недоступний',
           icon: const Icon(Icons.mic_rounded, size: 20, color: Colors.white),

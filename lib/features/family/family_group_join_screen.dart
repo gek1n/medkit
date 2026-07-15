@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
@@ -63,6 +64,22 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
     try {
       final db = ref.read(databaseProvider);
       final preview = await FamilyGroupService(db).decodeInvite(trimmed);
+      // Код валідний, але ми вже приєднані до цієї людини раніше — не
+      // проводимо через увесь екран згоди знову (upsert нижче й так
+      // ідемпотентний, але повторний прогін confirm/push-реєстрації —
+      // зайвий шум, і головне, юзера бентежить, що "приєднання" відбулось
+      // вдруге, наче щось не спрацювало першого разу).
+      final existingPeer =
+          await FamilyPeersRepository(db).getByUuid(preview.inviterPersonUuid);
+      if (existingPeer != null) {
+        if (!mounted) return;
+        setState(() {
+          _error = 'Ви вже приєднані до сім\'ї "${preview.inviterName}"';
+          _submitting = false;
+          _handledScan = false;
+        });
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _preview = preview;

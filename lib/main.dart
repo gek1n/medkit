@@ -228,9 +228,34 @@ class _DatabaseErrorScreen extends ConsumerStatefulWidget {
       _DatabaseErrorScreenState();
 }
 
-class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
+class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
+    with WidgetsBindingObserver {
   bool _showDetails = false;
   bool _resetting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // iOS: Keychain стає знову доступним одразу після розблокування —
+  // на відміну від _isKeyMismatch (де retry принципово безглуздий), тут
+  // повторна спроба після кожного resume майже напевно спрацює сама, без
+  // натискання кнопки користувачем.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isDeviceLocked) {
+      ref.invalidate(databaseProvider);
+      ref.invalidate(currentMemberProvider);
+    }
+  }
   // Кількість разів, коли ця помилка повторилась ПІСЛЯ явного "Спробувати
   // ще раз" — 0 при першій появі екрана. Деструктивний "Скинути" не можна
   // пропонувати одразу: помилка може бути транзитною (напр. тимчасовий
@@ -264,6 +289,15 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
   bool get _isKeyMismatch =>
       widget.error.toString().contains('(code 26)') ||
       widget.error.toString().contains('file is not a database');
+
+  // iOS: пристрій не розблоковували з моменту перезавантаження, тому
+  // Keychain-ключ фізично на місці, але зараз недосяжний
+  // (DbTemporarilyLockedException, db_encryption_service.dart) — на
+  // відміну від _isKeyMismatch, деструктивний скид тут НЕ пропонується
+  // ніколи, лише прохання розблокувати пристрій. Кидається до перетину
+  // ізолятної межі (див. коментар вище про DriftRemoteException), тож тип
+  // тут завжди справжній, без string-matching.
+  bool get _isDeviceLocked => widget.error is DbTemporarilyLockedException;
 
   Future<void> _resetLocalDatabase() async {
     final confirmed = await showDialog<bool>(
@@ -301,6 +335,7 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isDeviceLocked) return _buildLockedScreen(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -406,6 +441,125 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // Окремий, свідомо не тривожний екран — на відміну від загального
+  // _DatabaseErrorScreen.build() вище тут НІКОЛИ немає деструктивної дії
+  // (нема чого "скидати" — ключ шифрування цілий, просто зараз недосяжний),
+  // і didChangeAppLifecycleState вище сам перезапустить читання БД щойно
+  // застосунок повернеться на передній план — кнопка нижче лише про всяк
+  // випадок, якщо автоматичне оновлення чомусь не спрацювало.
+  Widget _buildLockedScreen(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded,
+                    size: 34, color: AppColors.primary),
+              ),
+              const SizedBox(height: 20),
+              Text('Розблокуйте телефон', style: AppTextStyles.h3),
+              const SizedBox(height: 8),
+              Text(
+                'Ваші дані в безпеці — нічого не пошкоджено і видаляти '
+                'нічого не потрібно. Просто iOS тримає ключ шифрування '
+                'заблокованим, поки телефон не розблоковано хоча б раз '
+                'після перезавантаження.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _LockedStep(
+                      number: '1',
+                      text: 'Розблокуйте телефон (Face ID, Touch ID або код-пароль).',
+                    ),
+                    const SizedBox(height: 10),
+                    _LockedStep(
+                      number: '2',
+                      text: 'Поверніться в Elly — дані підвантажаться самі, '
+                          'нічого натискати не треба.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              OutlinedButton(
+                onPressed: () {
+                  ref.invalidate(databaseProvider);
+                  ref.invalidate(currentMemberProvider);
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Перевірити знову'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LockedStep extends StatelessWidget {
+  final String number;
+  final String text;
+  const _LockedStep({required this.number, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: AppTextStyles.labelSm.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text, style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain)),
+        ),
+      ],
     );
   }
 }

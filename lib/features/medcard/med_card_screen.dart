@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../data/db/app_database.dart';
+import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -16,13 +18,28 @@ import 'specialty_history_screen.dart';
 import 'surgeries_screen.dart';
 import 'vaccinations_screen.dart';
 
-class MedCardScreen extends ConsumerWidget {
+class MedCardScreen extends ConsumerStatefulWidget {
   const MedCardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final memberAsync = ref.watch(currentMemberProvider);
+  ConsumerState<MedCardScreen> createState() => _MedCardScreenState();
+}
+
+class _MedCardScreenState extends ConsumerState<MedCardScreen> {
+  int? _selectedMemberId;
+
+  @override
+  Widget build(BuildContext context) {
+    // Якщо десь у застосунку активовано перегляд "від імені" іншого члена
+    // сім'ї — Медкартка теж підхоплює цей вибір (доки користувач сам не
+    // перемкне когось локально через пілюлю), той самий патерн, що й у
+    // Розкладі.
+    ref.listen<int?>(activeMemberIdProvider, (prev, next) {
+      if (next != prev) setState(() => _selectedMemberId = next);
+    });
     final activeId = ref.watch(activeMemberIdProvider);
+    final memberAsync = ref.watch(currentMemberProvider);
+    final membersAsync = ref.watch(allMembersProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -32,8 +49,13 @@ class MedCardScreen extends ConsumerWidget {
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
           error: (e, _) => Center(child: Text('Помилка: $e')),
-          data: (member) {
-            if (member == null) return const SizedBox.shrink();
+          data: (defaultMember) {
+            if (defaultMember == null) return const SizedBox.shrink();
+            final members = membersAsync.valueOrNull ?? [defaultMember];
+            final selected = members.firstWhere(
+              (m) => m.id == (_selectedMemberId ?? defaultMember.id),
+              orElse: () => defaultMember,
+            );
             // ⚠️ FamilyVisibilityService/FamilyGrants навмисно НЕ застосовується
             // тут — currentMemberProvider/allMembersProvider завжди читають
             // лише ЛОКАЛЬНУ таблицю Members (owner + dependent-профілі, якими
@@ -43,11 +65,14 @@ class MedCardScreen extends ConsumerWidget {
             // грант видимості, якого для dependent-профілю просто нізвідки
             // взятися — тож медкартка будь-якого локального dependent
             // назавжди показувала б "Медкартка прихована".
-            final showBanner = shouldShowSwitchBanner(activeId, member.role);
+            final showBanner = shouldShowSwitchBanner(activeId, selected.role);
             return _MedCardBody(
-              memberId: member.id,
-              memberName: member.name,
+              memberId: selected.id,
+              memberName: selected.name,
               showSwitchBanner: showBanner,
+              members: members,
+              selected: selected,
+              onMemberChanged: (id) => setState(() => _selectedMemberId = id),
             );
           },
         ),
@@ -60,10 +85,16 @@ class _MedCardBody extends StatelessWidget {
   final int memberId;
   final String memberName;
   final bool showSwitchBanner;
+  final List<Member> members;
+  final Member selected;
+  final void Function(int) onMemberChanged;
   const _MedCardBody({
     required this.memberId,
     required this.memberName,
     required this.showSwitchBanner,
+    required this.members,
+    required this.selected,
+    required this.onMemberChanged,
   });
 
   @override
@@ -79,7 +110,17 @@ class _MedCardBody extends StatelessWidget {
             AppDimensions.screenPadding,
             AppDimensions.md,
           ),
-          child: Text('Медкартка', style: AppTextStyles.h2),
+          child: Row(
+            children: [
+              Expanded(child: Text('Медкартка', style: AppTextStyles.h2)),
+              if (members.length > 1)
+                MemberSwitcherPill(
+                  members: members,
+                  selected: selected,
+                  onSelect: onMemberChanged,
+                ),
+            ],
+          ),
         ),
         Expanded(
           child: ListView(
@@ -134,11 +175,11 @@ class _MedCardBody extends StatelessWidget {
                 icon: Icons.event_note_rounded,
                 iconColor: AppColors.primary,
                 title: 'Візити до лікарів',
-                subtitle: 'Усі записи всієї сім\'ї',
+                subtitle: 'Записи обраного профілю',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const AppointmentsHistoryScreen(),
+                    builder: (_) => AppointmentsHistoryScreen(memberId: memberId),
                   ),
                 ),
               ),

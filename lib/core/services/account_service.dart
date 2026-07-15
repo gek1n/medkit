@@ -46,9 +46,11 @@ class AccountService {
 
   static const _hkdfKeyInfo = 'medkit-sync-encryption-key-v1';
 
-  // TODO: замінити на реальний Web Client ID з Google Cloud Console — те
-  // саме значення має бути в GOOGLE_CLIENT_ID на бекенді (DEPLOY.md, крок 11).
-  static const _googleServerClientId = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
+  // Те саме значення має бути в GOOGLE_CLIENT_ID на бекенді
+  // (DEPLOY.md, крок 11) — інакше сервер не зможе перевірити підпис
+  // id_token, підписаного Google під цю ж audience.
+  static const _googleServerClientId =
+      '964528755773-n4lo22v5npjjk8nlon0eertoaap8d2qp.apps.googleusercontent.com';
 
   final _apiClient = const AccountApiClient();
   final _googleSignIn = GoogleSignIn(serverClientId: _googleServerClientId);

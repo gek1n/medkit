@@ -90,13 +90,21 @@ class FamilyPeerSyncService {
     if (keyBytes == null) return;
     final key = SecretKey(keyBytes);
 
-    final pushed = await _push(peer, key);
+    await _push(peer, key);
     await _pushGrantsSummary(peer, key);
     await _pull(peer, key);
     await FamilyPeersRepository(_db).updateLastSynced(peer.personUuid, DateTime.now());
     await _scheduleMissedChecks(peer);
 
-    if (pushed) await _ping(peer.channelId, key);
+    // Раніше пінгувався лише якщо _push() повернув true (є нові
+    // ліки/розклад/тощо для цього піра) — але _pushGrantsSummary() вище
+    // шле оновлення payerPlanActive/notify/view/edit НЕЗАЛЕЖНО від цього і
+    // якраз одразу після конверсії "Локальний → Автономний" типово немає
+    // жодної нової сутності для push (видимість/грант для щойно
+    // з'явленого піра ще не налаштована), тож пінг мовчки пропускався — а
+    // без нього пір дізнавався про свій новий Family-статус лише
+    // випадково, при наступному самостійному відкритті застосунку.
+    await _ping(peer.channelId, key);
   }
 
   // ── Grants summary: "що я дозволив цьому піру" → його пристрій ─────────
