@@ -170,6 +170,43 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     }
   }
 
+  // Пароль лишається лише локально (secure storage) — самого старого пароля
+  // тут ніде не звіряємо, бо нема з чим: BackupCryptoService шифрує ключі
+  // симетрично, без окремого відновлення "забутого" пароля. Тому зміна
+  // пароля — це просто новий пароль ЗАРАЗ + одразу свіжий бекап під нього,
+  // щоб копія в хмарі не лишилась назавжди прив'язаною до старого пароля,
+  // який більше ніде не збережений.
+  Future<void> _changePassphrase() async {
+    final target = _target;
+    if (target == null) return;
+
+    final newPassphrase = await _askPassphrase(
+      title: 'Новий пароль резервної копії',
+      subtitle: 'Одразу після зміни буде створено нову резервну копію з цим паролем — '
+          'запам\'ятайте його, стару резервну копію під старим паролем більше не '
+          'можна буде використати.',
+      confirmRequired: true,
+    );
+    if (newPassphrase == null || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await BackupSettingsService.savePassphrase(newPassphrase);
+      await _backupService.createBackup(target: target, passphrase: newPassphrase);
+      await BackupSettingsService.markBackedUpNow();
+      if (!mounted) return;
+      setState(() => _lastBackupAt = DateTime.now());
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пароль змінено, нову резервну копію збережено')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   String get _targetName => switch (_mode) {
         BackupMode.googleDrive => 'Google Drive',
         BackupMode.iCloud => 'iCloud',
@@ -330,6 +367,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: AppDimensions.sm),
+                          Text(
+                            'Спрацьовує, коли ви відкриваєте застосунок чи повертаєтесь у '
+                            'нього — це не справжній фоновий розклад. Якщо не відкривати '
+                            'Elly довше обраної частоти, бекап зробиться одразу при '
+                            'наступному відкритті.',
+                            style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                          ),
                           const SizedBox(height: AppDimensions.md),
                           Text(
                             _lastBackupAt == null
@@ -351,6 +396,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               onPressed: _restoreBackup,
                               icon: const Icon(Icons.cloud_download_outlined),
                               label: const Text('Відновити з резервної копії'),
+                            ),
+                            const SizedBox(height: AppDimensions.sm),
+                            TextButton.icon(
+                              onPressed: _changePassphrase,
+                              icon: const Icon(Icons.key_rounded, size: 18),
+                              label: const Text('Змінити пароль резервної копії'),
                             ),
                           ],
                         ],
