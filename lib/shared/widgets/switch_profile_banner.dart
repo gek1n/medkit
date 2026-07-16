@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../features/today/providers/today_providers.dart';
 
 /// Показується на всіх головних вкладках, коли активний профіль (через
@@ -32,7 +33,7 @@ class SwitchProfileBanner extends ConsumerWidget {
             const Icon(Icons.visibility_rounded, size: 16, color: Color(0xFF92400E)),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('Ви дивитесь профіль: $name',
+              child: Text(context.l10n.viewingProfileLabel(name),
                   style: AppTextStyles.bodySm.copyWith(
                       color: const Color(0xFF92400E),
                       fontWeight: FontWeight.w600)),
@@ -40,7 +41,7 @@ class SwitchProfileBanner extends ConsumerWidget {
             GestureDetector(
               onTap: onReturn ??
                   () => ref.read(activeMemberIdProvider.notifier).state = null,
-              child: Text('Повернутись',
+              child: Text(context.l10n.returnAction,
                   style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700)),

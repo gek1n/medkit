@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/task_color.dart';
 
 class TaskColorPicker extends StatelessWidget {
@@ -14,7 +15,7 @@ class TaskColorPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('КОЛІР КАРТКИ', style: AppTextStyles.labelSm),
+        Text(context.l10n.taskColorPickerLabel, style: AppTextStyles.labelSm),
         const SizedBox(height: 10),
         Wrap(
           spacing: 12,

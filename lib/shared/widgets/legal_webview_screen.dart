@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/l10n_ext.dart';
 import 'mk_screen_header.dart';
 
 /// Показує юридичний документ (політика конфіденційності/умови
@@ -37,7 +38,7 @@ class _LegalWebViewScreenState extends State<LegalWebViewScreen> {
             if (mounted) {
               setState(() {
                 _loading = false;
-                _error = 'Не вдалося завантажити сторінку. Перевірте з\'єднання з інтернетом.';
+                _error = context.l10n.legalPageLoadError;
               });
             }
           },

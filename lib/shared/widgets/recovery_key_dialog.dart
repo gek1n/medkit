@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 
 /// Показує recovery key користувачу з поясненням і обов'язковим explicit
 /// підтвердженням "Я зберіг(ла) код" — ЄДИНИЙ спосіб отримати доступ до
@@ -16,21 +17,18 @@ Future<bool?> showRecoveryKeyDialog(BuildContext context, String recoveryKey) {
     context: context,
     barrierDismissible: false,
     builder: (context) => AlertDialog(
-      title: const Text('Ваш recovery key'),
+      title: Text(context.l10n.recoveryKeyDialogTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Збережіть цей код у надійному місці. Це єдиний спосіб відновити '
-            'дані на новому пристрої — без нього ми теж не зможемо допомогти.',
-          ),
+          Text(context.l10n.recoveryKeyDialogBody),
           const SizedBox(height: 16),
           GestureDetector(
             onTap: () {
               Clipboard.setData(ClipboardData(text: recoveryKey));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Скопійовано')),
+                SnackBar(content: Text(context.l10n.copiedSnackbar)),
               );
             },
             child: Container(
@@ -51,10 +49,10 @@ Future<bool?> showRecoveryKeyDialog(BuildContext context, String recoveryKey) {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Скасувати')),
+        TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(context.l10n.actionCancel)),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Я зберіг(ла) код'),
+          child: Text(context.l10n.recoveryKeySavedConfirmAction),
         ),
       ],
     ),

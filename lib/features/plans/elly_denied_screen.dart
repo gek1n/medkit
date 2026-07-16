@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_button.dart';
 import 'plans_screen.dart';
@@ -12,16 +13,18 @@ import 'plans_screen.dart';
 /// одного автономного учасника понад ліміт. Перегляд лишається
 /// доступним, редагування/додавання — ні, поки не оновити план.
 class EllyDeniedScreen extends StatelessWidget {
-  final String title;
-  final String subtitle;
+  final String? title;
+  final String? subtitle;
   const EllyDeniedScreen({
     super.key,
-    this.title = 'Забагато профілів для цього плану',
-    this.subtitle = 'Продовжіть Elly Plus або Elly Family, щоб редагувати',
+    this.title,
+    this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveTitle = title ?? context.l10n.tooManyProfilesForPlanTitle;
+    final effectiveSubtitle = subtitle ?? context.l10n.upgradeToEditSubtitle;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -59,12 +62,12 @@ class EllyDeniedScreen extends StatelessWidget {
                         Image.asset('assets/illustrations/elly-denied.png',
                             height: 220),
                         const SizedBox(height: AppDimensions.lg),
-                        Text(title,
+                        Text(effectiveTitle,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.h2),
                         const SizedBox(height: 8),
                         Text(
-                          subtitle,
+                          effectiveSubtitle,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.bodyMd
                               .copyWith(color: AppColors.textSub),
@@ -82,7 +85,7 @@ class EllyDeniedScreen extends StatelessWidget {
                   AppDimensions.lg,
                 ),
                 child: MkButton(
-                  label: 'Переглянути тарифи',
+                  label: context.l10n.viewPlansAction,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(context,

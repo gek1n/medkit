@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
 class DebugLogScreen extends StatefulWidget {
@@ -28,7 +29,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
     final text = await AppLogger.readAll();
     if (!mounted) return;
     setState(() {
-      _text = text.isEmpty ? 'Лог порожній.' : text;
+      _text = text.isEmpty ? context.l10n.debugLogEmptyBody : text;
       _loading = false;
     });
   }
@@ -38,14 +39,14 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
     final exists = await file.exists();
     if (!mounted) return;
     if (!exists) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Лог порожній')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.debugLogEmptySnackbar)));
       return;
     }
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: 'text/plain')],
-        subject: 'Elly — журнал подій',
+        subject: context.l10n.debugLogShareSubject,
       ),
     );
   }
@@ -63,7 +64,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
         child: Column(
           children: [
             MkScreenHeader(
-              title: 'Журнал подій',
+              title: context.l10n.debugLogTitle,
               onBack: () => Navigator.pop(context),
             ),
             Expanded(
@@ -87,7 +88,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _clear,
                       icon: const Icon(Icons.delete_outline_rounded),
-                      label: const Text('Очистити'),
+                      label: Text(context.l10n.clearAction),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -99,7 +100,7 @@ class _DebugLogScreenState extends State<DebugLogScreen> {
                         foregroundColor: Colors.white,
                       ),
                       icon: const Icon(Icons.ios_share_rounded),
-                      label: const Text('Поділитись'),
+                      label: Text(context.l10n.shareAction),
                     ),
                   ),
                 ],

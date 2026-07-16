@@ -10,6 +10,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
@@ -90,7 +91,7 @@ class TodayScreen extends ConsumerWidget {
       ),
       error: (e, _) => Scaffold(
         backgroundColor: AppColors.bg,
-        body: Center(child: Text('Помилка: $e')),
+        body: Center(child: Text(context.l10n.errorGeneric('$e'))),
       ),
       data: (member) {
         if (member == null) return const _EmptyState();
@@ -135,7 +136,7 @@ class _TodayContent extends ConsumerWidget {
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(context.l10n.errorGeneric('$e'))),
         data: (intakes) {
           final meds = medsAsync.valueOrNull ?? [];
           final activities = activitiesAsync.valueOrNull ?? [];
@@ -379,7 +380,7 @@ class _TodayContent extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SectionLabel('Сім\'я'),
+                        SectionLabel(context.l10n.todaySectionFamily),
                         const SizedBox(height: AppDimensions.md),
                         FamilyStatusStrip(
                           members: members,
@@ -431,7 +432,7 @@ class _TodayContent extends ConsumerWidget {
               if (scheduleItems.isNotEmpty)
                 SliverToBoxAdapter(
                   child: _ScheduleSection(
-                    title: 'Розклад на сьогодні',
+                    title: context.l10n.todayScheduleForToday,
                     items: scheduleItems,
                     meds: meds,
                     activities: activities,
@@ -478,7 +479,7 @@ class _TodayContent extends ConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'На сьогодні нічого немає',
+                          context.l10n.todayNothingToday,
                           style: AppTextStyles.bodyMd.copyWith(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
@@ -486,7 +487,7 @@ class _TodayContent extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Натисніть + щоб додати',
+                          context.l10n.todayTapToAdd,
                           style: AppTextStyles.bodyMd.copyWith(
                             fontSize: 14,
                             color: AppColors.textSub,
@@ -531,7 +532,7 @@ class _NextEventChip extends StatelessWidget {
             ),
             const SizedBox(width: 5),
             Text(
-              'Все виконано',
+              context.l10n.todayAllDoneChip,
               style: AppTextStyles.bodyMd.copyWith(
                 color: Colors.white,
                 fontSize: 11,
@@ -545,9 +546,9 @@ class _NextEventChip extends StatelessWidget {
 
     final diff = nextAt!.difference(DateTime.now());
     final timeStr = diff.inMinutes <= 0
-        ? 'зараз'
+        ? context.l10n.todayNextNow
         : diff.inMinutes < 60
-        ? 'через ${diff.inMinutes} хв'
+        ? context.l10n.todayNextInMinutes(diff.inMinutes)
         : 'о ${nextAt!.hour.toString().padLeft(2, '0')}:${nextAt!.minute.toString().padLeft(2, '0')}';
 
     return Container(
@@ -629,7 +630,7 @@ class _AllDoneBanner extends StatelessWidget {
             Image.asset('assets/illustrations/all-done-hero.png', height: 96),
             const SizedBox(height: 12),
             Text(
-              'Все виконано на сьогодні!',
+              context.l10n.todayAllDoneTitle,
               style: AppTextStyles.labelLg.copyWith(
                 color: AppColors.primaryDark,
                 fontWeight: FontWeight.w800,
@@ -637,7 +638,7 @@ class _AllDoneBanner extends StatelessWidget {
             ),
             const SizedBox(height: 3),
             Text(
-              'Чудова робота — так тримати',
+              context.l10n.todayAllDoneSubtitle,
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
             ),
           ],
@@ -744,7 +745,7 @@ class _CompactHero extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Зараз\nболить',
+                          context.l10n.todayHurtsNow,
                           style: AppTextStyles.bodyMd.copyWith(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 9,
@@ -865,7 +866,7 @@ class _MissedSection extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Ви пропустили',
+                context.l10n.todayMissedSection,
                 style: AppTextStyles.bodyMd.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -975,7 +976,7 @@ class _ActiveNowSection extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Зараз потрібно',
+                context.l10n.todayActiveNowSection,
                 style: AppTextStyles.bodyMd.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -1012,11 +1013,9 @@ class _ScheduleSection extends StatelessWidget {
     this.wellbeingSchedule,
   });
 
-  static const _dayParts = ['Ранок', 'День', 'Вечір', 'Ніч'];
-
   @override
   Widget build(BuildContext context) {
-    final buckets = <String, List<_DayItem>>{for (final p in _dayParts) p: []};
+    final buckets = <_DayPart, List<_DayItem>>{for (final p in _DayPart.values) p: []};
     for (final item in items) {
       buckets[_dayPartOf(item.scheduledAt)]!.add(item);
     }
@@ -1027,7 +1026,7 @@ class _ScheduleSection extends StatelessWidget {
         children: [
           SectionLabel(title),
           const SizedBox(height: 10),
-          for (final part in _dayParts)
+          for (final part in _DayPart.values)
             if (buckets[part]!.isNotEmpty) ...[
               _DayPartHeader(part: part),
               const SizedBox(height: 8),
@@ -1051,19 +1050,31 @@ class _ScheduleSection extends StatelessWidget {
   }
 }
 
-String _dayPartOf(DateTime dt) {
+// Стабільний внутрішній ключ угруповання — НЕ локалізований текст (той
+// лишень для показу, див. _DayPartHeader), інакше зміна мови зламала б
+// групування/порівняння buckets[part].
+enum _DayPart { morning, afternoon, evening, night }
+
+_DayPart _dayPartOf(DateTime dt) {
   final h = dt.hour;
-  if (h >= 6 && h < 12) return 'Ранок';
-  if (h >= 12 && h < 18) return 'День';
-  if (h >= 18 && h < 22) return 'Вечір';
-  return 'Ніч';
+  if (h >= 6 && h < 12) return _DayPart.morning;
+  if (h >= 12 && h < 18) return _DayPart.afternoon;
+  if (h >= 18 && h < 22) return _DayPart.evening;
+  return _DayPart.night;
 }
 
-IconData _dayPartIcon(String part) => switch (part) {
-  'Ранок' => Icons.wb_twilight_rounded,
-  'День' => Icons.wb_sunny_rounded,
-  'Вечір' => Icons.nights_stay_rounded,
-  _ => Icons.nightlight_round,
+IconData _dayPartIcon(_DayPart part) => switch (part) {
+  _DayPart.morning => Icons.wb_twilight_rounded,
+  _DayPart.afternoon => Icons.wb_sunny_rounded,
+  _DayPart.evening => Icons.nights_stay_rounded,
+  _DayPart.night => Icons.nightlight_round,
+};
+
+String _dayPartLabel(BuildContext context, _DayPart part) => switch (part) {
+  _DayPart.morning => context.l10n.dayPartMorning,
+  _DayPart.afternoon => context.l10n.dayPartAfternoon,
+  _DayPart.evening => context.l10n.dayPartEvening,
+  _DayPart.night => context.l10n.dayPartNight,
 };
 
 Color _scheduleCategoryColor(_ItemType type) => switch (type) {
@@ -1074,7 +1085,7 @@ Color _scheduleCategoryColor(_ItemType type) => switch (type) {
 };
 
 class _DayPartHeader extends StatelessWidget {
-  final String part;
+  final _DayPart part;
   const _DayPartHeader({required this.part});
 
   @override
@@ -1083,7 +1094,7 @@ class _DayPartHeader extends StatelessWidget {
       children: [
         Icon(_dayPartIcon(part), size: 13, color: AppColors.textMuted),
         const SizedBox(width: 6),
-        Text(part.toUpperCase(), style: AppTextStyles.labelSm),
+        Text(_dayPartLabel(context, part).toUpperCase(), style: AppTextStyles.labelSm),
       ],
     );
   }
@@ -1119,6 +1130,7 @@ class _ScheduleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, title, subtitle) = _scheduleItemInfo(
+      context,
       item,
       med: _resolvedMed,
       activity: _resolvedActivity,
@@ -1268,6 +1280,7 @@ class _ScheduleCard extends StatelessWidget {
 }
 
 (IconData, String, String?) _scheduleItemInfo(
+  BuildContext context,
   _DayItem item, {
   Medication? med,
   Activity? activity,
@@ -1276,7 +1289,7 @@ class _ScheduleCard extends StatelessWidget {
     case _ItemType.intake:
       return (
         medFormIcon(med?.form ?? 'tablet'),
-        med?.name ?? 'Ліки',
+        med?.name ?? context.l10n.defaultMedName,
         med != null
             ? '${med.doseAmount.toStringAsFixed(med.doseAmount == med.doseAmount.roundToDouble() ? 0 : 1)} ${med.doseUnit}'
             : null,
@@ -1284,7 +1297,7 @@ class _ScheduleCard extends StatelessWidget {
     case _ItemType.activity:
       return (
         _scheduleActIcon(activity?.type),
-        activity?.name ?? 'Активність',
+        activity?.name ?? context.l10n.defaultActivityName,
         null,
       );
     case _ItemType.appointment:
@@ -1294,7 +1307,7 @@ class _ScheduleCard extends StatelessWidget {
         item.appointment!.location,
       );
     case _ItemType.wellbeing:
-      return (Icons.favorite_rounded, 'Самопочуття', null);
+      return (Icons.favorite_rounded, context.l10n.wellbeingTitle, null);
   }
 }
 
@@ -1321,7 +1334,7 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _scheduleCategoryColor(item.type);
-    final (icon, title, _) = _scheduleItemInfo(item, activity: activity);
+    final (icon, title, _) = _scheduleItemInfo(context, item, activity: activity);
 
     return SafeArea(
       child: Container(
@@ -1352,20 +1365,20 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              _DetailRow(label: 'Час', value: _fmt(item.scheduledAt)),
+              _DetailRow(label: context.l10n.detailLabelTime, value: _fmt(item.scheduledAt)),
               if (activity != null && activity!.durationMin > 0)
                 _DetailRow(
-                  label: 'Тривалість',
-                  value: '${activity!.durationMin} хв',
+                  label: context.l10n.detailLabelDuration,
+                  value: context.l10n.durationMinutes(activity!.durationMin),
                 ),
               if (item.type == _ItemType.appointment &&
                   item.appointment!.location != null &&
                   item.appointment!.location!.isNotEmpty)
-                _DetailRow(label: 'Місце', value: item.appointment!.location!),
+                _DetailRow(label: context.l10n.detailLabelLocation, value: item.appointment!.location!),
               if (item.type == _ItemType.appointment &&
                   item.appointment!.notes != null &&
                   item.appointment!.notes!.isNotEmpty)
-                _DetailRow(label: 'Нотатки', value: item.appointment!.notes!),
+                _DetailRow(label: context.l10n.detailLabelNotes, value: item.appointment!.notes!),
             ],
           ),
         ),
@@ -1419,7 +1432,7 @@ class _ScheduleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, title, subtitle) = _info();
+    final (icon, title, subtitle) = _info(context);
     return Opacity(
       opacity: dimmed ? 0.45 : 1.0,
       child: Column(
@@ -1496,7 +1509,7 @@ class _ScheduleRow extends StatelessWidget {
     );
   }
 
-  (IconData, String, String?) _info() {
+  (IconData, String, String?) _info(BuildContext context) {
     switch (item.type) {
       case _ItemType.intake:
         final med = meds
@@ -1504,14 +1517,14 @@ class _ScheduleRow extends StatelessWidget {
             .firstOrNull;
         return (
           Icons.medication_rounded,
-          med?.name ?? 'Ліки',
+          med?.name ?? context.l10n.defaultMedName,
           med != null ? '${med.doseAmount} ${med.doseUnit}' : null,
         );
       case _ItemType.activity:
         final a = activities
             .where((a) => a.id == item.activityLog!.activityId)
             .firstOrNull;
-        return (_actIcon(a?.type), a?.name ?? 'Активність', null);
+        return (_actIcon(a?.type), a?.name ?? context.l10n.defaultActivityName, null);
       case _ItemType.appointment:
         return (
           Icons.medical_services_rounded,
@@ -1519,7 +1532,7 @@ class _ScheduleRow extends StatelessWidget {
           item.appointment!.location,
         );
       case _ItemType.wellbeing:
-        return (Icons.favorite_rounded, 'Самопочуття', null);
+        return (Icons.favorite_rounded, context.l10n.wellbeingTitle, null);
     }
   }
 
@@ -1595,7 +1608,7 @@ class _TomorrowSection extends ConsumerWidget {
     if (top5.isEmpty) return const SizedBox.shrink();
 
     return _ScheduleSection(
-      title: 'Коротко про завтра',
+      title: context.l10n.todayScheduleForTomorrow,
       items: top5,
       meds: meds,
       activities: activities,
@@ -1638,7 +1651,7 @@ class _DoneAccordion extends StatelessWidget {
               color: AppColors.success,
             ),
             title: Text(
-              'Виконано · ${items.length}',
+              context.l10n.todayDoneCount(items.length),
               style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600),
             ),
             tilePadding: const EdgeInsets.symmetric(
@@ -1790,7 +1803,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        med?.name ?? 'Ліки',
+                        med?.name ?? context.l10n.defaultMedName,
                         style: AppTextStyles.h3.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -1814,7 +1827,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                       _InfoChip(
                         icon: _foodRelationIcon(med!.foodRelation),
                         label:
-                            foodRelationLabels[med!.foodRelation] ??
+                            foodRelationLabels(context)[med!.foodRelation] ??
                             med!.foodRelation,
                       ),
                     ],
@@ -1829,7 +1842,7 @@ class _ActiveIntakeCard extends StatelessWidget {
           ),
           _ActionRow(
             doneColor: AppColors.primary,
-            skipLabel: 'Пропустити прийом',
+            skipLabel: context.l10n.skipIntakeAction,
             onDone: () =>
                 ref.read(intakesRepositoryProvider).markTaken(intake.id),
             onSkip: () =>
@@ -2123,7 +2136,7 @@ class _TimeStamp extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 1),
             child: Text(
-              'пропущено',
+              context.l10n.missedCaption,
               style: AppTextStyles.bodySm.copyWith(
                 color: const Color(0xFFF97316),
                 fontWeight: FontWeight.w700,
@@ -2237,7 +2250,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.activity?.name ?? 'Активність',
+                        widget.activity?.name ?? context.l10n.defaultActivityName,
                         style: AppTextStyles.h3.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -2255,7 +2268,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                   const SizedBox(height: 10),
                   _InfoChip(
                     icon: icon,
-                    label: '${widget.activity!.durationMin} хв',
+                    label: context.l10n.durationMinutes(widget.activity!.durationMin),
                   ),
                 ],
               ],
@@ -2365,16 +2378,16 @@ class _InlineYoutubePlayerState extends State<_InlineYoutubePlayer> {
             children: [
               const Icon(Icons.error_outline_rounded, color: Colors.white70, size: 32),
               const SizedBox(height: 8),
-              const Text(
-                'Не вдалося відтворити відео тут',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+              Text(
+                context.l10n.videoPlaybackError,
+                style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: _openExternally,
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
                 icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                label: const Text('Відкрити в YouTube'),
+                label: Text(context.l10n.openInYoutube),
               ),
             ],
           ),
@@ -2444,8 +2457,8 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           missed
-                              ? 'Пропущений зріз'
-                              : 'Час перевірити самопочуття',
+                              ? context.l10n.missedWellbeingSlot
+                              : context.l10n.wellbeingTimeToCheck,
                           style: AppTextStyles.h3.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
@@ -2456,13 +2469,13 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const _InfoChip(
+                  _InfoChip(
                     icon: Icons.favorite_rounded,
-                    label: 'Самопочуття',
+                    label: context.l10n.wellbeingTitle,
                   ),
                   const SizedBox(height: 8),
-                  const _CommentNote(
-                    text: 'Оцініть настрій і, за потреби, опишіть симптоми',
+                  _CommentNote(
+                    text: context.l10n.wellbeingCommentHint,
                   ),
                 ],
               ),
@@ -2587,14 +2600,14 @@ class _ActionRow extends StatelessWidget {
   final VoidCallback onSkip;
   final void Function(int minutes)? onSnooze;
   final Color doneColor;
-  final String skipLabel;
+  final String? skipLabel;
 
   const _ActionRow({
     required this.onDone,
     required this.onSkip,
     this.onSnooze,
     required this.doneColor,
-    this.skipLabel = 'Пропустити',
+    this.skipLabel,
   });
 
   @override
@@ -2615,24 +2628,24 @@ class _ActionRow extends StatelessWidget {
             ),
             itemBuilder: (_) => [
               if (canSnooze) ...[
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 10,
-                  child: Text('Перенести на 10 хв'),
+                  child: Text(context.l10n.snooze10),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 30,
-                  child: Text('Перенести на 30 хв'),
+                  child: Text(context.l10n.snooze30),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 60,
-                  child: Text('Перенести на 1 год'),
+                  child: Text(context.l10n.snooze60),
                 ),
                 const PopupMenuDivider(),
               ],
               PopupMenuItem(
                 value: -1,
                 child: Text(
-                  skipLabel,
+                  skipLabel ?? context.l10n.skipGenericAction,
                   style: const TextStyle(color: AppColors.danger),
                 ),
               ),
@@ -2664,7 +2677,7 @@ class _ActionRow extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    'Виконати',
+                    context.l10n.doneAction,
                     style: AppTextStyles.bodyMd.copyWith(
                       color: Colors.white,
                       fontSize: 15,
@@ -2701,13 +2714,13 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'Ласкаво просимо до Elly',
+              context.l10n.welcomeTitle,
               style: AppTextStyles.h2,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
-              'Додайте свій профіль щоб розпочати',
+              context.l10n.welcomeSubtitle,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),
           ],

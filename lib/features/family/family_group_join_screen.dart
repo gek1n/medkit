@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
@@ -74,7 +75,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
       if (existingPeer != null) {
         if (!mounted) return;
         setState(() {
-          _error = 'Ви вже приєднані до сім\'ї "${preview.inviterName}"';
+          _error = context.l10n.alreadyJoinedFamilyError(preview.inviterName);
           _submitting = false;
           _handledScan = false;
         });
@@ -89,7 +90,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Не вдалося приєднатись: невірний або прострочений код';
+        _error = context.l10n.joinInvalidCodeError;
         _submitting = false;
         _handledScan = false;
       });
@@ -144,9 +145,9 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
             children: [
               MkScreenHeader(
                 title: switch (_stage) {
-                  _Stage.scanning => 'Приєднатись до сім\'ї',
-                  _Stage.review => 'Підтвердження',
-                  _Stage.done => 'Готово',
+                  _Stage.scanning => context.l10n.joinFamilyTitle,
+                  _Stage.review => context.l10n.confirmationTitle,
+                  _Stage.done => context.l10n.doneTitle,
                 },
                 onBack: _stage == _Stage.scanning ? () => Navigator.pop(context) : null,
               ),
@@ -190,7 +191,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Наведіть камеру на QR-код\nабо введіть код вручну',
+            context.l10n.scanQrOrEnterHint,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),
@@ -207,7 +208,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
               textCapitalization: TextCapitalization.characters,
               style: AppTextStyles.h2.copyWith(color: AppColors.primary, letterSpacing: 4),
               decoration: InputDecoration(
-                hintText: '________',
+                hintText: context.l10n.codeInputHint,
                 hintStyle: AppTextStyles.h2.copyWith(color: AppColors.textMuted, letterSpacing: 4),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -220,7 +221,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
           ],
           const SizedBox(height: 16),
           MkButton(
-            label: _submitting ? 'Перевірка…' : 'Продовжити',
+            label: _submitting ? context.l10n.checkingLabel : context.l10n.continueAction,
             isLoading: _submitting,
             onTap: () => _decode(_manualController.text),
           ),
@@ -260,7 +261,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
                               Text(preview.inviterName, style: AppTextStyles.labelLg),
                               const SizedBox(height: 2),
                               Text(
-                                'запрошує вас до сімейної групи',
+                                context.l10n.invitesYouToFamilyGroup,
                                 style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                               ),
                             ],
@@ -271,11 +272,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Ви приєднуєтесь як рівноправний учасник — ваш власний профіль '
-                    '(ім\'я й аватар) стане видимим "${preview.inviterName}". Це не '
-                    'скасовує і не змінює жодних ваших даних, уже внесених у застосунок. '
-                    'Ваша медкартка НІКОМУ автоматично не показується — які саме дані '
-                    'бачитимуть інші учасники, ви налаштуєте окремо, вже після приєднання.',
+                    context.l10n.joinConsentBody(preview.inviterName),
                     style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
                   ),
                   const SizedBox(height: 20),
@@ -303,7 +300,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Я погоджуюсь приєднатись до сімейної групи "${preview.inviterName}"',
+                            context.l10n.joinConsentCheckbox(preview.inviterName),
                             style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain),
                           ),
                         ),
@@ -320,7 +317,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
           ),
           const SizedBox(height: 12),
           MkButton(
-            label: _submitting ? 'Приєднуємось…' : 'Приєднатись',
+            label: _submitting ? context.l10n.joiningLabel : context.l10n.joinAction,
             isLoading: _submitting,
             onTap: (_consentChecked && !_submitting) ? _confirm : null,
           ),
@@ -338,15 +335,15 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
           const Spacer(),
           const Icon(Icons.check_circle_rounded, size: 64, color: AppColors.primary),
           const SizedBox(height: 16),
-          Text('Ви в сім\'ї!', style: AppTextStyles.h2, textAlign: TextAlign.center),
+          Text(context.l10n.joinedFamilyTitle, style: AppTextStyles.h2, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(
-            'Тепер ви й "${preview.inviterName}" бачите одне одного в розділі "Сім\'я".',
+            context.l10n.joinedFamilyBody(preview.inviterName),
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),
           const Spacer(),
-          MkButton(label: 'Готово', onTap: () => Navigator.of(context).pop(true)),
+          MkButton(label: context.l10n.doneTitle, onTap: () => Navigator.of(context).pop(true)),
         ],
       ),
     );
@@ -374,9 +371,9 @@ class _ScannerPlaceholder extends StatelessWidget {
                 child: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.primary, size: 26),
               ),
               const SizedBox(height: 10),
-              Text('Сканувати QR-код', style: AppTextStyles.labelLg.copyWith(color: AppColors.primary)),
+              Text(context.l10n.scanQrCodeLabel, style: AppTextStyles.labelLg.copyWith(color: AppColors.primary)),
               const SizedBox(height: 2),
-              Text('Натисніть, щоб увімкнути камеру',
+              Text(context.l10n.tapToEnableCameraHint,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
             ],
           ),

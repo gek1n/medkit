@@ -5,6 +5,7 @@ import '../../core/services/affiliate_config_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 
 /// Кнопка "Купити" на партнерське посилання (affiliate) — рендерить сама
 /// себе, лише коли для країни користувача й розділу [section] у
@@ -29,12 +30,12 @@ class AffiliateBuyButton extends StatelessWidget {
       builder: (context, _, _) {
         final link = AffiliateConfigService.linkFor(section);
         if (link == null) return const SizedBox.shrink();
-        return _buildButton(link);
+        return _buildButton(context, link);
       },
     );
   }
 
-  Widget _buildButton(String link) {
+  Widget _buildButton(BuildContext context, String link) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,7 +44,7 @@ class AffiliateBuyButton extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () => _open(link),
             icon: const Icon(Icons.shopping_bag_outlined, size: 18, color: AppColors.primary),
-            label: Text('Купити', style: AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
+            label: Text(context.l10n.buyAction, style: AppTextStyles.labelMd.copyWith(color: AppColors.primary)),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
               side: const BorderSide(color: AppColors.primary, width: 1.5),
@@ -54,7 +55,7 @@ class AffiliateBuyButton extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Реклама · партнерське посилання, Elly товар не продає',
+          context.l10n.affiliateDisclaimerLabel,
           style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted, fontSize: 11),
         ),
       ],

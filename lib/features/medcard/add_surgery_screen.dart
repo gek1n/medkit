@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/surgeries_repository.dart';
@@ -60,13 +61,13 @@ class _AddSurgeryScreenState extends ConsumerState<AddSurgeryScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити запис?'),
-        content: const Text('Запис буде видалено.'),
+        title: Text(context.l10n.deleteSurgeryConfirmTitle),
+        content: Text(context.l10n.deleteRecordBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Видалити', style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
+            child: Text(context.l10n.deleteAction, style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
           ),
         ],
       ),
@@ -80,7 +81,7 @@ class _AddSurgeryScreenState extends ConsumerState<AddSurgeryScreen> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введіть назву операції')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.enterSurgeryNameError)));
       return;
     }
     setState(() => _isSaving = true);
@@ -112,7 +113,7 @@ class _AddSurgeryScreenState extends ConsumerState<AddSurgeryScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -128,8 +129,8 @@ class _AddSurgeryScreenState extends ConsumerState<AddSurgeryScreen> {
         child: Column(
           children: [
             MkFormHeader(
-              title: (isEdit ? 'Редагувати запис' : 'Нова операція чи госпіталізація') +
-                  memberNameSuffix(ref, widget.memberId),
+              title: (isEdit ? context.l10n.editSurgeryTitle : context.l10n.newSurgeryTitle) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -140,33 +141,33 @@ class _AddSurgeryScreenState extends ConsumerState<AddSurgeryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MkFieldLabel('Назва'),
+                    MkFieldLabel(context.l10n.fieldName),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _nameController,
-                      hint: 'Апендектомія, госпіталізація…',
+                      hint: context.l10n.surgeryNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Дата'),
+                    MkFieldLabel(context.l10n.fieldDate),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: MKDateUtils.formatDate(_performedAt),
+                      value: MKDateUtils.formatDate(context, _performedAt),
                       filled: true,
                       onTap: _pickPerformedAt,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Нотатки'),
+                    MkFieldLabel(context.l10n.fieldNotes),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
-                      hint: 'Лікарня, ускладнення, рекомендації…',
+                      hint: context.l10n.surgeryNotesHint,
                       maxLines: 3,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     DocumentsSection(
                       paths: _documentPaths,
                       onChanged: (paths) => setState(() => _documentPaths = paths),
-                      label: 'Документи',
+                      label: context.l10n.documentsLabel,
                     ),
                     const SizedBox(height: AppDimensions.xxl),
                     MkSaveButton(isSaving: _isSaving, onPressed: _save),

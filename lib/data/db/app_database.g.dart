@@ -13166,6 +13166,262 @@ class KnownFamilyMembersCompanion extends UpdateCompanion<KnownFamilyMember> {
   }
 }
 
+class $AiUsageTable extends AiUsage with TableInfo<$AiUsageTable, AiUsageData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AiUsageTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _photoScansUsedMeta = const VerificationMeta(
+    'photoScansUsed',
+  );
+  @override
+  late final GeneratedColumn<int> photoScansUsed = GeneratedColumn<int>(
+    'photo_scans_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _voiceCommandsUsedMeta = const VerificationMeta(
+    'voiceCommandsUsed',
+  );
+  @override
+  late final GeneratedColumn<int> voiceCommandsUsed = GeneratedColumn<int>(
+    'voice_commands_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, photoScansUsed, voiceCommandsUsed];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ai_usage';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AiUsageData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('photo_scans_used')) {
+      context.handle(
+        _photoScansUsedMeta,
+        photoScansUsed.isAcceptableOrUnknown(
+          data['photo_scans_used']!,
+          _photoScansUsedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('voice_commands_used')) {
+      context.handle(
+        _voiceCommandsUsedMeta,
+        voiceCommandsUsed.isAcceptableOrUnknown(
+          data['voice_commands_used']!,
+          _voiceCommandsUsedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AiUsageData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AiUsageData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      photoScansUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}photo_scans_used'],
+      )!,
+      voiceCommandsUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}voice_commands_used'],
+      )!,
+    );
+  }
+
+  @override
+  $AiUsageTable createAlias(String alias) {
+    return $AiUsageTable(attachedDatabase, alias);
+  }
+}
+
+class AiUsageData extends DataClass implements Insertable<AiUsageData> {
+  final int id;
+  final int photoScansUsed;
+  final int voiceCommandsUsed;
+  const AiUsageData({
+    required this.id,
+    required this.photoScansUsed,
+    required this.voiceCommandsUsed,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['photo_scans_used'] = Variable<int>(photoScansUsed);
+    map['voice_commands_used'] = Variable<int>(voiceCommandsUsed);
+    return map;
+  }
+
+  AiUsageCompanion toCompanion(bool nullToAbsent) {
+    return AiUsageCompanion(
+      id: Value(id),
+      photoScansUsed: Value(photoScansUsed),
+      voiceCommandsUsed: Value(voiceCommandsUsed),
+    );
+  }
+
+  factory AiUsageData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AiUsageData(
+      id: serializer.fromJson<int>(json['id']),
+      photoScansUsed: serializer.fromJson<int>(json['photoScansUsed']),
+      voiceCommandsUsed: serializer.fromJson<int>(json['voiceCommandsUsed']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'photoScansUsed': serializer.toJson<int>(photoScansUsed),
+      'voiceCommandsUsed': serializer.toJson<int>(voiceCommandsUsed),
+    };
+  }
+
+  AiUsageData copyWith({
+    int? id,
+    int? photoScansUsed,
+    int? voiceCommandsUsed,
+  }) => AiUsageData(
+    id: id ?? this.id,
+    photoScansUsed: photoScansUsed ?? this.photoScansUsed,
+    voiceCommandsUsed: voiceCommandsUsed ?? this.voiceCommandsUsed,
+  );
+  AiUsageData copyWithCompanion(AiUsageCompanion data) {
+    return AiUsageData(
+      id: data.id.present ? data.id.value : this.id,
+      photoScansUsed: data.photoScansUsed.present
+          ? data.photoScansUsed.value
+          : this.photoScansUsed,
+      voiceCommandsUsed: data.voiceCommandsUsed.present
+          ? data.voiceCommandsUsed.value
+          : this.voiceCommandsUsed,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiUsageData(')
+          ..write('id: $id, ')
+          ..write('photoScansUsed: $photoScansUsed, ')
+          ..write('voiceCommandsUsed: $voiceCommandsUsed')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, photoScansUsed, voiceCommandsUsed);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AiUsageData &&
+          other.id == this.id &&
+          other.photoScansUsed == this.photoScansUsed &&
+          other.voiceCommandsUsed == this.voiceCommandsUsed);
+}
+
+class AiUsageCompanion extends UpdateCompanion<AiUsageData> {
+  final Value<int> id;
+  final Value<int> photoScansUsed;
+  final Value<int> voiceCommandsUsed;
+  const AiUsageCompanion({
+    this.id = const Value.absent(),
+    this.photoScansUsed = const Value.absent(),
+    this.voiceCommandsUsed = const Value.absent(),
+  });
+  AiUsageCompanion.insert({
+    this.id = const Value.absent(),
+    this.photoScansUsed = const Value.absent(),
+    this.voiceCommandsUsed = const Value.absent(),
+  });
+  static Insertable<AiUsageData> custom({
+    Expression<int>? id,
+    Expression<int>? photoScansUsed,
+    Expression<int>? voiceCommandsUsed,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (photoScansUsed != null) 'photo_scans_used': photoScansUsed,
+      if (voiceCommandsUsed != null) 'voice_commands_used': voiceCommandsUsed,
+    });
+  }
+
+  AiUsageCompanion copyWith({
+    Value<int>? id,
+    Value<int>? photoScansUsed,
+    Value<int>? voiceCommandsUsed,
+  }) {
+    return AiUsageCompanion(
+      id: id ?? this.id,
+      photoScansUsed: photoScansUsed ?? this.photoScansUsed,
+      voiceCommandsUsed: voiceCommandsUsed ?? this.voiceCommandsUsed,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (photoScansUsed.present) {
+      map['photo_scans_used'] = Variable<int>(photoScansUsed.value);
+    }
+    if (voiceCommandsUsed.present) {
+      map['voice_commands_used'] = Variable<int>(voiceCommandsUsed.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AiUsageCompanion(')
+          ..write('id: $id, ')
+          ..write('photoScansUsed: $photoScansUsed, ')
+          ..write('voiceCommandsUsed: $voiceCommandsUsed')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $MembersTable members = $MembersTable(this);
@@ -13196,6 +13452,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SharedEntitiesTable sharedEntities = $SharedEntitiesTable(this);
   late final $KnownFamilyMembersTable knownFamilyMembers =
       $KnownFamilyMembersTable(this);
+  late final $AiUsageTable aiUsage = $AiUsageTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13224,5 +13481,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sharedSubjects,
     sharedEntities,
     knownFamilyMembers,
+    aiUsage,
   ];
 }

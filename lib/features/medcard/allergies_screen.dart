@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/allergy_severity.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/allergies_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
@@ -36,7 +37,7 @@ class AllergiesScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const MkListHeader(title: 'Алергії'),
+            MkListHeader(title: context.l10n.allergiesTitle),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -44,14 +45,14 @@ class AllergiesScreen extends ConsumerWidget {
                 child: allergiesAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                error: (e, _) => Center(child: Text('Помилка: $e')),
+                error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (allergies) {
                   if (allergies.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
+                      children: [
                         MkEmptyState(
-                          hint: 'Натисніть "+ Додати" щоб додати першу алергію',
+                          hint: context.l10n.allergiesEmptyHint,
                         ),
                       ],
                     );
@@ -147,7 +148,7 @@ class _AllergyCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
               ),
               child: Text(
-                severity.label,
+                severity.label(context),
                 style: AppTextStyles.bodySm.copyWith(color: severity.color, fontWeight: FontWeight.w700),
               ),
             ),

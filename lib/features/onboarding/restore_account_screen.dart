@@ -10,6 +10,7 @@ import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../today/providers/today_providers.dart';
 
@@ -83,7 +84,7 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Не вдалося відновити: перевірте пароль і з\'єднання, спробуйте ще раз';
+        _error = context.l10n.restoreErrorBody;
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -95,28 +96,28 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Пароль резервної копії'),
+        title: Text(context.l10n.backupPasswordDialogTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Введіть пароль, який ви вказали при створенні резервної копії.',
+              context.l10n.backupPasswordDialogBody,
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Пароль'),
+              decoration: InputDecoration(labelText: context.l10n.passwordFieldLabel),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.l10n.actionCancel)),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Продовжити'),
+            child: Text(context.l10n.continueAction),
           ),
         ],
       ),
@@ -135,10 +136,10 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
             children: [
               MkBackButton(onTap: _busy ? null : () => Navigator.of(context).pop()),
               const SizedBox(height: 20),
-              Text('Відновити акаунт', style: AppTextStyles.h2),
+              Text(context.l10n.restoreAccountTitle, style: AppTextStyles.h2),
               const SizedBox(height: 6),
               Text(
-                'Підключіться до сховища, де зберігається ваша резервна копія',
+                context.l10n.restoreAccountSubtitle,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
               const SizedBox(height: 32),
@@ -147,14 +148,14 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
               else ...[
                 _SourceButton(
                   icon: Icons.cloud_rounded,
-                  label: 'Google Drive',
+                  label: context.l10n.googleDriveLabel,
                   onTap: () => _restore(BackupTarget.googleDrive, BackupMode.googleDrive),
                 ),
                 if (Platform.isIOS) ...[
                   const SizedBox(height: 12),
                   _SourceButton(
                     icon: Icons.cloud_queue_rounded,
-                    label: 'iCloud',
+                    label: context.l10n.iCloudLabel,
                     onTap: () => _restore(BackupTarget.iCloud, BackupMode.iCloud),
                   ),
                 ],

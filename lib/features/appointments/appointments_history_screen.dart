@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -84,7 +85,7 @@ class _AppointmentsHistoryScreenState
                     child: CircularProgressIndicator(
                         color: AppColors.primary)),
                 error: (e, _) =>
-                    Center(child: Text('Помилка: $e')),
+                    Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (allApts) {
                   final members = membersAsync.valueOrNull ?? [];
                   final apts = allApts
@@ -120,7 +121,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
               child:
-                  Text('Візити до лікарів', style: AppTextStyles.h3)),
+                  Text(context.l10n.appointmentsHistoryTitle, style: AppTextStyles.h3)),
         ],
       ),
     );
@@ -162,7 +163,7 @@ class _SpecialtyFilterChip extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              specialty ?? 'Усі напрямки',
+              specialty ?? context.l10n.allSpecialtiesFilter,
               style: AppTextStyles.labelMd.copyWith(
                 color: active ? AppColors.primary : AppColors.textSub,
               ),
@@ -213,7 +214,7 @@ class _AppointmentsList extends StatelessWidget {
       ),
       children: [
         if (upcoming.isNotEmpty) ...[
-          SectionLabel('Майбутні'),
+          SectionLabel(context.l10n.sectionFuture),
           const SizedBox(height: AppDimensions.md),
           ...upcoming.asMap().entries.map((e) => Padding(
                 padding: const EdgeInsets.only(
@@ -228,7 +229,7 @@ class _AppointmentsList extends StatelessWidget {
           const SizedBox(height: AppDimensions.lg),
         ],
         if (past.isNotEmpty) ...[
-          SectionLabel('Минулі'),
+          SectionLabel(context.l10n.sectionPast),
           const SizedBox(height: AppDimensions.md),
           ...past.map((a) => Padding(
                 padding: const EdgeInsets.only(
@@ -261,10 +262,24 @@ class _AppointmentCard extends StatelessWidget {
     required this.isPast,
   });
 
-  static const _monthsShort = [
-    '', 'СІЧ', 'ЛЮТ', 'БЕР', 'КВІ', 'ТРА', 'ЧЕР',
-    'ЛИП', 'СЕР', 'ВЕР', 'ЖОВ', 'ЛИС', 'ГРУ'
-  ];
+  List<String> _monthsShort(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      '',
+      l10n.monthAbbrJan,
+      l10n.monthAbbrFeb,
+      l10n.monthAbbrMar,
+      l10n.monthAbbrApr,
+      l10n.monthAbbrMay,
+      l10n.monthAbbrJun,
+      l10n.monthAbbrJul,
+      l10n.monthAbbrAug,
+      l10n.monthAbbrSep,
+      l10n.monthAbbrOct,
+      l10n.monthAbbrNov,
+      l10n.monthAbbrDec,
+    ];
+  }
 
   Member? get _member =>
       members.cast<Member?>().firstWhere(
@@ -288,7 +303,7 @@ class _AppointmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final member = _member;
     final memberName =
-        member?.role == 'owner' ? 'Я' : (member?.name ?? '');
+        member?.role == 'owner' ? context.l10n.meCapsLabel : (member?.name ?? '');
 
     final hh = apt.scheduledAt.hour.toString().padLeft(2, '0');
     final mm = apt.scheduledAt.minute.toString().padLeft(2, '0');
@@ -339,7 +354,7 @@ class _AppointmentCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    _monthsShort[apt.scheduledAt.month],
+                    _monthsShort(context)[apt.scheduledAt.month],
                     style: AppTextStyles.bodyMd.copyWith(
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
@@ -392,14 +407,14 @@ class _AppointmentCard extends StatelessWidget {
             // Trailing
             isPast
                 ? Text(
-                    '✓ пройшло',
+                    context.l10n.visitPassedLabel,
                     style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.success,
                       fontWeight: FontWeight.w600,
                     ),
                   )
                 : Text(
-                    '→',
+                    context.l10n.arrowRightLabel,
                     style: AppTextStyles.bodyMd
                         .copyWith(color: AppColors.textMuted),
                   ),
@@ -425,13 +440,13 @@ class _EmptyState extends StatelessWidget {
           const Icon(Icons.calendar_month_rounded,
               size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text(filtered ? 'Немає візитів за цим напрямком' : 'Записів ще немає',
+          Text(filtered ? context.l10n.noAppointmentsForSpecialty : context.l10n.noRecordsYetTitle,
               style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
             filtered
-                ? 'Спробуйте обрати інший напрямок або скиньте фільтр'
-                : 'Натисніть "+ Додати" щоб створити перший',
+                ? context.l10n.tryDifferentSpecialtyHint
+                : context.l10n.tapToAddFirstHint,
             style: AppTextStyles.bodyMd
                 .copyWith(color: AppColors.textSub),
           ),

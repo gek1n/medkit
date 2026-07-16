@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
@@ -48,7 +49,7 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (e, _) => Center(child: Text('Помилка: $e')),
+          error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
           data: (defaultMember) {
             if (defaultMember == null) return const SizedBox.shrink();
             final members = membersAsync.valueOrNull ?? [defaultMember];
@@ -112,7 +113,7 @@ class _MedCardBody extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Expanded(child: Text('Медкартка', style: AppTextStyles.h2)),
+              Expanded(child: Text(context.l10n.medCardTitle, style: AppTextStyles.h2)),
               if (members.length > 1)
                 MemberSwitcherPill(
                   members: members,
@@ -135,8 +136,8 @@ class _MedCardBody extends StatelessWidget {
               // відступом, щоб не губився серед решти однакових плиток.
               _MedCardHighlightTile(
                 icon: Icons.timeline_rounded,
-                title: 'Історія лікування за напрямками',
-                subtitle: 'Візити й аналізи одного лікаря — все в одному місці',
+                title: context.l10n.medCardHistoryByDoctorTitle,
+                subtitle: context.l10n.medCardHistoryByDoctorSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -148,8 +149,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.biotech_rounded,
                 iconColor: AppColors.info,
-                title: 'Аналізи',
-                subtitle: 'Результати за напрямками',
+                title: context.l10n.labResultsTitle,
+                subtitle: context.l10n.medCardLabResultsSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -161,8 +162,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.medication_liquid_rounded,
                 iconColor: AppColors.primary,
-                title: 'Архів ліків',
-                subtitle: 'Усі препарати й статус лікування',
+                title: context.l10n.medCardArchiveTitle,
+                subtitle: context.l10n.medCardArchiveSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -174,8 +175,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.event_note_rounded,
                 iconColor: AppColors.primary,
-                title: 'Візити до лікарів',
-                subtitle: 'Записи обраного профілю',
+                title: context.l10n.medCardAppointmentsTitle,
+                subtitle: context.l10n.medCardAppointmentsSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -187,8 +188,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.mood_rounded,
                 iconColor: AppColors.primary,
-                title: 'Історія самопочуття',
-                subtitle: 'Настрій та симптоми за весь час',
+                title: context.l10n.medCardWellbeingHistoryTitle,
+                subtitle: context.l10n.medCardWellbeingHistorySubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -200,8 +201,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.warning_amber_rounded,
                 iconColor: AppColors.danger,
-                title: 'Алергії',
-                subtitle: 'Реакції на препарати й речовини',
+                title: context.l10n.allergiesTitle,
+                subtitle: context.l10n.medCardAllergiesSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -213,8 +214,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.favorite_rounded,
                 iconColor: AppColors.danger,
-                title: 'Хронічні захворювання',
-                subtitle: 'Діагнози, дата встановлення',
+                title: context.l10n.chronicConditionsSectionTitle,
+                subtitle: context.l10n.medCardChronicConditionsSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -226,8 +227,8 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.vaccines_rounded,
                 iconColor: AppColors.warning,
-                title: 'Щеплення',
-                subtitle: 'Історія й наступні ревакцинації',
+                title: context.l10n.vaccinationsTitle,
+                subtitle: context.l10n.medCardVaccinationsSubtitle,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -239,7 +240,7 @@ class _MedCardBody extends StatelessWidget {
               _MedCardTile(
                 icon: Icons.local_hospital_rounded,
                 iconColor: AppColors.warning,
-                title: 'Операції та госпіталізації',
+                title: context.l10n.surgeriesSectionTitle,
                 subtitle: null,
                 onTap: () => Navigator.push(
                   context,

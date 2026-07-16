@@ -9,6 +9,7 @@ import '../../core/services/backup_settings_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 import '../today/providers/today_providers.dart';
 
@@ -84,10 +85,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     if (target == null) return;
 
     var passphrase = await BackupSettingsService.savedPassphrase();
+    if (!mounted) return;
     if (passphrase == null) {
       final entered = await _askPassphrase(
-        title: 'Пароль для резервної копії',
-        subtitle: 'Придумайте пароль. Без нього відновити дані буде неможливо — навіть нам.',
+        title: context.l10n.backupPassphraseDialogTitle,
+        subtitle: context.l10n.backupPassphraseDialogSubtitle,
         confirmRequired: true,
       );
       if (entered == null) return;
@@ -102,11 +104,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       if (!mounted) return;
       setState(() => _lastBackupAt = DateTime.now());
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Резервну копію збережено у $_targetName')),
+        SnackBar(content: Text(context.l10n.backupSavedSnackbar(_targetName))),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -118,10 +120,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
 
     final confirmed = await _confirmRestore();
     if (confirmed != true) return;
+    if (!mounted) return;
 
     final passphrase = await _askPassphrase(
-      title: 'Пароль резервної копії',
-      subtitle: 'Введіть пароль, який ви вказали при створенні копії.',
+      title: context.l10n.restorePassphraseDialogTitle,
+      subtitle: context.l10n.restorePassphraseDialogSubtitle,
       confirmRequired: false,
     );
     if (passphrase == null || !mounted) return;
@@ -153,17 +156,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         context: context,
         barrierDismissible: false,
         builder: (_) => AlertDialog(
-          title: const Text('Готово'),
-          content: const Text('Дані відновлено.'),
+          title: Text(context.l10n.doneTitle),
+          content: Text(context.l10n.restoreDoneBody),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Гаразд')),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.l10n.gotItAction)),
           ],
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не вдалося відновити: невірний пароль або копія відсутня')),
+        SnackBar(content: Text(context.l10n.restoreFailedError)),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -181,10 +184,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     if (target == null) return;
 
     final newPassphrase = await _askPassphrase(
-      title: 'Новий пароль резервної копії',
-      subtitle: 'Одразу після зміни буде створено нову резервну копію з цим паролем — '
-          'запам\'ятайте його, стару резервну копію під старим паролем більше не '
-          'можна буде використати.',
+      title: context.l10n.changePassphraseDialogTitle,
+      subtitle: context.l10n.changePassphraseDialogSubtitle,
       confirmRequired: true,
     );
     if (newPassphrase == null || !mounted) return;
@@ -197,11 +198,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       if (!mounted) return;
       setState(() => _lastBackupAt = DateTime.now());
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Пароль змінено, нову резервну копію збережено')),
+        SnackBar(content: Text(context.l10n.passphraseChangedSnackbar)),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -217,13 +218,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     return showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Відновити з резервної копії?'),
-        content: const Text(
-          'Поточні дані на цьому пристрої буде замінено даними з резервної копії. Цю дію не можна скасувати.',
+        title: Text(context.l10n.confirmRestoreTitle),
+        content: Text(
+          context.l10n.confirmRestoreBody,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Скасувати')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Відновити')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(context.l10n.actionCancel)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(context.l10n.restoreAction)),
         ],
       ),
     );
@@ -252,14 +253,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               TextField(
                 controller: controller,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Пароль'),
+                decoration: InputDecoration(labelText: context.l10n.passwordFieldLabel),
               ),
               if (confirmRequired) ...[
                 const SizedBox(height: 12),
                 TextField(
                   controller: confirmController,
                   obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Повторіть пароль'),
+                  decoration: InputDecoration(labelText: context.l10n.confirmPasswordFieldLabel),
                 ),
               ],
               if (error != null) ...[
@@ -271,22 +272,22 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Скасувати'),
+              child: Text(context.l10n.actionCancel),
             ),
             FilledButton(
               onPressed: () {
                 final value = controller.text;
                 if (value.length < 6) {
-                  setDialogState(() => error = 'Пароль має бути не коротшим за 6 символів');
+                  setDialogState(() => error = context.l10n.passwordTooShortError);
                   return;
                 }
                 if (confirmRequired && value != confirmController.text) {
-                  setDialogState(() => error = 'Паролі не збігаються');
+                  setDialogState(() => error = context.l10n.passwordsMismatchError);
                   return;
                 }
                 Navigator.of(context).pop(value);
               },
-              child: const Text('Продовжити'),
+              child: Text(context.l10n.continueAction),
             ),
           ],
         ),
@@ -301,7 +302,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const MkScreenHeader(title: 'Резервна копія'),
+            MkScreenHeader(title: context.l10n.backupScreenTitle),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -309,15 +310,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                       padding: const EdgeInsets.all(AppDimensions.screenPadding),
                       children: [
                         Text(
-                          'Ліки, розклад, медкартка (фото/PDF) і всі інші дані — обирайте, '
-                          'де зберігати резервну копію.',
+                          context.l10n.backupIntroBody,
                           style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
                         ),
                         const SizedBox(height: AppDimensions.lg),
                         _ModeCard(
                           icon: Icons.phonelink_off_rounded,
-                          title: 'Тільки на пристрої',
-                          subtitle: 'При перевстановленні застосунку всі дані буде втрачено',
+                          title: context.l10n.backupModeLocalTitle,
+                          subtitle: context.l10n.backupModeLocalSubtitle,
                           selected: _mode == BackupMode.local,
                           warning: _mode == BackupMode.local,
                           onTap: _busy ? null : () => _selectMode(BackupMode.local),
@@ -326,7 +326,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         _ModeCard(
                           icon: Icons.cloud_rounded,
                           title: 'Google Drive',
-                          subtitle: 'Зашифровано на пристрої — Elly і Google не бачать ваші дані',
+                          subtitle: context.l10n.backupModeGoogleDriveSubtitle,
                           selected: _mode == BackupMode.googleDrive,
                           onTap: _busy ? null : () => _selectMode(BackupMode.googleDrive),
                         ),
@@ -335,20 +335,20 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           _ModeCard(
                             icon: Icons.cloud_queue_rounded,
                             title: 'iCloud',
-                            subtitle: 'Зашифровано на пристрої — Elly і Apple не бачать ваші дані',
+                            subtitle: context.l10n.backupModeICloudSubtitle,
                             selected: _mode == BackupMode.iCloud,
                             onTap: _busy ? null : () => _selectMode(BackupMode.iCloud),
                           ),
                         ],
                         if (_mode != BackupMode.local) ...[
                           const SizedBox(height: AppDimensions.xl),
-                          Text('ЧАСТОТА АВТОБЕКАПУ', style: AppTextStyles.labelSm),
+                          Text(context.l10n.backupFrequencyCapsLabel, style: AppTextStyles.labelSm),
                           const SizedBox(height: AppDimensions.sm),
                           Row(
                             children: [
                               Expanded(
                                 child: _FrequencyChip(
-                                  label: 'Раз на день',
+                                  label: context.l10n.backupFrequencyDailyLabel,
                                   selected: _frequency == BackupFrequency.daily,
                                   onTap: _busy
                                       ? null
@@ -358,7 +358,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                               const SizedBox(width: AppDimensions.sm),
                               Expanded(
                                 child: _FrequencyChip(
-                                  label: 'Раз на тиждень',
+                                  label: context.l10n.backupFrequencyWeeklyLabel,
                                   selected: _frequency == BackupFrequency.weekly,
                                   onTap: _busy
                                       ? null
@@ -369,17 +369,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                           ),
                           const SizedBox(height: AppDimensions.sm),
                           Text(
-                            'Спрацьовує, коли ви відкриваєте застосунок чи повертаєтесь у '
-                            'нього — це не справжній фоновий розклад. Якщо не відкривати '
-                            'Elly довше обраної частоти, бекап зробиться одразу при '
-                            'наступному відкритті.',
+                            context.l10n.backupFrequencyExplainerBody,
                             style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                           ),
                           const SizedBox(height: AppDimensions.md),
                           Text(
                             _lastBackupAt == null
-                                ? 'Резервної копії ще не було'
-                                : 'Останній бекап: ${_formatDate(_lastBackupAt!)}',
+                                ? context.l10n.backupNeverDoneLabel
+                                : context.l10n.lastBackupAtLabel(_formatDate(_lastBackupAt!)),
                             style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                           ),
                           const SizedBox(height: AppDimensions.lg),
@@ -389,19 +386,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                             FilledButton.icon(
                               onPressed: () => _createBackup(),
                               icon: const Icon(Icons.cloud_upload_outlined),
-                              label: const Text('Створити резервну копію зараз'),
+                              label: Text(context.l10n.createBackupNowAction),
                             ),
                             const SizedBox(height: AppDimensions.sm),
                             OutlinedButton.icon(
                               onPressed: _restoreBackup,
                               icon: const Icon(Icons.cloud_download_outlined),
-                              label: const Text('Відновити з резервної копії'),
+                              label: Text(context.l10n.restoreFromBackupAction),
                             ),
                             const SizedBox(height: AppDimensions.sm),
                             TextButton.icon(
                               onPressed: _changePassphrase,
                               icon: const Icon(Icons.key_rounded, size: 18),
-                              label: const Text('Змінити пароль резервної копії'),
+                              label: Text(context.l10n.changeBackupPassphraseAction),
                             ),
                           ],
                         ],

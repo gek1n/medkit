@@ -10,6 +10,7 @@ import '../help/help_faq_screen.dart';
 import '../legal/privacy_policy_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
+import '../../core/providers/app_language_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/services/notification_service.dart';
@@ -17,6 +18,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_button.dart';
@@ -48,7 +50,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       error: (e, _) => Scaffold(
         backgroundColor: AppColors.bg,
-        body: Center(child: Text('Помилка: $e')),
+        body: Center(child: Text(context.l10n.errorGeneric(e.toString()))),
       ),
       data: (member) {
         if (member == null) return const SizedBox.shrink();
@@ -105,18 +107,18 @@ class _ProfileBody extends ConsumerWidget {
                       AppDimensions.screenPadding,
                       AppDimensions.md,
                     ),
-                    child: Text('Профіль', style: AppTextStyles.h2),
+                    child: Text(context.l10n.navProfile, style: AppTextStyles.h2),
                   ),
                   _HeroSection(member: member, plan: plan),
                   const SizedBox(height: AppDimensions.lg),
                   const _BackupReminderBanner(),
                   if (!plan.isPaid) _UpgradeBanner(),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader("Здоров'я та вправи",
+                  _ProfileSectionHeader(context.l10n.healthSectionHeader,
                       icon: Icons.favorite_rounded, color: AppColors.primary),
                   _HealthSection(memberId: member.id),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Налаштування додатку',
+                  _ProfileSectionHeader(context.l10n.appSettingsSectionHeader,
                       icon: Icons.tune_rounded, color: AppColors.accent),
                   _AppSettingsSection(
                     isLocalProfile: member.role == 'dependent',
@@ -125,11 +127,11 @@ class _ProfileBody extends ConsumerWidget {
                     onFontSizeChanged: onFontSizeChanged,
                   ),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Акаунт',
+                  _ProfileSectionHeader(context.l10n.accountSectionHeader,
                       icon: Icons.person_rounded, color: AppColors.warning),
                   _AccountSection(memberId: member.id),
                   const SizedBox(height: AppDimensions.xl),
-                  _ProfileSectionHeader('Інше',
+                  _ProfileSectionHeader(context.l10n.otherSectionHeader,
                       icon: Icons.more_horiz_rounded, color: AppColors.info),
                   _OtherSection(),
                   const SizedBox(height: AppDimensions.xl),
@@ -236,10 +238,10 @@ class _PlanBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, label, color) = switch (plan) {
-      AppPlan.free => (Icons.star_outline_rounded, 'Безкоштовний план',
+      AppPlan.free => (Icons.star_outline_rounded, context.l10n.planFreeLabel,
           AppColors.textSub),
-      AppPlan.plus => (Icons.favorite_rounded, 'Elly Plus', AppColors.primary),
-      AppPlan.family => (Icons.diversity_3_rounded, 'Elly Family', AppColors.accent),
+      AppPlan.plus => (Icons.favorite_rounded, context.l10n.planPlusLabel, AppColors.primary),
+      AppPlan.family => (Icons.diversity_3_rounded, context.l10n.planFamilyLabel, AppColors.accent),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -308,11 +310,11 @@ class _BackupReminderBanner extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Резервна копія вимкнена',
+                    Text(context.l10n.backupDisabledTitle,
                         style: AppTextStyles.labelMd.copyWith(color: const Color(0xFF78350F))),
                     const SizedBox(height: 2),
                     Text(
-                      'Дані зберігаються лише на цьому пристрої — увімкніть, щоб не втратити їх',
+                      context.l10n.backupDisabledBody,
                       style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF78350F)),
                     ),
                   ],
@@ -379,7 +381,7 @@ class _UpgradeBanner extends StatelessWidget {
                           const Icon(Icons.family_restroom_rounded,
                               size: 12, color: Colors.white),
                           const SizedBox(width: 4),
-                          Text('Сімʼя',
+                          Text(context.l10n.familyLabel,
                               style: AppTextStyles.bodySm.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
@@ -388,13 +390,13 @@ class _UpgradeBanner extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text('Підключіть Сім\'я',
+                    Text(context.l10n.connectFamilyTitle,
                         style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 3),
                     SizedBox(
                       width: 190,
-                      child: Text('Турбуйтесь про всю родину',
+                      child: Text(context.l10n.connectFamilySubtitle,
                           style: AppTextStyles.bodySm.copyWith(
                               color: Colors.white.withValues(alpha: 0.85))),
                     ),
@@ -555,7 +557,7 @@ class _HealthSection extends StatelessWidget {
       children: [
         _RowItem(
           icon: Icons.self_improvement_rounded,
-          label: 'Антистрес-вправи',
+          label: context.l10n.antiStressLabel,
           color: AppColors.primary,
           onTap: () => Navigator.push(
             context,
@@ -569,7 +571,7 @@ class _HealthSection extends StatelessWidget {
 
 // ────────────────────────────── appearance ──────────────────────────────
 
-class _AppSettingsSection extends StatelessWidget {
+class _AppSettingsSection extends ConsumerWidget {
   final bool isLocalProfile;
   final bool canEditFontSize;
   final int fontSizeIndex;
@@ -582,8 +584,48 @@ class _AppSettingsSection extends StatelessWidget {
     required this.onFontSizeChanged,
   });
 
+  Future<void> _pickLanguage(BuildContext context, WidgetRef ref) async {
+    final current = ref.read(appLanguageProvider);
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(AppDimensions.screenPadding),
+        decoration: const BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(context.l10n.languageLabel, style: AppTextStyles.h3),
+            const SizedBox(height: 4),
+            Text(
+              context.l10n.voiceLanguageDescription,
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+            ),
+            const SizedBox(height: AppDimensions.md),
+            ...appLanguages.map((l) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l.label, style: AppTextStyles.bodyMd),
+                  trailing: l.id == current
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: AppColors.primary)
+                      : null,
+                  onTap: () => Navigator.pop(context, l.id),
+                )),
+          ],
+        ),
+      ),
+    );
+    if (chosen != null) {
+      await ref.read(appLanguageProvider.notifier).set(chosen);
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return _SectionCard(
       children: [
         // Локальні профілі не мають власного пристрою/акаунту — розмір
@@ -602,13 +644,13 @@ class _AppSettingsSection extends StatelessWidget {
                       color: AppColors.accent),
                   const SizedBox(width: AppDimensions.md),
                   Expanded(
-                    child: Text('Розмір шрифту',
+                    child: Text(context.l10n.fontSizeLabel,
                         style: AppTextStyles.bodyMd),
                   ),
                   Row(
                     children: List.generate(4, (i) {
                       final sizes = [12.0, 14.0, 16.0, 18.0];
-                      final labels = ['Аа', 'Аа', 'Аа', 'Аа'];
+                      final labels = List.filled(4, context.l10n.fontSizeSampleLabel);
                       final selected = fontSizeIndex == i;
                       return GestureDetector(
                         onTap: canEditFontSize
@@ -651,7 +693,7 @@ class _AppSettingsSection extends StatelessWidget {
           ),
           _RowItem(
             icon: Icons.notifications_rounded,
-            label: 'Сповіщення',
+            label: context.l10n.notificationsLabel,
             color: AppColors.accent,
             onTap: () => Navigator.push(
               context,
@@ -662,16 +704,12 @@ class _AppSettingsSection extends StatelessWidget {
         ],
         _RowItem(
           icon: Icons.language_rounded,
-          label: 'Мова',
+          label: context.l10n.languageLabel,
           color: AppColors.accent,
-          trailing: Text('Українська',
+          trailing: Text(appLanguageLabel(ref.watch(appLanguageProvider)),
               style:
                   AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content:
-                    Text('Вибір мови буде доступний після перекладів')),
-          ),
+          onTap: () => _pickLanguage(context, ref),
         ),
       ],
     );
@@ -691,12 +729,12 @@ class _AccountSection extends ConsumerWidget {
       children: [
         _RowItem(
           icon: Icons.workspace_premium_rounded,
-          label: 'Тарифи',
+          label: context.l10n.plansLabel,
           color: AppColors.warning,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(plan.displayName,
+              Text(plan.displayName(context),
                   style: AppTextStyles.bodySm
                       .copyWith(color: AppColors.textMuted)),
               const SizedBox(width: 4),
@@ -711,7 +749,7 @@ class _AccountSection extends ConsumerWidget {
         ),
         _RowItem(
           icon: Icons.visibility_rounded,
-          label: 'Видимість для сім\'ї',
+          label: context.l10n.familyVisibilityLabel,
           color: AppColors.warning,
           onTap: () => Navigator.push(
             context,
@@ -723,7 +761,7 @@ class _AccountSection extends ConsumerWidget {
         ),
         _RowItem(
           icon: Icons.backup_rounded,
-          label: 'Резервна копія',
+          label: context.l10n.backupLabel,
           color: AppColors.warning,
           onTap: () async {
             await Navigator.push(
@@ -735,7 +773,7 @@ class _AccountSection extends ConsumerWidget {
         ),
         _RowItem(
           icon: Icons.privacy_tip_rounded,
-          label: 'Конфіденційність',
+          label: context.l10n.privacyLabel,
           color: AppColors.warning,
           onTap: () => Navigator.push(
             context,
@@ -756,7 +794,7 @@ class _OtherSection extends StatelessWidget {
       children: [
         _RowItem(
           icon: Icons.star_rounded,
-          label: 'Оцінити застосунок',
+          label: context.l10n.rateAppLabel,
           color: AppColors.info,
           onTap: () async {
             final inAppReview = InAppReview.instance;
@@ -769,7 +807,7 @@ class _OtherSection extends StatelessWidget {
         ),
         _RowItem(
           icon: Icons.help_outline_rounded,
-          label: 'Допомога та FAQ',
+          label: context.l10n.helpFaqLabel,
           color: AppColors.info,
           onTap: () => Navigator.push(
             context,
@@ -778,7 +816,7 @@ class _OtherSection extends StatelessWidget {
         ),
         _RowItem(
           icon: Icons.privacy_tip_outlined,
-          label: 'Політика конфіденційності',
+          label: context.l10n.privacyPolicyLabel,
           color: AppColors.info,
           onTap: () => Navigator.push(
             context,
@@ -787,7 +825,7 @@ class _OtherSection extends StatelessWidget {
         ),
         _RowItem(
           icon: Icons.ios_share_rounded,
-          label: 'Експорт даних',
+          label: context.l10n.exportDataLabel,
           color: AppColors.info,
           onTap: () => Navigator.push(
             context,
@@ -870,7 +908,7 @@ class _LogoutButton extends ConsumerWidget {
                 BorderRadius.circular(AppDimensions.radiusLg),
           ),
         ),
-        child: const Text('Вийти з акаунту'),
+        child: Text(context.l10n.logoutLabel),
       ),
     );
   }
@@ -879,19 +917,18 @@ class _LogoutButton extends ConsumerWidget {
     showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Вийти з акаунту?'),
-        content: const Text(
-            'Усі дані будуть видалені з цього пристрою. Цю дію неможливо скасувати.'),
+        title: Text(context.l10n.logoutConfirmTitle),
+        content: Text(context.l10n.logoutConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style:
                 TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Вийти'),
+            child: Text(context.l10n.logoutConfirmAction),
           ),
         ],
       ),
@@ -968,7 +1005,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               ),
             ),
             const SizedBox(height: AppDimensions.lg),
-            Text('Редагувати профіль', style: AppTextStyles.h3),
+            Text(context.l10n.editProfileTitle, style: AppTextStyles.h3),
             const SizedBox(height: AppDimensions.lg),
             Center(child: AvatarImage(index: _avatarIndex, size: 96)),
             const SizedBox(height: AppDimensions.lg),
@@ -982,7 +1019,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 controller: _nameCtrl,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  hintText: "Ваше ім'я",
+                  hintText: context.l10n.yourNameHint,
                   hintStyle: AppTextStyles.bodyMd
                       .copyWith(color: AppColors.textMuted),
                   border: InputBorder.none,
@@ -1032,7 +1069,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             const SizedBox(height: AppDimensions.lg),
             Padding(
               padding: const EdgeInsets.only(bottom: AppDimensions.lg),
-              child: MkButton(label: 'Зберегти', onTap: _save),
+              child: MkButton(label: context.l10n.saveAction, onTap: _save),
             ),
           ],
         ),

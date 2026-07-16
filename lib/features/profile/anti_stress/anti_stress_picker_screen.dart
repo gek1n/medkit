@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/l10n_ext.dart';
 import '../../../shared/widgets/mk_back_button.dart';
 import 'breathing_exercise_screen.dart';
 import 'clear_mind_screen.dart';
@@ -28,7 +29,7 @@ class AntiStressPickerScreen extends StatelessWidget {
                 children: [
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   const SizedBox(width: 12),
-                  Text('Антистрес-вправи', style: AppTextStyles.h2),
+                  Text(context.l10n.antiStressLabel, style: AppTextStyles.h2),
                 ],
               ),
             ),
@@ -49,7 +50,7 @@ class AntiStressPickerScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimensions.md),
                     Text(
-                      'Обери, що допоможе прямо зараз',
+                      context.l10n.antiStressPickerSubtitle,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyMd
                           .copyWith(color: AppColors.textSub),
@@ -58,9 +59,8 @@ class AntiStressPickerScreen extends StatelessWidget {
                     _ExerciseCard(
                       icon: Icons.air_rounded,
                       color: AppColors.primary,
-                      title: 'Дихаймо разом',
-                      subtitle:
-                          'Повільне дихання за 2 хвилини заспокоює нервову систему',
+                      title: context.l10n.breathingExerciseTitle,
+                      subtitle: context.l10n.breathingExerciseSubtitle,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -71,9 +71,8 @@ class AntiStressPickerScreen extends StatelessWidget {
                     _ExerciseCard(
                       icon: Icons.visibility_rounded,
                       color: AppColors.info,
-                      title: '5-4-3-2-1',
-                      subtitle:
-                          'Техніка заземлення — повертає увагу в тут-і-зараз',
+                      title: context.l10n.grounding54321Title,
+                      subtitle: context.l10n.grounding54321Subtitle,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -84,9 +83,8 @@ class AntiStressPickerScreen extends StatelessWidget {
                     _ExerciseCard(
                       icon: Icons.blur_on_rounded,
                       color: AppColors.accent,
-                      title: 'Чистий розум',
-                      subtitle:
-                          'Проведи пальцем по екрану — і туман розвіється',
+                      title: context.l10n.clearMindTitle,
+                      subtitle: context.l10n.clearMindPickerSubtitle,
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(

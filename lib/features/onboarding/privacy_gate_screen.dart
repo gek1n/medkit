@@ -5,6 +5,7 @@ import '../../core/services/privacy_consent_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../legal/privacy_policy_screen.dart';
 
 /// Останній крок будь-якого з трьох онбординг-флоу (створення акаунта,
@@ -71,10 +72,10 @@ class _PrivacyGateStepState extends State<PrivacyGateStep> {
           const SizedBox(height: 16),
           Image.asset('assets/illustrations/done-hero.png', height: 180),
           const SizedBox(height: 16),
-          Text('Готово!', style: AppTextStyles.h1),
+          Text(context.l10n.doneExclamationTitle, style: AppTextStyles.h1),
           const SizedBox(height: 8),
           Text(
-            'Все налаштовано. Відкрийте дашборд і почніть стежити за здоров\'ям.',
+            context.l10n.setupCompleteBody,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),
@@ -112,16 +113,16 @@ class _PrivacyGateStepState extends State<PrivacyGateStep> {
                     children: [
                       Text(
                         widget.hasMedications
-                            ? 'Перше нагадування — сьогодні'
-                            : 'Нагадувань поки немає',
+                            ? context.l10n.firstReminderTodayLabel
+                            : context.l10n.noRemindersYetLabel,
                         style: AppTextStyles.labelMd.copyWith(
                           color: AppColors.primary,
                         ),
                       ),
                       Text(
                         widget.hasMedications
-                            ? 'Нагадування прийде за розкладом, який ви щойно додали'
-                            : 'Налаштуйте ліки щоб активувати нагадування',
+                            ? context.l10n.reminderWillArriveLabel
+                            : context.l10n.setupMedsToActivateLabel,
                         style: AppTextStyles.bodySm.copyWith(
                           color: AppColors.textSub,
                         ),
@@ -160,9 +161,9 @@ class _PrivacyGateStepState extends State<PrivacyGateStep> {
                     text: TextSpan(
                       style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain),
                       children: [
-                        const TextSpan(text: 'Я ознайомлений(-а) і згоден(-а) з '),
+                        TextSpan(text: context.l10n.privacyConsentPrefix),
                         TextSpan(
-                          text: 'Політикою конфіденційності',
+                          text: context.l10n.privacyPolicyLabel,
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w700,
@@ -170,7 +171,7 @@ class _PrivacyGateStepState extends State<PrivacyGateStep> {
                           ),
                           recognizer: _policyLinkRecognizer,
                         ),
-                        const TextSpan(text: ' застосунку'),
+                        TextSpan(text: context.l10n.privacyConsentSuffix),
                       ],
                     ),
                   ),
@@ -194,7 +195,7 @@ class _PrivacyGateStepState extends State<PrivacyGateStep> {
                 elevation: 0,
               ),
               child: Text(
-                'Відкрити дашборд →',
+                context.l10n.openDashboardAction,
                 style: AppTextStyles.labelLg.copyWith(color: Colors.white),
               ),
             ),

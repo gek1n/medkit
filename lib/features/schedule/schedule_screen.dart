@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
@@ -63,12 +64,12 @@ extension on _ScheduleCategory {
         _ScheduleCategory.appointments => Icons.medical_services_rounded,
       };
 
-  String get label => switch (this) {
-        _ScheduleCategory.all => 'Усі',
-        _ScheduleCategory.meds => 'Ліки',
-        _ScheduleCategory.activities => 'Активності',
-        _ScheduleCategory.wellbeing => 'Самопочуття',
-        _ScheduleCategory.appointments => 'Лікарі',
+  String label(BuildContext context) => switch (this) {
+        _ScheduleCategory.all => context.l10n.categoryAll,
+        _ScheduleCategory.meds => context.l10n.categoryMeds,
+        _ScheduleCategory.activities => context.l10n.categoryActivities,
+        _ScheduleCategory.wellbeing => context.l10n.categoryWellbeing,
+        _ScheduleCategory.appointments => context.l10n.categoryDoctors,
       };
 }
 
@@ -108,7 +109,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       body: membersAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(context.l10n.errorGeneric('$e'))),
         data: (members) {
           if (members.isEmpty) {
             return const _EmptyMembers();
@@ -213,7 +214,7 @@ class _ScheduleBody extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('Розклад', style: AppTextStyles.h2),
+                      child: Text(context.l10n.scheduleTitle, style: AppTextStyles.h2),
                     ),
                     if (members.length > 1)
                       MemberSwitcherPill(
@@ -236,7 +237,7 @@ class _ScheduleBody extends ConsumerWidget {
             ),
             child: _SearchField(
               value: search,
-              hint: 'Пошук по всіх розділах',
+              hint: context.l10n.searchAllSections,
               onChanged: onSearchChanged,
             ),
           ),
@@ -262,18 +263,18 @@ class _ScheduleBody extends ConsumerWidget {
               if (q.isEmpty) ...[
                 if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.meds) ...[
-                  const _SectionHeader(
+                  _SectionHeader(
                     icon: Icons.medication_rounded,
-                    title: 'Ліки',
+                    title: context.l10n.sectionMeds,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   medsAsync.when(
                     loading: () => const _SectionLoading(),
-                    error: (e, _) => Text('$e'),
+                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (meds) {
                       if (meds.isEmpty) {
                         return _EmptySection(
-                          hint: 'Немає активних ліків',
+                          hint: context.l10n.noActiveMeds,
                           onAdd: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -309,18 +310,18 @@ class _ScheduleBody extends ConsumerWidget {
 
                 if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.appointments) ...[
-                  const _SectionHeader(
+                  _SectionHeader(
                     icon: Icons.medical_services_rounded,
-                    title: 'Прийоми лікарів',
+                    title: context.l10n.sectionAppointments,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   appointmentsAsync.when(
                     loading: () => const _SectionLoading(),
-                    error: (e, _) => Text('$e'),
+                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (appointments) {
                       if (appointments.isEmpty) {
                         return _EmptySection(
-                          hint: 'Немає запланованих прийомів',
+                          hint: context.l10n.noScheduledAppointments,
                           onAdd: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -356,18 +357,18 @@ class _ScheduleBody extends ConsumerWidget {
 
                 if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.activities) ...[
-                  const _SectionHeader(
+                  _SectionHeader(
                     icon: Icons.directions_walk_rounded,
-                    title: 'Активності',
+                    title: context.l10n.sectionActivities,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
                     loading: () => const _SectionLoading(),
-                    error: (e, _) => Text('$e'),
+                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (activities) {
                       if (activities.isEmpty) {
                         return _EmptySection(
-                          hint: 'Немає активних занять',
+                          hint: context.l10n.noActiveActivities,
                           onAdd: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -403,18 +404,18 @@ class _ScheduleBody extends ConsumerWidget {
 
                 if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.wellbeing) ...[
-                  const _SectionHeader(
+                  _SectionHeader(
                     icon: Icons.favorite_rounded,
-                    title: 'Самопочуття',
+                    title: context.l10n.sectionWellbeing,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   wellbeingScheduleAsync.when(
                     loading: () => const _SectionLoading(),
-                    error: (e, _) => Text('$e'),
+                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (schedule) {
                       if (schedule == null) {
                         return _EmptySection(
-                          hint: 'Розклад не налаштовано',
+                          hint: context.l10n.wellbeingScheduleNotSet,
                           onAdd: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -455,14 +456,14 @@ class _ScheduleBody extends ConsumerWidget {
                       appointments.isNotEmpty;
 
                   if (!anyFound) {
-                    return const _EmptySection(hint: 'Нічого не знайдено');
+                    return _EmptySection(hint: context.l10n.nothingFound);
                   }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (meds.isNotEmpty) ...[
-                        const _SectionHeader(icon: Icons.medication_rounded, title: 'Ліки'),
+                        _SectionHeader(icon: Icons.medication_rounded, title: context.l10n.sectionMeds),
                         const SizedBox(height: AppDimensions.md),
                         ...meds.map((m) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -482,7 +483,7 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (activities.isNotEmpty) ...[
-                        const _SectionHeader(icon: Icons.directions_walk_rounded, title: 'Активності'),
+                        _SectionHeader(icon: Icons.directions_walk_rounded, title: context.l10n.sectionActivities),
                         const SizedBox(height: AppDimensions.md),
                         ...activities.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -502,7 +503,7 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (appointments.isNotEmpty) ...[
-                        const _SectionHeader(icon: Icons.medical_services_rounded, title: 'Прийоми лікарів'),
+                        _SectionHeader(icon: Icons.medical_services_rounded, title: context.l10n.sectionAppointments),
                         const SizedBox(height: AppDimensions.md),
                         ...appointments.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -575,7 +576,7 @@ class _CategoryChipsRow extends StatelessWidget {
                       color: active ? Colors.white : AppColors.textSub),
                   const SizedBox(width: 6),
                   Text(
-                    c.label,
+                    c.label(context),
                     style: AppTextStyles.labelMd.copyWith(
                         color: active ? Colors.white : AppColors.textMain),
                   ),
@@ -800,15 +801,6 @@ class _TaskCardShell extends StatelessWidget {
   }
 }
 
-String _daysWordUk(int n) {
-  final mod10 = n % 10;
-  final mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return 'днів';
-  if (mod10 == 1) return 'день';
-  if (mod10 >= 2 && mod10 <= 4) return 'дні';
-  return 'днів';
-}
-
 // ─── Med card ─────────────────────────────────────────────────────────────────
 
 class _MedCard extends StatelessWidget {
@@ -822,8 +814,8 @@ class _MedCard extends StatelessWidget {
       color: color,
       icon: medFormIcon(med.form),
       title: med.name,
-      subtitle: '${_doseStr(med)} · ${_repeatStr(med)}',
-      extraLine: _daysLeftStr(med),
+      subtitle: '${_doseStr(med)} · ${_repeatStr(context, med)}',
+      extraLine: _daysLeftStr(context, med),
       trailing: med.totalCount > 0
           ? _PillBadge(remaining: med.remainingCount, total: med.totalCount)
           : null,
@@ -833,20 +825,20 @@ class _MedCard extends StatelessWidget {
   String _doseStr(Medication m) =>
       '${m.doseAmount.toStringAsFixed(m.doseAmount == m.doseAmount.roundToDouble() ? 0 : 1)} ${m.doseUnit}';
 
-  String _repeatStr(Medication m) => switch (m.repeatType) {
-        'daily' => 'щодня',
-        'alternate' => 'через день',
-        'weekdays' => 'певні дні',
-        'every_n' => 'кожні N днів',
-        'cycle' => 'циклом',
+  String _repeatStr(BuildContext context, Medication m) => switch (m.repeatType) {
+        'daily' => context.l10n.repeatDaily,
+        'alternate' => context.l10n.repeatAlternate,
+        'weekdays' => context.l10n.repeatWeekdays,
+        'every_n' => context.l10n.repeatEveryN,
+        'cycle' => context.l10n.repeatCycle,
         _ => '',
       };
 
-  String _daysLeftStr(Medication m) {
-    if (m.endDate == null) return 'постійний курс';
+  String _daysLeftStr(BuildContext context, Medication m) {
+    if (m.endDate == null) return context.l10n.courseOngoing;
     final diff = m.endDate!.difference(DateTime.now()).inDays + 1;
-    if (diff <= 0) return 'курс завершено';
-    return '$diff ${_daysWordUk(diff)} курсу';
+    if (diff <= 0) return context.l10n.courseFinished;
+    return context.l10n.courseDaysLeft(diff);
   }
 }
 
@@ -887,7 +879,8 @@ class _ActivityCard extends StatelessWidget {
       color: color,
       icon: _typeIcon(activity.type),
       title: activity.name,
-      subtitle: '${activity.durationMin} хв · ${_daysStr(activity.repeatDays)}',
+      subtitle:
+          '${context.l10n.durationMinutes(activity.durationMin)} · ${_daysStr(context, activity.repeatDays)}',
     );
   }
 
@@ -899,12 +892,20 @@ class _ActivityCard extends StatelessWidget {
         _ => Icons.bolt_rounded,
       };
 
-  String _daysStr(String repeatDaysJson) {
+  String _daysStr(BuildContext context, String repeatDaysJson) {
     try {
       final raw = repeatDaysJson.replaceAll('[', '').replaceAll(']', '');
       final days = raw.split(',').map((e) => int.tryParse(e.trim()) ?? 0).toList();
-      if (days.length == 7) return 'щодня';
-      const names = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+      if (days.length == 7) return context.l10n.repeatDaily;
+      final names = [
+        context.l10n.dayMon,
+        context.l10n.dayTue,
+        context.l10n.dayWed,
+        context.l10n.dayThu,
+        context.l10n.dayFri,
+        context.l10n.daySat,
+        context.l10n.daySun,
+      ];
       return days.where((d) => d >= 1 && d <= 7).map((d) => names[d - 1]).join(', ');
     } catch (_) {
       return '';
@@ -921,7 +922,7 @@ class _AppointmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = colorFromHex(appointment.color) ?? AppColors.primary;
-    final fmt = DateFormat('d MMM', 'uk');
+    final fmt = DateFormat('d MMM', Localizations.localeOf(context).languageCode);
     final hh = appointment.scheduledAt.hour.toString().padLeft(2, '0');
     final mm = appointment.scheduledAt.minute.toString().padLeft(2, '0');
     final hasLocation =
@@ -930,7 +931,7 @@ class _AppointmentCard extends StatelessWidget {
       color: color,
       icon: Icons.medical_services_rounded,
       title: appointment.doctorType,
-      subtitle: hasLocation ? appointment.location! : 'Без місця проведення',
+      subtitle: hasLocation ? appointment.location! : context.l10n.noLocation,
       trailing: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
@@ -960,7 +961,7 @@ class _WellbeingScheduleCard extends StatelessWidget {
     } catch (_) {}
 
     final timesStr = times.isEmpty ? '—' : times.join(', ');
-    final freqStr = '${schedule.timesPerDay} раз${schedule.timesPerDay == 1 ? '' : schedule.timesPerDay < 5 ? 'и' : 'ів'} на день';
+    final freqStr = context.l10n.timesPerDayLabel(schedule.timesPerDay);
     final color = colorFromHex(schedule.color) ?? AppColors.primary;
 
     return _TaskCardShell(
@@ -1000,7 +1001,7 @@ class _EmptySection extends StatelessWidget {
             GestureDetector(
               onTap: onAdd,
               child: Text(
-                'Додати',
+                context.l10n.addAction,
                 style: AppTextStyles.labelSm.copyWith(color: AppColors.primary),
               ),
             ),
@@ -1028,13 +1029,13 @@ class _EmptyMembers extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_off_rounded, size: 52, color: AppColors.textMuted),
-          SizedBox(height: 16),
-          Text('Профіль не знайдено'),
+          const Icon(Icons.person_off_rounded, size: 52, color: AppColors.textMuted),
+          const SizedBox(height: 16),
+          Text(context.l10n.profileNotFound),
         ],
       ),
     );

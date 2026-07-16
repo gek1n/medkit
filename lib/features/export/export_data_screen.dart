@@ -6,6 +6,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/services/data_export_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
 class ExportDataScreen extends ConsumerStatefulWidget {
@@ -27,13 +28,13 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/json')],
-          subject: 'Elly — експорт даних',
+          subject: context.l10n.exportShareSubject,
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Помилка: $e')),
+        SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -47,7 +48,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const MkScreenHeader(title: 'Експорт даних'),
+            MkScreenHeader(title: context.l10n.exportDataLabel),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -59,16 +60,10 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
                           const Icon(Icons.ios_share_rounded,
                               size: 48, color: AppColors.primary),
                           const SizedBox(height: 16),
-                          Text('Копія всіх ваших даних', style: AppTextStyles.h2),
+                          Text(context.l10n.exportCopyTitle, style: AppTextStyles.h2),
                           const SizedBox(height: 8),
                           Text(
-                            'Файл у форматі JSON з усіма профілями, ліками, '
-                            'розкладом, прийомами, самопочуттям і записами до '
-                            'лікарів — усе, що зберігається на цьому пристрої. '
-                            'Ви можете відкрити його будь-де або передати кому '
-                            'завгодно.\n\n'
-                            'Фото ліків у файл не входять (вони вже є у '
-                            '«Резервній копії») — лише текстові дані.',
+                            context.l10n.exportDescriptionBody,
                             style: AppTextStyles.bodyMd
                                 .copyWith(color: AppColors.textSub),
                           ),
@@ -76,7 +71,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
                           FilledButton.icon(
                             onPressed: _export,
                             icon: const Icon(Icons.download_rounded),
-                            label: const Text('Експортувати'),
+                            label: Text(context.l10n.exportAction),
                           ),
                         ],
                       ),

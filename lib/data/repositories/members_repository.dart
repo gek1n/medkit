@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/services/notification_service.dart';
 
 class MembersRepository {
   final AppDatabase _db;
@@ -50,41 +51,91 @@ class MembersRepository {
   // синхронізацію прибирає окремо [FamilySyncService.deleteMemberEverywhere],
   // виклик якого йде ДО цього методу на обох call site-ах (Сім'я,
   // Конфіденційність).
-  Future<int> delete(int id) => _db.transaction(() async {
-        final medIds = (await (_db.select(_db.medications)
-                  ..where((t) => t.memberId.equals(id)))
-                .get())
-            .map((m) => m.id)
+  Future<int> delete(int id) async {
+    // ⚠️ Заплановані OS-нагадування (zonedSchedule) живуть незалежно від БД
+    // — видалення рядків нижче саме по собі їх не скасовує. Той самий факт
+    // уже враховано для повного логауту (NotificationService.cancelAll()
+    // перед deleteAll(), profile_screen.dart), але видалення ОДНОГО
+    // профілю трьома різними викликачами (Сім'я, Конфіденційність,
+    // конверсія "Локальний→Автономний") про це мовчало — нагадування
+    // видаленого профілю продовжували спрацьовувати. Ідентифікатори
+    // нагадувань виводяться з id рядків (intakeId/activityLogId/...), тож
+    // збираємо їх ДО видалення, поки вони ще існують.
+    final intakeIds = (await (_db.select(_db.intakes)..where((t) => t.memberId.equals(id))).get())
+        .map((i) => i.id)
+        .toList();
+    final activityLogIds =
+        (await (_db.select(_db.activityLogs)..where((t) => t.memberId.equals(id))).get())
+            .map((l) => l.id)
             .toList();
-        if (medIds.isNotEmpty) {
-          await (_db.delete(_db.schedules)..where((t) => t.medicationId.isIn(medIds))).go();
-          await (_db.delete(_db.symptoms)..where((t) => t.medicationId.isIn(medIds))).go();
-        }
-        await (_db.delete(_db.medications)..where((t) => t.memberId.equals(id))).go();
-
-        final activityIds = (await (_db.select(_db.activities)
-                  ..where((t) => t.memberId.equals(id)))
-                .get())
+    final appointmentIds =
+        (await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(id))).get())
             .map((a) => a.id)
             .toList();
-        if (activityIds.isNotEmpty) {
-          await (_db.delete(_db.activitySlots)..where((t) => t.activityId.isIn(activityIds))).go();
-        }
-        await (_db.delete(_db.activityLogs)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.activities)..where((t) => t.memberId.equals(id))).go();
+    final vaccinationIds =
+        (await (_db.select(_db.vaccinations)..where((t) => t.memberId.equals(id))).get())
+            .map((v) => v.id)
+            .toList();
+    final medIdsForNotify =
+        (await (_db.select(_db.medications)..where((t) => t.memberId.equals(id))).get())
+            .map((m) => m.id)
+            .toList();
 
-        await (_db.delete(_db.intakes)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.doctorAppointments)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.labResults)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.allergies)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.chronicConditions)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.vaccinations)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.surgeries)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.wellbeingLogs)..where((t) => t.memberId.equals(id))).go();
-        await (_db.delete(_db.wellbeingSchedules)..where((t) => t.memberId.equals(id))).go();
+    final result = await _db.transaction(() async {
+      final medIds = (await (_db.select(_db.medications)
+                ..where((t) => t.memberId.equals(id)))
+              .get())
+          .map((m) => m.id)
+          .toList();
+      if (medIds.isNotEmpty) {
+        await (_db.delete(_db.schedules)..where((t) => t.medicationId.isIn(medIds))).go();
+        await (_db.delete(_db.symptoms)..where((t) => t.medicationId.isIn(medIds))).go();
+      }
+      await (_db.delete(_db.medications)..where((t) => t.memberId.equals(id))).go();
 
-        return (_db.delete(_db.members)..where((t) => t.id.equals(id))).go();
-      });
+      final activityIds = (await (_db.select(_db.activities)
+                ..where((t) => t.memberId.equals(id)))
+              .get())
+          .map((a) => a.id)
+          .toList();
+      if (activityIds.isNotEmpty) {
+        await (_db.delete(_db.activitySlots)..where((t) => t.activityId.isIn(activityIds))).go();
+      }
+      await (_db.delete(_db.activityLogs)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.activities)..where((t) => t.memberId.equals(id))).go();
+
+      await (_db.delete(_db.intakes)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.doctorAppointments)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.labResults)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.allergies)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.chronicConditions)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.vaccinations)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.surgeries)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.wellbeingLogs)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.wellbeingSchedules)..where((t) => t.memberId.equals(id))).go();
+
+      return (_db.delete(_db.members)..where((t) => t.id.equals(id))).go();
+    });
+
+    for (final i in intakeIds) {
+      await NotificationService.cancelIntakeReminder(i);
+    }
+    for (final l in activityLogIds) {
+      await NotificationService.cancelActivityReminder(l);
+    }
+    for (final a in appointmentIds) {
+      await NotificationService.cancelAppointmentReminder(a);
+    }
+    for (final v in vaccinationIds) {
+      await NotificationService.cancelVaccinationReminder(v);
+    }
+    for (final m in medIdsForNotify) {
+      await NotificationService.cancel(NotificationService.lowStockNotificationId(m));
+    }
+    await NotificationService.cancelAllWellbeingForMember(id);
+
+    return result;
+  }
 
   // Той самий ризик, що й у [delete] — не покладаємось на ON DELETE CASCADE.
   Future<void> deleteAll() => _db.transaction(() async {

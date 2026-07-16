@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../core/services/notification_service.dart';
 import '../../data/repositories/activities_repository.dart';
@@ -78,7 +79,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_step == 2 && _nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Введіть своє ім\'я')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.enterYourNameError)));
       return;
     }
     // Крок 1 → крок 2: перший природний момент попросити дозвіл на
@@ -108,10 +109,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // currentMemberProvider flips non-null and _RootRouter swaps this screen out,
     // disposing this State. A ProviderContainer outlives that disposal, unlike `ref`.
     final container = ProviderScope.containerOf(context, listen: false);
+    final l10n = context.l10n;
     try {
       final repo = container.read(membersRepositoryProvider);
       final name = _nameController.text.trim().isEmpty
-          ? 'Я'
+          ? l10n.meCapsLabel
           : _nameController.text.trim();
 
       final ownerId = await repo.insert(
@@ -136,7 +138,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         final activityId = await activitiesRepo.insertActivity(
           ActivitiesCompanion.insert(
             memberId: ownerId,
-            name: 'Прогулянка',
+            name: l10n.walkActivityName,
             type: const Value('walk'),
             durationMin: const Value(30),
             repeatDays: Value(jsonEncode(const [1, 2, 3, 4, 5, 6, 7])),
@@ -169,7 +171,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Помилка при завершенні: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.onboardingFinishError(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -268,10 +270,10 @@ class _StepWelcome extends StatelessWidget {
                     height: 264,
                   ),
                   const SizedBox(height: 24),
-                  Text('Привіт! 👋', style: AppTextStyles.h1),
+                  Text(context.l10n.welcomeGreeting, style: AppTextStyles.h1),
                   const SizedBox(height: 10),
                   Text(
-                    'Elly допоможе не забути про ліки,\nактивність і самопочуття — для вас\nі всієї родини',
+                    context.l10n.welcomeDescription,
                     textAlign: TextAlign.center,
                     style: AppTextStyles.bodyMd.copyWith(
                       color: AppColors.textSub,
@@ -281,7 +283,7 @@ class _StepWelcome extends StatelessWidget {
               ),
             ),
           ),
-          _NextButton(label: 'Почати', onTap: onNext),
+          _NextButton(label: context.l10n.startAction, onTap: onNext),
         ],
       ),
     );
@@ -324,7 +326,7 @@ class _ProgressBar extends StatelessWidget {
               if (onBack != null) MkBackButton(onTap: onBack),
               const Spacer(),
               Text(
-                'Крок ${step + 1} з $total',
+                context.l10n.onboardingStepLabel(step + 1, total),
                 style: AppTextStyles.bodySm.copyWith(
                   color: AppColors.textMuted,
                 ),
@@ -365,31 +367,31 @@ class _StepAccountChoice extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Як почнемо?', style: AppTextStyles.h2),
+          Text(context.l10n.accountChoiceTitle, style: AppTextStyles.h2),
           const SizedBox(height: 6),
           Text(
-            'Оберіть варіант, який вам підходить',
+            context.l10n.accountChoiceSubtitle,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 24),
           _AccountChoiceCard(
             icon: Icons.person_add_rounded,
-            title: 'Створити акаунт',
-            sub: 'Налаштую ліки та розклад для себе',
+            title: context.l10n.createAccountTitle,
+            sub: context.l10n.createAccountSubtitle,
             onTap: onCreateAccount,
           ),
           const SizedBox(height: 10),
           _AccountChoiceCard(
             icon: Icons.family_restroom_rounded,
-            title: 'Підключитися до сім\'ї',
-            sub: 'У мене є код доступу від рідних',
+            title: context.l10n.joinFamilyChoiceTitle,
+            sub: context.l10n.joinFamilyChoiceSubtitle,
             onTap: onJoinFamily,
           ),
           const SizedBox(height: 10),
           _AccountChoiceCard(
             icon: Icons.restore_rounded,
-            title: 'Відновити акаунт',
-            sub: 'Я вже користувався(-лась) Elly раніше',
+            title: context.l10n.restoreAccountTitle,
+            sub: context.l10n.restoreAccountChoiceSubtitle,
             onTap: onRestoreAccount,
           ),
         ],
@@ -484,10 +486,10 @@ class _StepName extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Розкажіть про себе', style: AppTextStyles.h2),
+              Text(context.l10n.tellAboutYourselfTitle, style: AppTextStyles.h2),
               const SizedBox(height: 6),
               Text(
-                'Вкажіть своє ім\'я та оберіть аватар профілю',
+                context.l10n.tellAboutYourselfSubtitle,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
               const SizedBox(height: 24),
@@ -507,7 +509,7 @@ class _StepName extends StatelessWidget {
                   controller: nameController,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
-                    hintText: 'Ваше ім\'я',
+                    hintText: context.l10n.yourNameHint,
                     hintStyle: AppTextStyles.bodyMd.copyWith(
                       color: AppColors.textMuted,
                     ),
@@ -573,7 +575,7 @@ class _StepName extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: _NextButton(label: 'Далі — ліки →', onTap: onNext),
+          child: _NextButton(label: context.l10n.nextToMedsAction, onTap: onNext),
         ),
       ],
     );
@@ -606,10 +608,10 @@ class _StepMedications extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Ліки', style: AppTextStyles.h2),
+          Text(context.l10n.medsTitle, style: AppTextStyles.h2),
           const SizedBox(height: 6),
           Text(
-            'Скануйте фото рецепта або введіть вручну',
+            context.l10n.scanOrEnterManuallyHint,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 24),
@@ -651,14 +653,14 @@ class _StepMedications extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          hasDrafts ? 'Додати ще ліки' : 'Додати ліки',
+                          hasDrafts ? context.l10n.addMoreMedsAction : context.l10n.addMedsShortAction,
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Скан фото рецепта або назва, доза і розклад вручну',
+                          context.l10n.addMedsHint,
                           style: AppTextStyles.bodySm.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -695,7 +697,7 @@ class _StepMedications extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Ліки можна додати пізніше через розділ «Ліки» в головному меню',
+                    context.l10n.addMedsLaterInfo,
                     style: AppTextStyles.bodySm.copyWith(
                       color: const Color(0xFF78350F),
                     ),
@@ -706,9 +708,9 @@ class _StepMedications extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           if (hasDrafts)
-            _NextButton(label: 'Далі →', onTap: onNext)
+            _NextButton(label: context.l10n.nextAction, onTap: onNext)
           else
-            _SkipLink(label: 'Пропустити — додам пізніше', onTap: onSkip),
+            _SkipLink(label: context.l10n.skipAddLaterAction, onTap: onSkip),
         ],
       ),
     );
@@ -769,45 +771,45 @@ class _StepActivities extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Активність та самопочуття', style: AppTextStyles.h2),
+          Text(context.l10n.activityWellbeingTitle, style: AppTextStyles.h2),
           const SizedBox(height: 6),
           Text(
-            'Увімкніть одним перемикачем — налаштування можна змінити пізніше',
+            context.l10n.activityWellbeingSubtitle,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 24),
 
-          SectionLabel('Активність'),
+          SectionLabel(context.l10n.activitySectionLabel),
           const SizedBox(height: 10),
 
           _ToggleRow(
             icon: Icons.directions_walk_rounded,
-            title: 'Прогулянка',
-            sub: '30 хв · щодня · 08:30',
+            title: context.l10n.walkActivityName,
+            sub: context.l10n.walkActivitySub,
             value: walkEnabled,
             onChanged: onWalkToggle,
           ),
           const SizedBox(height: 8),
 
-          SectionLabel('Щоденник самопочуття'),
+          SectionLabel(context.l10n.wellbeingDiaryLabel),
           const SizedBox(height: 6),
           Text(
-            'Короткі відмітки самопочуття допоможуть побачити звʼязок між прийомом ліків і тим, як ви почуваєтесь',
+            context.l10n.wellbeingDiaryDescription,
             style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 10),
 
           _ToggleRow(
             icon: Icons.favorite_rounded,
-            title: 'Зрізи самопочуття',
-            sub: '2–3 рази на день · 08:00, 14:00, 20:00',
+            title: context.l10n.wellbeingSlotsTitle,
+            sub: context.l10n.wellbeingSlotsSub,
             value: wellbeingEnabled,
             onChanged: onWellbeingToggle,
             activeColor: const Color(0xFF3F8F5F),
           ),
 
           const SizedBox(height: 32),
-          _NextButton(label: 'Майже готово →', onTap: onNext),
+          _NextButton(label: context.l10n.almostDoneAction, onTap: onNext),
         ],
       ),
     );

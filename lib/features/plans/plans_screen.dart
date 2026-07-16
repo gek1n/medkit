@@ -12,6 +12,7 @@ import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -72,13 +73,13 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
             ),
             const SizedBox(height: AppDimensions.md),
             Text(
-              'Зв\'язки з родиною розірвуться',
+              context.l10n.familyTiesBrokenTitle,
               style: AppTextStyles.h3,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Учасники вашої сімейної групи одразу втратять доступ до плюшок Family і перестануть бачити одне одного. Це станеться миттєво, без грейс-періоду — ви вже попереджені зараз.',
+              context.l10n.familyTiesBrokenBody,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),
@@ -87,12 +88,12 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Розірвати і змінити план'),
+            child: Text(context.l10n.breakAndChangePlanAction),
           ),
         ],
       ),
@@ -129,7 +130,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${plan.displayName} активовано (тестовий режим, без реальної оплати)',
+              context.l10n.planActivatedTestSnackbar(plan.displayName(context)),
             ),
           ),
         );
@@ -138,7 +139,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не вдалося: $e')));
+        ).showSnackBar(SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -158,7 +159,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Не вдалося: $e')));
+        ).showSnackBar(SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -195,7 +196,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                       MkBackButton(onTap: () => Navigator.pop(context)),
                       Expanded(
                         child: Text(
-                          'Тарифи',
+                          context.l10n.plansLabel,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.labelLg.copyWith(
                             color: AppColors.primary,
@@ -207,10 +208,10 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                   ),
                 ),
                 const SizedBox(height: AppDimensions.md),
-                Text('Обери план', style: AppTextStyles.h2),
+                Text(context.l10n.choosePlanTitle, style: AppTextStyles.h2),
                 const SizedBox(height: 6),
                 Text(
-                  "Турбота про здоров'я всієї сім'ї",
+                  context.l10n.choosePlanSubtitle,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMd.copyWith(
                     color: AppColors.textSub,
@@ -244,18 +245,18 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             title: 'Elly',
                             isPaid: false,
                             price: '\$0',
-                            period: 'назавжди',
+                            period: context.l10n.planForeverPeriod,
                             illustration:
                                 'assets/illustrations/elly-tablet.png',
-                            features: const [
-                              'Всі розділи без обмежень',
-                              'Необмежено ліків і медкарток',
-                              '3 сканування фото рецепта',
-                              '5 голосових команд',
-                              'Локально + копія в Google Drive/iCloud',
+                            features: [
+                              context.l10n.freeFeatureAllSections,
+                              context.l10n.freeFeatureUnlimitedMeds,
+                              context.l10n.freeFeatureScanLimit,
+                              context.l10n.freeFeatureVoiceLimit,
+                              context.l10n.freeFeatureLocalBackup,
                             ],
                             isCurrent: currentPlan == AppPlan.free,
-                            selectLabel: 'Обрати Безкоштовний',
+                            selectLabel: context.l10n.selectFreeAction,
                             onSelect: () => _selectFree(currentPlan),
                           ),
                           const SizedBox(height: AppDimensions.md),
@@ -263,18 +264,20 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             title: 'Elly Plus',
                             isPaid: true,
                             price: _isYearly ? '\$2.39' : '\$2.99',
-                            period: _isYearly ? 'на місяць (рік)' : 'щомісяця',
+                            period: _isYearly
+                                ? context.l10n.planPerMonthYearlyPeriod
+                                : context.l10n.planPerMonthPeriod,
                             illustration:
                                 'assets/illustrations/elly-hospital.png',
-                            features: const [
-                              'Все з безкоштовного',
-                              'Необмежені сканування фото',
-                              'Необмежені голосові команди',
-                              'Синхронізація з сервером (зашифровано)',
-                              'Необмежена кількість локальних профілів',
+                            features: [
+                              context.l10n.plusFeatureAllFree,
+                              context.l10n.plusFeatureUnlimitedScans,
+                              context.l10n.plusFeatureUnlimitedVoice,
+                              context.l10n.plusFeatureServerSync,
+                              context.l10n.plusFeatureUnlimitedProfiles,
                             ],
                             isCurrent: currentPlan == AppPlan.plus,
-                            selectLabel: 'Обрати Plus',
+                            selectLabel: context.l10n.selectPlusAction,
                             onSelect: () =>
                                 _selectPaid(AppPlan.plus, currentPlan),
                           ),
@@ -283,25 +286,24 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             title: 'Elly Family',
                             isPaid: true,
                             price: _isYearly ? '\$4.79' : '\$5.99',
-                            period: _isYearly ? 'на місяць (рік)' : 'щомісяця',
+                            period: _isYearly
+                                ? context.l10n.planPerMonthYearlyPeriod
+                                : context.l10n.planPerMonthPeriod,
                             illustration: 'assets/illustrations/family.png',
-                            features: const [
-                              'Все з Elly Plus',
-                              'Автономні профілі — до 8 осіб',
-                              'Кожен керує своїм профілем сам',
+                            features: [
+                              context.l10n.familyFeatureAllPlus,
+                              context.l10n.familyFeatureAutonomousProfiles,
+                              context.l10n.familyFeatureSelfManaged,
                             ],
                             isCurrent: currentPlan == AppPlan.family,
-                            selectLabel: 'Обрати Family',
+                            selectLabel: context.l10n.selectFamilyAction,
                             onSelect: () =>
                                 _selectPaid(AppPlan.family, currentPlan),
+                            comingSoon: true,
                           ),
                           const SizedBox(height: AppDimensions.xl),
                           Text(
-                            'Оплата списується з вашого облікового запису App Store чи Google Play. '
-                            'Підписка автоматично продовжується на новий період за тією самою ціною, '
-                            'якщо не скасувати щонайменше за 24 години до завершення періоду. '
-                            'Керувати підпискою та скасувати автопродовження можна в налаштуваннях '
-                            'облікового запису App Store · Google Play.',
+                            context.l10n.billingTermsDisclaimer,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.textMuted,
@@ -313,7 +315,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               _LegalLink(
-                                label: 'Політика конфіденційності',
+                                label: context.l10n.privacyPolicyLinkLabel,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -328,7 +330,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                                 ),
                               ),
                               _LegalLink(
-                                label: 'Умови використання',
+                                label: context.l10n.termsOfUseLinkLabel,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -373,12 +375,12 @@ class _PeriodToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _ToggleChip(
-            label: 'Місяць',
+            label: context.l10n.monthToggleLabel,
             selected: !isYearly,
             onTap: () => onChanged(false),
           ),
           _ToggleChip(
-            label: 'Рік −20%',
+            label: context.l10n.yearToggleDiscountLabel,
             selected: isYearly,
             onTap: () => onChanged(true),
           ),
@@ -435,6 +437,7 @@ class _PlanCard extends StatelessWidget {
   final bool isCurrent;
   final String selectLabel;
   final VoidCallback onSelect;
+  final bool comingSoon;
 
   const _PlanCard({
     required this.title,
@@ -446,122 +449,149 @@ class _PlanCard extends StatelessWidget {
     required this.isCurrent,
     required this.selectLabel,
     required this.onSelect,
+    this.comingSoon = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppDimensions.lg),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: isCurrent ? AppColors.primary : AppColors.border,
-          width: isCurrent ? 2 : 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0F000000),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Row(
+    return Stack(
+      children: [
+        Opacity(
+          opacity: comingSoon ? 0.5 : 1,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppDimensions.lg),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+              border: Border.all(
+                color: isCurrent ? AppColors.primary : AppColors.border,
+                width: isCurrent ? 2 : 1,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        style: AppTextStyles.h3,
-                        overflow: TextOverflow.ellipsis,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: AppTextStyles.h3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isPaid) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(
+                                  AppDimensions.radiusSm,
+                                ),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.workspace_premium_rounded,
+                                  size: 15,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (isPaid) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(
-                            AppDimensions.radiusSm,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          price,
+                          style: AppTextStyles.h2.copyWith(color: AppColors.textMain),
+                        ),
+                        Text(
+                          period,
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.textMuted,
                           ),
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.workspace_premium_rounded,
-                            size: 15,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    price,
-                    style: AppTextStyles.h2.copyWith(color: AppColors.textMain),
-                  ),
-                  Text(
-                    period,
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.textMuted,
+                const SizedBox(height: AppDimensions.md),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Image.asset(illustration, height: 108),
+                    const SizedBox(width: AppDimensions.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [for (final f in features) _FeatureLine(text: f)],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: GestureDetector(
+                    onTap: (isCurrent || comingSoon) ? null : onSelect,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isCurrent ? AppColors.bgPage : AppColors.primary,
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                      ),
+                      child: Text(
+                        isCurrent ? context.l10n.currentPlanLabel : selectLabel,
+                        style: AppTextStyles.labelMd.copyWith(
+                          color: isCurrent ? AppColors.textMuted : Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Image.asset(illustration, height: 108),
-              const SizedBox(width: AppDimensions.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [for (final f in features) _FeatureLine(text: f)],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: AppDimensions.md),
-          SizedBox(
-            width: double.infinity,
-            child: GestureDetector(
-              onTap: isCurrent ? null : onSelect,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: isCurrent ? AppColors.bgPage : AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-                child: Text(
-                  isCurrent ? 'Поточний' : selectLabel,
-                  style: AppTextStyles.labelMd.copyWith(
-                    color: isCurrent ? AppColors.textMuted : Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+        ),
+        if (comingSoon)
+          Positioned(
+            top: AppDimensions.lg,
+            right: AppDimensions.lg,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.warning,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              ),
+              child: Text(
+                context.l10n.comingSoon,
+                style: AppTextStyles.labelSm.copyWith(
+                  color: Colors.white,
+                  letterSpacing: 0,
                 ),
               ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

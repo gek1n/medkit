@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/lab_results_repository.dart';
 import '../../shared/widgets/lab_test_picker.dart';
@@ -66,7 +67,7 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
                 children: [
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   const SizedBox(width: 12),
-                  Expanded(child: Text('Аналізи', style: AppTextStyles.h3)),
+                  Expanded(child: Text(context.l10n.labResultsTitle, style: AppTextStyles.h3)),
                 ],
               ),
             ),
@@ -77,7 +78,7 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
                 children: [
                   _FilterChip(
                     icon: Icons.filter_list_rounded,
-                    label: _specialty ?? 'Усі напрямки',
+                    label: _specialty ?? context.l10n.allSpecialtiesFilter,
                     active: _specialty != null,
                     onTap: _pickSpecialty,
                     onClear: () => setState(() => _specialty = null),
@@ -85,7 +86,7 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
                   const SizedBox(width: 8),
                   _FilterChip(
                     icon: Icons.biotech_outlined,
-                    label: _testName ?? 'Усі типи аналізів',
+                    label: _testName ?? context.l10n.allTestTypesFilter,
                     active: _testName != null,
                     onTap: _pickTestName,
                     onClear: () => setState(() => _testName = null),
@@ -102,7 +103,7 @@ class _LabResultsScreenState extends ConsumerState<LabResultsScreen> {
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
-                error: (e, _) => Center(child: Text('Помилка: $e')),
+                error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (allResults) {
                   final results = allResults
                       .where((r) => _specialty == null || r.specialty == _specialty)
@@ -285,13 +286,13 @@ class _EmptyState extends StatelessWidget {
           children: [
             Image.asset('assets/illustrations/elly-docs.png', height: 140),
             const SizedBox(height: 16),
-            Text(filtered ? 'Немає аналізів за цим фільтром' : 'Ще нічого не додано',
+            Text(filtered ? context.l10n.labResultsEmptyFilteredTitle : context.l10n.labResultsEmptyNoneTitle,
                 style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
               filtered
-                  ? 'Спробуйте змінити фільтри або скиньте їх'
-                  : 'Натисніть "+ Додати" щоб додати перший аналіз',
+                  ? context.l10n.labResultsEmptyFilteredHint
+                  : context.l10n.labResultsEmptyHint,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),

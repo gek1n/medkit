@@ -4,6 +4,7 @@ import '../../core/services/lab_test_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 
 /// Пошуковий пікер назви аналізу — заміна вільного `TextField`, щоб той
 /// самий аналіз завжди мав ту саму назву (можна буде надійно зібрати
@@ -68,7 +69,7 @@ class _LabTestPickerSheetState extends State<_LabTestPickerSheet> {
   Widget build(BuildContext context) {
     final q = _query.trim().toLowerCase();
     final commonFiltered =
-        LabTestLibraryService.common.where((s) => q.isEmpty || s.toLowerCase().contains(q)).toList();
+        LabTestLibraryService.common(context).where((s) => q.isEmpty || s.toLowerCase().contains(q)).toList();
     final customFiltered = _customNames.where((s) => q.isEmpty || s.toLowerCase().contains(q)).toList();
     final exactMatchExists = q.isNotEmpty &&
         (commonFiltered.any((s) => s.toLowerCase() == q) || customFiltered.any((s) => s.toLowerCase() == q));
@@ -91,7 +92,7 @@ class _LabTestPickerSheetState extends State<_LabTestPickerSheet> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Text('Назва аналізу', style: AppTextStyles.h3),
+                child: Text(context.l10n.fieldTestName, style: AppTextStyles.h3),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -105,7 +106,7 @@ class _LabTestPickerSheetState extends State<_LabTestPickerSheet> {
                     controller: _searchController,
                     onChanged: (v) => setState(() => _query = v),
                     decoration: InputDecoration(
-                      hintText: 'Пошук або нова назва…',
+                      hintText: context.l10n.symptomSearchHint,
                       hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
                       prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
                       border: InputBorder.none,
@@ -126,7 +127,7 @@ class _LabTestPickerSheetState extends State<_LabTestPickerSheet> {
                             ListTile(
                               leading: const Icon(Icons.add_circle_rounded, color: AppColors.primary),
                               title: Text(
-                                'Додати «${_searchController.text.trim()}»',
+                                context.l10n.addCustomSymptomLabel(_searchController.text.trim()),
                                 style: AppTextStyles.bodyLg.copyWith(
                                     color: AppColors.primary, fontWeight: FontWeight.w600),
                               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import 'l10n_ext.dart';
 
 /// Тяжкість алергічної реакції — контрольований словник (не вільний текст),
 /// щоб можна було надійно сортувати/виділяти тяжкі алергії візуально.
@@ -16,10 +17,10 @@ enum AllergySeverity {
         orElse: () => AllergySeverity.mild,
       );
 
-  String get label => switch (this) {
-        AllergySeverity.mild => 'Легка',
-        AllergySeverity.moderate => 'Середня',
-        AllergySeverity.severe => 'Тяжка',
+  String label(BuildContext context) => switch (this) {
+        AllergySeverity.mild => context.l10n.severityMild,
+        AllergySeverity.moderate => context.l10n.severityModerate,
+        AllergySeverity.severe => context.l10n.severitySevere,
       };
 
   Color get color => switch (this) {

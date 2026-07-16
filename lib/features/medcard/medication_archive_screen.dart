@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -16,10 +17,10 @@ import '../medications/medication_detail_screen.dart';
 enum _MedStatus { ongoing, finished, cancelled }
 
 extension on _MedStatus {
-  String get label => switch (this) {
-        _MedStatus.ongoing => 'Триває',
-        _MedStatus.finished => 'Завершено',
-        _MedStatus.cancelled => 'Відмінено',
+  String label(BuildContext context) => switch (this) {
+        _MedStatus.ongoing => context.l10n.medStatusOngoing,
+        _MedStatus.finished => context.l10n.medStatusFinished,
+        _MedStatus.cancelled => context.l10n.medStatusCancelled,
       };
 
   Color get fg => switch (this) {
@@ -73,7 +74,7 @@ class MedicationArchiveScreen extends ConsumerWidget {
                 children: [
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   const SizedBox(width: 12),
-                  Expanded(child: Text('Архів ліків', style: AppTextStyles.h3)),
+                  Expanded(child: Text(context.l10n.medCardArchiveTitle, style: AppTextStyles.h3)),
                 ],
               ),
             ),
@@ -83,13 +84,13 @@ class MedicationArchiveScreen extends ConsumerWidget {
                 onRefresh: () async => ref.invalidate(_archiveProvider(memberId)),
                 child: medsAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                  error: (e, _) => Center(child: Text('Помилка: $e')),
+                  error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                   data: (meds) {
                     if (meds.isEmpty) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          MkEmptyState(hint: 'Тут з\'являться всі ліки, які ви колись додавали'),
+                        children: [
+                          MkEmptyState(hint: context.l10n.medicationArchiveEmptyHint),
                         ],
                       );
                     }
@@ -135,8 +136,8 @@ class _ArchiveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = _statusOf(med);
     final range = med.endDate != null
-        ? '${MKDateUtils.formatDate(med.startDate)} — ${MKDateUtils.formatDate(med.endDate!)}'
-        : '${MKDateUtils.formatDate(med.startDate)} — досі';
+        ? '${MKDateUtils.formatDate(context, med.startDate)} — ${MKDateUtils.formatDate(context, med.endDate!)}'
+        : context.l10n.medArchiveDateRangeOngoing(MKDateUtils.formatDate(context, med.startDate));
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
@@ -167,7 +168,7 @@ class _ArchiveCard extends StatelessWidget {
                   Text(med.name, style: AppTextStyles.labelLg),
                   const SizedBox(height: 2),
                   Text(
-                    '${medFormLabels[med.form] ?? med.form} · $range',
+                    '${medFormLabels(context)[med.form] ?? med.form} · $range',
                     style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                   ),
                 ],
@@ -180,7 +181,7 @@ class _ArchiveCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
               ),
               child: Text(
-                status.label,
+                status.label(context),
                 style: AppTextStyles.bodySm.copyWith(color: status.fg, fontWeight: FontWeight.w700),
               ),
             ),

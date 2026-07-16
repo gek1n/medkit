@@ -7,6 +7,7 @@ import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
@@ -138,7 +139,7 @@ class _AddWellbeingScheduleScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Помилка: $e')));
+            .showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -174,7 +175,7 @@ class _AddWellbeingScheduleScreenState
                       MkBackButton(onTap: () => Navigator.pop(context)),
                       const SizedBox(width: 12),
                       Text(
-                        'Самопочуття${memberNameSuffix(ref, widget.memberId)}',
+                        '${context.l10n.wellbeingTitle}${memberNameSuffix(context, ref, widget.memberId)}',
                         style: AppTextStyles.h3,
                       ),
                     ],
@@ -195,7 +196,7 @@ class _AddWellbeingScheduleScreenState
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Text('Історія',
+                      child: Text(context.l10n.historyLabel,
                           style: AppTextStyles.labelMd
                               .copyWith(color: AppColors.textSub)),
                     ),
@@ -225,8 +226,7 @@ class _AddWellbeingScheduleScreenState
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Налаштуйте розклад збору зрізів самопочуття. '
-                              'У призначений час на головному екрані з\'явиться картка для заповнення.',
+                              context.l10n.wellbeingScheduleInfoText,
                               style: AppTextStyles.bodySm,
                             ),
                           ),
@@ -236,7 +236,7 @@ class _AddWellbeingScheduleScreenState
                     const SizedBox(height: AppDimensions.lg),
 
                     // Frequency
-                    Text('ЧАСТОТА НА ДЕНЬ', style: AppTextStyles.labelSm),
+                    Text(context.l10n.frequencyPerDayLabel, style: AppTextStyles.labelSm),
                     const SizedBox(height: 8),
                     Row(
                       children: [1, 2, 3, 4].map((n) {
@@ -264,7 +264,7 @@ class _AddWellbeingScheduleScreenState
                                 ),
                                 child: Center(
                                   child: Text(
-                                    '$n раз${n == 1 ? '' : n < 5 ? 'и' : 'ів'}',
+                                    context.l10n.timesCountShort(n),
                                     style: AppTextStyles.labelMd.copyWith(
                                       color: sel
                                           ? AppColors.primary
@@ -281,7 +281,7 @@ class _AddWellbeingScheduleScreenState
                     const SizedBox(height: AppDimensions.lg),
 
                     // Time slots
-                    Text('ЧАС ЗБОРУ', style: AppTextStyles.labelSm),
+                    Text(context.l10n.collectionTimeLabel, style: AppTextStyles.labelSm),
                     const SizedBox(height: 8),
                     ...List.generate(_timesPerDay, (i) {
                       final t = _slots[i];
@@ -311,7 +311,7 @@ class _AddWellbeingScheduleScreenState
                                     size: 18, color: AppColors.primary),
                                 const SizedBox(width: 10),
                                 Text(
-                                  'Зріз ${i + 1}',
+                                  context.l10n.wellbeingSlotNumberLabel(i + 1),
                                   style: AppTextStyles.bodyMd
                                       .copyWith(color: AppColors.textSub),
                                 ),
@@ -354,7 +354,7 @@ class _AddWellbeingScheduleScreenState
                           elevation: 0,
                         ),
                         child: Text(
-                          _isSaving ? 'Зберігаємо...' : 'Зберегти розклад',
+                          _isSaving ? context.l10n.savingLabel : context.l10n.saveScheduleAction,
                           style: AppTextStyles.labelLg
                               .copyWith(color: Colors.white),
                         ),

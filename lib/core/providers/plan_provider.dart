@@ -1,4 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../utils/l10n_ext.dart';
 
 enum AppPlan { free, plus, family }
 
@@ -54,10 +57,10 @@ const planLimits = {
 extension AppPlanExt on AppPlan {
   PlanLimits get limits => planLimits[this]!;
 
-  String get displayName => switch (this) {
-        AppPlan.free => 'Безкоштовний',
-        AppPlan.plus => 'Elly Plus',
-        AppPlan.family => 'Elly Family',
+  String displayName(BuildContext context) => switch (this) {
+        AppPlan.free => context.l10n.planFreeShortLabel,
+        AppPlan.plus => context.l10n.planPlusLabel,
+        AppPlan.family => context.l10n.planFamilyLabel,
       };
 
   bool get isPaid => this != AppPlan.free;

@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -67,7 +68,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                 children: [
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   const SizedBox(width: 12),
-                  Text('Видимість для сім\'ї', style: AppTextStyles.h2),
+                  Text(context.l10n.familyVisibilityLabel, style: AppTextStyles.h2),
                 ],
               ),
             ),
@@ -86,7 +87,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                     }
                   }
                   if (subject?.personUuid == null) {
-                    return const Center(child: Text('Профіль не знайдено'));
+                    return Center(child: Text(context.l10n.profileNotFound));
                   }
                   final subjectUuid = subject!.personUuid!;
 
@@ -121,10 +122,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                                 height: 160),
                             const SizedBox(height: AppDimensions.lg),
                             Text(
-                              'Якщо до вашої сімейної групи приєднаються '
-                              'автономні учасники (зі своїм акаунтом), тут '
-                              'можна буде керувати їхнім доступом до '
-                              'вашого профілю',
+                              context.l10n.familyVisibilityEmptyBody,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodyMd
                                   .copyWith(color: AppColors.textSub),
@@ -145,7 +143,7 @@ class FamilyVisibilityScreen extends ConsumerWidget {
                       _MedcardSyncCard(subjectPersonUuid: subjectUuid),
                       const SizedBox(height: AppDimensions.lg),
                       Text(
-                        'Що бачать і можуть робити інші члени сім\'ї з вашим профілем',
+                        context.l10n.familyVisibilityIntro,
                         style: AppTextStyles.bodySm
                             .copyWith(color: AppColors.textMuted),
                       ),
@@ -231,7 +229,7 @@ class _MedcardSyncCardState extends State<_MedcardSyncCard> {
           Row(
             children: [
               Expanded(
-                child: Text('Синхронізувати медкартку на інші пристрої', style: AppTextStyles.labelLg),
+                child: Text(context.l10n.medcardSyncToggleLabel, style: AppTextStyles.labelLg),
               ),
               if (_loading)
                 const SizedBox(
@@ -250,10 +248,7 @@ class _MedcardSyncCardState extends State<_MedcardSyncCard> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Якщо вимкнено, алергії, хронічні захворювання, щеплення, операції, '
-            'аналізи й візити цього профілю (разом із вкладеннями) не передаються '
-            'на інші пристрої сім\'ї, підключені через пейринг. Ліки й розклад '
-            'прийому синхронізуються незалежно від цього перемикача.',
+            context.l10n.medcardSyncDescription,
             style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
           ),
         ],
@@ -342,7 +337,7 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text('Очікуємо з\'єднання',
+                  child: Text(context.l10n.pendingConnectionLabel,
                       style: AppTextStyles.caption.copyWith(
                           color: AppColors.primary, fontWeight: FontWeight.w700)),
                 ),
@@ -361,24 +356,24 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
           else ...[
             const SizedBox(height: AppDimensions.sm),
             _PermissionRow(
-              label: 'Отримує сповіщення',
+              label: context.l10n.viewerNotifyPermissionLabel,
               value: _values[FamilyPermission.notify]!,
               onChanged: (v) => _toggle(FamilyPermission.notify, v),
             ),
             _PermissionRow(
-              label: 'Може редагувати профіль',
+              label: context.l10n.viewerEditPermissionLabel,
               value: _values[FamilyPermission.edit]!,
               onChanged: (v) => _toggle(FamilyPermission.edit, v),
             ),
             _PermissionRow(
-              label: 'Бачить завдання, медкартку й розклад',
+              label: context.l10n.viewerViewPermissionLabel,
               value: _values[FamilyPermission.view]!,
               onChanged: (v) => _toggle(FamilyPermission.view, v),
             ),
             if (_denied) ...[
               const SizedBox(height: 4),
               Text(
-                'Не вдалося змінити — це не ваш профіль',
+                context.l10n.permissionDeniedNotYoursBody,
                 style: AppTextStyles.bodySm.copyWith(color: AppColors.danger),
               ),
             ],

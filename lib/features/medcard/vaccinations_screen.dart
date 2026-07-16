@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/vaccinations_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
@@ -36,7 +37,7 @@ class VaccinationsScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const MkListHeader(title: 'Щеплення'),
+            MkListHeader(title: context.l10n.vaccinationsTitle),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -44,14 +45,14 @@ class VaccinationsScreen extends ConsumerWidget {
                 child: vaccinationsAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                error: (e, _) => Center(child: Text('Помилка: $e')),
+                error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (vaccinations) {
                   if (vaccinations.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
+                      children: [
                         MkEmptyState(
-                          hint: 'Натисніть "+ Додати" щоб додати перше щеплення',
+                          hint: context.l10n.vaccinationsEmptyHint,
                         ),
                       ],
                     );
@@ -145,7 +146,7 @@ class _VaccinationCard extends StatelessWidget {
                   Text(vaccination.name, style: AppTextStyles.labelLg),
                   const SizedBox(height: 2),
                   Text(
-                    'Введено ${MKDateUtils.formatDate(vaccination.givenAt)}',
+                    context.l10n.vaccinationGivenOn(MKDateUtils.formatDate(context, vaccination.givenAt)),
                     style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                   ),
                 ],
@@ -164,7 +165,7 @@ class _VaccinationCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
                 ),
                 child: Text(
-                  urgency == 0 ? 'Прострочено' : MKDateUtils.formatDate(next),
+                  urgency == 0 ? context.l10n.vaccinationOverdue : MKDateUtils.formatDate(context, next),
                   style: AppTextStyles.bodySm.copyWith(
                     color: urgency == 0
                         ? AppColors.danger

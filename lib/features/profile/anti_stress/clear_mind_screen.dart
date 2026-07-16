@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/l10n_ext.dart';
 import '../../../shared/widgets/mk_back_button.dart';
 import '../../../shared/widgets/mk_button.dart';
 
@@ -109,7 +110,7 @@ class _ClearMindScreenState extends State<ClearMindScreen>
                     MkBackButton(onTap: () => Navigator.pop(context)),
                     Expanded(
                       child: Text(
-                        'Чистий розум',
+                        context.l10n.clearMindTitle,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.labelLg
                             .copyWith(color: AppColors.primary),
@@ -148,10 +149,10 @@ class _ClearMindScreenState extends State<ClearMindScreen>
                 ),
               ),
               const SizedBox(height: AppDimensions.md),
-              Text('Розвій туман', style: AppTextStyles.h2),
+              Text(context.l10n.clearMindHeading, style: AppTextStyles.h2),
               const SizedBox(height: 6),
               Text(
-                'Проведи пальцем по екрану, щоб побачити, що ховається за туманом',
+                context.l10n.clearMindInstructions,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
@@ -179,7 +180,7 @@ class _ClearMindScreenState extends State<ClearMindScreen>
                           IgnorePointer(
                             child: Center(
                               child: Text(
-                                '👆 Торкнись і веди пальцем',
+                                context.l10n.clearMindTouchHint,
                                 style: AppTextStyles.bodyMd.copyWith(
                                     color:
                                         Colors.white.withValues(alpha: 0.9),
@@ -227,10 +228,11 @@ class _ClearMindScreenState extends State<ClearMindScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Ти в безпеці', style: AppTextStyles.h3),
+                            Text(context.l10n.safeYouTitle,
+                                style: AppTextStyles.h3),
                             const SizedBox(height: 3),
                             Text(
-                              'Тривога мине. Еллі поруч, поки тобі потрібно.',
+                              context.l10n.safeYouSubtitle,
                               style: AppTextStyles.bodyMd
                                   .copyWith(color: AppColors.textSub),
                             ),
@@ -252,14 +254,14 @@ class _ClearMindScreenState extends State<ClearMindScreen>
                   children: [
                     Expanded(
                       child: MkButton.secondary(
-                        label: 'Інша вправа',
+                        label: context.l10n.differentExerciseAction,
                         onTap: () => Navigator.pop(context),
                       ),
                     ),
                     const SizedBox(width: AppDimensions.md),
                     Expanded(
                       child: MkButton(
-                        label: 'Мені краще',
+                        label: context.l10n.feelBetterAction,
                         onTap: () => Navigator.pop(context),
                       ),
                     ),

@@ -8,6 +8,7 @@ import '../../core/services/privacy_consent_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -22,22 +23,22 @@ class _ConsentInfo {
   const _ConsentInfo(this.kind, this.icon, this.title, this.description);
 }
 
-const _consents = [
-  _ConsentInfo(
-    'voice',
-    Icons.mic_rounded,
-    'Голосові команди',
-    'Розпізнавання голосу через Anthropic (Claude) — додавання ліків, '
-        'відмітки прийому та інші голосові команди.',
-  ),
-  _ConsentInfo(
-    'scan',
-    Icons.document_scanner_rounded,
-    'Сканування рецептів',
-    'Розпізнавання фото рецепта чи упаковки через Anthropic (Claude) — '
-        'визначення назви, дозування, форми випуску.',
-  ),
-];
+const _consentKinds = ['voice', 'scan'];
+
+List<_ConsentInfo> _consentsFor(BuildContext context) => [
+      _ConsentInfo(
+        'voice',
+        Icons.mic_rounded,
+        context.l10n.voiceConsentTitle,
+        context.l10n.voiceConsentDescription,
+      ),
+      _ConsentInfo(
+        'scan',
+        Icons.document_scanner_rounded,
+        context.l10n.scanConsentTitle,
+        context.l10n.scanConsentDescription,
+      ),
+    ];
 
 class PrivacyScreen extends ConsumerStatefulWidget {
   const PrivacyScreen({super.key});
@@ -60,8 +61,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   }
 
   Future<void> _load() async {
-    for (final c in _consents) {
-      _dates[c.kind] = await AiConsentService.consentDate(c.kind);
+    for (final kind in _consentKinds) {
+      _dates[kind] = await AiConsentService.consentDate(kind);
     }
     _policyAcceptedAt = await PrivacyConsentService.acceptedAt();
     _policyAcceptedVersion = await PrivacyConsentService.acceptedVersion();
@@ -88,10 +89,10 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           children: [
             Image.asset('assets/illustrations/elly-thinking-2.png', height: 120),
             const SizedBox(height: AppDimensions.md),
-            Text('Ви впевнені?', style: AppTextStyles.h3, textAlign: TextAlign.center),
+            Text(context.l10n.areYouSureTitle, style: AppTextStyles.h3, textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text(
-              'Будуть видалені весь розклад та медичні картки, прив\'язані до профілю ${member.name}',
+              context.l10n.deleteMemberConfirmBody(member.name),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),
@@ -100,12 +101,12 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Видалити назавжди'),
+            child: Text(context.l10n.deleteForeverAction),
           ),
         ],
       ),
@@ -138,7 +139,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 children: [
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   const SizedBox(width: 12),
-                  Text('Конфіденційність', style: AppTextStyles.h2),
+                  Text(context.l10n.privacyLabel, style: AppTextStyles.h2),
                 ],
               ),
             ),
@@ -155,7 +156,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                         AppDimensions.xl,
                       ),
                       children: [
-                        Text('Безпека',
+                        Text(context.l10n.securityLabel,
                             style: AppTextStyles.bodyMd.copyWith(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
                         const SizedBox(height: AppDimensions.md),
@@ -164,7 +165,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                           onChanged: _toggleAppLock,
                         ),
                         const SizedBox(height: AppDimensions.xl),
-                        Text('Політика конфіденційності',
+                        Text(context.l10n.privacyPolicyLabel,
                             style: AppTextStyles.bodyMd.copyWith(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
                         const SizedBox(height: AppDimensions.md),
@@ -173,11 +174,11 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                           acceptedVersion: _policyAcceptedVersion,
                         ),
                         const SizedBox(height: AppDimensions.xl),
-                        Text('Згоди на обробку даних AI-функціями',
+                        Text(context.l10n.aiConsentSectionLabel,
                             style: AppTextStyles.bodyMd.copyWith(
                                 fontSize: 15, fontWeight: FontWeight.w800)),
                         const SizedBox(height: AppDimensions.md),
-                        for (final c in _consents) ...[
+                        for (final c in _consentsFor(context)) ...[
                           _ConsentTile(
                             info: c,
                             date: _dates[c.kind],
@@ -187,15 +188,13 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                         ],
                         const SizedBox(height: AppDimensions.sm),
                         Text(
-                          'Скасування згоди не видаляє вже оброблені дані — '
-                          'воно лише означає, що перед наступним використанням '
-                          'цієї функції застосунок знову запитає підтвердження.',
+                          context.l10n.consentRevokeNoteBody,
                           style: AppTextStyles.bodySm
                               .copyWith(color: AppColors.textMuted),
                         ),
                         if (member != null) ...[
                           const SizedBox(height: AppDimensions.xl),
-                          Text('Небезпечна зона',
+                          Text(context.l10n.dangerZoneLabel,
                               style: AppTextStyles.bodyMd.copyWith(
                                   fontSize: 15, fontWeight: FontWeight.w800)),
                           const SizedBox(height: AppDimensions.md),
@@ -231,13 +230,12 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Видалити профіль назавжди',
+                                      Text(context.l10n.deleteProfileForeverLabel,
                                           style: AppTextStyles.labelLg
                                               .copyWith(color: AppColors.danger)),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Видалить усі дані профілю "${member.name}" — '
-                                        'локально і на сервері, якщо налаштований обмін',
+                                        context.l10n.deleteProfileForeverBody(member.name),
                                         style: AppTextStyles.bodySm
                                             .copyWith(color: AppColors.textMuted),
                                       ),
@@ -304,10 +302,10 @@ class _AppLockTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Блокування застосунку', style: AppTextStyles.labelLg),
+                Text(context.l10n.appLockToggleLabel, style: AppTextStyles.labelLg),
                 const SizedBox(height: 2),
                 Text(
-                  'Face ID, Touch ID або пароль пристрою при кожному відкритті Elly',
+                  context.l10n.appLockDescription,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                 ),
               ],
@@ -371,14 +369,16 @@ class _PolicyConsentTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Політика конфіденційності', style: AppTextStyles.labelLg),
+                    Text(context.l10n.privacyPolicyLabel, style: AppTextStyles.labelLg),
                     const SizedBox(height: 2),
                     Text(
                       accepted
                           ? (isCurrent
-                              ? 'Прийнято ${_formatDate(acceptedAt!)} · версія $acceptedVersion'
-                              : 'Прийнято стару версію ($acceptedVersion) — буде запропоновано погодитись знову')
-                          : 'Ще не прийнято',
+                              ? context.l10n.policyAcceptedLabel(
+                                  _formatDate(acceptedAt!), '$acceptedVersion')
+                              : context.l10n.policyAcceptedOldVersionLabel(
+                                  '$acceptedVersion'))
+                          : context.l10n.policyNotAcceptedLabel,
                       style: AppTextStyles.bodySm.copyWith(
                           color: accepted && isCurrent ? AppColors.primary : AppColors.warning),
                     ),
@@ -395,7 +395,7 @@ class _PolicyConsentTile extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
               ),
-              child: const Text('Переглянути повний текст'),
+              child: Text(context.l10n.viewFullTextAction),
             ),
           ),
         ],
@@ -461,8 +461,8 @@ class _ConsentTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       given
-                          ? 'Надано ${_formatDate(date!)}'
-                          : 'Згоду не надано',
+                          ? context.l10n.consentGivenLabel(_formatDate(date!))
+                          : context.l10n.consentNotGivenLabel,
                       style: AppTextStyles.bodySm.copyWith(
                           color: given
                               ? AppColors.primary
@@ -483,7 +483,7 @@ class _ConsentTile extends StatelessWidget {
               child: TextButton(
                 onPressed: onRevoke,
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Скасувати згоду'),
+                child: Text(context.l10n.revokeConsentAction),
               ),
             ),
           ],

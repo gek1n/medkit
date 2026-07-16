@@ -7,6 +7,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/services/family_group_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
@@ -72,8 +73,8 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
           children: [
             MkScreenHeader(
                 title: widget.forDependent != null
-                    ? 'Запросити ${widget.forDependent!.name}'
-                    : 'Запросити до сім\'ї'),
+                    ? context.l10n.inviteMemberTitle(widget.forDependent!.name)
+                    : context.l10n.inviteToFamilyTitle),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -97,7 +98,7 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
         children: [
           const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.danger),
           const SizedBox(height: 16),
-          Text('Не вдалося створити запрошення', style: AppTextStyles.h3),
+          Text(context.l10n.inviteCreateErrorTitle, style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
             _error!,
@@ -105,7 +106,7 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          FilledButton(onPressed: _generate, child: const Text('Спробувати ще раз')),
+          FilledButton(onPressed: _generate, child: Text(context.l10n.tryAgainAction)),
         ],
       ),
     );
@@ -121,13 +122,8 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
           const SizedBox(height: 16),
           Text(
             widget.forDependent != null
-                ? 'Нехай ${widget.forDependent!.name} введе цей код у застосунку на своєму '
-                    'телефоні. Профіль перетвориться на незалежний: уся наявна історія '
-                    'перенесеться як стартові дані, а ви автоматично отримаєте повний '
-                    'доступ до нього, як і раніше.'
-                : 'Той, хто введе цей код, приєднається як рівноправний учасник '
-                    'вашої сімейної групи — зі своїм профілем і своїми даними. '
-                    'Що саме він побачить із ваших даних, ви налаштуєте окремо.',
+                ? context.l10n.inviteDependentBody(widget.forDependent!.name)
+                : context.l10n.inviteMemberBody,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),
@@ -153,7 +149,7 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
           ),
           const SizedBox(height: 24),
           Text(
-            'Відскануйте цей код на іншому пристрої\nабо введіть його вручну',
+            context.l10n.inviteScanOrEnterHint,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),
@@ -162,7 +158,7 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
             onTap: () {
               Clipboard.setData(ClipboardData(text: code));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Код скопійовано')),
+                SnackBar(content: Text(context.l10n.codeCopiedSnackbar)),
               );
             },
             child: Container(
@@ -199,7 +195,7 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Код діє 30 хвилин і працює лише один раз. Дані на сервері зашифровані — там немає нічого, крім коду доступу.',
+                    context.l10n.inviteCodeExpiryNotice,
                     style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
                   ),
                 ),
