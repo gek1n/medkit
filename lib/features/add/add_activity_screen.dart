@@ -10,10 +10,22 @@ import '../../data/repositories/activities_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
+
+// Форматує тривалість у хвилинах у вигляд "N хв" / "N год" / "N год M хв" —
+// спільна логіка для картки слоту заняття й кнопки збереження в пікері
+// тривалості, щоб текст скрізь виглядав однаково.
+String _formatDuration(BuildContext context, int totalMinutes) {
+  final l10n = context.l10n;
+  if (totalMinutes < 60) return l10n.durationMinutes(totalMinutes);
+  final h = totalMinutes ~/ 60;
+  final m = totalMinutes % 60;
+  return m == 0 ? l10n.hoursCountLabel(h) : l10n.durationHoursMinutesLabel(h, m);
+}
 
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
@@ -49,15 +61,50 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   bool _loaded = false;
 
   static const _types = [
-    ('walk', Icons.directions_walk_rounded, 'Прогулянка'),
-    ('workout', Icons.fitness_center_rounded, 'Зарядка'),
-    ('gym', Icons.fitness_center_rounded, 'Тренування'),
-    ('yoga', Icons.self_improvement_rounded, 'Йога / ЛФК'),
-    ('cycling', Icons.directions_bike_rounded, 'Велосипед'),
-    ('custom', Icons.add_rounded, 'Своє'),
+    ('walk', Icons.directions_walk_rounded),
+    ('workout', Icons.fitness_center_rounded),
+    ('gym', Icons.fitness_center_rounded),
+    ('yoga', Icons.self_improvement_rounded),
+    ('cycling', Icons.directions_bike_rounded),
+    ('custom', Icons.add_rounded),
   ];
 
-  static const _dayNames = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+  // Слова для зіставлення з вільною назвою активності з голосової команди
+  // (initState, без BuildContext) — те саме, що показується користувачу
+  // через _typeLabel, але як фіксовані рядки для порівняння, не для показу.
+  static const _typeMatchWords = {
+    'walk': 'Прогулянка',
+    'workout': 'Зарядка',
+    'gym': 'Тренування',
+    'yoga': 'Йога / ЛФК',
+    'cycling': 'Велосипед',
+    'custom': 'Своє',
+  };
+
+  static String _typeLabel(BuildContext context, String id) {
+    final l10n = context.l10n;
+    return switch (id) {
+      'walk' => l10n.walkActivityName,
+      'workout' => l10n.activityTypeWorkout,
+      'gym' => l10n.activityTypeGym,
+      'yoga' => l10n.activityTypeYoga,
+      'cycling' => l10n.activityTypeCycling,
+      _ => l10n.activityTypeCustom,
+    };
+  }
+
+  static String _dayLabel(BuildContext context, int weekday) {
+    final l10n = context.l10n;
+    return switch (weekday) {
+      1 => l10n.dayMon,
+      2 => l10n.dayTue,
+      3 => l10n.dayWed,
+      4 => l10n.dayThu,
+      5 => l10n.dayFri,
+      6 => l10n.daySat,
+      _ => l10n.daySun,
+    };
+  }
 
   @override
   void initState() {
@@ -96,7 +143,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   String? _inferType(String name) {
     final n = name.toLowerCase();
     for (final t in _types) {
-      if (n.contains(t.$3.toLowerCase()) || t.$3.toLowerCase().contains(n)) {
+      final word = _typeMatchWords[t.$1]!.toLowerCase();
+      if (n.contains(word) || word.contains(n)) {
         return t.$1;
       }
     }
@@ -145,17 +193,17 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити активність?'),
-        content: const Text('Активність буде вилучена з розкладу.'),
+        title: Text(context.l10n.deleteActivityConfirmTitle),
+        content: Text(context.l10n.deleteActivityConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Видалити',
+              context.l10n.deleteAction,
               style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
             ),
           ),
@@ -177,16 +225,16 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 
   Future<void> _save() async {
     if (_type == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Оберіть тип активності')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.chooseActivityTypeError)),
+      );
       return;
     }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Введіть назву активності')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.enterActivityNameError)),
+      );
       return;
     }
     setState(() => _isSaving = true);
@@ -249,9 +297,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -279,8 +327,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
           children: [
             _BackHeader(
               title:
-                  (isEdit ? 'Редагувати активність' : 'Активність') +
-                  memberNameSuffix(ref, widget.memberId),
+                  (isEdit
+                      ? context.l10n.editActivityTitle
+                      : context.l10n.defaultActivityName) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -294,7 +344,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Type grid
-                    _Label('Тип активності'),
+                    _Label(context.l10n.activityTypeLabel),
                     const SizedBox(height: 8),
                     GridView.count(
                       shrinkWrap: true,
@@ -305,13 +355,14 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       childAspectRatio: 1.2,
                       children: _types.map((t) {
                         final sel = _type != null && _type == t.$1;
+                        final label = _typeLabel(context, t.$1);
                         return GestureDetector(
                           onTap: () {
                             setState(() {
                               _type = t.$1;
                               if (t.$1 != 'custom' &&
                                   _nameController.text.trim().isEmpty) {
-                                _nameController.text = t.$3;
+                                _nameController.text = label;
                               }
                             });
                           },
@@ -341,7 +392,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  t.$3,
+                                  label,
                                   style: AppTextStyles.bodySm.copyWith(
                                     color: sel
                                         ? const Color(0xFF15803D)
@@ -361,16 +412,16 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     const SizedBox(height: AppDimensions.lg),
 
                     // Name
-                    _Label('Назва'),
+                    _Label(context.l10n.fieldName),
                     const SizedBox(height: 6),
                     _Input(
                       controller: _nameController,
-                      hint: 'Назва активності',
+                      hint: context.l10n.activityNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // YouTube link
-                    _Label('Посилання на YouTube'),
+                    _Label(context.l10n.youtubeLinkLabel),
                     const SizedBox(height: 6),
                     _Input(
                       controller: _youtubeController,
@@ -378,7 +429,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Відео тренування чи клип — прев\'ю показуватиметься у картці на сьогодні',
+                      context.l10n.youtubeLinkDescription,
                       style: AppTextStyles.bodySm.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -386,7 +437,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     const SizedBox(height: AppDimensions.lg),
 
                     // Slots
-                    _Label('Розклад'),
+                    _Label(context.l10n.scheduleTitle),
                     const SizedBox(height: 8),
                     ..._slots.asMap().entries.map(
                       (e) => Padding(
@@ -413,12 +464,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           duration: null,
                         )),
                       ),
-                      child: _DashedAdd('Додати ще заняття'),
+                      child: _DashedAdd(context.l10n.addAnotherActivityAction),
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Weekdays
-                    _Label('Дні тижня'),
+                    _Label(context.l10n.weekdaysLabel),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -450,7 +501,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                _dayNames[day],
+                                _dayLabel(context, day),
                                 style: AppTextStyles.labelSm.copyWith(
                                   color: sel
                                       ? Colors.white
@@ -485,11 +536,11 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Нагадування',
+                                  context.l10n.reminderLabel,
                                   style: AppTextStyles.labelMd,
                                 ),
                                 Text(
-                                  'За 10 хвилин до кожного заняття',
+                                  context.l10n.reminderActivityDescription,
                                   style: AppTextStyles.bodySm,
                                 ),
                               ],
@@ -526,10 +577,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                         ),
                         child: Text(
                           _isSaving
-                              ? 'Зберігаємо...'
+                              ? context.l10n.savingLabel
                               : (isEdit
-                                    ? 'Зберегти зміни'
-                                    : 'Зберегти активність'),
+                                    ? context.l10n.saveChangesAction
+                                    : context.l10n.saveActivityAction),
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
@@ -597,13 +648,6 @@ class _ActivitySlot extends StatelessWidget {
     this.onRemove,
   });
 
-  static String _fmtDuration(int min) {
-    if (min < 60) return '$min хв';
-    final h = min ~/ 60;
-    final m = min % 60;
-    return m == 0 ? '$h год' : '$h год $m хв';
-  }
-
   @override
   Widget build(BuildContext context) {
     final hh = time.hour.toString().padLeft(2, '0');
@@ -629,7 +673,7 @@ class _ActivitySlot extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Заняття ${index + 1}',
+                context.l10n.activitySessionNumberLabel(index + 1),
                 style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
               ),
               const Spacer(),
@@ -637,7 +681,7 @@ class _ActivitySlot extends StatelessWidget {
                 GestureDetector(
                   onTap: onRemove,
                   child: Text(
-                    'видалити',
+                    context.l10n.removePhaseAction,
                     style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.textMuted,
                     ),
@@ -650,7 +694,7 @@ class _ActivitySlot extends StatelessWidget {
             children: [
               Expanded(
                 child: _SlotField(
-                  label: 'Час',
+                  label: context.l10n.detailLabelTime,
                   value: '$hh:$mm',
                   onTap: onTimeTap,
                 ),
@@ -658,8 +702,10 @@ class _ActivitySlot extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _SlotField(
-                  label: 'Тривалість',
-                  value: duration != null ? _fmtDuration(duration!) : '—',
+                  label: context.l10n.detailLabelDuration,
+                  value: duration != null
+                      ? _formatDuration(context, duration!)
+                      : '—',
                   hint: duration == null,
                   onTap: onDurationTap,
                 ),
@@ -757,9 +803,9 @@ class _DurationPickerState extends State<_DurationPicker> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Тривалість', style: AppTextStyles.h3),
+                    Text(context.l10n.detailLabelDuration, style: AppTextStyles.h3),
                     Text(
-                      'Необов\'язково',
+                      context.l10n.optionalLabel,
                       style: AppTextStyles.bodySm.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -789,7 +835,7 @@ class _DurationPickerState extends State<_DurationPicker> {
                     ),
                   ),
                   child: Text(
-                    'Не вказано',
+                    context.l10n.notSpecifiedValue,
                     style: AppTextStyles.labelMd.copyWith(
                       color: _notSpecified
                           ? AppColors.primary
@@ -830,7 +876,7 @@ class _DurationPickerState extends State<_DurationPicker> {
                               childCount: 4,
                               builder: (_, i) => Center(
                                 child: Text(
-                                  '$i год',
+                                  context.l10n.hoursCountLabel(i),
                                   style: AppTextStyles.bodyLg.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: _hours == i
@@ -865,7 +911,9 @@ class _DurationPickerState extends State<_DurationPicker> {
                                 final sel = _minuteIdx == i;
                                 return Center(
                                   child: Text(
-                                    '${_minuteOptions[i].toString().padLeft(2, '0')} хв',
+                                    context.l10n.minutesWithValueLabel(
+                                      _minuteOptions[i].toString().padLeft(2, '0'),
+                                    ),
                                     style: AppTextStyles.bodyLg.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: sel
@@ -903,8 +951,9 @@ class _DurationPickerState extends State<_DurationPicker> {
               ),
               child: Text(
                 _notSpecified
-                    ? 'Без тривалості'
-                    : 'Зберегти · ${_totalMin < 60 ? '$_totalMin хв' : '${_totalMin ~/ 60} год ${_totalMin % 60 == 0 ? '' : '${_totalMin % 60} хв'}'.trim()}',
+                    ? context.l10n.noDurationLabel
+                    : context.l10n.saveWithDurationLabel(
+                        _formatDuration(context, _totalMin)),
                 style: AppTextStyles.labelLg.copyWith(color: Colors.white),
               ),
             ),

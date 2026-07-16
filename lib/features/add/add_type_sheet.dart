@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../features/today/providers/today_providers.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
@@ -77,18 +78,18 @@ class _AddTypeSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Що хочете додати?', style: AppTextStyles.h3),
+          Text(context.l10n.addTypeSheetTitle, style: AppTextStyles.h3),
           const SizedBox(height: 4),
           Text(
-            'Оберіть тип — форма підлаштується',
+            context.l10n.addTypeSheetSubtitle,
             style: AppTextStyles.bodySm,
           ),
           const SizedBox(height: 20),
 
           _TypeCard(
             icon: Icons.medication_rounded,
-            title: 'Ліки',
-            sub: 'Розклад, дозування, AI-скан рецепта',
+            title: context.l10n.categoryMeds,
+            sub: context.l10n.addTypeMedsSub,
             onTap: () {
               Navigator.pop(context);
               if (memberId != null) {
@@ -105,8 +106,8 @@ class _AddTypeSheet extends ConsumerWidget {
 
           _TypeCard(
             icon: Icons.directions_walk_rounded,
-            title: 'Активність',
-            sub: 'Прогулянка, зарядка, вправи, ЛФК',
+            title: context.l10n.defaultActivityName,
+            sub: context.l10n.addTypeActivitySub,
             onTap: () {
               Navigator.pop(context);
               if (memberId != null) {
@@ -123,8 +124,8 @@ class _AddTypeSheet extends ConsumerWidget {
 
           _TypeCard(
             icon: Icons.favorite_rounded,
-            title: 'Самопочуття',
-            sub: 'Зробити зріз — настрій, симптоми, коментар',
+            title: context.l10n.wellbeingTitle,
+            sub: context.l10n.addTypeWellbeingSub,
             onTap: () {
               Navigator.pop(context);
               if (memberId != null) {
@@ -141,8 +142,8 @@ class _AddTypeSheet extends ConsumerWidget {
 
           _TypeCard(
             icon: Icons.medical_services_rounded,
-            title: 'Запис до лікаря',
-            sub: 'Обрати спеціаліста, час та отримати нагадування',
+            title: context.l10n.newAppointmentTitle,
+            sub: context.l10n.addTypeAppointmentSub,
             onTap: () {
               Navigator.pop(context);
               if (memberId != null) {
@@ -179,7 +180,7 @@ class _AddTypeSheet extends ConsumerWidget {
                       size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Голосова команда',
+                    context.l10n.voiceCommandLabel,
                     style: AppTextStyles.labelMd
                         .copyWith(color: AppColors.primary),
                   ),

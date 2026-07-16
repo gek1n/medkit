@@ -4,10 +4,11 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import '../../core/services/symptom_library_service.dart';
+import '../../core/providers/app_language_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -31,13 +32,16 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
   bool _isSaving = false;
   bool _isListening = false;
 
-  static const _moods = [
-    (1, '😣', 'Погано', Color(0xFFFEE2E2)),
-    (2, '😕', 'Так собі', Color(0xFFFEF3C7)),
-    (3, '😐', 'Норм', Color(0xFFE9F4EC)),
-    (4, '🙂', 'Добре', Color(0xFFDCFCE7)),
-    (5, '😄', 'Відмінно', Color(0xFFDCFCE7)),
-  ];
+  List<(int, String, String, Color)> _moods(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      (1, '😣', l10n.moodBadLabel, const Color(0xFFFEE2E2)),
+      (2, '😕', l10n.moodMehLabel, const Color(0xFFFEF3C7)),
+      (3, '😐', l10n.moodOkLabel, const Color(0xFFE9F4EC)),
+      (4, '🙂', l10n.moodGoodLabel, const Color(0xFFDCFCE7)),
+      (5, '😄', l10n.moodGreatLabel, const Color(0xFFDCFCE7)),
+    ];
+  }
 
   @override
   void dispose() {
@@ -49,7 +53,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
     if (_mood == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Оберіть самопочуття')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.chooseWellbeingErrorSnackbar)));
       return;
     }
     setState(() => _isSaving = true);
@@ -73,7 +77,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -84,10 +88,10 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final timeLabel = now.hour < 12
-        ? 'ранковий зріз'
+        ? context.l10n.wellbeingSlotMorning
         : now.hour < 17
-        ? 'денний зріз'
-        : 'вечірній зріз';
+        ? context.l10n.wellbeingSlotAfternoon
+        : context.l10n.wellbeingSlotEvening;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -106,7 +110,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Самопочуття', style: AppTextStyles.h2),
+                          Text(context.l10n.wellbeingTitle, style: AppTextStyles.h2),
                           Text(
                             '${_formatDate(now)} · $timeLabel',
                             style: AppTextStyles.bodySm,
@@ -133,7 +137,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Text(
-                          'Історія',
+                          context.l10n.historyLabel,
                           style: AppTextStyles.labelMd.copyWith(
                             color: AppColors.textSub,
                           ),
@@ -153,11 +157,11 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                   const SizedBox(height: 28),
 
                   // ── Step 1: Mood ──
-                  SectionLabel('Як ви себе почуваєте?'),
+                  SectionLabel(context.l10n.howAreYouFeelingLabel),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: _moods.map((m) {
+                    children: _moods(context).map((m) {
                       final sel = _mood == m.$1;
                       return GestureDetector(
                         onTap: () => setState(() => _mood = m.$1),
@@ -213,10 +217,10 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                   ),
 
                   // ── Step 2: Symptoms ──
-                  SectionLabel('Є симптоми?'),
+                  SectionLabel(context.l10n.anySymptomsLabel),
                   const SizedBox(height: 4),
                   Text(
-                    'Оберіть зі списку поширених або додайте своє',
+                    context.l10n.chooseFromListOrAddLabel,
                     style: AppTextStyles.bodySm,
                   ),
                   const SizedBox(height: 14),
@@ -244,8 +248,8 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                           Expanded(
                             child: Text(
                               _symptoms.isEmpty
-                                  ? 'Симптоми не обрано'
-                                  : _symptoms.map(SymptomLibraryService.labelFor).join(', '),
+                                  ? context.l10n.symptomsNotSelectedLabel
+                                  : _symptoms.map((k) => symptomLabelFor(context, k)).join(', '),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: AppTextStyles.bodyMd.copyWith(
@@ -272,7 +276,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                   Row(
                     children: [
                       Text(
-                        'Коментар',
+                        context.l10n.commentLabel,
                         style: AppTextStyles.bodyMd.copyWith(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
@@ -280,7 +284,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        '· необов\'язково',
+                        context.l10n.optionalSuffixLabel,
                         style: AppTextStyles.bodySm.copyWith(
                           color: AppColors.textMuted,
                         ),
@@ -309,7 +313,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        _isSaving ? 'Зберігаємо...' : 'Зберегти зріз',
+                        _isSaving ? context.l10n.savingLabel : context.l10n.saveWellbeingCheckAction,
                         style: AppTextStyles.labelLg.copyWith(
                           color: Colors.white,
                         ),
@@ -351,20 +355,21 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
   }
 
   String _formatDate(DateTime d) {
-    const months = [
+    final l10n = context.l10n;
+    final months = [
       '',
-      'січня',
-      'лютого',
-      'березня',
-      'квітня',
-      'травня',
-      'червня',
-      'липня',
-      'серпня',
-      'вересня',
-      'жовтня',
-      'листопада',
-      'грудня',
+      l10n.monthGenJan,
+      l10n.monthGenFeb,
+      l10n.monthGenMar,
+      l10n.monthGenApr,
+      l10n.monthGenMay,
+      l10n.monthGenJun,
+      l10n.monthGenJul,
+      l10n.monthGenAug,
+      l10n.monthGenSep,
+      l10n.monthGenOct,
+      l10n.monthGenNov,
+      l10n.monthGenDec,
     ];
     return '${d.day} ${months[d.month]}';
   }
@@ -394,6 +399,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
   _CommentMode _mode = _CommentMode.idle;
   String _transcript = '';
   int _seconds = 0;
+  String _languageId = 'uk_UA';
 
   late AnimationController _waveCtrl;
 
@@ -404,6 +410,9 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
+    AppLanguageNotifier.loadLanguageId().then((id) {
+      if (mounted) _languageId = id;
+    });
     _speech
         .initialize(
           onStatus: (status) {
@@ -450,7 +459,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
         if (r.finalResult) _stopRecording();
       },
       listenOptions: SpeechListenOptions(
-        localeId: 'uk_UA',
+        localeId: _languageId,
         listenFor: const Duration(seconds: 60),
         pauseFor: const Duration(seconds: 3),
         partialResults: true,
@@ -504,7 +513,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
-                  'або введіть текстом',
+                  context.l10n.orTypeTextLabel,
                   style: AppTextStyles.bodySm.copyWith(
                     color: AppColors.textMuted,
                   ),
@@ -527,7 +536,7 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
               controller: widget.controller,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: 'Опишіть як себе почуваєте…',
+                hintText: context.l10n.describeFeelingHint,
                 hintStyle: AppTextStyles.bodyMd.copyWith(
                   color: AppColors.textMuted,
                 ),
@@ -578,7 +587,7 @@ class _MicIdleButton extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    available ? 'Надиктуйте коментар' : 'Мікрофон недоступний',
+                    available ? context.l10n.dictateCommentLabel : context.l10n.micUnavailableLabel,
                     style: AppTextStyles.labelMd.copyWith(
                       color: available
                           ? const Color(0xFF2F5F41)
@@ -587,7 +596,7 @@ class _MicIdleButton extends StatelessWidget {
                   ),
                   if (available)
                     Text(
-                      'Натисніть і говоріть',
+                      context.l10n.tapAndSpeakLabel,
                       style: AppTextStyles.bodySm.copyWith(
                         color: const Color(0xFF3F8F5F),
                       ),
@@ -728,8 +737,8 @@ class _RecordingBlock extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               micReady
-                  ? 'Говоріть… натисніть щоб зупинити'
-                  : 'Готуємось… зачекайте секунду',
+                  ? context.l10n.speakNowLabel
+                  : context.l10n.preparingMicLabel,
               style: AppTextStyles.bodySm.copyWith(
                 color: const Color(0xFF3F8F5F),
                 fontWeight: FontWeight.w600,
@@ -787,7 +796,7 @@ class _TranscribedBlock extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Розшифровка голосу',
+                context.l10n.voiceTranscriptLabel,
                 style: AppTextStyles.labelMd.copyWith(
                   color: const Color(0xFF2F5F41),
                 ),
@@ -798,7 +807,7 @@ class _TranscribedBlock extends StatelessWidget {
           Text(text, style: AppTextStyles.bodyMd.copyWith(height: 1.6)),
           const SizedBox(height: 4),
           Text(
-            'Текст можна редагувати нижче в полі',
+            context.l10n.editableTextBelowHint,
             style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
           ),
           const SizedBox(height: 10),
@@ -821,7 +830,7 @@ class _TranscribedBlock extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Записати знову',
+                    context.l10n.recordAgainAction,
                     style: AppTextStyles.labelMd.copyWith(
                       color: AppColors.textSub,
                     ),
@@ -854,7 +863,7 @@ class _TodayLogsSection extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionLabel('Сьогодні'),
+            SectionLabel(context.l10n.dayToday),
             const SizedBox(height: 12),
             ...logs.map(
               (log) => Padding(
@@ -961,7 +970,7 @@ class _LogCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              SymptomLibraryService.labelFor(s),
+                              symptomLabelFor(context, s),
                               style: AppTextStyles.caption.copyWith(
                                 color: const Color(0xFF991B1B),
                                 fontWeight: FontWeight.w600,
@@ -975,7 +984,7 @@ class _LogCard extends StatelessWidget {
                 if (log.comment != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    '«${log.comment}»',
+                    context.l10n.quotedCommentLabel(log.comment!),
                     style: AppTextStyles.bodySm.copyWith(
                       fontStyle: FontStyle.italic,
                     ),

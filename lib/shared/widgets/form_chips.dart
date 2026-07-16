@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/med_form_icons.dart';
 
 /// Спільний список форм випуску ліків — раніше жив приватно лише в
@@ -19,30 +20,36 @@ const medFormKeys = [
   'injection',
 ];
 
-const medFormLabels = {
-  'tablet': 'Таблетка',
-  'capsule': 'Капсула',
-  'suppository': 'Свічі',
-  'vial': 'Флакон',
-  'syrup': 'Сироп',
-  'drops': 'Краплі',
-  'cream': 'Крем',
-  'inhaler': 'Інгалятор',
-  'injection': 'Ін\'єкція',
-};
+Map<String, String> medFormLabels(BuildContext context) {
+  final l10n = context.l10n;
+  return {
+    'tablet': l10n.medFormTablet,
+    'capsule': l10n.medFormCapsule,
+    'suppository': l10n.medFormSuppository,
+    'vial': l10n.medFormVial,
+    'syrup': l10n.medFormSyrup,
+    'drops': l10n.medFormDrops,
+    'cream': l10n.medFormCream,
+    'inhaler': l10n.medFormInhaler,
+    'injection': l10n.medFormInjection,
+  };
+}
 
-String unitForMedForm(String form) => switch (form) {
-      'tablet' => 'табл.',
-      'capsule' => 'капс.',
-      'syrup' => 'мл',
-      'drops' => 'крап.',
-      'cream' => 'г',
-      'inhaler' => 'вдих',
-      'injection' => 'мл',
-      'suppository' => 'свіча',
-      'vial' => 'фл.',
-      _ => 'шт.',
-    };
+String unitForMedForm(BuildContext context, String form) {
+  final l10n = context.l10n;
+  return switch (form) {
+    'tablet' => l10n.medUnitTablet,
+    'capsule' => l10n.medUnitCapsule,
+    'syrup' => l10n.medUnitMl,
+    'drops' => l10n.medUnitDrops,
+    'cream' => l10n.medUnitGram,
+    'inhaler' => l10n.medUnitInhale,
+    'injection' => l10n.medUnitMl,
+    'suppository' => l10n.medUnitSuppository,
+    'vial' => l10n.medUnitVial,
+    _ => l10n.medUnitPiece,
+  };
+}
 
 class FormChips extends StatelessWidget {
   final String selected;
@@ -52,6 +59,7 @@ class FormChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labels = medFormLabels(context);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -79,7 +87,7 @@ class FormChips extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      medFormLabels[f]!,
+                      labels[f]!,
                       style: AppTextStyles.labelMd.copyWith(
                         color: selected == f ? Colors.white : AppColors.textMain,
                       ),

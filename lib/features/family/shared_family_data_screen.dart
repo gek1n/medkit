@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 
@@ -23,17 +24,21 @@ const _notesFieldByType = {
   'surgery': 'notes',
 };
 
-const _entityTypeLabels = {
-  'medication': 'Ліки',
-  'doctor_appointment': 'Візит до лікаря',
-  'lab_result': 'Аналіз',
-  'allergy': 'Алергія',
-  'chronic_condition': 'Хронічне захворювання',
-  'vaccination': 'Щеплення',
-  'surgery': 'Операція',
-  'activity': 'Активність',
-  'wellbeing_schedule': 'Самопочуття',
-};
+String _entityTypeLabel(BuildContext context, String type) {
+  final l10n = context.l10n;
+  return switch (type) {
+    'medication' => l10n.categoryMeds,
+    'doctor_appointment' => l10n.doctorVisitLabel,
+    'lab_result' => l10n.labResultTitle,
+    'allergy' => l10n.allergyTitle,
+    'chronic_condition' => l10n.chronicConditionTitle,
+    'vaccination' => l10n.vaccinationTitle,
+    'surgery' => l10n.surgeryTitle,
+    'activity' => l10n.defaultActivityName,
+    'wellbeing_schedule' => l10n.wellbeingTitle,
+    _ => type,
+  };
+}
 
 const _entityTypeIcons = {
   'medication': Icons.medication_rounded,
@@ -58,12 +63,12 @@ const _hiddenFromList = {'schedule', 'intake', 'activity_slot', 'activity_log', 
 /// мають різні назви ключового поля (name/testName/allergen/doctorType),
 /// тому радше вгадуємо перше підходяще, ніж дублюємо типізовану модель
 /// заради суто інформаційного, нередагованого перегляду.
-String _primaryLabel(Map<String, dynamic> json) {
+String _primaryLabel(BuildContext context, Map<String, dynamic> json) {
   for (final key in ['name', 'testName', 'allergen', 'doctorType']) {
     final v = json[key];
     if (v is String && v.isNotEmpty) return v;
   }
-  return 'Запис';
+  return context.l10n.recordFallbackLabel;
 }
 
 final _sharedSubjectsProvider = StreamProvider<List<SharedSubject>>((ref) {
@@ -106,7 +111,7 @@ class SharedFamilyDataScreen extends ConsumerWidget {
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const SizedBox(width: 4),
-                  Expanded(child: Text('Дані від $peerName', style: AppTextStyles.h3)),
+                  Expanded(child: Text(context.l10n.dataFromPeerTitle(peerName), style: AppTextStyles.h3)),
                 ],
               ),
             ),
@@ -120,7 +125,7 @@ class SharedFamilyDataScreen extends ConsumerWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(AppDimensions.screenPadding),
                         child: Text(
-                          '$peerName ще нічого не поділив(-ла) з вами — або доступ ще не надано.',
+                          context.l10n.peerNothingSharedYet(peerName),
                           style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
                           textAlign: TextAlign.center,
                         ),
@@ -175,7 +180,7 @@ class _SubjectEntities extends ConsumerWidget {
 
     if (entities.isEmpty) {
       return Text(
-        'Немає даних, доступних для перегляду',
+        context.l10n.noViewableDataLabel,
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
       );
     }
@@ -217,9 +222,9 @@ class _SubjectEntities extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_primaryLabel(json), style: AppTextStyles.labelMd),
+                              Text(_primaryLabel(context, json), style: AppTextStyles.labelMd),
                               Text(
-                                _entityTypeLabels[e.entityType] ?? e.entityType,
+                                _entityTypeLabel(context, e.entityType),
                                 style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                               ),
                             ],
@@ -303,13 +308,14 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
           .requestPhoto(channelId: widget.channelId, photoPath: widget.photoPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Запит надіслано — файл ще потрібно дочекатись')),
+          SnackBar(content: Text(context.l10n.fileRequestSentSnackbar)),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _state = _AttachmentState.none);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не вдалося надіслати запит: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.l10n.fileRequestFailedError('$e'))));
       }
     }
   }
@@ -320,7 +326,7 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
       if (!mounted) return;
       if (PeerPhotoService.isPdf(widget.photoPath)) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('PDF отримано та збережено')));
+            .showSnackBar(SnackBar(content: Text(context.l10n.pdfReceivedSavedSnackbar)));
         return;
       }
       await showDialog<void>(
@@ -333,7 +339,8 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не вдалося відкрити файл: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.l10n.fileOpenFailedError('$e'))));
       }
     }
   }
@@ -351,22 +358,22 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
     switch (_state) {
       case _AttachmentState.unknown:
         icon = baseIcon;
-        label = '…';
+        label = context.l10n.loadingEllipsis;
         onTap = null;
         color = AppColors.textMuted;
       case _AttachmentState.available:
         icon = baseIcon;
-        label = isPdf ? 'PDF' : 'Фото';
+        label = isPdf ? context.l10n.pdfLabel : context.l10n.photoLabel;
         onTap = _open;
         color = AppColors.primary;
       case _AttachmentState.pending:
         icon = Icons.hourglass_top_rounded;
-        label = 'Очікуємо файл…';
+        label = context.l10n.awaitingFileLabel;
         onTap = null;
         color = AppColors.textMuted;
       case _AttachmentState.none:
         icon = Icons.download_rounded;
-        label = 'Запросити файл';
+        label = context.l10n.requestFileAction;
         onTap = _request;
         color = AppColors.primary;
     }
@@ -421,10 +428,10 @@ Future<void> _openEditNotesSheet(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Редагувати нотатки', style: AppTextStyles.h3),
+          Text(context.l10n.editNotesTitle, style: AppTextStyles.h3),
           const SizedBox(height: 4),
           Text(
-            'Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.',
+            context.l10n.editNotesDisclaimer,
             style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 16),
@@ -438,10 +445,10 @@ Future<void> _openEditNotesSheet(
               controller: controller,
               maxLines: 4,
               autofocus: true,
-              decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 border: InputBorder.none,
-                hintText: 'Нотатки…',
+                hintText: context.l10n.notesHintEllipsis,
               ),
               style: AppTextStyles.bodyMd,
             ),
@@ -465,13 +472,13 @@ Future<void> _openEditNotesSheet(
                         );
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Правку надіслано')),
+                            SnackBar(content: Text(context.l10n.editSentSnackbar)),
                           );
                         }
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context)
-                              .showSnackBar(SnackBar(content: Text('Не вдалося надіслати: $e')));
+                              .showSnackBar(SnackBar(content: Text(context.l10n.sendFailedError('$e'))));
                         }
                       }
                     },
@@ -482,7 +489,7 @@ Future<void> _openEditNotesSheet(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
-              child: const Text('Надіслати правку'),
+              child: Text(context.l10n.sendEditAction),
             ),
           ),
         ],

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 
 /// Drop-in replacement for [showTimePicker] that shows a wheel (Cupertino
 /// style) picker in a bottom sheet instead of the Material clock dial.
@@ -14,6 +15,7 @@ Future<TimeOfDay?> showWheelTimePicker(
     context: context,
     backgroundColor: Colors.transparent,
     builder: (ctx) {
+      final l10n = ctx.l10n;
       return Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
@@ -29,13 +31,13 @@ Future<TimeOfDay?> showWheelTimePicker(
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: Text('Скасувати',
+                    child: Text(l10n.actionCancel,
                         style: AppTextStyles.bodyMd
                             .copyWith(color: AppColors.textSub)),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, selected),
-                    child: Text('Готово',
+                    child: Text(l10n.doneTitle,
                         style: AppTextStyles.bodyMd.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w700)),

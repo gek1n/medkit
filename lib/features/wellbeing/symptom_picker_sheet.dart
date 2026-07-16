@@ -3,6 +3,71 @@ import '../../core/services/symptom_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
+
+/// Локалізована назва симптому за ключем зі SymptomLibraryService.common
+/// (для власних `custom_...` симптомів — сам текст після префіксу, він
+/// уже введений користувачем і локалізації не потребує). Винесено сюди
+/// (а не в SymptomLibraryService, який не має доступу до BuildContext),
+/// щоб symptom_picker_sheet.dart, wellbeing_check_screen.dart та
+/// wellbeing_history_screen.dart показували однакові локалізовані назви.
+String symptomLabelFor(BuildContext context, String key) {
+  if (key.startsWith('custom_')) return key.substring(7);
+  final l10n = context.l10n;
+  switch (key) {
+    case 'headache': return l10n.symptomHeadache;
+    case 'nausea': return l10n.symptomNausea;
+    case 'dizziness': return l10n.symptomDizziness;
+    case 'weakness': return l10n.symptomWeakness;
+    case 'shortness_of_breath': return l10n.symptomShortnessOfBreath;
+    case 'rash': return l10n.symptomRash;
+    case 'pain': return l10n.symptomPain;
+    case 'fever': return l10n.symptomFever;
+    case 'cough': return l10n.symptomCough;
+    case 'sore_throat': return l10n.symptomSoreThroat;
+    case 'runny_nose': return l10n.symptomRunnyNose;
+    case 'stuffy_nose': return l10n.symptomStuffyNose;
+    case 'sneezing': return l10n.symptomSneezing;
+    case 'vomiting': return l10n.symptomVomiting;
+    case 'diarrhea': return l10n.symptomDiarrhea;
+    case 'constipation': return l10n.symptomConstipation;
+    case 'bloating': return l10n.symptomBloating;
+    case 'heartburn': return l10n.symptomHeartburn;
+    case 'stomach_pain': return l10n.symptomStomachPain;
+    case 'loss_of_appetite': return l10n.symptomLossOfAppetite;
+    case 'increased_appetite': return l10n.symptomIncreasedAppetite;
+    case 'insomnia': return l10n.symptomInsomnia;
+    case 'drowsiness': return l10n.symptomDrowsiness;
+    case 'fatigue': return l10n.symptomFatigue;
+    case 'chest_pain': return l10n.symptomChestPain;
+    case 'palpitations': return l10n.symptomPalpitations;
+    case 'high_blood_pressure': return l10n.symptomHighBloodPressure;
+    case 'low_blood_pressure': return l10n.symptomLowBloodPressure;
+    case 'back_pain': return l10n.symptomBackPain;
+    case 'joint_pain': return l10n.symptomJointPain;
+    case 'muscle_pain': return l10n.symptomMusclePain;
+    case 'cramps': return l10n.symptomCramps;
+    case 'swelling': return l10n.symptomSwelling;
+    case 'itching': return l10n.symptomItching;
+    case 'dry_skin': return l10n.symptomDrySkin;
+    case 'bruising': return l10n.symptomBruising;
+    case 'dry_mouth': return l10n.symptomDryMouth;
+    case 'excessive_sweating': return l10n.symptomExcessiveSweating;
+    case 'chills': return l10n.symptomChills;
+    case 'blurred_vision': return l10n.symptomBlurredVision;
+    case 'ringing_in_ears': return l10n.symptomRingingInEars;
+    case 'numbness': return l10n.symptomNumbness;
+    case 'tremor': return l10n.symptomTremor;
+    case 'memory_issues': return l10n.symptomMemoryIssues;
+    case 'concentration_issues': return l10n.symptomConcentrationIssues;
+    case 'anxiety': return l10n.symptomAnxiety;
+    case 'irritability': return l10n.symptomIrritability;
+    case 'mood_swings': return l10n.symptomMoodSwings;
+    case 'weight_loss': return l10n.symptomWeightLoss;
+    case 'weight_gain': return l10n.symptomWeightGain;
+    default: return SymptomLibraryService.labelFor(key);
+  }
+}
 
 /// Список ~50 поширених симптомів + власні (збережені раніше через
 /// SymptomLibraryService) з пошуком та можливістю додати нове — на заміну
@@ -70,6 +135,7 @@ class _SymptomPickerSheetState extends State<SymptomPickerSheet> {
   Widget build(BuildContext context) {
     final q = _query.trim().toLowerCase();
     final commonFiltered = SymptomLibraryService.common
+        .map((s) => (s.$1, symptomLabelFor(context, s.$1)))
         .where((s) => q.isEmpty || s.$2.toLowerCase().contains(q))
         .toList();
     final customFiltered = _customKeys
@@ -102,10 +168,10 @@ class _SymptomPickerSheetState extends State<SymptomPickerSheet> {
                     AppDimensions.screenPadding, AppDimensions.md, AppDimensions.screenPadding, 0),
                 child: Row(
                   children: [
-                    Expanded(child: Text('Симптоми', style: AppTextStyles.h3)),
+                    Expanded(child: Text(context.l10n.symptomsTitle, style: AppTextStyles.h3)),
                     TextButton(
                       onPressed: () => Navigator.pop(context, _selected),
-                      child: const Text('Готово'),
+                      child: Text(context.l10n.doneTitle),
                     ),
                   ],
                 ),
@@ -122,7 +188,7 @@ class _SymptomPickerSheetState extends State<SymptomPickerSheet> {
                     controller: _searchCtrl,
                     onChanged: (v) => setState(() => _query = v),
                     decoration: InputDecoration(
-                      hintText: 'Пошук або нова назва…',
+                      hintText: context.l10n.symptomSearchHint,
                       hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
                       border: InputBorder.none,
                       prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textMuted, size: 20),
@@ -170,7 +236,7 @@ class _SymptomPickerSheetState extends State<SymptomPickerSheet> {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 24),
                               child: Center(
-                                child: Text('Список порожній', style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
+                                child: Text(context.l10n.symptomListEmptyLabel, style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted)),
                               ),
                             ),
                           const SizedBox(height: 24),
@@ -240,7 +306,7 @@ class _AddCustomRow extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Додати «$query»',
+                context.l10n.addCustomSymptomLabel(query),
                 style: AppTextStyles.bodyMd.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w600,

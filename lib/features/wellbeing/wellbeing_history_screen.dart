@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/services/symptom_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import 'symptom_picker_sheet.dart';
 import 'wellbeing_check_screen.dart';
 
 // ────────────────────────────── provider ──────────────────────────────
@@ -38,7 +39,7 @@ class WellbeingHistoryScreen extends ConsumerWidget {
       body: logsAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
-        error: (e, _) => Center(child: Text('Помилка: $e')),
+        error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
         data: (logs) => _HistoryBody(memberId: memberId, logs: logs),
       ),
     );
@@ -129,9 +130,9 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Історія', style: AppTextStyles.h2),
+                Text(context.l10n.historyLabel, style: AppTextStyles.h2),
                 Text(
-                  'самопочуття по днях',
+                  context.l10n.wellbeingByDaySubtitle,
                   style: AppTextStyles.bodySm
                       .copyWith(color: AppColors.textSub),
                 ),
@@ -156,7 +157,7 @@ class _Header extends StatelessWidget {
                 border: Border.all(color: AppColors.primaryLighter),
               ),
               child: Text(
-                '+ Зріз',
+                context.l10n.addWellbeingSlotAction,
                 style: AppTextStyles.labelMd
                     .copyWith(color: AppColors.primary),
               ),
@@ -208,10 +209,21 @@ class _MiniChart extends StatelessWidget {
     }
 
     // Month name
-    const months = [
-      '', 'січень', 'лютий', 'березень', 'квітень', 'травень',
-      'червень', 'липень', 'серпень', 'вересень', 'жовтень',
-      'листопад', 'грудень'
+    final l10n = context.l10n;
+    final months = [
+      '',
+      l10n.monthNomJan,
+      l10n.monthNomFeb,
+      l10n.monthNomMar,
+      l10n.monthNomApr,
+      l10n.monthNomMay,
+      l10n.monthNomJun,
+      l10n.monthNomJul,
+      l10n.monthNomAug,
+      l10n.monthNomSep,
+      l10n.monthNomOct,
+      l10n.monthNomNov,
+      l10n.monthNomDec,
     ];
 
     return Padding(
@@ -229,7 +241,7 @@ class _MiniChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Настрій — ${months[today.month]}',
+              context.l10n.moodChartTitle(months[today.month]),
               style: AppTextStyles.labelMd
                   .copyWith(color: AppColors.primary),
             ),
@@ -311,26 +323,49 @@ class _DayGroup extends StatelessWidget {
 
   const _DayGroup({required this.date, required this.logs});
 
-  static const _weekdays = [
-    '', 'понеділок', 'вівторок', 'середа',
-    'четвер', 'пʼятниця', 'субота', 'неділя'
-  ];
-  static const _months = [
-    '', 'січня', 'лютого', 'березня', 'квітня', 'травня',
-    'червня', 'липня', 'серпня', 'вересня', 'жовтня',
-    'листопада', 'грудня'
-  ];
+  List<String> _weekdays(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      '',
+      l10n.weekdayFullMon,
+      l10n.weekdayFullTue,
+      l10n.weekdayFullWed,
+      l10n.weekdayFullThu,
+      l10n.weekdayFullFri,
+      l10n.weekdayFullSat,
+      l10n.weekdayFullSun,
+    ];
+  }
 
-  String _dateLabel() {
+  List<String> _months(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      '',
+      l10n.monthGenJan,
+      l10n.monthGenFeb,
+      l10n.monthGenMar,
+      l10n.monthGenApr,
+      l10n.monthGenMay,
+      l10n.monthGenJun,
+      l10n.monthGenJul,
+      l10n.monthGenAug,
+      l10n.monthGenSep,
+      l10n.monthGenOct,
+      l10n.monthGenNov,
+      l10n.monthGenDec,
+    ];
+  }
+
+  String _dateLabel(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final suffix = date == today
-        ? 'сьогодні'
+        ? context.l10n.todayLowerLabel
         : date == yesterday
-            ? 'вчора'
-            : _weekdays[date.weekday];
-    return '${date.day} ${_months[date.month]} · $suffix';
+            ? context.l10n.yesterdayLowerLabel
+            : _weekdays(context)[date.weekday];
+    return '${date.day} ${_months(context)[date.month]} · $suffix';
   }
 
   @override
@@ -346,7 +381,7 @@ class _DayGroup extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _dateLabel(),
+            _dateLabel(context),
             style: AppTextStyles.bodyMd
                 .copyWith(fontSize: 15, fontWeight: FontWeight.w800),
           ),
@@ -387,7 +422,7 @@ class _LogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final symptoms = _parseSymptoms(log.symptomsJson);
+    final symptoms = _parseSymptoms(context, log.symptomsJson);
     final emoji = _moodEmoji[log.mood.clamp(1, 5)];
 
     return Container(
@@ -437,7 +472,7 @@ class _LogCard extends StatelessWidget {
                     log.comment!.trim().isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '«${log.comment}»',
+                    context.l10n.quotedCommentLabel(log.comment!),
                     style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.textSub,
                       fontStyle: FontStyle.italic,
@@ -452,10 +487,10 @@ class _LogCard extends StatelessWidget {
     );
   }
 
-  List<String> _parseSymptoms(String json) {
+  List<String> _parseSymptoms(BuildContext context, String json) {
     try {
       final List<dynamic> keys = jsonDecode(json);
-      return keys.map((k) => SymptomLibraryService.labelFor(k as String)).toList();
+      return keys.map((k) => symptomLabelFor(context, k as String)).toList();
     } catch (_) {
       return [];
     }
@@ -500,10 +535,10 @@ class _EmptyState extends StatelessWidget {
           const Icon(Icons.favorite_border_rounded,
               size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text('Зрізів ще немає', style: AppTextStyles.h3),
+          Text(context.l10n.noWellbeingLogsTitle, style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
-            'Натисніть "+ Зріз" щоб додати перший',
+            context.l10n.noWellbeingLogsHint,
             style:
                 AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
@@ -520,7 +555,7 @@ class _SendToDoctorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Скоро...')),
+        SnackBar(content: Text(context.l10n.comingSoonEllipsis)),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -557,13 +592,13 @@ class _SendToDoctorCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Відправити щоденник лікарю',
+                      context.l10n.sendDiaryToDoctorLabel,
                       style: AppTextStyles.labelMd
                           .copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Зрізи + симптоми + прийоми за місяць',
+                      context.l10n.diarySummaryHint,
                       style: AppTextStyles.bodySm.copyWith(
                           color:
                               Colors.white.withValues(alpha: 0.6)),
@@ -571,7 +606,7 @@ class _SendToDoctorCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text('→',
+              Text(context.l10n.arrowRightLabel,
                   style: AppTextStyles.h3.copyWith(
                       color: Colors.white.withValues(alpha: 0.6))),
             ],

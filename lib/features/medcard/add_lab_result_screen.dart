@@ -8,6 +8,7 @@ import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/lab_results_repository.dart';
@@ -72,13 +73,13 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити аналіз?'),
-        content: const Text('Запис і всі прикріплені документи буде видалено.'),
+        title: Text(context.l10n.deleteLabResultConfirmTitle),
+        content: Text(context.l10n.deleteWithDocsBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Видалити', style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
+            child: Text(context.l10n.deleteAction, style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
           ),
         ],
       ),
@@ -93,7 +94,7 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
     if (_specialty == null || _specialty!.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Оберіть напрямок')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.chooseSpecialtyValue)));
       return;
     }
     setState(() => _isSaving = true);
@@ -137,7 +138,7 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -156,8 +157,8 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
         child: Column(
           children: [
             MkFormHeader(
-              title: (isEdit ? 'Редагувати аналіз' : 'Новий аналіз') +
-                  memberNameSuffix(ref, widget.memberId),
+              title: (isEdit ? context.l10n.editLabResultTitle : context.l10n.newLabResultTitle) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -170,23 +171,23 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MkFieldLabel('Напрямок'),
+                    MkFieldLabel(context.l10n.fieldSpecialty),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: _specialty ?? 'Оберіть напрямок',
+                      value: _specialty ?? context.l10n.chooseSpecialtyValue,
                       filled: _specialty != null,
                       onTap: _pickSpecialty,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Назва аналізу'),
+                    MkFieldLabel(context.l10n.fieldTestName),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: _testName ?? 'Оберіть назву аналізу',
+                      value: _testName ?? context.l10n.chooseTestNameValue,
                       filled: _testName != null,
                       onTap: _pickTestName,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Дата'),
+                    MkFieldLabel(context.l10n.fieldDate),
                     const SizedBox(height: 6),
                     MkTapField(
                       value: _formatDate(_date),
@@ -194,18 +195,18 @@ class _AddLabResultScreenState extends ConsumerState<AddLabResultScreen> {
                       onTap: _pickDate,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Нотатки'),
+                    MkFieldLabel(context.l10n.fieldNotes),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
-                      hint: 'Результати, коментар лікаря…',
+                      hint: context.l10n.labResultNotesHint,
                       maxLines: 3,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     DocumentsSection(
                       paths: _documentPaths,
                       onChanged: (paths) => setState(() => _documentPaths = paths),
-                      label: 'Документи',
+                      label: context.l10n.documentsLabel,
                     ),
                     const SizedBox(height: AppDimensions.xxl),
                     MkSaveButton(isSaving: _isSaving, onPressed: _save),

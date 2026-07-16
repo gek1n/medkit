@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -32,7 +33,7 @@ class _MedicationsScreenState extends ConsumerState<MedicationsScreen> {
       body: membersAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
         data: (members) {
           if (members.isEmpty) {
             return const _EmptyMembers();
@@ -102,7 +103,7 @@ class _MedicationsBody extends ConsumerWidget {
                         CircularProgressIndicator(color: AppColors.primary)),
               ),
             ),
-            error: (e, _) => SliverToBoxAdapter(child: Text('$e')),
+            error: (e, _) => SliverToBoxAdapter(child: Text(context.l10n.errorGeneric(e.toString()))),
             data: (meds) {
               final active = meds.where((m) => m.isActive).toList();
               final inactive = meds.where((m) => !m.isActive).toList();
@@ -115,7 +116,7 @@ class _MedicationsBody extends ConsumerWidget {
                 delegate: SliverChildListDelegate([
                   if (active.isNotEmpty) ...[
                     const SizedBox(height: AppDimensions.xl),
-                    SectionLabel('Активні (${active.length})'),
+                    SectionLabel(context.l10n.activeMedsCountSection(active.length)),
                     const SizedBox(height: AppDimensions.md),
                     ...active.map((m) => Padding(
                           padding: const EdgeInsets.only(
@@ -136,7 +137,7 @@ class _MedicationsBody extends ConsumerWidget {
                   ],
                   if (inactive.isNotEmpty) ...[
                     const SizedBox(height: AppDimensions.xl),
-                    SectionLabel('Завершені (${inactive.length})'),
+                    SectionLabel(context.l10n.finishedMedsCountSection(inactive.length)),
                     const SizedBox(height: AppDimensions.md),
                     ...inactive.map((m) => Padding(
                           padding: const EdgeInsets.only(
@@ -177,7 +178,7 @@ class _MedicationsBody extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Ліки', style: AppTextStyles.h2),
+                    Text(context.l10n.medsTitle, style: AppTextStyles.h2),
                     Text(
                       member.name,
                       style: AppTextStyles.bodyMd
@@ -315,7 +316,7 @@ class _MedCard extends StatelessWidget {
                   Text(med.name, style: AppTextStyles.labelLg),
                   const SizedBox(height: 3),
                   Text(
-                    '${_doseStr(med)} · ${_repeatStr(med)}',
+                    '${_doseStr(med)} · ${_repeatStr(context, med)}',
                     style: AppTextStyles.bodySm,
                   ),
                 ],
@@ -335,12 +336,12 @@ class _MedCard extends StatelessWidget {
   String _doseStr(Medication m) =>
       '${m.doseAmount.toStringAsFixed(m.doseAmount == m.doseAmount.roundToDouble() ? 0 : 1)} ${m.doseUnit}';
 
-  String _repeatStr(Medication m) => switch (m.repeatType) {
-        'daily' => 'щодня',
-        'alternate' => 'через день',
-        'weekdays' => 'певні дні',
-        'every_n' => 'кожні N днів',
-        'cycle' => 'циклом',
+  String _repeatStr(BuildContext context, Medication m) => switch (m.repeatType) {
+        'daily' => context.l10n.repeatDaily,
+        'alternate' => context.l10n.repeatAlternate,
+        'weekdays' => context.l10n.repeatWeekdays,
+        'every_n' => context.l10n.repeatEveryN,
+        'cycle' => context.l10n.repeatCycle,
         _ => '',
       };
 
@@ -387,10 +388,10 @@ class _EmptyMeds extends StatelessWidget {
         children: [
           const Icon(Icons.medication_rounded, size: 52, color: AppColors.primary),
           const SizedBox(height: 16),
-          Text('Ліків ще немає', style: AppTextStyles.h3),
+          Text(context.l10n.noMedsYetTitle, style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
-            'Натисніть + щоб додати перше лікарство',
+            context.l10n.noMedsYetHint,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             textAlign: TextAlign.center,
           ),
@@ -400,7 +401,7 @@ class _EmptyMeds extends StatelessWidget {
               builder: (_) => AddMedicationScreen(memberId: memberId),
             )),
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Додати лікарство'),
+            label: Text(context.l10n.addMedicationAction),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -428,7 +429,7 @@ class _EmptyMembers extends StatelessWidget {
         children: [
           const Icon(Icons.person_off_rounded, size: 52, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text('Профіль не знайдено', style: AppTextStyles.h3),
+          Text(context.l10n.profileNotFound, style: AppTextStyles.h3),
         ],
       ),
     );

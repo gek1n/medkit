@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/mk_form_fields.dart';
@@ -24,25 +25,25 @@ class LabResultDetailScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            MkFormHeader(title: 'Аналіз', onBack: () => Navigator.pop(context)),
+            MkFormHeader(title: context.l10n.labResultTitle, onBack: () => Navigator.pop(context)),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(AppDimensions.screenPadding),
                 children: [
                   MkDetailRow(
-                    label: 'Назва',
+                    label: context.l10n.fieldName,
                     value: Text(
                       result.testName?.isNotEmpty == true ? result.testName! : result.specialty,
                       style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
-                  MkDetailRow(label: 'Напрямок', value: Text(result.specialty, style: AppTextStyles.bodyMd)),
+                  MkDetailRow(label: context.l10n.fieldSpecialty, value: Text(result.specialty, style: AppTextStyles.bodyMd)),
                   MkDetailRow(
-                    label: 'Дата',
-                    value: Text(MKDateUtils.formatDate(result.takenAt), style: AppTextStyles.bodyMd),
+                    label: context.l10n.fieldDate,
+                    value: Text(MKDateUtils.formatDate(context, result.takenAt), style: AppTextStyles.bodyMd),
                   ),
                   if (result.notes?.isNotEmpty ?? false)
-                    MkDetailRow(label: 'Нотатки', value: Text(result.notes!, style: AppTextStyles.bodyMd)),
+                    MkDetailRow(label: context.l10n.fieldNotes, value: Text(result.notes!, style: AppTextStyles.bodyMd)),
                   DocumentsSection(paths: docs, onChanged: (_) {}, readOnly: true),
                 ],
               ),
@@ -51,7 +52,7 @@ class LabResultDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(AppDimensions.screenPadding),
               child: MkSaveButton(
                 isSaving: false,
-                label: 'Редагувати',
+                label: context.l10n.editAction,
                 onPressed: () => Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(

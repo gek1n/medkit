@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import 'mk_back_button.dart';
 
 /// Спільні віджети для екранів "додати/редагувати запис" (візит, аналіз,
@@ -198,20 +199,23 @@ class MkDetailRow extends StatelessWidget {
 /// Основна кнопка "Зберегти" форми — той самий стиль по всій медкартці.
 class MkSaveButton extends StatelessWidget {
   final bool isSaving;
-  final String label;
-  final String savingLabel;
+  /// За замовчуванням — локалізований [AppLocalizations.saveAction].
+  final String? label;
+  /// За замовчуванням — локалізований [AppLocalizations.savingLabel].
+  final String? savingLabel;
   final VoidCallback? onPressed;
 
   const MkSaveButton({
     super.key,
     required this.isSaving,
     required this.onPressed,
-    this.label = 'Зберегти',
-    this.savingLabel = 'Зберігаємо...',
+    this.label,
+    this.savingLabel,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -224,7 +228,7 @@ class MkSaveButton extends StatelessWidget {
           elevation: 0,
         ),
         child: Text(
-          isSaving ? savingLabel : label,
+          isSaving ? (savingLabel ?? l10n.savingLabel) : (label ?? l10n.saveAction),
           style: AppTextStyles.labelLg.copyWith(color: Colors.white),
         ),
       ),

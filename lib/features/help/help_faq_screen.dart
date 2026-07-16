@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_screen_header.dart';
 
 class _Faq {
@@ -19,137 +20,55 @@ class _FaqGroup {
   const _FaqGroup(this.title, this.icon, this.items);
 }
 
-const _groups = <_FaqGroup>[
-  _FaqGroup('Приватність і дані', Icons.lock_outline_rounded, [
-    _Faq(
-      'Хто бачить мої дані?',
-      'Ніхто, крім вас. Усе зберігається зашифрованим на вашому пристрої '
-          '(SQLCipher, AES-256). Сервер Elly навмисно "сліпий": реєстрації '
-          'через email чи пароль немає, а те, що все ж проходить через '
-          'сервер (запрошення до сім\'ї, синхронізація, підтвердження '
-          'підписки), бачить лише зашифровані блоки й технічні '
-          'ідентифікатори — без ключа розшифрувати їх неможливо.',
-    ),
-    _Faq(
-      'У чому різниця між Резервною копією і Запрошенням до сім\'ї?',
-      'Резервна копія — знімок ваших власних даних у вашому Google Drive/'
-          'iCloud на випадок втрати телефону чи перевстановлення '
-          'застосунку. Запрошення до сім\'ї — живий обмін розкладом між '
-          'РІЗНИМИ людьми (наприклад, дитина бачить розклад мами) через '
-          'QR-код чи код запрошення. Це два різні механізми: перший — про '
-          'вас самих, другий — про спільний доступ між кількома людьми.',
-    ),
-    _Faq(
-      'Що буде, якщо я видалю застосунок без бекапу?',
-      'Дані буде втрачено безповоротно — копії на сервері не існує. '
-          'Обов\'язково зробіть резервну копію заздалегідь (Профіль → '
-          'Резервна копія).',
-    ),
-    _Faq(
-      'Як видалити свої дані повністю?',
-      'Видаліть застосунок з пристрою (і резервну копію з Drive/iCloud '
-          'вручну, якщо створювали). Профіль також можна видалити окремо — '
-          'Профіль → Конфіденційність → Небезпечна зона.',
-    ),
-  ]),
-  _FaqGroup('Сім\'я', Icons.family_restroom_rounded, [
-    _Faq(
-      'Як додати члена сім\'ї чи залежний профіль?',
-      'На вкладці "Сім\'я" — кнопка додавання профілю. Залежні профілі '
-          '(діти, батьки похилого віку) не мають власного входу — ними '
-          'керує власник пристрою.',
-    ),
-    _Faq(
-      'Як передати керування профілем іншій людині (наприклад, дорослій дитині)?',
-      'На картці локального профілю — кнопка "Запросити в застосунок": '
-          'покажіть QR-код чи назвіть код запрошення людині, яка '
-          'приєднується на своєму пристрої. Профіль перетвориться з '
-          'локального на автономний — людина відтепер керуватиме ним сама, '
-          'а вся історія даних збережеться. Дані шифруються ключем, '
-          'похідним від коду запрошення, — сервер бачить лише зашифрований '
-          'блок.',
-    ),
-    _Faq(
-      'Хто що бачить про інших членів сім\'ї?',
-      'Налаштовується в Профіль → Видимість для сім\'ї — окремо для '
-          'кожного профілю.',
-    ),
-  ]),
-  _FaqGroup('AI-функції', Icons.smart_toy_outlined, [
-    _Faq(
-      'Куди йдуть дані при голосовому вводі чи скані рецепта?',
-      'Розпізнавання відбувається через модель Claude від Anthropic — це '
-          'явно вказується в запиті згоди перед першим використанням '
-          'кожної функції. Вільний текстовий опис самопочуття чи симптомів '
-          'у хмару ніколи не надсилається.',
-    ),
-    _Faq(
-      'Наскільки точна довідкова інформація про ліки від AI?',
-      'Це орієнтовна інформація із загальних знань моделі, а не '
-          'перевірений медичний каталог. Завжди звіряйте з інструкцією до '
-          'препарату чи лікарем.',
-    ),
-  ]),
-  _FaqGroup('Сповіщення', Icons.notifications_none_rounded, [
-    _Faq(
-      'Чому не приходять нагадування?',
-      'Найчастіша причина — оптимізація батареї на Android обмежує '
-          'фонову роботу застосунку. Додайте Elly у виключення в '
-          'налаштуваннях енергозбереження пристрою. Також перевірте "Тихі '
-          'години" в Профіль → Сповіщення.',
-    ),
-    _Faq(
-      'Як налаштувати повторне нагадування, якщо не відмітив прийом?',
-      'Профіль → Сповіщення → "Повторити якщо нема відповіді" — виберіть '
-          'інтервал повзунком.',
-    ),
-  ]),
-  _FaqGroup('Тарифи', Icons.workspace_premium_outlined, [
-    _Faq(
-      'Чим відрізняються тарифи?',
-      'Elly (безкоштовний) — базові функції з обмеженнями. Elly Plus і '
-          'Elly Family знімають ліміти й додають розширені можливості. '
-          'Деталі — Профіль → Тарифи.',
-    ),
-  ]),
-  _FaqGroup('Технічні проблеми', Icons.build_outlined, [
-    _Faq(
-      'Не працює біометрія / забув пароль від резервної копії',
-      'Пароль резервної копії запам\'ятовується лише локально на цьому '
-          'пристрої (щоб автоматичні копії за розкладом не питали його '
-          'щоразу) — на наші сервери він ніколи не потрапляє. Якщо ви '
-          'перевстановите застосунок чи зміните пристрій, доведеться '
-          'ввести той самий пароль вручну; якщо забули його — відновити '
-          'копію неможливо, доведеться створити нову. Біометрію можна '
-          'переналаштувати в системних налаштуваннях пристрою.',
-    ),
-    _Faq(
-      'Не вдається відновити дані з резервної копії',
-      'Найчастіша причина — невірний пароль (той самий, який ви вказали '
-          'при створенні копії) або відсутнє з\'єднання з інтернетом. '
-          'Перевірте, що відновлюєте копію на відповідному типі пристрою '
-          '(з iCloud — лише на iOS, з Google Drive — на Android чи iOS). '
-          'Після успішного відновлення застосунок попросить перезапуститись.',
-    ),
-  ]),
-];
+List<_FaqGroup> _buildGroups(BuildContext context) {
+  final l10n = context.l10n;
+  return <_FaqGroup>[
+    _FaqGroup(l10n.faqGroupPrivacyTitle, Icons.lock_outline_rounded, [
+      _Faq(l10n.faqPrivacyQ1, l10n.faqPrivacyA1),
+      _Faq(l10n.faqPrivacyQ2, l10n.faqPrivacyA2),
+      _Faq(l10n.faqPrivacyQ3, l10n.faqPrivacyA3),
+      _Faq(l10n.faqPrivacyQ4, l10n.faqPrivacyA4),
+    ]),
+    _FaqGroup(l10n.faqGroupFamilyTitle, Icons.family_restroom_rounded, [
+      _Faq(l10n.faqFamilyQ1, l10n.faqFamilyA1),
+      _Faq(l10n.faqFamilyQ2, l10n.faqFamilyA2),
+      _Faq(l10n.faqFamilyQ3, l10n.faqFamilyA3),
+    ]),
+    _FaqGroup(l10n.faqGroupAiTitle, Icons.smart_toy_outlined, [
+      _Faq(l10n.faqAiQ1, l10n.faqAiA1),
+      _Faq(l10n.faqAiQ2, l10n.faqAiA2),
+    ]),
+    _FaqGroup(l10n.notificationsLabel, Icons.notifications_none_rounded, [
+      _Faq(l10n.faqNotificationsQ1, l10n.faqNotificationsA1),
+      _Faq(l10n.faqNotificationsQ2, l10n.faqNotificationsA2),
+    ]),
+    _FaqGroup(l10n.plansLabel, Icons.workspace_premium_outlined, [
+      _Faq(l10n.faqPlansQ1, l10n.faqPlansA1),
+    ]),
+    _FaqGroup(l10n.faqGroupTechTitle, Icons.build_outlined, [
+      _Faq(l10n.faqTechQ1, l10n.faqTechA1),
+      _Faq(l10n.faqTechQ2, l10n.faqTechA2),
+    ]),
+  ];
+}
 
 class HelpFaqScreen extends StatelessWidget {
   const HelpFaqScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final groups = _buildGroups(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
-            const MkScreenHeader(title: 'Допомога та FAQ'),
+            MkScreenHeader(title: context.l10n.helpFaqLabel),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                 children: [
-                  for (final g in _groups) ...[
+                  for (final g in groups) ...[
                     _GroupHeader(icon: g.icon, title: g.title),
                     const SizedBox(height: AppDimensions.sm),
                     ...g.items.map((f) => _FaqTile(faq: f)),
@@ -239,24 +158,24 @@ class _ContactsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Не знайшли відповідь?', style: AppTextStyles.labelLg),
+          Text(context.l10n.faqNotFoundQuestionTitle, style: AppTextStyles.labelLg),
           const SizedBox(height: 4),
           Text(
-            'Напишіть нам — відповімо особисто.',
+            context.l10n.faqWriteUsSubtitle,
             style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: AppDimensions.md),
           _ContactRow(
             icon: Icons.mail_outline_rounded,
-            label: 'Підтримка',
+            label: context.l10n.supportLabel,
             value: 'support@elly-medkit.com',
             onTap: () => _openMail('support@elly-medkit.com'),
           ),
           const SizedBox(height: AppDimensions.sm),
           _ContactRow(
             icon: Icons.chat_bubble_outline_rounded,
-            label: 'Чат підтримки',
-            value: 'Скоро',
+            label: context.l10n.supportChatLabel,
+            value: context.l10n.soonLabel,
             onTap: null,
           ),
         ],

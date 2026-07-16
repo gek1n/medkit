@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/doctor_specialties.dart';
+import '../../core/utils/l10n_ext.dart';
 
 /// Пошуковий пікер напрямку лікаря — заміна вільного `TextField`, щоб
 /// значення завжди приходило з контрольованого словника
@@ -41,25 +42,25 @@ class _SpecialtyPickerSheetState extends State<_SpecialtyPickerSheet> {
 
   Future<void> _pickOther() async {
     final controller = TextEditingController(
-      text: doctorSpecialties.contains(widget.current) ? '' : widget.current,
+      text: doctorSpecialties(context).contains(widget.current) ? '' : widget.current,
     );
     final custom = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Інший напрямок'),
+        title: Text(ctx.l10n.otherSpecialtyDialogTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Напр. Гомеопат'),
+          decoration: InputDecoration(hintText: ctx.l10n.otherSpecialtyHint),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Скасувати'),
+            child: Text(ctx.l10n.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Обрати'),
+            child: Text(ctx.l10n.chooseAction),
           ),
         ],
       ),
@@ -71,7 +72,7 @@ class _SpecialtyPickerSheetState extends State<_SpecialtyPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = doctorSpecialties
+    final filtered = doctorSpecialties(context)
         .where((s) => s.toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
@@ -95,7 +96,7 @@ class _SpecialtyPickerSheetState extends State<_SpecialtyPickerSheet> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Text('Напрямок лікаря', style: AppTextStyles.h3),
+                child: Text(context.l10n.doctorSpecialtyPickerTitle, style: AppTextStyles.h3),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -109,7 +110,7 @@ class _SpecialtyPickerSheetState extends State<_SpecialtyPickerSheet> {
                     controller: _searchController,
                     onChanged: (v) => setState(() => _query = v),
                     decoration: InputDecoration(
-                      hintText: 'Пошук…',
+                      hintText: context.l10n.specialtySearchHint,
                       hintStyle: AppTextStyles.bodyMd.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -132,7 +133,7 @@ class _SpecialtyPickerSheetState extends State<_SpecialtyPickerSheet> {
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final s = filtered[index];
-                    final isOther = s == otherDoctorSpecialty;
+                    final isOther = s == otherDoctorSpecialty(context);
                     final selected = s == widget.current;
                     return ListTile(
                       title: Text(s, style: AppTextStyles.bodyLg),

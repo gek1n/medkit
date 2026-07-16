@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import 'section_label.dart';
 
@@ -85,7 +86,7 @@ class _MemberPickerSheet extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: SectionLabel('Оберіть профіль'),
+              child: SectionLabel(context.l10n.chooseProfileLabel),
             ),
             ...members.map((m) {
               final sel = m.id == selectedId;

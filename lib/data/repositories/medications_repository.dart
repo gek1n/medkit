@@ -62,11 +62,35 @@ class MedicationsRepository {
   // партіальні виклики (не лише повне збереження форми) інакше падали б,
   // як це вже сталось із MembersRepository/LabResultsRepository.
   Future<bool> update(MedicationsCompanion med) async {
+    // Час/фази могли змінитись — існуючі ще не прийняті intake-рядки на
+    // сьогодні/майбутнє відповідають СТАРОМУ розкладу. Якщо їх не прибрати
+    // до перегенерації, IntakeGenerator (дедуп лише по точному medicationId+
+    // scheduledAt) не побачить збігу зі старим часом і додасть ЩЕ один
+    // intake під новий час поруч зі старим — користувач отримає два
+    // нагадування (старе й нове) замість одного.
+    if (med.id.present) await _cancelFutureStaleIntakes(med.id.value);
     final rows = await (_db.update(_db.medications)
           ..where((t) => t.id.equals(med.id.value)))
         .write(med.copyWith(updatedAt: Value(DateTime.now())));
     if (med.id.present) await _triggerFamilySyncForMedication(med.id.value);
     return rows > 0;
+  }
+
+  Future<void> _cancelFutureStaleIntakes(int medicationId) async {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+    final stale = await (_db.select(_db.intakes)
+          ..where((t) =>
+              t.medicationId.equals(medicationId) &
+              t.status.equals('pending') &
+              t.scheduledAt.isBiggerOrEqualValue(cutoff)))
+        .get();
+    if (stale.isEmpty) return;
+    for (final intake in stale) {
+      await NotificationService.cancelIntakeReminder(intake.id);
+    }
+    await (_db.delete(_db.intakes)
+          ..where((t) => t.id.isIn(stale.map((e) => e.id))))
+        .go();
   }
 
   Future<void> decrementRemaining(int id) async {

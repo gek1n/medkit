@@ -8,6 +8,7 @@ import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/doctor_appointments_repository.dart';
 import '../../data/repositories/lab_results_repository.dart';
@@ -79,7 +80,7 @@ class _SpecialtyHistoryScreenState
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Історія за напрямком',
+                      context.l10n.specialtyHistoryTitle,
                       style: AppTextStyles.h3,
                     ),
                   ),
@@ -125,7 +126,7 @@ class _SpecialtyHistoryScreenState
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          _specialty ?? 'Усі напрямки',
+                          _specialty ?? context.l10n.allSpecialtiesFilter,
                           style: AppTextStyles.labelMd.copyWith(
                             color: _specialty != null
                                 ? AppColors.primary
@@ -155,12 +156,12 @@ class _SpecialtyHistoryScreenState
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
-                error: (e, _) => Center(child: Text('Помилка: $e')),
+                error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (apts) => labsAsync.when(
                   loading: () => const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
-                  error: (e, _) => Center(child: Text('Помилка: $e')),
+                  error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                   data: (labs) => _Timeline(
                     apts: _specialty == null
                         ? apts
@@ -252,13 +253,13 @@ class _Timeline extends StatelessWidget {
     // всі одразу — при великій кількості записів це і викликало гальмування.
     final items = <Widget>[
       if (upcoming.isNotEmpty) ...[
-        const SectionLabel('Заплановані'),
+        SectionLabel(context.l10n.sectionUpcoming),
         const SizedBox(height: AppDimensions.sm),
         ...upcoming.map(entryTile),
         const SizedBox(height: AppDimensions.md),
       ],
       if (past.isNotEmpty) ...[
-        const SectionLabel('Минулі'),
+        SectionLabel(context.l10n.sectionPast),
         const SizedBox(height: AppDimensions.sm),
         ...past.map(entryTile),
       ],
@@ -291,7 +292,7 @@ class _AppointmentEntry extends StatelessWidget {
       icon: Icons.medical_services_rounded,
       iconColor: AppColors.primary,
       iconBg: AppColors.primaryLight,
-      title: 'Візит · ${apt.doctorType}',
+      title: context.l10n.visitPrefix(apt.doctorType),
       subtitle: apt.location != null && apt.location!.isNotEmpty
           ? '${_formatDate(apt.scheduledAt)} · ${apt.location}'
           : _formatDate(apt.scheduledAt),
@@ -313,7 +314,7 @@ class _LabEntry extends StatelessWidget {
       icon: Icons.biotech_rounded,
       iconColor: AppColors.info,
       iconBg: AppColors.infoLight,
-      title: 'Аналіз · ${result.testName?.isNotEmpty == true ? result.testName! : result.specialty}',
+      title: context.l10n.labPrefix(result.testName?.isNotEmpty == true ? result.testName! : result.specialty),
       subtitle: _formatDate(result.takenAt),
       notes: result.notes,
       documentPathsJson: result.documentPaths,
@@ -484,10 +485,10 @@ class _EmptyState extends StatelessWidget {
           children: [
             Image.asset('assets/illustrations/elly-docs.png', height: 140),
             const SizedBox(height: 16),
-            Text('Ще нічого не додано', style: AppTextStyles.h3),
+            Text(context.l10n.emptyStateNoneYetTitle, style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
-              'Візити й аналізи з\'являться тут',
+              context.l10n.specialtyHistoryEmptyHint,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),

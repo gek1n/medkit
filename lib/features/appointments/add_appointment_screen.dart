@@ -9,6 +9,7 @@ import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
@@ -59,11 +60,14 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
       );
 
-  static const _remindOptions = [
-    (60, 'За 1 годину'),
-    (1440, 'За день'),
-    (2880, 'За 2 дні'),
-  ];
+  List<(int, String)> _remindOptions(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      (60, l10n.remindBefore1Hour),
+      (1440, l10n.remindBefore1Day),
+      (2880, l10n.remindBefore2Days),
+    ];
+  }
 
   @override
   void initState() {
@@ -101,17 +105,17 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити запис?'),
-        content: const Text('Запис до лікаря буде видалено.'),
+        title: Text(ctx.l10n.deleteSurgeryConfirmTitle),
+        content: Text(ctx.l10n.deleteAppointmentBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(ctx.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Видалити',
+              ctx.l10n.deleteAction,
               style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
             ),
           ),
@@ -157,7 +161,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     if (doctorType.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Введіть тип лікаря')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.enterDoctorTypeError)));
       return;
     }
     setState(() => _isSaving = true);
@@ -246,7 +250,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -270,9 +274,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
             MkFormHeader(
               title:
                   (isEdit
-                      ? 'Редагувати запис'
-                      : (_isPastVisit ? 'Записати візит' : 'Запис до лікаря')) +
-                  memberNameSuffix(ref, widget.memberId),
+                      ? context.l10n.editSurgeryTitle
+                      : (_isPastVisit ? context.l10n.recordVisitTitle : context.l10n.newAppointmentTitle)) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -286,27 +290,27 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Doctor type
-                    MkFieldLabel('Напрямок лікаря'),
+                    MkFieldLabel(context.l10n.fieldDoctorSpecialty),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _doctorController,
-                      hint: 'Оберіть напрямок',
+                      hint: context.l10n.chooseSpecialtyValue,
                       readOnly: true,
                       onTap: _pickSpecialty,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Location
-                    MkFieldLabel('Де'),
+                    MkFieldLabel(context.l10n.fieldWhere),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _locationController,
-                      hint: 'Клініка, адреса або онлайн',
+                      hint: context.l10n.locationHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Date & time
-                    MkFieldLabel('Дата та час'),
+                    MkFieldLabel(context.l10n.fieldDateTime),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -314,7 +318,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                           child: GestureDetector(
                             onTap: _pickDate,
                             child: _DateTimeBox(
-                              label: 'ДАТА',
+                              label: context.l10n.dateCapsLabel,
                               value: _formatDate(_date),
                             ),
                           ),
@@ -323,7 +327,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                         Expanded(
                           child: GestureDetector(
                             onTap: _pickTime,
-                            child: _DateTimeBox(label: 'ЧАС', value: '$hh:$mm'),
+                            child: _DateTimeBox(label: context.l10n.timeCapsLabel, value: '$hh:$mm'),
                           ),
                         ),
                       ],
@@ -332,12 +336,12 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
 
                     // Remind before — не потрібно для візиту, що вже минув
                     if (!_isPastVisit) ...[
-                      MkFieldLabel('Нагадати заздалегідь'),
+                      MkFieldLabel(context.l10n.remindBeforeLabel),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         children: [
-                          ..._remindOptions.map((opt) {
+                          ..._remindOptions(context).map((opt) {
                             final sel = _remindBeforeMin == opt.$1;
                             return GestureDetector(
                               onTap: () =>
@@ -377,14 +381,14 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ],
 
                     // Notes — до візиту це "що запитати", після — висновок лікаря
-                    MkFieldLabel(_isPastVisit ? 'Висновок лікаря' : 'Нотатка'),
+                    MkFieldLabel(_isPastVisit ? context.l10n.doctorConclusionLabel : context.l10n.noteSingularLabel),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
                       maxLines: 3,
                       hint: _isPastVisit
-                          ? 'Що сказав лікар, рекомендації, призначення…'
-                          : 'Що запитати, взяти з собою, номер поліса…',
+                          ? context.l10n.doctorConclusionHint
+                          : context.l10n.apptNoteHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -392,7 +396,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       paths: _documentPaths,
                       onChanged: (paths) =>
                           setState(() => _documentPaths = paths),
-                      label: 'Документи',
+                      label: context.l10n.documentsLabel,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -406,10 +410,10 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       isSaving: _isSaving,
                       onPressed: _save,
                       label: isEdit
-                          ? 'Зберегти зміни'
+                          ? context.l10n.saveChangesAction
                           : (_isPastVisit
-                                ? 'Зберегти візит'
-                                : 'Зберегти нагадування'),
+                                ? context.l10n.saveVisitAction
+                                : context.l10n.saveReminderAction),
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -423,20 +427,21 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   }
 
   String _formatDate(DateTime d) {
-    const months = [
+    final l10n = context.l10n;
+    final months = [
       '',
-      'січня',
-      'лютого',
-      'березня',
-      'квітня',
-      'травня',
-      'червня',
-      'липня',
-      'серпня',
-      'вересня',
-      'жовтня',
-      'листопада',
-      'грудня',
+      l10n.monthGenJan,
+      l10n.monthGenFeb,
+      l10n.monthGenMar,
+      l10n.monthGenApr,
+      l10n.monthGenMay,
+      l10n.monthGenJun,
+      l10n.monthGenJul,
+      l10n.monthGenAug,
+      l10n.monthGenSep,
+      l10n.monthGenOct,
+      l10n.monthGenNov,
+      l10n.monthGenDec,
     ];
     return '${d.day} ${months[d.month]} ${d.year}';
   }

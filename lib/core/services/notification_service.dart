@@ -5,6 +5,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../l10n/app_localizations.dart';
+import '../providers/app_language_provider.dart';
 import 'app_logger.dart';
 
 /// Єдина точка планування локальних сповіщень: ліки, активності,
@@ -22,9 +24,17 @@ class NotificationService {
   // з'явиться НОВИЙ channelId — тоді плагін створює канал заново вже з
   // playSound: true. Не повертати назад на 'medkit_reminders'.
   static const _channelId = 'medkit_reminders_v2';
-  static const _channelName = 'Нагадування Elly';
-  static const _channelDesc =
-      'Нагадування про ліки, активності, візити та самопочуття';
+
+  // Немає BuildContext у сервісі, що планує сповіщення (часто з фону) —
+  // тому локаль береться напряму зі збереженого вибору мови застосунку
+  // (той самий SharedPreferences-ключ, що й appLanguageProvider) через
+  // згенерований lookupAppLocalizations, а не через context.l10n.
+  static Future<AppLocalizations> _l10n() async {
+    final id = await AppLanguageNotifier.loadLanguageId();
+    final code = id.split('_').first;
+    final locale = const ['uk', 'en'].contains(code) ? Locale(code) : const Locale('uk');
+    return lookupAppLocalizations(locale);
+  }
 
   /// Лише реєстрація плагіна/каналу/таймзони — без системного діалогу
   /// дозволу. Викликається одразу при старті застосунку (main.dart), щоб
@@ -74,20 +84,22 @@ class NotificationService {
     }
   }
 
-  static NotificationDetails _details({bool vibrationEnabled = true}) =>
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channelId,
-          _channelName,
-          channelDescription: _channelDesc,
-          importance: Importance.high,
-          priority: Priority.high,
-          color: const Color(0xFF4C9A6A),
-          enableVibration: vibrationEnabled,
-          playSound: true,
-        ),
-        iOS: DarwinNotificationDetails(presentSound: true),
-      );
+  static Future<NotificationDetails> _details({bool vibrationEnabled = true}) async {
+    final l10n = await _l10n();
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        l10n.notifChannelName,
+        channelDescription: l10n.notifChannelDesc,
+        importance: Importance.high,
+        priority: Priority.high,
+        color: const Color(0xFF4C9A6A),
+        enableVibration: vibrationEnabled,
+        playSound: true,
+      ),
+      iOS: DarwinNotificationDetails(presentSound: true),
+    );
+  }
 
   static Future<void> _zonedSchedule({
     required int id,
@@ -109,7 +121,7 @@ class NotificationService {
         title,
         body,
         tz.TZDateTime.from(at, tz.local),
-        _details(vibrationEnabled: vibrationEnabled),
+        await _details(vibrationEnabled: vibrationEnabled),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         matchDateTimeComponents: matchDateTimeComponents,
       );
@@ -183,9 +195,10 @@ class NotificationService {
     bool vibrationEnabled = true,
     int repeatMinutes = 0,
   }) async {
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: intakeNotificationId(intakeId),
-      title: '$memberName · 💊 Час прийняти ліки',
+      title: '$memberName · ${l10n.notifTakeMedTitle}',
       body: '$medName — $dose',
       at: scheduledAt,
       vibrationEnabled: vibrationEnabled,
@@ -193,7 +206,7 @@ class NotificationService {
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: intakeRepeatNotificationId(intakeId),
-        title: '$memberName · 🔔 Ви ще не відмітили прийом',
+        title: '$memberName · ${l10n.notifIntakeNoResponseTitle}',
         body: '$medName — $dose',
         at: scheduledAt.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
@@ -215,22 +228,22 @@ class NotificationService {
   static Future<void> showRemoteReminder({
     required String title,
     required String body,
-  }) {
+  }) async {
     final id = 9500000 + (DateTime.now().millisecondsSinceEpoch % 500000);
-    return _plugin.show(id, title, body, _details());
+    return _plugin.show(id, title, body, await _details());
   }
 
   // ── Нагадування про резервну копію ───────────────────────────────────
 
   static const backupReminderNotificationId = 9100000;
 
-  static Future<void> showBackupReminder() {
+  static Future<void> showBackupReminder() async {
+    final l10n = await _l10n();
     return _plugin.show(
       backupReminderNotificationId,
-      'Захистіть свої дані',
-      'Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. '
-          'Увімкніть у Профілі, щоб не втратити їх.',
-      _details(),
+      l10n.notifBackupReminderTitle,
+      l10n.notifBackupReminderBody,
+      await _details(),
     );
   }
 
@@ -246,12 +259,13 @@ class NotificationService {
     required int remaining,
     required String unit,
     bool vibrationEnabled = true,
-  }) {
+  }) async {
+    final l10n = await _l10n();
     return _plugin.show(
       lowStockNotificationId(medicationId),
-      '$memberName · ⚠️ Закінчуються ліки',
-      '$medName — залишилось $remaining $unit',
-      _details(vibrationEnabled: vibrationEnabled),
+      '$memberName · ${l10n.notifLowStockTitle}',
+      l10n.notifLowStockBody(medName, remaining, unit),
+      await _details(vibrationEnabled: vibrationEnabled),
     );
   }
 
@@ -268,9 +282,10 @@ class NotificationService {
     bool vibrationEnabled = true,
     int repeatMinutes = 0,
   }) async {
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: activityNotificationId(logId),
-      title: '$memberName · 🚶 Час для активності',
+      title: '$memberName · ${l10n.notifActivityTitle}',
       body: activityName,
       at: scheduledAt,
       vibrationEnabled: vibrationEnabled,
@@ -278,7 +293,7 @@ class NotificationService {
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: activityRepeatNotificationId(logId),
-        title: '$memberName · 🔔 Ви ще не відмітили активність',
+        title: '$memberName · ${l10n.notifActivityNoResponseTitle}',
         body: activityName,
         at: scheduledAt.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
@@ -312,9 +327,10 @@ class NotificationService {
     final body = (location != null && location.isNotEmpty)
         ? '$doctorType · $location'
         : doctorType;
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: appointmentNotificationId(appointmentId),
-      title: '$memberName · 🩺 Прийом лікаря',
+      title: '$memberName · ${l10n.notifAppointmentTitle}',
       body: body,
       at: at,
       vibrationEnabled: vibrationEnabled,
@@ -322,7 +338,7 @@ class NotificationService {
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: appointmentRepeatNotificationId(appointmentId),
-        title: '$memberName · 🔔 Не забудьте про прийом лікаря',
+        title: '$memberName · ${l10n.notifAppointmentNoResponseTitle}',
         body: body,
         at: at.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
@@ -351,10 +367,11 @@ class NotificationService {
     final now = DateTime.now();
     var at = DateTime(now.year, now.month, now.day, hour, minute);
     if (at.isBefore(now)) at = at.add(const Duration(days: 1));
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: wellbeingNotificationId(memberId, slotIndex),
-      title: '$memberName · 💜 Зріз самопочуття',
-      body: 'Як ви себе почуваєте?',
+      title: '$memberName · ${l10n.notifWellbeingTitle}',
+      body: l10n.notifWellbeingBody,
       at: at,
       matchDateTimeComponents: DateTimeComponents.time,
       vibrationEnabled: vibrationEnabled,
@@ -389,9 +406,10 @@ class NotificationService {
     bool vibrationEnabled = true,
   }) async {
     final at = DateTime(nextDoseAt.year, nextDoseAt.month, nextDoseAt.day, 9);
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: vaccinationNotificationId(vaccinationId),
-      title: '$memberName · 💉 Час ревакцинації',
+      title: '$memberName · ${l10n.notifVaccinationTitle}',
       body: name,
       at: at,
       vibrationEnabled: vibrationEnabled,
@@ -419,11 +437,11 @@ class NotificationService {
   }) async {
     final timeStr =
         '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: peerIntakeCheckId(uuid),
-      title: '🔔 Перевірте $subjectName',
-      body: 'Чи прийнято "$medName" ($dose) о $timeStr? Відкрийте застосунок '
-          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      title: l10n.notifPeerCheckTitle(subjectName),
+      body: l10n.notifPeerIntakeCheckBody(medName, dose, timeStr),
       at: scheduledAt.add(const Duration(minutes: 30)),
     );
   }
@@ -440,11 +458,11 @@ class NotificationService {
   }) async {
     final timeStr =
         '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: peerActivityCheckId(uuid),
-      title: '🔔 Перевірте $subjectName',
-      body: 'Чи виконано "$activityName" о $timeStr? Відкрийте застосунок '
-          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      title: l10n.notifPeerCheckTitle(subjectName),
+      body: l10n.notifPeerActivityCheckBody(activityName, timeStr),
       at: scheduledAt.add(const Duration(minutes: 30)),
     );
   }
@@ -461,11 +479,11 @@ class NotificationService {
   }) async {
     final timeStr =
         '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: peerAppointmentCheckId(uuid),
-      title: '🔔 Перевірте $subjectName',
-      body: 'Чи відбувся прийом ("$doctorType") о $timeStr? Відкрийте застосунок '
-          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      title: l10n.notifPeerCheckTitle(subjectName),
+      body: l10n.notifPeerAppointmentCheckBody(doctorType, timeStr),
       at: scheduledAt.add(const Duration(minutes: 30)),
     );
   }
@@ -485,11 +503,11 @@ class NotificationService {
   }) async {
     final timeStr =
         '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    final l10n = await _l10n();
     await _zonedSchedule(
       id: peerWellbeingCheckId(subjectPersonUuid, _peerWellbeingEpochDay(), slotIndex),
-      title: '🔔 Перевірте $subjectName',
-      body: 'Чи зроблено зріз самопочуття о $timeStr? Відкрийте застосунок '
-          'і зачекайте на синхронізацію, щоб побачити актуальний стан.',
+      title: l10n.notifPeerCheckTitle(subjectName),
+      body: l10n.notifPeerWellbeingCheckBody(timeStr),
       at: scheduledAt.add(const Duration(minutes: 30)),
     );
   }

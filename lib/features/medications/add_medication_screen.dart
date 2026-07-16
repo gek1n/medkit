@@ -15,6 +15,7 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
@@ -150,7 +151,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       }
       return;
     }
-    final used = await AiUsageService.getPhotoScansUsed();
+    final used = await ref.read(aiUsageServiceProvider).getPhotoScansUsed();
     final remaining = (AiUsageService.photoScanLimit - used).clamp(0, AiUsageService.photoScanLimit);
     if (remaining == 0) unawaited(MarketingTopicsService.markHitScanLimit());
     if (mounted) {
@@ -253,14 +254,14 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     super.dispose();
   }
 
-  static String _unitForForm(String form) => unitForMedForm(form);
+  String _unitForForm(String form) => unitForMedForm(context, form);
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Введіть назву ліків')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.enterMedicationNameError)),
+      );
       return;
     }
 
@@ -404,9 +405,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -417,17 +418,17 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити ліки?'),
-        content: const Text('Ліки будуть вилучені з розкладу.'),
+        title: Text(context.l10n.deleteMedicationConfirmTitle),
+        content: Text(context.l10n.deleteMedicationConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Видалити',
+              context.l10n.deleteAction,
               style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
             ),
           ),
@@ -463,9 +464,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           children: [
             _BackHeader(
               title:
-                  (isEdit ? 'Редагувати ліки' : 'Ліки') +
+                  (isEdit
+                      ? context.l10n.editMedicationTitle
+                      : context.l10n.medsTitle) +
                   (widget.memberId != null
-                      ? memberNameSuffix(ref, widget.memberId!)
+                      ? memberNameSuffix(context, ref, widget.memberId!)
                       : ''),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
@@ -492,16 +495,16 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     ],
 
                     // Name
-                    _FormLabel('Назва'),
+                    _FormLabel(context.l10n.fieldName),
                     const SizedBox(height: 6),
                     _TextField(
                       controller: _nameController,
-                      hint: 'Назва препарату',
+                      hint: context.l10n.medicationNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Form (перша — визначає одиницю)
-                    _FormLabel('Форма випуску'),
+                    _FormLabel(context.l10n.medicationFormLabel),
                     const SizedBox(height: 8),
                     FormChips(
                       selected: _form,
@@ -510,7 +513,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     const SizedBox(height: AppDimensions.lg),
 
                     // Phases
-                    _FormLabel('Фази курсу'),
+                    _FormLabel(context.l10n.coursePhasesLabel),
                     const SizedBox(height: 8),
                     ..._phases.asMap().entries.map(
                       (e) => Padding(
@@ -548,12 +551,12 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                             ),
                           );
                         },
-                        child: _DashedAdd('Додати фазу'),
+                        child: _DashedAdd(context.l10n.addPhaseAction),
                       ),
                     const SizedBox(height: AppDimensions.lg),
 
                     // Repeat
-                    _FormLabel('Повтор'),
+                    _FormLabel(context.l10n.repeatSectionLabel),
                     const SizedBox(height: 8),
                     _RepeatSection(
                       selected: _repeatType,
@@ -619,12 +622,14 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                         ),
                         child: Text(
                           _isSaving
-                              ? 'Зберігаємо...'
+                              ? context.l10n.savingLabel
                               : (isEdit
-                                    ? 'Зберегти зміни'
+                                    ? context.l10n.saveChangesAction
                                     : widget.onDraftCreated != null
-                                        ? 'Зберегти і продовжити →'
-                                        : 'Зберегти та переглянути розклад →'),
+                                        ? context.l10n.saveAndContinueAction
+                                        : context
+                                              .l10n
+                                              .saveAndViewScheduleAction),
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
@@ -668,7 +673,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     if (results == null || results.isEmpty || !mounted) return;
 
     if (!ref.read(planProvider).isPaid) {
-      await AiUsageService.recordPhotoScan();
+      await ref.read(aiUsageServiceProvider).recordPhotoScan();
       await _refreshScanAvailability();
     }
 
@@ -759,18 +764,16 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Додано ${meds.length} препаратів. Перевірте деталі в списку ліків.',
-            ),
+            content: Text(context.l10n.bulkSavedSnackbar(meds.length)),
           ),
         );
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -879,7 +882,7 @@ class _ScanCta extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Більше в Elly+',
+                              context.l10n.moreInEllyPlusLabel,
                               style: AppTextStyles.bodySm.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -895,7 +898,7 @@ class _ScanCta extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'AI',
+                              context.l10n.aiLabel,
                               style: AppTextStyles.bodySm.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -907,7 +910,7 @@ class _ScanCta extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Розпізнати рецепт за фото',
+                  context.l10n.scanPrescriptionTitle,
                   style: AppTextStyles.labelLg.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -915,7 +918,7 @@ class _ScanCta extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Еллі внесе ліки у розклад',
+                  context.l10n.scanPrescriptionSubtitle,
                   style: AppTextStyles.bodySm.copyWith(
                     color: Colors.white.withValues(alpha: 0.85),
                   ),
@@ -923,7 +926,7 @@ class _ScanCta extends StatelessWidget {
                 if (remaining != null) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '$remaining сканувань залишилось для тарифу Elly Free',
+                    context.l10n.scansRemainingLabel(remaining!),
                     style: AppTextStyles.bodySm.copyWith(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontWeight: FontWeight.w600,
@@ -952,7 +955,7 @@ class _OrDivider extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              'або введіть вручну',
+              context.l10n.orEnterManuallyLabel,
               style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
             ),
           ),
@@ -1092,14 +1095,14 @@ class _PhaseCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () {
               final v = int.tryParse(ctrl.text.trim());
               Navigator.pop(ctx, v != null && v > 0 ? v : null);
             },
-            child: const Text('OK'),
+            child: Text(context.l10n.okAction),
           ),
         ],
       ),
@@ -1125,7 +1128,7 @@ class _PhaseCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Фаза ${index + 1}',
+                context.l10n.phaseCardTitle(index + 1),
                 style: AppTextStyles.labelMd.copyWith(color: AppColors.primary),
               ),
               const Spacer(),
@@ -1133,7 +1136,7 @@ class _PhaseCard extends StatelessWidget {
                 GestureDetector(
                   onTap: onRemove,
                   child: Text(
-                    'видалити',
+                    context.l10n.removePhaseAction,
                     style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.textMuted,
                     ),
@@ -1152,7 +1155,7 @@ class _PhaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'КІЛЬКІСТЬ НА ПРИЙОМ',
+                      context.l10n.doseAmountLabel,
                       style: AppTextStyles.labelSm.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 6),
@@ -1170,7 +1173,7 @@ class _PhaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ВІДНОСНО ЇЖІ',
+                      context.l10n.foodRelationSectionLabel,
                       style: AppTextStyles.labelSm.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 6),
@@ -1197,7 +1200,7 @@ class _PhaseCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                foodRelationLabels[foodRelation] ?? foodRelation,
+                                foodRelationLabels(context)[foodRelation] ?? foodRelation,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.labelMd.copyWith(
                                   color: AppColors.textMain,
@@ -1230,7 +1233,7 @@ class _PhaseCard extends StatelessWidget {
 
           // Duration stepper
           Text(
-            'ТРИВАЛІСТЬ',
+            context.l10n.durationSectionLabel,
             style: AppTextStyles.labelSm.copyWith(fontSize: 10),
           ),
           const SizedBox(height: 6),
@@ -1258,9 +1261,9 @@ class _PhaseCard extends StatelessWidget {
                           : () async {
                               final v = await _pickInt(
                                 context,
-                                title: 'Кількість днів',
+                                title: context.l10n.daysCountDialogTitle,
                                 value: phase.durationDays ?? 1,
-                                suffix: 'дн.',
+                                suffix: context.l10n.daysSuffix,
                               );
                               if (v != null) {
                                 onChanged(_copyPhase(phase, durationDays: v));
@@ -1269,7 +1272,11 @@ class _PhaseCard extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          isPermanent ? '— дн.' : '${phase.durationDays} дн.',
+                          isPermanent
+                              ? context.l10n.daysCountDashLabel
+                              : context.l10n.daysCountLabel(
+                                  phase.durationDays!,
+                                ),
                           style: AppTextStyles.labelLg.copyWith(
                             color: AppColors.primary,
                           ),
@@ -1294,7 +1301,7 @@ class _PhaseCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Text(
-                    'або',
+                    context.l10n.orLabel,
                     style: AppTextStyles.bodySm.copyWith(
                       color: AppColors.textMuted,
                     ),
@@ -1322,7 +1329,7 @@ class _PhaseCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Постійно',
+                      context.l10n.permanentLabel,
                       style: AppTextStyles.labelMd.copyWith(
                         color: isPermanent ? Colors.white : AppColors.textMain,
                       ),
@@ -1338,7 +1345,7 @@ class _PhaseCard extends StatelessWidget {
 
           // Час прийому
           Text(
-            'ЧАС ПРИЙОМУ',
+            context.l10n.intakeTimeSectionLabel,
             style: AppTextStyles.labelSm.copyWith(fontSize: 10),
           ),
           const SizedBox(height: 6),
@@ -1351,7 +1358,7 @@ class _PhaseCard extends StatelessWidget {
             child: Row(
               children: [
                 _ModeTab(
-                  label: 'Конкретний час',
+                  label: context.l10n.specificTimeLabel,
                   active: !phase.intervalMode,
                   onTap: () => onChanged(
                     _MedPhase(
@@ -1364,7 +1371,7 @@ class _PhaseCard extends StatelessWidget {
                   ),
                 ),
                 _ModeTab(
-                  label: 'Кожні N годин',
+                  label: context.l10n.everyNHoursLabel,
                   active: phase.intervalMode,
                   onTap: () => onChanged(
                     _MedPhase(
@@ -1501,7 +1508,7 @@ class _PhaseCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Додати час',
+                      context.l10n.addTimeAction,
                       style: AppTextStyles.labelMd.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -1519,7 +1526,7 @@ class _PhaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ІНТЕРВАЛ',
+                      context.l10n.intervalLabel,
                       style: AppTextStyles.labelSm.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 4),
@@ -1543,9 +1550,9 @@ class _PhaseCard extends StatelessWidget {
                           onTap: () async {
                             final v = await _pickInt(
                               context,
-                              title: 'Інтервал',
+                              title: context.l10n.intervalDialogTitle,
                               value: phase.intervalHours,
-                              suffix: 'год',
+                              suffix: context.l10n.hoursSuffix,
                             );
                             if (v != null) {
                               onChanged(
@@ -1562,7 +1569,9 @@ class _PhaseCard extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             child: Text(
-                              '${phase.intervalHours} год',
+                              context.l10n.hoursCountLabel(
+                                phase.intervalHours,
+                              ),
                               style: AppTextStyles.labelLg.copyWith(
                                 color: AppColors.primary,
                               ),
@@ -1593,7 +1602,7 @@ class _PhaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ПОЧАТОК',
+                      context.l10n.startLabel,
                       style: AppTextStyles.labelSm.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 4),
@@ -1721,7 +1730,7 @@ class _DoseCommentFieldState extends State<_DoseCommentField> {
       onChanged: widget.onChanged,
       style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
       decoration: InputDecoration(
-        hintText: 'Коментар до дози (необов\'язково)',
+        hintText: context.l10n.doseCommentHint,
         hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -1765,24 +1774,26 @@ class _DoseRow extends StatelessWidget {
     final result = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Кількість на прийом'),
+        title: Text(context.l10n.doseAmountDialogTitle),
         content: TextField(
           controller: ctrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'наприклад 2.5'),
+          decoration: InputDecoration(
+            hintText: context.l10n.doseAmountExampleHint,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () {
               final v = double.tryParse(ctrl.text.trim().replaceAll(',', '.'));
               Navigator.pop(ctx, v != null && v > 0 ? v : null);
             },
-            child: const Text('OK'),
+            child: Text(context.l10n.okAction),
           ),
         ],
       ),
@@ -1890,7 +1901,7 @@ class _RepeatSection extends StatelessWidget {
       children: [
         _RepeatOption(
           value: 'daily',
-          label: 'Щодня',
+          label: context.l10n.repeatDailyCap,
           sub: null,
           selected: selected,
           onSelect: onSelect,
@@ -1898,16 +1909,16 @@ class _RepeatSection extends StatelessWidget {
         const SizedBox(height: 6),
         _RepeatOption(
           value: 'alternate',
-          label: 'Через день',
-          sub: 'Пн, Ср, Пт, Нд…',
+          label: context.l10n.repeatAlternateCap,
+          sub: context.l10n.weekdayExampleLabel,
           selected: selected,
           onSelect: onSelect,
         ),
         const SizedBox(height: 6),
         _RepeatOption(
           value: 'weekdays',
-          label: 'Певні дні тижня',
-          sub: weekdays.isEmpty ? '' : _weekdayNames(weekdays),
+          label: context.l10n.weekdaysOptionLabel,
+          sub: weekdays.isEmpty ? '' : _weekdayNames(context, weekdays),
           selected: selected,
           onSelect: onSelect,
           expanded: selected == 'weekdays'
@@ -1917,14 +1928,14 @@ class _RepeatSection extends StatelessWidget {
         const SizedBox(height: 6),
         _RepeatOption(
           value: 'every_n',
-          label: 'Кожні N днів',
-          sub: 'Наприклад кожні 3 дні',
+          label: context.l10n.everyNDaysOptionLabel,
+          sub: context.l10n.everyNDaysExampleLabel,
           selected: selected,
           onSelect: onSelect,
           expanded: selected == 'every_n'
               ? _StepperRow(
-                  label: 'Кожні',
-                  suffix: 'днів',
+                  label: context.l10n.everyLabel,
+                  suffix: context.l10n.daysSuffixWord,
                   value: everyN,
                   onDecrement: () =>
                       everyN > 2 ? onEveryNChanged(everyN - 1) : null,
@@ -1935,16 +1946,16 @@ class _RepeatSection extends StatelessWidget {
         const SizedBox(height: 6),
         _RepeatOption(
           value: 'cycle',
-          label: 'Циклом',
-          sub: 'N днів пити — M днів перерва',
+          label: context.l10n.cycleOptionLabel,
+          sub: context.l10n.cycleExampleLabel,
           selected: selected,
           onSelect: onSelect,
           expanded: selected == 'cycle'
               ? Column(
                   children: [
                     _StepperRow(
-                      label: 'Пити',
-                      suffix: 'днів',
+                      label: context.l10n.drinkLabel,
+                      suffix: context.l10n.daysSuffixWord,
                       value: cycleOn,
                       onDecrement: () => cycleOn > 1
                           ? onCycleChanged(cycleOn - 1, cycleOff)
@@ -1953,8 +1964,8 @@ class _RepeatSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _StepperRow(
-                      label: 'Перерва',
-                      suffix: 'днів',
+                      label: context.l10n.breakLabel,
+                      suffix: context.l10n.daysSuffixWord,
                       value: cycleOff,
                       onDecrement: () => cycleOff > 1
                           ? onCycleChanged(cycleOn, cycleOff - 1)
@@ -1969,8 +1980,17 @@ class _RepeatSection extends StatelessWidget {
     );
   }
 
-  String _weekdayNames(Set<int> days) {
-    const names = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+  String _weekdayNames(BuildContext context, Set<int> days) {
+    final names = [
+      '',
+      context.l10n.dayMon,
+      context.l10n.dayTue,
+      context.l10n.dayWed,
+      context.l10n.dayThu,
+      context.l10n.dayFri,
+      context.l10n.daySat,
+      context.l10n.daySun,
+    ];
     return (days.toList()..sort()).map((d) => names[d]).join(', ');
   }
 }
@@ -2065,10 +2085,17 @@ class _WeekdayPicker extends StatelessWidget {
 
   const _WeekdayPicker({required this.selected, required this.onToggle});
 
-  static const _days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
-
   @override
   Widget build(BuildContext context) {
+    final days = [
+      context.l10n.dayMon,
+      context.l10n.dayTue,
+      context.l10n.dayWed,
+      context.l10n.dayThu,
+      context.l10n.dayFri,
+      context.l10n.daySat,
+      context.l10n.daySun,
+    ];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(7, (i) {
@@ -2086,7 +2113,7 @@ class _WeekdayPicker extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                _days[i],
+                days[i],
                 style: AppTextStyles.labelSm.copyWith(
                   color: sel ? Colors.white : AppColors.textMuted,
                 ),
@@ -2228,7 +2255,9 @@ class _DurationSectionState extends State<_DurationSection> {
                       hintStyle: AppTextStyles.bodyLg.copyWith(
                         color: AppColors.textMuted,
                       ),
-                      suffixText: widget.isPermanent ? '' : ' дн.',
+                      suffixText: widget.isPermanent
+                          ? ''
+                          : ' ${context.l10n.daysSuffix}',
                       suffixStyle: AppTextStyles.bodySm.copyWith(
                         color: AppColors.textSub,
                       ),
@@ -2294,7 +2323,7 @@ class _DurationSectionState extends State<_DurationSection> {
               ),
             ),
             child: Text(
-              'Постійно',
+              context.l10n.permanentLabel,
               style: AppTextStyles.labelMd.copyWith(
                 color: widget.isPermanent ? Colors.white : AppColors.textMain,
               ),
@@ -2386,14 +2415,14 @@ class _OptionalSectionState extends State<_OptionalSection> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Додаткові параметри',
+                    context.l10n.optionalParamsLabel,
                     style: AppTextStyles.labelMd.copyWith(
                       color: AppColors.textSub,
                     ),
                   ),
                 ),
                 Text(
-                  'Необов\'язково',
+                  context.l10n.optionalLabel,
                   style: AppTextStyles.bodySm.copyWith(
                     color: AppColors.textMuted,
                   ),
@@ -2469,7 +2498,7 @@ class _OptionalSectionState extends State<_OptionalSection> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Відстежувати та нагадувати про залишок',
+                          context.l10n.trackStockLabel,
                           style: AppTextStyles.bodyMd,
                         ),
                       ),
@@ -2488,20 +2517,25 @@ class _OptionalSectionState extends State<_OptionalSection> {
                       const SizedBox(height: 14),
 
                       if (isPercentTrackedForm(widget.form)) ...[
-                        Text('Флакон / упаковка', style: AppTextStyles.labelMd),
+                        Text(
+                          context.l10n.vialPackageLabel,
+                          style: AppTextStyles.labelMd,
+                        ),
                         const SizedBox(height: 4),
                         Text(
-                          'Позначимо як щойно відкриту (100%) — оновити '
-                          'оцінку залишку можна буде в картці ліків',
+                          context.l10n.markAsOpenedHint,
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.textMuted,
                           ),
                         ),
                       ] else ...[
-                        Text('В наявності', style: AppTextStyles.labelMd),
+                        Text(
+                          context.l10n.inStockLabel,
+                          style: AppTextStyles.labelMd,
+                        ),
                         const SizedBox(height: 4),
                         Text(
-                          'Скільки ${widget.doseUnit} є зараз',
+                          context.l10n.howManyNowLabel(widget.doseUnit),
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.textMuted,
                           ),
@@ -2551,8 +2585,9 @@ class _OptionalSectionState extends State<_OptionalSection> {
                                         text: TextSpan(
                                           style: AppTextStyles.bodyMd,
                                           children: [
-                                            const TextSpan(
-                                              text: 'Потрібно докупити: ',
+                                            TextSpan(
+                                              text:
+                                                  context.l10n.needToBuyLabel,
                                             ),
                                             TextSpan(
                                               text: '$toBuy ${widget.doseUnit}',
@@ -2562,8 +2597,11 @@ class _OptionalSectionState extends State<_OptionalSection> {
                                                   ),
                                             ),
                                             TextSpan(
-                                              text:
-                                                  ' (курс: $needed, є: ${widget.availableCount})',
+                                              text: context.l10n
+                                                  .courseAvailableLabel(
+                                                    needed,
+                                                    widget.availableCount,
+                                                  ),
                                               style: AppTextStyles.bodySm
                                                   .copyWith(
                                                     color: AppColors.textMuted,
@@ -2573,7 +2611,7 @@ class _OptionalSectionState extends State<_OptionalSection> {
                                         ),
                                       )
                                     : Text(
-                                        'Вистачить на весь курс',
+                                        context.l10n.enoughForCourseLabel,
                                         style: AppTextStyles.bodyMd.copyWith(
                                           color: Colors.green.shade700,
                                         ),
@@ -2642,7 +2680,7 @@ class _PillCountRow extends StatelessWidget {
             final result = await showDialog<int>(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: const Text('Кількість'),
+                title: Text(context.l10n.quantityHint),
                 content: TextField(
                   controller: ctrl,
                   keyboardType: TextInputType.number,
@@ -2652,14 +2690,14 @@ class _PillCountRow extends StatelessWidget {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Скасувати'),
+                    child: Text(context.l10n.actionCancel),
                   ),
                   TextButton(
                     onPressed: () {
                       final v = int.tryParse(ctrl.text.trim());
                       Navigator.pop(ctx, v != null && v >= 0 ? v : null);
                     },
-                    child: const Text('OK'),
+                    child: Text(context.l10n.okAction),
                   ),
                 ],
               ),
@@ -2713,11 +2751,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
       if (!granted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Немає доступу до камери. Дозвольте його в налаштуваннях телефону.',
-              ),
-            ),
+            SnackBar(content: Text(context.l10n.noCameraAccessError)),
           );
         }
         return;
@@ -2729,7 +2763,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
     } on PlatformException catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не вдалося відкрити камеру')),
+          SnackBar(content: Text(context.l10n.cameraOpenError)),
         );
       }
     } finally {
@@ -2749,7 +2783,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Фото упаковки', style: AppTextStyles.labelMd),
+          Text(context.l10n.packagePhotoLabel, style: AppTextStyles.labelMd),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: _loading ? null : _add,
@@ -2796,14 +2830,14 @@ class _PhotoSectionState extends State<_PhotoSection> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Додати фото',
+                      context.l10n.addPhotoAction,
                       style: AppTextStyles.labelMd.copyWith(
                         color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'щоб не переплутати ліки',
+                      context.l10n.addPhotoHint,
                       style: AppTextStyles.bodySm.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -2822,7 +2856,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
       children: [
         Row(
           children: [
-            Text('Фото упаковки', style: AppTextStyles.labelMd),
+            Text(context.l10n.packagePhotoLabel, style: AppTextStyles.labelMd),
             const Spacer(),
             if (_loading)
               const SizedBox(
@@ -2834,7 +2868,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
               GestureDetector(
                 onTap: _add,
                 child: Text(
-                  'Додати',
+                  context.l10n.addAction,
                   style: AppTextStyles.labelSm.copyWith(
                     color: AppColors.primary,
                   ),

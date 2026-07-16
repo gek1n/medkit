@@ -14,6 +14,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
@@ -128,11 +129,10 @@ class _FamilyBody extends ConsumerWidget {
               if (blocked)
                 const _FamilyUpgradeBanner()
               else if (plan == AppPlan.plus)
-                const _FamilyUpgradeBanner(
-                  badge: 'Сімʼя',
-                  title: 'Профілі локальні',
-                  subtitle:
-                      'Щоб сім\'я теж могла керувати — перейдіть на Elly Family',
+                _FamilyUpgradeBanner(
+                  badge: context.l10n.familyLabel,
+                  title: context.l10n.localProfilesTitle,
+                  subtitle: context.l10n.familyUpgradeSubtitle,
                 ),
               if (blocked || plan == AppPlan.plus)
                 const SizedBox(height: AppDimensions.md),
@@ -182,9 +182,9 @@ class _FamilyHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Сімʼя', style: AppTextStyles.h2),
+                    Text(context.l10n.familyLabel, style: AppTextStyles.h2),
                     Text(
-                      '$count ${_membersLabel(count)}',
+                      context.l10n.familyMembersCountLabel(count),
                       style: AppTextStyles.bodyMd
                           .copyWith(color: AppColors.textSub),
                     ),
@@ -212,12 +212,6 @@ class _FamilyHeader extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _membersLabel(int n) {
-    if (n == 1) return 'член';
-    if (n < 5) return 'члени';
-    return 'членів';
   }
 }
 
@@ -256,7 +250,7 @@ class _MemberCard extends ConsumerWidget {
       for (final m in meds) {
         if (m.id == medicationId) return m.name;
       }
-      return 'Ліки';
+      return context.l10n.defaultMedName;
     }
 
     String timeStr(DateTime dt) =>
@@ -266,31 +260,33 @@ class _MemberCard extends ConsumerWidget {
     if (isOwner) {
       statusLine = Text(
         total == 0
-            ? 'Немає ліків на сьогодні'
-            : (taken == total ? 'Усе виконано сьогодні' : '$taken з $total прийомів'),
+            ? context.l10n.noMedsTodayLabel
+            : (taken == total
+                ? context.l10n.allDoneTodayLabel
+                : context.l10n.takenOfTotalIntakesLabel(taken, total)),
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
       );
     } else if (hasMissed) {
       statusLine = Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_rounded, size: 12, color: AppColors.danger),
         const SizedBox(width: 3),
-        Text('Пропущено ${missedIntakes.length} ${_remindersWordUk(missedIntakes.length)}',
+        Text(context.l10n.missedRemindersLabel(missedIntakes.length),
             style: AppTextStyles.bodySm.copyWith(color: AppColors.danger)),
       ]);
     } else if (total > 0 && taken == total) {
       statusLine = Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF22C55E)),
         const SizedBox(width: 3),
-        Text('Усе виконано сьогодні',
+        Text(context.l10n.allDoneTodayLabel,
             style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF22C55E))),
       ]);
     } else if (nextIntake != null) {
       statusLine = Text(
-        'Наступне: ${medNameFor(nextIntake.medicationId)} о ${timeStr(nextIntake.scheduledAt)}',
+        context.l10n.nextIntakeLabel(medNameFor(nextIntake.medicationId), timeStr(nextIntake.scheduledAt)),
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
       );
     } else {
-      statusLine = Text('Немає ліків на сьогодні',
+      statusLine = Text(context.l10n.noMedsTodayLabel,
           style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted));
     }
 
@@ -352,7 +348,7 @@ class _MemberCard extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                        isOwner ? 'я' : 'Локальний',
+                                        isOwner ? context.l10n.meLabel : context.l10n.localLabel,
                                         style: AppTextStyles.caption.copyWith(
                                             color: AppColors.primary,
                                             fontWeight: FontWeight.w700)),
@@ -399,7 +395,7 @@ class _MemberCard extends ConsumerWidget {
                                       Text(medNameFor(firstMissed.medicationId),
                                           style: AppTextStyles.labelMd),
                                       Text(
-                                          '${timeStr(firstMissed.scheduledAt)} · не прийнято',
+                                          context.l10n.notTakenSuffixLabel(timeStr(firstMissed.scheduledAt)),
                                           style: AppTextStyles.bodySm
                                               .copyWith(color: AppColors.textMuted)),
                                     ],
@@ -419,13 +415,6 @@ class _MemberCard extends ConsumerWidget {
       ),
     );
   }
-}
-
-String _remindersWordUk(int n) {
-  final mod10 = n % 10, mod100 = n % 100;
-  if (mod10 == 1 && mod100 != 11) return 'нагадування';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'нагадування';
-  return 'нагадувань';
 }
 
 void _showMemberActionsSheet(
@@ -463,8 +452,8 @@ class _MemberActionsSheet extends ConsumerWidget {
       if (autonomousLimitReached)
         _SheetAction(
           icon: Icons.workspace_premium_rounded,
-          label: 'Запросити',
-          subtitle: 'Автономні профілі — лише на Elly Family',
+          label: context.l10n.inviteAction,
+          subtitle: context.l10n.autonomousProfilesPlusOnly,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(context,
@@ -474,7 +463,7 @@ class _MemberActionsSheet extends ConsumerWidget {
       else
         _SheetAction(
           icon: Icons.person_add_alt_1_rounded,
-          label: pendingConversion ? 'Очікуємо приєднання' : 'Запросити в застосунок',
+          label: pendingConversion ? context.l10n.awaitingJoinLabel : context.l10n.inviteToAppLabel,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
@@ -487,7 +476,7 @@ class _MemberActionsSheet extends ConsumerWidget {
         ),
       _SheetAction(
         icon: Icons.today_rounded,
-        label: 'Переглянути як ${member.name}',
+        label: context.l10n.viewAsLabel(member.name),
         onTap: () {
           ref.read(activeMemberIdProvider.notifier).state = member.id;
           ref.read(requestedTabIndexProvider.notifier).state = 0;
@@ -496,7 +485,7 @@ class _MemberActionsSheet extends ConsumerWidget {
       ),
       _SheetAction(
         icon: Icons.delete_forever_rounded,
-        label: 'Видалити назавжди',
+        label: context.l10n.deleteForeverAction,
         color: AppColors.danger,
         onTap: () => _confirmDelete(context, ref),
       ),
@@ -558,11 +547,11 @@ class _MemberActionsSheet extends ConsumerWidget {
           children: [
             Image.asset('assets/illustrations/elly-thinking-2.png', height: 120),
             const SizedBox(height: AppDimensions.md),
-            Text('Ви впевнені?',
+            Text(context.l10n.areYouSureTitle,
                 style: AppTextStyles.h3, textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text(
-              'Будуть видалені весь розклад та медичні картки, прив\'язані до профілю ${member.name}',
+              context.l10n.deleteMemberConfirmBody(member.name),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),
@@ -571,12 +560,12 @@ class _MemberActionsSheet extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Видалити назавжди'),
+            child: Text(context.l10n.deleteForeverAction),
           ),
         ],
       ),
@@ -671,8 +660,7 @@ class _CareSummaryCard extends StatelessWidget {
           const SizedBox(width: AppDimensions.md),
           Expanded(
             child: Text(
-              'Ви піклуєтесь про $count ${_closeOnesWordUk(count)}. '
-              'Еллі надішле сповіщення, якщо хтось пропустить прийом.',
+              context.l10n.careSummaryLabel(count),
               style: AppTextStyles.bodySm
                   .copyWith(color: AppColors.primaryDark, fontWeight: FontWeight.w600),
             ),
@@ -681,13 +669,6 @@ class _CareSummaryCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _closeOnesWordUk(int n) {
-  final mod10 = n % 10, mod100 = n % 100;
-  if (mod10 == 1 && mod100 != 11) return 'близького';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'близьких';
-  return 'близьких';
 }
 
 // ── Add member tile ───────────────────────────────────────────────────────────
@@ -728,11 +709,11 @@ class _AddMemberTile extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Додати члена сімʼї',
+                Text(context.l10n.addFamilyMemberLabel,
                     style:
                         AppTextStyles.labelLg.copyWith(color: AppColors.primary)),
                 const SizedBox(height: 2),
-                Text('Батьки, діти, партнер…',
+                Text(context.l10n.addMemberHint,
                     style: AppTextStyles.bodySm
                         .copyWith(color: AppColors.textMuted)),
               ],
@@ -748,17 +729,16 @@ class _AddMemberTile extends StatelessWidget {
 // плану вже вичерпано — той самий градієнтний стиль, що й AI-банер сканування
 // рецепта в add_medication_screen.dart, з ілюстрацією родини.
 class _FamilyUpgradeBanner extends StatelessWidget {
-  final String badge;
-  final String title;
-  final String subtitle;
-  const _FamilyUpgradeBanner({
-    this.badge = 'Сімʼя',
-    this.title = 'Ліміт профілів досягнуто',
-    this.subtitle = 'Перейдіть на Elly Plus — необмежена кількість локальних профілів',
-  });
+  final String? badge;
+  final String? title;
+  final String? subtitle;
+  const _FamilyUpgradeBanner({this.badge, this.title, this.subtitle});
 
   @override
   Widget build(BuildContext context) {
+    final badgeText = badge ?? context.l10n.familyLabel;
+    final titleText = title ?? context.l10n.profileLimitReachedTitle;
+    final subtitleText = subtitle ?? context.l10n.profileLimitReachedSubtitle;
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -803,7 +783,7 @@ class _FamilyUpgradeBanner extends StatelessWidget {
                         const Icon(Icons.family_restroom_rounded,
                             size: 12, color: Colors.white),
                         const SizedBox(width: 4),
-                        Text(badge,
+                        Text(badgeText,
                             style: AppTextStyles.bodySm.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -812,13 +792,13 @@ class _FamilyUpgradeBanner extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(title,
+                  Text(titleText,
                       style: AppTextStyles.labelLg.copyWith(
                           color: Colors.white, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 3),
                   SizedBox(
                     width: 190,
-                    child: Text(subtitle,
+                    child: Text(subtitleText,
                         style: AppTextStyles.bodySm.copyWith(
                             color: Colors.white.withValues(alpha: 0.85))),
                   ),
@@ -849,16 +829,16 @@ class _FamilyGroupSection extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Покинути "$groupLabel"?'),
-        content: const Text(
-          'Учасники цієї групи втратять доступ до ваших даних, а ви — до того, чим вони з вами ділились. Інших сімейних груп це не торкнеться.',
+        title: Text(context.l10n.leaveGroupConfirmTitle(groupLabel)),
+        content: Text(
+          context.l10n.leaveGroupConfirmBody,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Покинути'),
+            child: Text(context.l10n.leaveAction),
           ),
         ],
       ),
@@ -867,7 +847,7 @@ class _FamilyGroupSection extends ConsumerWidget {
     await FamilyPeerSyncService(ref.read(databaseProvider)).leaveGroup(familyId);
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Ви покинули "$groupLabel"')));
+          .showSnackBar(SnackBar(content: Text(context.l10n.leftGroupSnackbar(groupLabel))));
     }
   }
 
@@ -899,7 +879,7 @@ class _FamilyGroupSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionLabel('Сімейна група'),
+        SectionLabel(context.l10n.familyGroupSectionLabel),
         const SizedBox(height: AppDimensions.md),
         for (final entry in orderedEntries) ...[
           _FamilyGroupSubsection(
@@ -909,7 +889,7 @@ class _FamilyGroupSection extends ConsumerWidget {
             // Лічильник слотів і корона — лише для "моєї" секції (я
             // платящий саме тут); у чужій сім'ї я гість, це не моя квота.
             slotsLabel: entry.key == ownerFamilyId
-                ? '$invitedByMeCount з ${plan.limits.maxAutonomousMembers}'
+                ? context.l10n.slotsUsedLabel(invitedByMeCount, plan.limits.maxAutonomousMembers)
                 : null,
             showPayerBadge: entry.key == ownerFamilyId && plan == AppPlan.family,
             onLeave: (label) =>
@@ -922,13 +902,13 @@ class _FamilyGroupSection extends ConsumerWidget {
             Expanded(
               child: _GroupActionTile(
                 icon: Icons.qr_code_2_rounded,
-                label: 'Запросити до сім\'ї',
+                label: context.l10n.inviteToFamilyTitle,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => autonomousLimitReached
-                        ? const EllyDeniedScreen(
-                            title: 'Ліміт автономних профілів досягнуто',
-                            subtitle: 'Перейдіть на Elly Family, щоб запросити ще когось',
+                        ? EllyDeniedScreen(
+                            title: context.l10n.autonomousLimitReachedTitle,
+                            subtitle: context.l10n.autonomousLimitReachedSubtitle,
                           )
                         : const FamilyGroupInviteScreen(),
                   ),
@@ -939,7 +919,7 @@ class _FamilyGroupSection extends ConsumerWidget {
             Expanded(
               child: _GroupActionTile(
                 icon: Icons.group_add_rounded,
-                label: 'Приєднатись',
+                label: context.l10n.joinAction,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const FamilyGroupJoinScreen()),
                 ),
@@ -974,7 +954,9 @@ class _FamilyGroupSubsection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inviter = peers.where((p) => p.invitedMe).firstOrNull;
-    final label = isOwnFamily ? 'Моя сім\'я' : 'Сім\'я ${inviter?.name ?? peers.first.name}';
+    final label = isOwnFamily
+        ? context.l10n.myFamilyLabel
+        : context.l10n.peerFamilyLabel(inviter?.name ?? peers.first.name);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1005,7 +987,7 @@ class _FamilyGroupSubsection extends StatelessWidget {
           child: TextButton(
             onPressed: () => onLeave(label),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Покинути'),
+            child: Text(context.l10n.leaveAction),
           ),
         ),
       ],
@@ -1031,7 +1013,7 @@ final _pendingConversionProvider = StreamProvider.family<bool, int>((ref, member
 class _MissedItem {
   final String entityType; // intake / activity_log / doctor_appointment / wellbeing
   final String uuid;
-  final String title;
+  final String? title;
   final String? detail;
   final DateTime scheduledAt;
   const _MissedItem({
@@ -1041,6 +1023,22 @@ class _MissedItem {
     this.detail,
     required this.scheduledAt,
   });
+}
+
+/// Заголовок пропущеного пункту — назва сутності, якщо вона відома
+/// (medicationSyncUuid/activitySyncUuid не завжди резолвиться, якщо самі
+/// ліки/активність ще не долетіли через SharedEntities), інакше типова
+/// заглушка за типом сутності. Резолвиться тут, а не в провайдері вище,
+/// бо провайдер не має BuildContext для локалізації.
+String _missedItemTitle(BuildContext context, _MissedItem item) {
+  final title = item.title;
+  if (title != null && title.isNotEmpty) return title;
+  return switch (item.entityType) {
+    'intake' => context.l10n.defaultMedName,
+    'activity_log' => context.l10n.defaultActivityName,
+    'doctor_appointment' => context.l10n.doctorFallbackLabel,
+    _ => context.l10n.wellbeingTitle,
+  };
 }
 
 /// Пропущене (доза/активність/прийом лікаря/самопочуття) для профілю, яким
@@ -1089,7 +1087,7 @@ final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((re
         case 'intake':
           final scheduledAt = DateTime.tryParse(json['scheduledAt'] as String? ?? '');
           if (scheduledAt == null || scheduledAt.isAfter(now)) continue;
-          final medName = nameFor('medication', json['medicationSyncUuid'] as String?) ?? 'Ліки';
+          final medName = nameFor('medication', json['medicationSyncUuid'] as String?);
           final doseAmount = json['doseAmount'];
           final dose = doseAmount != null ? '$doseAmount ${json['doseUnit'] ?? ''}'.trim() : null;
           items.add(_MissedItem(
@@ -1097,7 +1095,7 @@ final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((re
         case 'activity_log':
           final scheduledAt = DateTime.tryParse(json['scheduledAt'] as String? ?? '');
           if (scheduledAt == null || scheduledAt.isAfter(now)) continue;
-          final activityName = nameFor('activity', json['activitySyncUuid'] as String?) ?? 'Активність';
+          final activityName = nameFor('activity', json['activitySyncUuid'] as String?);
           items.add(_MissedItem(
               entityType: 'activity_log', uuid: e.uuid, title: activityName, scheduledAt: scheduledAt));
         case 'doctor_appointment':
@@ -1106,7 +1104,7 @@ final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((re
           items.add(_MissedItem(
             entityType: 'doctor_appointment',
             uuid: e.uuid,
-            title: json['doctorType'] as String? ?? 'Лікар',
+            title: json['doctorType'] as String?,
             detail: json['location'] as String?,
             scheduledAt: scheduledAt,
           ));
@@ -1128,7 +1126,7 @@ final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((re
           final parts = t.split(':');
           final slot = DateTime(day.year, day.month, day.day, int.parse(parts[0]), int.parse(parts[1]));
           if (slot.isBefore(now)) {
-            items.add(_MissedItem(entityType: 'wellbeing', uuid: e.uuid, title: 'Самопочуття', scheduledAt: slot));
+            items.add(_MissedItem(entityType: 'wellbeing', uuid: e.uuid, title: null, scheduledAt: slot));
             break;
           }
         }
@@ -1141,26 +1139,29 @@ final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((re
 });
 
 Future<void> _sendPeerReminder(BuildContext context, WidgetRef ref, FamilyPeer peer, _MissedItem item) async {
+  final l10n = context.l10n;
   final timeStr =
       '${item.scheduledAt.hour.toString().padLeft(2, '0')}:${item.scheduledAt.minute.toString().padLeft(2, '0')}';
+  final title = _missedItemTitle(context, item);
   final body = switch (item.entityType) {
-    'intake' => 'Не забудьте прийняти "${item.title}"${item.detail != null ? ' — ${item.detail}' : ''} о $timeStr',
-    'activity_log' => 'Не забудьте виконати "${item.title}" о $timeStr',
-    'doctor_appointment' =>
-      'Не забудьте про прийом лікаря: ${item.title}${item.detail != null && item.detail!.isNotEmpty ? ' (${item.detail})' : ''}',
-    'wellbeing' => 'Не забудьте відмітити самопочуття',
-    _ => 'Перевірте розклад',
+    'intake' => l10n.reminderTakeMedBody(
+        title, item.detail != null ? ' — ${item.detail}' : '', timeStr),
+    'activity_log' => l10n.reminderDoActivityBody(title, timeStr),
+    'doctor_appointment' => l10n.reminderDoctorVisitBody(
+        title, item.detail != null && item.detail!.isNotEmpty ? ' (${item.detail})' : ''),
+    'wellbeing' => l10n.reminderWellbeingBody,
+    _ => l10n.reminderGenericBody,
   };
   final messenger = ScaffoldMessenger.of(context);
   try {
     await FamilyPeerSyncService(ref.read(databaseProvider)).sendRemoteReminder(
       channelId: peer.channelId,
-      title: '🔔 Вам нагадують',
+      title: l10n.reminderPushTitle,
       body: body,
     );
-    messenger.showSnackBar(SnackBar(content: Text('Нагадування для ${peer.name} надіслано')));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.reminderSentSnackbar(peer.name))));
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text('Не вдалося надіслати: $e')));
+    messenger.showSnackBar(SnackBar(content: Text(l10n.sendFailedError('$e'))));
   }
 }
 
@@ -1172,16 +1173,16 @@ class _PeerCard extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Прибрати "${peer.name}"?'),
-        content: const Text(
-          'Ви обидва втратите доступ до даних, якими ділились одне з одним.',
+        title: Text(context.l10n.removePeerConfirmTitle(peer.name)),
+        content: Text(
+          context.l10n.removePeerConfirmBody,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Прибрати'),
+            child: Text(context.l10n.removeAction),
           ),
         ],
       ),
@@ -1224,7 +1225,7 @@ class _PeerCard extends ConsumerWidget {
                         Text(peer.name, style: AppTextStyles.labelLg),
                         const SizedBox(height: 2),
                         Text(
-                          'Незалежний обліковий запис',
+                          context.l10n.independentAccountLabel,
                           style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                         ),
                       ],
@@ -1263,9 +1264,11 @@ class _PeerCard extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(firstMissed.title, style: AppTextStyles.labelMd),
+                              Text(_missedItemTitle(context, firstMissed), style: AppTextStyles.labelMd),
                               Text(
-                                missed.length > 1 ? 'Пропущено ${missed.length}' : 'Пропущено',
+                                missed.length > 1
+                                    ? context.l10n.missedCountLabel(missed.length)
+                                    : context.l10n.missedLabel,
                                 style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                               ),
                             ],
@@ -1286,7 +1289,7 @@ class _PeerCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '🔔 Нагадати',
+                        context.l10n.remindAction,
                         style: AppTextStyles.bodyMd
                             .copyWith(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
@@ -1400,7 +1403,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
     if (name.isEmpty) return;
     if (!_consentChecked) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Підтвердіть, що ви маєте право вести дані цієї людини')),
+        SnackBar(content: Text(context.l10n.confirmGuardianConsentSnackbar)),
       );
       return;
     }
@@ -1424,7 +1427,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
         child: Column(
           children: [
             _AddMemberBackHeader(
-                title: 'Додати члена сімʼї',
+                title: context.l10n.addFamilyMemberLabel,
                 onBack: () => Navigator.pop(context)),
             Expanded(
               child: SingleChildScrollView(
@@ -1433,7 +1436,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SectionLabel('ІМʼЯ'),
+                    _SectionLabel(context.l10n.nameFieldLabel),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
@@ -1447,7 +1450,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                         autofocus: true,
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
-                          hintText: 'Мама, Тато, Бабуся…',
+                          hintText: context.l10n.memberNameHint,
                           hintStyle: AppTextStyles.bodyMd
                               .copyWith(color: AppColors.textMuted),
                           border: InputBorder.none,
@@ -1459,7 +1462,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    const _SectionLabel('АВАТАР'),
+                    _SectionLabel(context.l10n.avatarFieldLabel),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
@@ -1523,8 +1526,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Я є законним представником цієї людини або отримав(-ла) '
-                              'її згоду на ведення її даних у застосунку',
+                              context.l10n.guardianConsentCheckbox,
                               style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain),
                             ),
                           ),
@@ -1545,7 +1547,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                           elevation: 0,
                         ),
                         child: Text(
-                          _saving ? 'Зберігаємо...' : 'Додати',
+                          _saving ? context.l10n.savingLabel : context.l10n.addAction,
                           style:
                               AppTextStyles.labelLg.copyWith(color: Colors.white),
                         ),

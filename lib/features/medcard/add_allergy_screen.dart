@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/allergy_severity.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/allergies_repository.dart';
@@ -57,13 +58,13 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити алергію?'),
-        content: const Text('Запис буде видалено.'),
+        title: Text(context.l10n.deleteAllergyConfirmTitle),
+        content: Text(context.l10n.deleteRecordBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Видалити', style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
+            child: Text(context.l10n.deleteAction, style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
           ),
         ],
       ),
@@ -79,7 +80,7 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
     if (allergen.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Введіть назву алергену')));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.enterAllergenError)));
       return;
     }
     setState(() => _isSaving = true);
@@ -115,7 +116,7 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -131,8 +132,8 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
         child: Column(
           children: [
             MkFormHeader(
-              title: (isEdit ? 'Редагувати алергію' : 'Нова алергія') +
-                  memberNameSuffix(ref, widget.memberId),
+              title: (isEdit ? context.l10n.editAllergyTitle : context.l10n.newAllergyTitle) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -143,14 +144,14 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MkFieldLabel('Алерген'),
+                    MkFieldLabel(context.l10n.fieldAllergen),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _allergenController,
-                      hint: 'Пеніцилін, горіхи, пилок…',
+                      hint: context.l10n.allergenHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Тяжкість'),
+                    MkFieldLabel(context.l10n.fieldSeverity),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -170,7 +171,7 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
                               ),
                             ),
                             child: Text(
-                              s.label,
+                              s.label(context),
                               style: AppTextStyles.labelMd.copyWith(
                                 color: sel ? s.color : AppColors.textMain,
                               ),
@@ -180,25 +181,25 @@ class _AddAllergyScreenState extends ConsumerState<AddAllergyScreen> {
                       }).toList(),
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Реакція'),
+                    MkFieldLabel(context.l10n.fieldReaction),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _reactionController,
-                      hint: 'Висип, набряк, задишка…',
+                      hint: context.l10n.reactionHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Нотатки'),
+                    MkFieldLabel(context.l10n.fieldNotes),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
-                      hint: 'Додаткові деталі…',
+                      hint: context.l10n.allergyNotesHint,
                       maxLines: 3,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     DocumentsSection(
                       paths: _documentPaths,
                       onChanged: (paths) => setState(() => _documentPaths = paths),
-                      label: 'Документи',
+                      label: context.l10n.documentsLabel,
                     ),
                     const SizedBox(height: AppDimensions.xxl),
                     MkSaveButton(isSaving: _isSaving, onPressed: _save),

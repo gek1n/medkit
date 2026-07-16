@@ -20,6 +20,7 @@ import '../../core/services/sync_crypto_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -68,6 +69,10 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   Future<void> _redeem() async {
     final code = _codeController.text.trim().toUpperCase();
     if (code.isEmpty) return;
+    // Captured тут, ДО мережевих await нижче — так само, як container у
+    // RestoreAccountScreen/onboarding_screen.dart: context після await може
+    // вже належати розаттаченому State.
+    final l10n = context.l10n;
     setState(() {
       _stage = _JoinStage.working;
       _error = null;
@@ -89,9 +94,9 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       final channelId = envelope['channelId'] as String;
       final familyId = envelope['familyId'] as String;
       final inviterPersonUuid = envelope['inviterPersonUuid'] as String;
-      final inviterName = envelope['inviterName'] as String? ?? 'Родина';
+      final inviterName = envelope['inviterName'] as String? ?? l10n.familyFallbackName;
       final inviterAvatarIndex = envelope['inviterAvatarIndex'] as int? ?? 0;
-      final profileName = envelope['profileName'] as String? ?? 'Профіль';
+      final profileName = envelope['profileName'] as String? ?? l10n.profileFallbackName;
       final profileAvatarIndex = envelope['profileAvatarIndex'] as int? ?? 0;
       final syncKeyBytes = base64Decode(envelope['syncKey'] as String);
 
@@ -200,7 +205,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       if (!mounted) return;
       setState(() {
         _stage = _JoinStage.entering;
-        _error = 'Не вдалося приєднатись: перевірте код';
+        _error = context.l10n.joinFailedCheckCodeError;
       });
     }
   }
@@ -264,10 +269,10 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
           MkBackButton(
               onTap: working ? null : () => Navigator.of(context).pop()),
           const SizedBox(height: 20),
-          Text('Підключення до сім\'ї', style: AppTextStyles.h2),
+          Text(context.l10n.connectToFamilyTitle, style: AppTextStyles.h2),
           const SizedBox(height: 6),
           Text(
-            'Введіть код доступу, який вам надіслали рідні',
+            context.l10n.enterAccessCodeHint,
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 32),
@@ -278,7 +283,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             enabled: !working,
             style: AppTextStyles.h2.copyWith(color: AppColors.primary, letterSpacing: 4),
             decoration: InputDecoration(
-              hintText: '________',
+              hintText: context.l10n.codeInputHint,
               filled: true,
               fillColor: AppColors.primaryLight,
               border: OutlineInputBorder(
@@ -304,7 +309,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
                 elevation: 0,
               ),
               child: Text(
-                working ? 'Перевірка...' : 'Приєднатись',
+                working ? context.l10n.checkingEllipsisLabel : context.l10n.joinAction,
                 style: AppTextStyles.labelLg.copyWith(color: Colors.white),
               ),
             ),
@@ -315,7 +320,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
   }
 
   Widget _buildReview() {
-    final name = _inviterName ?? _profileName ?? 'Родина';
+    final name = _inviterName ?? _profileName ?? context.l10n.familyFallbackName;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
@@ -323,10 +328,10 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
         children: [
           const Icon(Icons.family_restroom_rounded, size: 48, color: AppColors.primary),
           const SizedBox(height: 16),
-          Text('Розклад уже готовий', style: AppTextStyles.h2),
+          Text(context.l10n.scheduleAlreadyReadyTitle, style: AppTextStyles.h2),
           const SizedBox(height: 8),
           Text(
-            '$name уже склав(-ла) для вас розклад прийому ліків. Ви зможете відредагувати його будь-коли після підключення.',
+            context.l10n.scheduleSetByInviterBody(name),
             style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 24),
@@ -354,7 +359,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Я погоджуюсь використати розклад, складений моєю сім\'єю',
+                    context.l10n.agreeUseFamilyScheduleCheckbox,
                     style: AppTextStyles.bodySm.copyWith(color: AppColors.textMain),
                   ),
                 ),
@@ -373,7 +378,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppDimensions.radiusMd)),
                 elevation: 0,
               ),
-              child: Text('Почати', style: AppTextStyles.labelLg.copyWith(color: Colors.white)),
+              child: Text(context.l10n.startAction, style: AppTextStyles.labelLg.copyWith(color: Colors.white)),
             ),
           ),
           const SizedBox(height: 12),
@@ -381,7 +386,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
             child: GestureDetector(
               onTap: _finishing ? null : _declineSchedule,
               child: Text(
-                _finishing ? 'Створюємо...' : 'Не згоден, створити свій розклад',
+                _finishing ? context.l10n.creatingEllipsisLabel : context.l10n.declineScheduleCreateOwnAction,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
               ),
             ),

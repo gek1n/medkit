@@ -150,11 +150,34 @@ class ActivitiesRepository {
   }
 
   Future<void> updateActivity(ActivitiesCompanion activity) async {
+    // Той самий фікс дублювання, що й у MedicationsRepository.update(): час
+    // слотів міг змінитись, тож старі ще не виконані activityLog-рядки на
+    // сьогодні/майбутнє відповідають СТАРОМУ розкладу і мають бути прибрані
+    // до перегенерації — інакше ActivityLogGenerator додасть поруч ще один
+    // лог під новий час, і користувач отримає два нагадування.
+    if (activity.id.present) await _cancelFutureStaleLogs(activity.id.value);
     await (_db.update(_db.activities)..where((t) => t.id.equals(activity.id.value)))
         .write(activity);
     final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activity.id.value)))
         .getSingleOrNull();
     if (row != null) _triggerFamilySync(row.memberId);
+  }
+
+  Future<void> _cancelFutureStaleLogs(int activityId) async {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+    final stale = await (_db.select(_db.activityLogs)
+          ..where((t) =>
+              t.activityId.equals(activityId) &
+              t.status.equals('pending') &
+              t.scheduledAt.isBiggerOrEqualValue(cutoff)))
+        .get();
+    if (stale.isEmpty) return;
+    for (final log in stale) {
+      await NotificationService.cancelActivityReminder(log.id);
+    }
+    await (_db.delete(_db.activityLogs)
+          ..where((t) => t.id.isIn(stale.map((e) => e.id))))
+        .go();
   }
 
   Future<int> softDelete(int id) async {

@@ -9,6 +9,7 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_button.dart';
@@ -52,11 +53,11 @@ class _MedDraft {
     doseController.dispose();
   }
 
-  ScannedMedication toScannedMedication() => ScannedMedication(
+  ScannedMedication toScannedMedication(BuildContext context) => ScannedMedication(
         name: nameController.text.trim(),
         form: form,
         doseAmount: double.tryParse(doseController.text.replaceAll(',', '.')),
-        doseUnit: unitForMedForm(form),
+        doseUnit: unitForMedForm(context, form),
         scheduleTimes: scheduleTimes,
         durationDays: durationDays,
         foodRelation: foodRelation,
@@ -117,7 +118,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
     if (!granted) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Немає доступу до камери. Дозвольте його в налаштуваннях телефону.')),
+          SnackBar(content: Text(context.l10n.noCameraAccessError)),
         );
       }
       return;
@@ -140,7 +141,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
       if (!mounted) return;
       if (results.isEmpty) {
         setState(() {
-          _errorMsg = 'Не вдалося розпізнати ліки на фото. Спробуйте зробити чіткіше фото.';
+          _errorMsg = context.l10n.scanNoResultsError;
           _state = _ScanState.error;
         });
         return;
@@ -156,7 +157,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMsg = 'Помилка сканування: $e';
+        _errorMsg = context.l10n.scanErrorWithMessage(e.toString());
         _state = _ScanState.error;
       });
     }
@@ -165,7 +166,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
   void _confirm() {
     final selected = _drafts
         .where((d) => d.included && d.nameController.text.trim().isNotEmpty)
-        .map((d) => d.toScannedMedication())
+        .map((d) => d.toScannedMedication(context))
         .toList();
     Navigator.of(context).pop(selected);
   }
@@ -177,7 +178,7 @@ class _PrescriptionScanScreenState extends State<PrescriptionScanScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const MkScreenHeader(title: 'Сканувати рецепт'),
+            MkScreenHeader(title: context.l10n.scanPrescriptionScreenTitle),
             Expanded(
               child: switch (_state) {
                 _ScanState.checkingConsent || _ScanState.scanning =>
@@ -236,7 +237,7 @@ class _ConsentBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Перш ніж почати',
+        Text(context.l10n.beforeYouStartTitle,
             textAlign: TextAlign.center, style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         Container(
@@ -247,9 +248,7 @@ class _ConsentBody extends StatelessWidget {
             border: Border.all(color: AppColors.primaryLighter),
           ),
           child: Text(
-            'Щоб розпізнати ліки, фото рецепта чи упаковки надсилається сервісу '
-            'Anthropic (Claude). Фото використовується лише для розпізнавання і '
-            'ніде не зберігається після відповіді.',
+            context.l10n.scanConsentDisclaimerBody,
             style: AppTextStyles.bodyMd,
           ),
         ),
@@ -265,9 +264,9 @@ class _ConsentBody extends StatelessWidget {
             TextSpan(
               style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
               children: [
-                const TextSpan(text: '⚠️ Дозування, розклад і довідкова інформація про побічні ефекти — орієнтовні. '),
+                TextSpan(text: context.l10n.scanDosageWarningPrefix),
                 TextSpan(
-                  text: 'Завжди звіряйте з інструкцією до препарату.',
+                  text: context.l10n.alwaysCheckInstructionsLabel,
                   style: AppTextStyles.bodySm.copyWith(
                     color: const Color(0xFF92400E),
                     fontWeight: FontWeight.w800,
@@ -278,7 +277,7 @@ class _ConsentBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
-        MkButton(label: 'Зрозуміло, погоджуюсь', onTap: onAgree),
+        MkButton(label: context.l10n.understoodAgreeAction, onTap: onAgree),
       ],
     );
   }
@@ -307,8 +306,7 @@ class _PickingBody extends StatelessWidget {
       padding: const EdgeInsets.all(AppDimensions.screenPadding),
       children: [
         Text(
-          'Сфотографуйте рецепт або упаковку. Можна додати кілька фото, якщо '
-          'ліків декілька.',
+          context.l10n.takePhotoInstructionsBody,
           style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
         ),
         const SizedBox(height: AppDimensions.lg),
@@ -316,7 +314,7 @@ class _PickingBody extends StatelessWidget {
           children: [
             Expanded(
               child: MkButton.secondary(
-                label: 'Камера',
+                label: context.l10n.cameraLabel,
                 icon: const Icon(Icons.camera_alt_outlined, size: 18, color: AppColors.primary),
                 onTap: onCamera,
               ),
@@ -324,7 +322,7 @@ class _PickingBody extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: MkButton.secondary(
-                label: 'Галерея',
+                label: context.l10n.galleryLabel,
                 icon: const Icon(Icons.photo_library_outlined, size: 18, color: AppColors.primary),
                 onTap: onGallery,
               ),
@@ -362,7 +360,7 @@ class _PickingBody extends StatelessWidget {
         ],
         const SizedBox(height: AppDimensions.xl),
         MkButton(
-          label: 'Сканувати${images.isNotEmpty ? ' (${images.length})' : ''}',
+          label: '${context.l10n.scanAction}${images.isNotEmpty ? ' (${images.length})' : ''}',
           onTap: onScan,
         ),
       ],
@@ -392,11 +390,11 @@ class _ResultsBodyState extends State<_ResultsBody> {
           child: ListView(
             padding: const EdgeInsets.all(AppDimensions.screenPadding),
             children: [
-              Text('Розпізнано ${widget.drafts.length}. Перевірте перед додаванням:',
+              Text(context.l10n.scanRecognizedCountLabel(widget.drafts.length),
                   style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(
-                'Розгорніть препарат, перевірте дані і поставте галочку, щоб підтвердити додавання.',
+                context.l10n.expandAndConfirmHint,
                 style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
               ),
               const SizedBox(height: AppDimensions.md),
@@ -409,7 +407,9 @@ class _ResultsBodyState extends State<_ResultsBody> {
         Padding(
           padding: const EdgeInsets.all(AppDimensions.screenPadding),
           child: MkButton(
-            label: _selectedCount == 0 ? 'Оберіть препарати' : 'Додати обрані ($_selectedCount)',
+            label: _selectedCount == 0
+                ? context.l10n.chooseMedsAction
+                : context.l10n.addSelectedCountAction(_selectedCount),
             onTap: _selectedCount == 0 ? null : widget.onConfirm,
           ),
         ),
@@ -430,12 +430,12 @@ class _DraftCard extends StatefulWidget {
 }
 
 class _DraftCardState extends State<_DraftCard> {
-  static const _scheduleLabels = {
-    'morning': 'Вранці',
-    'afternoon': 'Вдень',
-    'evening': 'Ввечері',
-    'night': 'Вночі',
-  };
+  Map<String, String> _scheduleLabels(BuildContext context) => {
+        'morning': context.l10n.scheduleTimeMorning,
+        'afternoon': context.l10n.scheduleTimeAfternoon,
+        'evening': context.l10n.scheduleTimeEvening,
+        'night': context.l10n.scheduleTimeNight,
+      };
 
   _MedDraft get d => widget.draft;
 
@@ -470,16 +470,16 @@ class _DraftCardState extends State<_DraftCard> {
                       children: [
                         Text(
                           d.nameController.text.trim().isEmpty
-                              ? 'Без назви'
+                              ? context.l10n.unnamedMedLabel
                               : d.nameController.text.trim(),
                           style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           [
-                            medFormLabels[d.form] ?? d.form,
+                            medFormLabels(context)[d.form] ?? d.form,
                             if (d.doseController.text.trim().isNotEmpty)
-                              '${d.doseController.text.trim()} ${unitForMedForm(d.form)}',
+                              '${d.doseController.text.trim()} ${unitForMedForm(context, d.form)}',
                           ].join(' · '),
                           style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                         ),
@@ -525,7 +525,7 @@ class _DraftCardState extends State<_DraftCard> {
                 children: [
                   const Divider(color: AppColors.border),
                   const SizedBox(height: 8),
-                  Text('НАЗВА', style: AppTextStyles.labelSm),
+                  Text(context.l10n.medNameCapsLabel, style: AppTextStyles.labelSm),
                   const SizedBox(height: 6),
                   Container(
                     decoration: BoxDecoration(
@@ -546,12 +546,12 @@ class _DraftCardState extends State<_DraftCard> {
                   ),
                   const SizedBox(height: 14),
 
-                  Text('ФОРМА ВИПУСКУ', style: AppTextStyles.labelSm),
+                  Text(context.l10n.releaseFormCapsLabel, style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
                   FormChips(selected: d.form, onSelect: (f) => setState(() => d.form = f)),
                   const SizedBox(height: 14),
 
-                  Text('ДОЗА', style: AppTextStyles.labelSm),
+                  Text(context.l10n.doseCapsLabel, style: AppTextStyles.labelSm),
                   const SizedBox(height: 6),
                   SizedBox(
                     width: 130,
@@ -570,19 +570,19 @@ class _DraftCardState extends State<_DraftCard> {
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           border: InputBorder.none,
-                          suffixText: unitForMedForm(d.form),
+                          suffixText: unitForMedForm(context, d.form),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 14),
 
-                  Text('ЧАС ПРИЙОМУ', style: AppTextStyles.labelSm),
+                  Text(context.l10n.intakeTimeSectionLabel, style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _scheduleLabels.entries.map((e) {
+                    children: _scheduleLabels(context).entries.map((e) {
                       final sel = d.scheduleTimes.contains(e.key);
                       return GestureDetector(
                         onTap: () => setState(() {
@@ -611,7 +611,7 @@ class _DraftCardState extends State<_DraftCard> {
                   ),
                   const SizedBox(height: 14),
 
-                  Text('ТРИВАЛІСТЬ КУРСУ', style: AppTextStyles.labelSm),
+                  Text(context.l10n.courseDurationCapsLabel, style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -622,7 +622,7 @@ class _DraftCardState extends State<_DraftCard> {
                       SizedBox(
                         width: 64,
                         child: Text(
-                          '${d.durationDays} дн.',
+                          context.l10n.daysCountLabel(d.durationDays),
                           textAlign: TextAlign.center,
                           style: AppTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -635,12 +635,12 @@ class _DraftCardState extends State<_DraftCard> {
                   ),
                   const SizedBox(height: 14),
 
-                  Text('ЗВ\'ЯЗОК З ЇЖЕЮ', style: AppTextStyles.labelSm),
+                  Text(context.l10n.foodRelationCapsLabel, style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: foodRelationLabels.entries.map((e) {
+                    children: foodRelationLabels(context).entries.map((e) {
                       final sel = d.foodRelation == e.key;
                       return GestureDetector(
                         onTap: () => setState(() => d.foodRelation = e.key),
@@ -676,10 +676,10 @@ class _DraftCardState extends State<_DraftCard> {
                         TextSpan(
                           style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
                           children: [
-                            TextSpan(text: '⚡ Можливі побічні ефекти: ${d.sideEffects!.join(', ')}. '),
-                            const TextSpan(
-                              text: 'Звірте з інструкцією до препарату.',
-                              style: TextStyle(fontWeight: FontWeight.w800),
+                            TextSpan(text: context.l10n.possibleSideEffectsPrefix(d.sideEffects!.join(', '))),
+                            TextSpan(
+                              text: context.l10n.checkInstructionsShortLabel,
+                              style: const TextStyle(fontWeight: FontWeight.w800),
                             ),
                           ],
                         ),
@@ -689,7 +689,7 @@ class _DraftCardState extends State<_DraftCard> {
 
                   const SizedBox(height: 14),
                   MkButton.secondary(
-                    label: d.included ? 'Підтверджено ✓' : 'Все вірно, підтвердити',
+                    label: d.included ? context.l10n.confirmedCheckLabel : context.l10n.confirmAllCorrectAction,
                     onTap: () {
                       setState(() => d.included = true);
                       widget.onChanged();
@@ -744,11 +744,11 @@ class _ErrorBody extends StatelessWidget {
           const Icon(Icons.sentiment_dissatisfied_rounded,
               size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text('Щось пішло не так', style: AppTextStyles.h3),
+          Text(context.l10n.somethingWentWrongTitle, style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(message, textAlign: TextAlign.center, style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub)),
           const SizedBox(height: 32),
-          MkButton(label: 'Спробувати ще раз', isFullWidth: false, onTap: onRetry),
+          MkButton(label: context.l10n.tryAgainAction, isFullWidth: false, onTap: onRetry),
         ],
       ),
     );

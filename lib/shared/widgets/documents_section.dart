@@ -6,6 +6,7 @@ import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import 'photo_gallery_viewer.dart';
 
 /// Список вкладень (фото + PDF) з можливістю додавати/видаляти/переглядати
@@ -14,7 +15,8 @@ import 'photo_gallery_viewer.dart';
 class DocumentsSection extends StatefulWidget {
   final List<String> paths;
   final void Function(List<String>) onChanged;
-  final String label;
+  /// За замовчуванням — локалізований [AppLocalizations.documentsLabel].
+  final String? label;
   /// Лише перегляд (тап відкриває файл) — без "Додати" й без хрестика
   /// видалення на мініатюрах. Для екранів перегляду запису медкартки.
   final bool readOnly;
@@ -23,7 +25,7 @@ class DocumentsSection extends StatefulWidget {
     super.key,
     required this.paths,
     required this.onChanged,
-    this.label = 'Документи',
+    this.label,
     this.readOnly = false,
   });
 
@@ -75,12 +77,13 @@ class _DocumentsSectionState extends State<DocumentsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(widget.label, style: AppTextStyles.labelMd),
+            Text(widget.label ?? l10n.documentsLabel, style: AppTextStyles.labelMd),
             const Spacer(),
             if (!widget.readOnly)
               if (_busy)
@@ -92,7 +95,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
               else
                 GestureDetector(
                   onTap: _add,
-                  child: Text('Додати',
+                  child: Text(l10n.addAction,
                       style: AppTextStyles.labelSm.copyWith(color: AppColors.primary)),
                 ),
           ],
@@ -100,7 +103,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
         const SizedBox(height: 8),
         if (widget.paths.isEmpty)
           widget.readOnly
-              ? Text('Немає документів',
+              ? Text(l10n.noDocumentsLabel,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted))
               : GestureDetector(
                   onTap: _busy ? null : _add,
@@ -116,7 +119,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                       children: [
                         const Icon(Icons.attach_file_rounded, color: AppColors.primary),
                         const SizedBox(height: 6),
-                        Text('Додати фото чи PDF',
+                        Text(l10n.addPhotoOrPdfLabel,
                             style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub)),
                       ],
                     ),
@@ -179,7 +182,7 @@ class _DocumentTile extends StatelessWidget {
                       const Icon(Icons.picture_as_pdf_rounded,
                           size: 28, color: AppColors.danger),
                       const SizedBox(height: 4),
-                      Text('PDF',
+                      Text(context.l10n.pdfLabel,
                           style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub)),
                     ],
                   )

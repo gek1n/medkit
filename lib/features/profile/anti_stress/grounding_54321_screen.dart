@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../../core/providers/app_language_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/l10n_ext.dart';
 import '../../../shared/widgets/mk_back_button.dart';
 import '../../../shared/widgets/mk_button.dart';
 
@@ -14,18 +16,36 @@ class _GroundStep {
   const _GroundStep(this.count, this.title, this.icon, this.hint);
 }
 
-const _steps = [
-  _GroundStep(5, '5 речей, які ти бачиш', Icons.visibility_rounded,
-      'Одна річ, напр. вікно'),
-  _GroundStep(4, '4 речі, які можеш відчути на дотик', Icons.touch_app_rounded,
-      'Одна річ, напр. тканина светра'),
-  _GroundStep(3, '3 звуки, які ти чуєш', Icons.hearing_rounded,
-      'Один звук, напр. гудіння холодильника'),
-  _GroundStep(2, '2 запахи, які відчуваєш', Icons.local_florist_rounded,
-      'Один запах, напр. кава'),
-  _GroundStep(1, '1 смак, які відчуваєш', Icons.emoji_food_beverage_rounded,
-      "Один смак, напр. м'ята"),
+const _stepCounts = [5, 4, 3, 2, 1];
+const _stepIcons = [
+  Icons.visibility_rounded,
+  Icons.touch_app_rounded,
+  Icons.hearing_rounded,
+  Icons.local_florist_rounded,
+  Icons.emoji_food_beverage_rounded,
 ];
+
+List<_GroundStep> _groundStepsFor(BuildContext context) {
+  final l10n = context.l10n;
+  final titles = [
+    l10n.groundStep5Title,
+    l10n.groundStep4Title,
+    l10n.groundStep3Title,
+    l10n.groundStep2Title,
+    l10n.groundStep1Title,
+  ];
+  final hints = [
+    l10n.groundStep5Hint,
+    l10n.groundStep4Hint,
+    l10n.groundStep3Hint,
+    l10n.groundStep2Hint,
+    l10n.groundStep1Hint,
+  ];
+  return [
+    for (var i = 0; i < _stepCounts.length; i++)
+      _GroundStep(_stepCounts[i], titles[i], _stepIcons[i], hints[i]),
+  ];
+}
 
 class Grounding54321Screen extends StatefulWidget {
   const Grounding54321Screen({super.key});
@@ -40,6 +60,7 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
   bool _sttReady = false;
   bool _listening = false;
   String _liveText = '';
+  String _languageId = 'uk_UA';
 
   int _stepIndex = 0;
   List<String> _items = [];
@@ -48,6 +69,9 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
   @override
   void initState() {
     super.initState();
+    AppLanguageNotifier.loadLanguageId().then((id) {
+      if (mounted) _languageId = id;
+    });
     _speech.initialize().then((ok) {
       if (mounted) setState(() => _sttReady = ok);
     });
@@ -60,14 +84,14 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
     super.dispose();
   }
 
-  _GroundStep get _step => _steps[_stepIndex];
+  int get _stepCount => _stepCounts[_stepIndex];
 
   void _addItem(String raw) {
     final text = raw.trim();
-    if (text.isEmpty || _items.length >= _step.count) return;
+    if (text.isEmpty || _items.length >= _stepCount) return;
     setState(() => _items = [..._items, text]);
     _textCtrl.clear();
-    if (_items.length >= _step.count) {
+    if (_items.length >= _stepCount) {
       Future.delayed(const Duration(milliseconds: 700), () {
         if (mounted) _advance();
       });
@@ -77,7 +101,7 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
   void _submitTyped() => _addItem(_textCtrl.text);
 
   void _advance() {
-    if (_stepIndex + 1 < _steps.length) {
+    if (_stepIndex + 1 < _stepCounts.length) {
       setState(() {
         _stepIndex++;
         _items = [];
@@ -109,7 +133,7 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
         }
       },
       listenOptions: SpeechListenOptions(
-        localeId: 'uk_UA',
+        localeId: _languageId,
         listenFor: const Duration(seconds: 20),
         pauseFor: const Duration(seconds: 3),
         partialResults: true,
@@ -145,7 +169,7 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
                     MkBackButton(onTap: () => Navigator.pop(context)),
                     Expanded(
                       child: Text(
-                        '5-4-3-2-1',
+                        context.l10n.grounding54321Title,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.labelLg
                             .copyWith(color: AppColors.primary),
@@ -165,12 +189,12 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
                   ),
                   child: Row(
                     children: List.generate(
-                      _steps.length,
+                      _stepCounts.length,
                       (i) => Expanded(
                         child: Container(
                           height: 4,
                           margin: EdgeInsets.only(
-                              right: i < _steps.length - 1 ? 4 : 0),
+                              right: i < _stepCounts.length - 1 ? 4 : 0),
                           decoration: BoxDecoration(
                             color: i < _stepIndex
                                 ? AppColors.primary
@@ -205,7 +229,7 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
                         ? const _CompletionCard(key: ValueKey('done'))
                         : _StepBody(
                             key: ValueKey(_stepIndex),
-                            step: _step,
+                            step: _groundStepsFor(context)[_stepIndex],
                             items: _items,
                             textCtrl: _textCtrl,
                             listening: _listening,
@@ -229,14 +253,14 @@ class _Grounding54321ScreenState extends State<Grounding54321Screen> {
                     children: [
                       Expanded(
                         child: MkButton.secondary(
-                          label: 'Інша вправа',
+                          label: context.l10n.differentExerciseAction,
                           onTap: () => Navigator.pop(context),
                         ),
                       ),
                       const SizedBox(width: AppDimensions.md),
                       Expanded(
                         child: MkButton(
-                          label: 'Мені краще',
+                          label: context.l10n.feelBetterAction,
                           onTap: () => Navigator.pop(context),
                         ),
                       ),
@@ -280,13 +304,13 @@ class _StepBody extends StatelessWidget {
         Image.asset('assets/illustrations/elly-leaf.png', height: 150),
         const SizedBox(height: AppDimensions.md),
         Text(
-          'Назви ${step.title}',
+          context.l10n.groundingNameStepLabel(step.title),
           textAlign: TextAlign.center,
           style: AppTextStyles.h2,
         ),
         const SizedBox(height: 6),
         Text(
-          '${items.length} / ${step.count} названо',
+          context.l10n.groundingProgressCounter(items.length, step.count),
           textAlign: TextAlign.center,
           style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
         ),
@@ -295,7 +319,7 @@ class _StepBody extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              liveText.isEmpty ? 'Слухаю…' : liveText,
+              liveText.isEmpty ? context.l10n.groundingListeningLabel : liveText,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
             ),
@@ -378,7 +402,7 @@ class _StepBody extends StatelessWidget {
         GestureDetector(
           onTap: onSkip,
           child: Text(
-            'Пропустити цей крок',
+            context.l10n.groundingSkipStepAction,
             style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
           ),
         ),
@@ -411,10 +435,10 @@ class _StepBody extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Ти в безпеці', style: AppTextStyles.h3),
+                    Text(context.l10n.safeYouTitle, style: AppTextStyles.h3),
                     const SizedBox(height: 3),
                     Text(
-                      'Тривога мине. Еллі поруч, поки тобі потрібно.',
+                      context.l10n.safeYouSubtitle,
                       style: AppTextStyles.bodyMd
                           .copyWith(color: AppColors.textSub),
                     ),
@@ -476,18 +500,18 @@ class _CompletionCard extends StatelessWidget {
         Image.asset('assets/illustrations/elly-care.png', height: 160),
         const SizedBox(height: AppDimensions.lg),
         Text(
-          'Ти повернувся(-лась) у тут-і-зараз',
+          context.l10n.groundingCompletedTitle,
           textAlign: TextAlign.center,
           style: AppTextStyles.h2,
         ),
         const SizedBox(height: 8),
         Text(
-          'Чудова робота. Повертайся до цієї вправи, коли знадобиться.',
+          context.l10n.groundingCompletedSubtitle,
           textAlign: TextAlign.center,
           style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
         ),
         const SizedBox(height: AppDimensions.xl),
-        MkButton(label: 'Готово', onTap: () => Navigator.pop(context)),
+        MkButton(label: context.l10n.doneTitle, onTap: () => Navigator.pop(context)),
       ],
     );
   }

@@ -11,6 +11,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/vaccinations_repository.dart';
@@ -76,13 +77,13 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити щеплення?'),
-        content: const Text('Запис буде видалено.'),
+        title: Text(context.l10n.deleteVaccinationConfirmTitle),
+        content: Text(context.l10n.deleteRecordBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Видалити', style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
+            child: Text(context.l10n.deleteAction, style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
           ),
         ],
       ),
@@ -98,7 +99,7 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введіть назву щеплення')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.enterVaccinationNameError)));
       return;
     }
     setState(() => _isSaving = true);
@@ -157,7 +158,7 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -173,8 +174,8 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
         child: Column(
           children: [
             MkFormHeader(
-              title: (isEdit ? 'Редагувати щеплення' : 'Нове щеплення') +
-                  memberNameSuffix(ref, widget.memberId),
+              title: (isEdit ? context.l10n.editVaccinationTitle : context.l10n.newVaccinationTitle) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -185,29 +186,29 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MkFieldLabel('Назва щеплення'),
+                    MkFieldLabel(context.l10n.vaccinationNameField),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _nameController,
-                      hint: 'Правець, грип, COVID-19…',
+                      hint: context.l10n.vaccinationNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Дата введення'),
+                    MkFieldLabel(context.l10n.fieldDateGiven),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: MKDateUtils.formatDate(_givenAt),
+                      value: MKDateUtils.formatDate(context, _givenAt),
                       filled: true,
                       onTap: _pickGivenAt,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     Row(
                       children: [
-                        const Expanded(child: MkFieldLabel('Наступна ревакцинація')),
+                        Expanded(child: MkFieldLabel(context.l10n.fieldNextDose)),
                         if (_nextDoseAt != null)
                           GestureDetector(
                             onTap: () => setState(() => _nextDoseAt = null),
                             child: Text(
-                              'Прибрати',
+                              context.l10n.removeAction,
                               style: AppTextStyles.labelSm.copyWith(color: AppColors.danger),
                             ),
                           ),
@@ -215,23 +216,23 @@ class _AddVaccinationScreenState extends ConsumerState<AddVaccinationScreen> {
                     ),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: _nextDoseAt != null ? MKDateUtils.formatDate(_nextDoseAt!) : 'Не заплановано',
+                      value: _nextDoseAt != null ? MKDateUtils.formatDate(context, _nextDoseAt!) : context.l10n.notScheduledValue,
                       filled: _nextDoseAt != null,
                       onTap: _pickNextDoseAt,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Нотатки'),
+                    MkFieldLabel(context.l10n.fieldNotes),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
-                      hint: 'Реакція, серія вакцини…',
+                      hint: context.l10n.vaccinationNotesHint,
                       maxLines: 3,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     DocumentsSection(
                       paths: _documentPaths,
                       onChanged: (paths) => setState(() => _documentPaths = paths),
-                      label: 'Документи',
+                      label: context.l10n.documentsLabel,
                     ),
                     const SizedBox(height: AppDimensions.xxl),
                     MkSaveButton(isSaving: _isSaving, onPressed: _save),

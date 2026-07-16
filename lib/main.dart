@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
+import 'core/providers/app_language_provider.dart';
 import 'core/providers/database_provider.dart';
 import 'core/providers/font_scale_provider.dart';
 import 'core/providers/plan_provider.dart';
@@ -92,6 +93,13 @@ class MedKitApp extends ConsumerWidget {
     final dbFontSize = ref.watch(effectiveFontSizeProvider); // 1..4, default 2=normal
     final scale = fontScaleValues[
         (dbFontSize - 1).clamp(0, fontScaleValues.length - 1)];
+    final languageId = ref.watch(appLanguageProvider);
+    final languageCode = languageId.split('_').first;
+    // 'ru' ще не має власного ARB-файлу (лише uk/en перекладено) — доки
+    // перекладів більше немає, показуємо українську як безпечний фолбек.
+    final appLocale = const ['uk', 'en'].contains(languageCode)
+        ? Locale(languageCode)
+        : const Locale('uk');
 
     return MaterialApp(
       title: 'Elly',
@@ -104,7 +112,7 @@ class MedKitApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('uk'), Locale('en')],
-      locale: const Locale('uk'),
+      locale: appLocale,
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context)
             .copyWith(textScaler: TextScaler.linear(scale)),

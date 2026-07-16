@@ -25,6 +25,7 @@ import 'tables/surgeries_table.dart';
 import 'tables/shared_channels_table.dart';
 import 'tables/family_peers_table.dart';
 import 'tables/family_grants_table.dart';
+import 'tables/ai_usage_table.dart';
 
 part 'app_database.g.dart';
 
@@ -52,12 +53,13 @@ part 'app_database.g.dart';
   SharedSubjects,
   SharedEntities,
   KnownFamilyMembers,
+  AiUsage,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 26;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -398,6 +400,13 @@ class AppDatabase extends _$AppDatabase {
             // губились одразу після збереження ліків.
             try {
               await m.addColumn(medications, medications.sideEffects);
+            } catch (_) {}
+          }
+          if (from < 26) {
+            // Лічильники безкоштовних AI-викликів переїхали з SharedPreferences
+            // (не потрапляє в резервну копію — див. ai_usage_table.dart) сюди.
+            try {
+              await m.createTable(aiUsage);
             } catch (_) {}
           }
         },

@@ -917,9 +917,14 @@ class FamilyPeerSyncService {
   // grants_summary) І сам peer особисто дозволив собі сповіщення від нього
   // (NotificationSettings.peerAlerts).
   Future<void> _scheduleMissedChecks(FamilyPeer peer) async {
-    if (!peer.notifyGranted) return;
     final settings = await NotificationSettings.load();
-    if (!settings.isPeerEnabled(peer.personUuid)) return;
+    // Раніше при відкликаному доступі/вимкненому сповіщенні тут одразу було
+    // `return` — це зупиняло ПЛАНУВАННЯ нового, але нічого не скасовувало з
+    // того, що вже було заплановано, поки дозвіл ще діяв: check, поставлений
+    // до відкликання, лишався жити в OS-планувальнику назавжди (чи доки сам
+    // не спрацює один раз). Тепер замість "нічого не робити" — активно
+    // скасовуємо все заплановане для цього піра нижче.
+    final allowed = peer.notifyGranted && settings.isPeerEnabled(peer.personUuid);
 
     final subjects = await (_db.select(_db.sharedSubjects)
           ..where((t) => t.peerChannelId.equals(peer.channelId)))
@@ -930,6 +935,21 @@ class FamilyPeerSyncService {
             ..where((t) => t.subjectPersonUuid.equals(subject.personUuid)))
           .get();
       if (entities.isEmpty) continue;
+
+      if (!allowed) {
+        for (final e in entities) {
+          switch (e.entityType) {
+            case 'intake':
+              await NotificationService.cancelPeerIntakeCheck(e.uuid);
+            case 'activity_log':
+              await NotificationService.cancelPeerActivityCheck(e.uuid);
+            case 'doctor_appointment':
+              await NotificationService.cancelPeerAppointmentCheck(e.uuid);
+          }
+        }
+        await NotificationService.cancelTodayPeerWellbeingChecks(subject.personUuid);
+        continue;
+      }
 
       Map<String, dynamic>? decode(SharedEntity e) {
         try {
@@ -1076,6 +1096,32 @@ class FamilyPeerSyncService {
     final repo = FamilyPeersRepository(_db);
     final peer = await repo.getByUuid(personUuid);
     if (peer == null) return;
+
+    // Пір прибирається з allPeers() назавжди щойно репозиторій нижче видалить
+    // рядок — _scheduleMissedChecks більше НІКОЛИ не викличеться для нього,
+    // тож усе, що вже було заплановано (perr-check на intake/activity/
+    // appointment/wellbeing), лишилось би висіти в OS-планувальнику без
+    // жодного шансу самоскасуватись пізніше. Скасовуємо явно тут, поки ще
+    // знаємо, які subjects/entities взагалі належали цьому піру.
+    final subjects = await (_db.select(_db.sharedSubjects)
+          ..where((t) => t.peerChannelId.equals(peer.channelId)))
+        .get();
+    for (final subject in subjects) {
+      final entities = await (_db.select(_db.sharedEntities)
+            ..where((t) => t.subjectPersonUuid.equals(subject.personUuid)))
+          .get();
+      for (final e in entities) {
+        switch (e.entityType) {
+          case 'intake':
+            await NotificationService.cancelPeerIntakeCheck(e.uuid);
+          case 'activity_log':
+            await NotificationService.cancelPeerActivityCheck(e.uuid);
+          case 'doctor_appointment':
+            await NotificationService.cancelPeerAppointmentCheck(e.uuid);
+        }
+      }
+      await NotificationService.cancelTodayPeerWellbeingChecks(subject.personUuid);
+    }
 
     final keyBytes = await SharedChannelKeyStorage.read(peer.channelId);
     if (keyBytes != null) {

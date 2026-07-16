@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/l10n_ext.dart';
 import '../../../shared/widgets/mk_back_button.dart';
 import '../../../shared/widgets/mk_button.dart';
 
@@ -112,7 +113,7 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
                   MkBackButton(onTap: () => Navigator.pop(context)),
                   Expanded(
                     child: Text(
-                      'Хвилинка спокою',
+                      context.l10n.breathingScreenHeaderLabel,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.labelLg
                           .copyWith(color: AppColors.primary),
@@ -157,12 +158,14 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
                 child: Column(
                   children: [
                     const SizedBox(height: AppDimensions.lg),
-                    Text('Дихаймо разом', style: AppTextStyles.h2),
+                    Text(context.l10n.breathingExerciseTitle,
+                        style: AppTextStyles.h2),
                     const SizedBox(height: 6),
                     Text(
                       done
-                          ? 'Молодець! Ти впорався(-лась).'
-                          : 'Повільний вдих... і видих. Ще $_cyclesLeft ${_cycleWordUk(_cyclesLeft)}.',
+                          ? context.l10n.breathingDoneBody
+                          : context.l10n
+                              .breathingCyclesLeftBody(_cyclesLeft),
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyMd
                           .copyWith(color: AppColors.textSub),
@@ -205,10 +208,10 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
                                 child: Center(
                                   child: Text(
                                     done
-                                        ? 'Ще раз'
+                                        ? context.l10n.restartAction
                                         : (_phase == _Phase.inhale
-                                            ? 'Вдих'
-                                            : 'Видих'),
+                                            ? context.l10n.inhaleLabel
+                                            : context.l10n.exhaleLabel),
                                     style: AppTextStyles.h3
                                         .copyWith(color: Colors.white),
                                   ),
@@ -249,10 +252,11 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Ти в безпеці', style: AppTextStyles.h3),
+                                Text(context.l10n.safeYouTitle,
+                                    style: AppTextStyles.h3),
                                 const SizedBox(height: 3),
                                 Text(
-                                  'Тривога мине. Еллі поруч, поки тобі потрібно.',
+                                  context.l10n.safeYouSubtitle,
                                   style: AppTextStyles.bodyMd
                                       .copyWith(color: AppColors.textSub),
                                 ),
@@ -278,14 +282,14 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
                 children: [
                   Expanded(
                     child: MkButton.secondary(
-                      label: 'Інша вправа',
+                      label: context.l10n.differentExerciseAction,
                       onTap: () => Navigator.pop(context),
                     ),
                   ),
                   const SizedBox(width: AppDimensions.md),
                   Expanded(
                     child: MkButton(
-                      label: 'Мені краще',
+                      label: context.l10n.feelBetterAction,
                       onTap: () => Navigator.pop(context),
                     ),
                   ),
@@ -298,11 +302,4 @@ class _BreathingExerciseScreenState extends State<BreathingExerciseScreen>
       ),
     );
   }
-}
-
-String _cycleWordUk(int n) {
-  final mod10 = n % 10, mod100 = n % 100;
-  if (mod10 == 1 && mod100 != 11) return 'цикл';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'цикли';
-  return 'циклів';
 }

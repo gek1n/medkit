@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -49,25 +50,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 children: [
                   _BackHeader(),
                   const SizedBox(height: AppDimensions.lg),
-                  _SectionTitle('Основні'),
+                  _SectionTitle(context.l10n.notificationsMainSectionTitle),
                   _SettingsCard(children: [
                     _SwitchRow(
                       icon: Icons.notifications_rounded,
-                      label: 'Push-сповіщення',
-                      sub: 'Нагадування про прийом ліків',
+                      label: context.l10n.pushNotificationsLabel,
+                      sub: context.l10n.pushNotificationsSub,
                       value: settings.pushEnabled,
                       onChanged: settingsNotifier.setPushEnabled,
                     ),
                     _SwitchRow(
                       icon: Icons.vibration_rounded,
-                      label: 'Вібрація',
-                      sub: 'Разом зі звуком',
+                      label: context.l10n.vibrationLabel,
+                      sub: context.l10n.vibrationSub,
                       value: settings.vibrationEnabled,
                       onChanged: settingsNotifier.setVibrationEnabled,
                     ),
                   ]),
                   const SizedBox(height: AppDimensions.xl),
-                  _SectionTitle('Час нагадувань'),
+                  _SectionTitle(context.l10n.reminderTimeSectionTitle),
                   _SettingsCard(children: [
                     _OffsetRow(
                       current: settings.offsetMinutes,
@@ -79,18 +80,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     ),
                   ]),
                   const SizedBox(height: AppDimensions.xl),
-                  _SectionTitle('Тихі години'),
+                  _SectionTitle(context.l10n.quietHoursSectionTitle),
                   _SettingsCard(children: [
                     _SwitchRow(
                       icon: Icons.dark_mode_rounded,
-                      label: 'Не турбувати',
-                      sub: 'Нічний режим',
+                      label: context.l10n.doNotDisturbLabel,
+                      sub: context.l10n.nightModeSub,
                       value: settings.quietEnabled,
                       onChanged: settingsNotifier.setQuietEnabled,
                     ),
                     _TimeRow(
                       icon: Icons.schedule_rounded,
-                      label: 'З',
+                      label: context.l10n.quietFromLabel,
                       time: quietFrom,
                       enabled: settings.quietEnabled,
                       onTap: () => _pickTime(
@@ -98,7 +99,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     ),
                     _TimeRow(
                       icon: Icons.schedule_rounded,
-                      label: 'До',
+                      label: context.l10n.quietToLabel,
                       time: quietTo,
                       enabled: settings.quietEnabled,
                       onTap: () => _pickTime(
@@ -116,7 +117,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _SectionTitle('Алерти при пропуску членів сімʼї'),
+                          _SectionTitle(context.l10n.memberMissedAlertsSectionTitle),
                           _MemberAlertsCard(
                             members: nonOwners,
                             alerts: settings.memberAlerts,
@@ -136,7 +137,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _SectionTitle('Сповіщення від сім\'ї'),
+                          _SectionTitle(context.l10n.familyNotificationsSectionTitle),
                           Padding(
                             padding: const EdgeInsets.fromLTRB(
                               AppDimensions.screenPadding,
@@ -145,8 +146,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               AppDimensions.sm,
                             ),
                             child: Text(
-                              'Ці учасники дозволили надсилати вам сповіщення про себе. '
-                              'Тут ви вирішуєте, чи хочете їх отримувати.',
+                              context.l10n.peerNotifyExplainerBody,
                               style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                             ),
                           ),
@@ -195,7 +195,7 @@ class _BackHeader extends StatelessWidget {
         children: [
           MkBackButton(onTap: () => Navigator.pop(context)),
           const SizedBox(width: AppDimensions.md),
-          Text('Сповіщення', style: AppTextStyles.h2),
+          Text(context.l10n.notificationsLabel, style: AppTextStyles.h2),
         ],
       ),
     );
@@ -349,10 +349,10 @@ class _OffsetRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Зсув нагадування',
+                    Text(context.l10n.reminderOffsetLabel,
                         style: AppTextStyles.bodyMd),
                     const SizedBox(height: 2),
-                    Text('Отримувати за N хв до прийому',
+                    Text(context.l10n.reminderOffsetSub,
                         style: AppTextStyles.bodySm
                             .copyWith(color: AppColors.textSub)),
                   ],
@@ -384,7 +384,9 @@ class _OffsetRow extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    opt == 0 ? 'без зсуву' : '−$opt хв',
+                    opt == 0
+                        ? context.l10n.noOffsetLabel
+                        : context.l10n.minusMinutesLabel(opt),
                     style: AppTextStyles.bodySm.copyWith(
                       color: selected
                           ? AppColors.primary
@@ -413,11 +415,17 @@ class _RepeatRow extends StatelessWidget {
   const _RepeatRow({required this.minutes, required this.onChanged});
 
   static const _values = [5, 20, 45, 60];
-  static const _labels = ['5 хв', '20 хв', '45 хв', '1 год'];
+
+  static String _labelFor(BuildContext context, int minutes) {
+    return minutes == 60
+        ? context.l10n.hoursCountLabel(1)
+        : context.l10n.durationMinutes(minutes);
+  }
 
   @override
   Widget build(BuildContext context) {
     final index = _values.indexOf(minutes).clamp(0, _values.length - 1);
+    final labels = _values.map((v) => _labelFor(context, v)).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.screenPadding,
@@ -434,11 +442,11 @@ class _RepeatRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Повторити якщо нема відповіді',
+                    Text(context.l10n.repeatIfNoResponseLabel,
                         style: AppTextStyles.bodyMd),
                     const SizedBox(height: 2),
                     Text(
-                      'Через ${_labels[index]}',
+                      context.l10n.repeatInLabel(labels[index]),
                       style: AppTextStyles.bodySm
                           .copyWith(color: AppColors.textSub),
                     ),
@@ -469,7 +477,7 @@ class _RepeatRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: _labels
+              children: labels
                   .map((l) => Text(l,
                       style: AppTextStyles.bodySm
                           .copyWith(color: AppColors.textMuted)))

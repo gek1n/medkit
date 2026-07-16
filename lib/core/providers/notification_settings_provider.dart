@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/notification_resync_service.dart';
+import '../services/notification_service.dart';
 
 class NotificationSettings {
   final bool pushEnabled;
@@ -130,7 +132,8 @@ class NotificationSettings {
 
 class NotificationSettingsNotifier
     extends StateNotifier<NotificationSettings> {
-  NotificationSettingsNotifier() : super(const NotificationSettings()) {
+  final Ref _ref;
+  NotificationSettingsNotifier(this._ref) : super(const NotificationSettings()) {
     _load();
   }
 
@@ -151,14 +154,37 @@ class NotificationSettingsNotifier
     await prefs.setString(_key, jsonEncode(state.toJson()));
   }
 
+  // Будь-яка зміна, що впливає на результат NotificationSettings.adjust()
+  // (push увімкнено, зсув, тихі години, вимкнено конкретного члена сім'ї),
+  // сама по собі НЕ чіпає вже заплановані zonedSchedule — adjust() рахується
+  // один раз, у момент СТВОРЕННЯ нагадування. Без цього виклику "вимкнути
+  // сповіщення"/"увімкнути тихі години" означало б лише "з наступного разу",
+  // а все заплановане раніше спрацьовувало б як було. Перепланування важке
+  // (перебирає всі pending-рядки), тож не викликаємо його для vibration/
+  // repeatMinutes — це деталі вже запланованого нагадування, а не "чи
+  // спрацює воно взагалі і коли".
+  Future<void> _resync() => _ref.read(notificationResyncServiceProvider).resyncAll();
+
+  // Вимкнення push тут лише зупиняє ПЛАНУВАННЯ нового — але саме по собі не
+  // чіпає те, що вже заплановано раніше через zonedSchedule, а OS-
+  // планувальник живе незалежно від цього прапорця. Явне cancelAll() тут —
+  // щоб вимикач дійсно означав "тихо негайно", а не "тихо із наступного
+  // разу". Повторне увімкнення — навпаки, resync() перепланує все під
+  // актуальні налаштування (в т.ч. тихі години, якщо вони теж увімкнені).
   Future<void> setPushEnabled(bool v) async {
     state = state.copyWith(pushEnabled: v);
     await _save();
+    if (!v) {
+      await NotificationService.cancelAll();
+    } else {
+      await _resync();
+    }
   }
 
   Future<void> setOffsetMinutes(int v) async {
     state = state.copyWith(offsetMinutes: v);
     await _save();
+    await _resync();
   }
 
   Future<void> setVibrationEnabled(bool v) async {
@@ -174,22 +200,26 @@ class NotificationSettingsNotifier
   Future<void> setQuietEnabled(bool v) async {
     state = state.copyWith(quietEnabled: v);
     await _save();
+    await _resync();
   }
 
   Future<void> setQuietFrom(TimeOfDay t) async {
     state = state.copyWith(quietFromMinutes: t.hour * 60 + t.minute);
     await _save();
+    await _resync();
   }
 
   Future<void> setQuietTo(TimeOfDay t) async {
     state = state.copyWith(quietToMinutes: t.hour * 60 + t.minute);
     await _save();
+    await _resync();
   }
 
   Future<void> setMemberAlert(int memberId, bool v) async {
     final updated = Map<int, bool>.from(state.memberAlerts)..[memberId] = v;
     state = state.copyWith(memberAlerts: updated);
     await _save();
+    await _resync();
   }
 
   Future<void> setPeerAlert(String personUuid, bool v) async {
@@ -201,5 +231,5 @@ class NotificationSettingsNotifier
 
 final notificationSettingsProvider = StateNotifierProvider<
     NotificationSettingsNotifier, NotificationSettings>(
-  (ref) => NotificationSettingsNotifier(),
+  (ref) => NotificationSettingsNotifier(ref),
 );

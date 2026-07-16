@@ -3,6 +3,7 @@ import '../../core/services/app_lock_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 
 class AppLockScreen extends StatefulWidget {
   final VoidCallback onUnlocked;
@@ -64,12 +65,12 @@ class _AppLockScreenState extends State<AppLockScreen> {
                       size: 40, color: AppColors.primary),
                 ),
                 const SizedBox(height: AppDimensions.xl),
-                Text('Elly заблоковано', style: AppTextStyles.h3),
+                Text(context.l10n.appLockedTitle, style: AppTextStyles.h3),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
                   _failedOnce
-                      ? 'Не вдалося підтвердити особу — спробуйте ще раз'
-                      : 'Підтвердіть особу, щоб продовжити',
+                      ? context.l10n.authFailedRetryBody
+                      : context.l10n.confirmIdentityBody,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyMd
                       .copyWith(color: AppColors.textSub),
@@ -89,7 +90,9 @@ class _AppLockScreenState extends State<AppLockScreen> {
                       elevation: 0,
                     ),
                     child: Text(
-                      _authenticating ? 'Перевірка...' : 'Розблокувати',
+                      _authenticating
+                          ? context.l10n.checkingDotsLabel
+                          : context.l10n.unlockAction,
                       style: AppTextStyles.labelLg
                           .copyWith(color: Colors.white),
                     ),

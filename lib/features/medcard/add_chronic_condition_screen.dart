@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/chronic_conditions_repository.dart';
@@ -68,13 +69,13 @@ class _AddChronicConditionScreenState extends ConsumerState<AddChronicConditionS
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Видалити діагноз?'),
-        content: const Text('Запис буде видалено.'),
+        title: Text(context.l10n.deleteConditionConfirmTitle),
+        content: Text(context.l10n.deleteRecordBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Скасувати')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.actionCancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Видалити', style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
+            child: Text(context.l10n.deleteAction, style: AppTextStyles.bodyMd.copyWith(color: Colors.red)),
           ),
         ],
       ),
@@ -88,7 +89,7 @@ class _AddChronicConditionScreenState extends ConsumerState<AddChronicConditionS
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Введіть назву діагнозу')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.enterConditionNameError)));
       return;
     }
     setState(() => _isSaving = true);
@@ -122,7 +123,7 @@ class _AddChronicConditionScreenState extends ConsumerState<AddChronicConditionS
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -138,8 +139,8 @@ class _AddChronicConditionScreenState extends ConsumerState<AddChronicConditionS
         child: Column(
           children: [
             MkFormHeader(
-              title: (isEdit ? 'Редагувати діагноз' : 'Новий діагноз') +
-                  memberNameSuffix(ref, widget.memberId),
+              title: (isEdit ? context.l10n.editConditionTitle : context.l10n.newConditionTitle) +
+                  memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
             ),
@@ -150,41 +151,41 @@ class _AddChronicConditionScreenState extends ConsumerState<AddChronicConditionS
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MkFieldLabel('Діагноз'),
+                    MkFieldLabel(context.l10n.fieldDiagnosis),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _nameController,
-                      hint: 'Астма, діабет, гіпертонія…',
+                      hint: context.l10n.conditionNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Напрямок лікаря'),
+                    MkFieldLabel(context.l10n.fieldDoctorSpecialty),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: _specialty ?? 'Не обрано',
+                      value: _specialty ?? context.l10n.notSelectedValue,
                       filled: _specialty != null,
                       onTap: _pickSpecialty,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Дата встановлення'),
+                    MkFieldLabel(context.l10n.fieldDiagnosisDate),
                     const SizedBox(height: 6),
                     MkTapField(
-                      value: _diagnosedAt != null ? MKDateUtils.formatDate(_diagnosedAt!) : 'Не вказано',
+                      value: _diagnosedAt != null ? MKDateUtils.formatDate(context, _diagnosedAt!) : context.l10n.notSpecifiedValue,
                       filled: _diagnosedAt != null,
                       onTap: _pickDiagnosedAt,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    MkFieldLabel('Нотатки'),
+                    MkFieldLabel(context.l10n.fieldNotes),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
-                      hint: 'Схема лікування, дозування…',
+                      hint: context.l10n.conditionNotesHint,
                       maxLines: 3,
                     ),
                     const SizedBox(height: AppDimensions.lg),
                     DocumentsSection(
                       paths: _documentPaths,
                       onChanged: (paths) => setState(() => _documentPaths = paths),
-                      label: 'Документи',
+                      label: context.l10n.documentsLabel,
                     ),
                     const SizedBox(height: AppDimensions.xxl),
                     MkSaveButton(isSaving: _isSaving, onPressed: _save),

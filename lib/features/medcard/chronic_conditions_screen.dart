@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/chronic_conditions_repository.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
@@ -36,7 +37,7 @@ class ChronicConditionsScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const MkListHeader(title: 'Хронічні захворювання'),
+            MkListHeader(title: context.l10n.chronicConditionsSectionTitle),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -44,14 +45,14 @@ class ChronicConditionsScreen extends ConsumerWidget {
                 child: conditionsAsync.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                error: (e, _) => Center(child: Text('Помилка: $e')),
+                error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (conditions) {
                   if (conditions.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
+                      children: [
                         MkEmptyState(
-                          hint: 'Натисніть "+ Додати" щоб додати перший діагноз',
+                          hint: context.l10n.chronicConditionsEmptyHint,
                         ),
                       ],
                     );
@@ -125,7 +126,7 @@ class _ConditionCard extends StatelessWidget {
                     [
                       if (condition.specialty != null) condition.specialty!,
                       if (condition.diagnosedAt != null)
-                        MKDateUtils.formatDate(condition.diagnosedAt!),
+                        MKDateUtils.formatDate(context, condition.diagnosedAt!),
                     ].join(' · '),
                     style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
                   ),

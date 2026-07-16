@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import 'mk_back_button.dart';
 
 /// Заголовок екрана-списку медкартки: назад + назва. Кнопка додавання — це
@@ -60,7 +61,7 @@ class MkEmptyState extends StatelessWidget {
           children: [
             Image.asset('assets/illustrations/elly-docs.png', height: 140),
             const SizedBox(height: 16),
-            Text('Ще нічого не додано', style: AppTextStyles.h3),
+            Text(context.l10n.emptyStateNoneYetTitle, style: AppTextStyles.h3),
             const SizedBox(height: 8),
             Text(
               hint,

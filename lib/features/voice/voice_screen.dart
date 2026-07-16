@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../core/providers/app_language_provider.dart';
 import '../../core/providers/plan_provider.dart';
-import '../../core/providers/voice_locale_provider.dart';
 import '../../core/services/ai_consent_service.dart';
 import '../../core/services/ai_usage_service.dart';
 import '../../core/services/drug_info_service.dart';
@@ -14,6 +14,7 @@ import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../add/add_activity_screen.dart';
@@ -97,7 +98,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
 
   Future<void> _initSpeech() async {
     final ok = await _speech.initialize(
-      onError: (e) => _setError('STT помилка: ${e.errorMsg}'),
+      onError: (e) => _setError(context.l10n.sttErrorLabel(e.errorMsg)),
       onStatus: (status) {
         if (!mounted) return;
         if (status == 'listening') {
@@ -112,11 +113,11 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
 
   Future<void> _startListening() async {
     if (!_sttAvailable) {
-      _setError('Розпізнавання мови недоступне на цьому пристрої');
+      _setError(context.l10n.speechNotAvailableError);
       return;
     }
     final plan = ref.read(planProvider);
-    if (!plan.isPaid && !await AiUsageService.canUseVoiceCommand()) {
+    if (!plan.isPaid && !await ref.read(aiUsageServiceProvider).canUseVoiceCommand()) {
       unawaited(MarketingTopicsService.markHitVoiceLimit());
       if (!mounted) return;
       Navigator.push(
@@ -134,7 +135,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
         if (r.finalResult) _onSpeechDone();
       },
       listenOptions: SpeechListenOptions(
-        localeId: ref.read(voiceLocaleProvider),
+        localeId: ref.read(appLanguageProvider),
         listenFor: const Duration(seconds: 30),
         pauseFor: const Duration(seconds: 3),
         partialResults: true,
@@ -152,7 +153,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     if (_state != _VoiceState.listening) return;
     final text = _transcript.trim();
     if (text.isEmpty) {
-      _setError('Нічого не почуто. Спробуй ще раз.');
+      _setError(context.l10n.nothingHeardError);
       return;
     }
     setState(() => _state = _VoiceState.analyzing);
@@ -163,7 +164,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
     try {
       final result = await NluService().parse(text);
       if (!ref.read(planProvider).isPaid) {
-        await AiUsageService.recordVoiceCommand();
+        await ref.read(aiUsageServiceProvider).recordVoiceCommand();
       }
       if (mounted) {
         final fr = result.foodRelation;
@@ -175,7 +176,8 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
         if (result.drugName != null) _fetchDrugReference(result.drugName!);
       }
     } catch (e) {
-      _setError('Помилка аналізу: $e');
+      if (!mounted) return;
+      _setError(context.l10n.analysisErrorWithMessage(e.toString()));
     }
   }
 
@@ -226,9 +228,7 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
                 _VoiceState.idle => _IdleBody(
                     sttAvailable: _sttAvailable,
                     onStart: _startListening,
-                    selectedLocaleId: ref.watch(voiceLocaleProvider),
-                    onLocaleChanged: (id) =>
-                        ref.read(voiceLocaleProvider.notifier).set(id),
+                    languageLabel: appLanguageLabel(ref.watch(appLanguageProvider)),
                   ),
                 _VoiceState.listening => _ListeningBody(
                     anim: _pulseAnim,
@@ -271,8 +271,8 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
         _openAddAppointment(r);
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Не вдалося розпізнати команду')),
+          SnackBar(
+              content: Text(context.l10n.commandNotRecognizedError)),
         );
     }
   }
@@ -348,7 +348,7 @@ class _BackHeader extends StatelessWidget {
         children: [
           MkBackButton(onTap: onBack),
           const SizedBox(width: 12),
-          Text('Голосове управління',
+          Text(context.l10n.voiceControlTitle,
               style: AppTextStyles.h3),
         ],
       ),
@@ -387,7 +387,7 @@ class _ConsentBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Перш ніж почати',
+        Text(context.l10n.beforeYouStartTitle,
             textAlign: TextAlign.center,
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
@@ -399,17 +399,12 @@ class _ConsentBody extends StatelessWidget {
             border: Border.all(color: AppColors.primaryLighter),
           ),
           child: Text(
-            'Розпізнавання голосу відбувається на пристрої. Але щоб зрозуміти '
-            'команду, текст твоєї фрази надсилається сервісу Anthropic (Claude). '
-            'Ця функція розпізнає лише 3 команди: додати ліки, додати '
-            'активність або запис до лікаря — вільний опис самопочуття чи '
-            'симптомів сюди ніколи не відправляється, для цього є окреме поле '
-            'в щоденнику самопочуття, яке лишається тільки на пристрої.',
+            context.l10n.voiceConsentDisclaimerBody,
             style: AppTextStyles.bodyMd,
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
-        MkButton(label: 'Зрозуміло, погоджуюсь', onTap: onAgree),
+        MkButton(label: context.l10n.understoodAgreeAction, onTap: onAgree),
       ],
     );
   }
@@ -420,26 +415,21 @@ class _ConsentBody extends StatelessWidget {
 class _IdleBody extends StatelessWidget {
   final bool sttAvailable;
   final VoidCallback onStart;
-  final String selectedLocaleId;
-  final ValueChanged<String> onLocaleChanged;
+  final String languageLabel;
   const _IdleBody({
     required this.sttAvailable,
     required this.onStart,
-    required this.selectedLocaleId,
-    required this.onLocaleChanged,
+    required this.languageLabel,
   });
 
-  static const _examples = [
-    (Icons.medication_rounded, Color(0xFFE9F4EC),
-        '"Додай Еналаприл 10 мг вранці та ввечері"',
-        'Відкриє форму ліків із заповненими полями. Розпізнає не всі препарати — перевірте поля перед збереженням.'),
-    (Icons.fitness_center_rounded, Color(0xFFFFF1EB),
-        '"Додай зарядку двічі на день вранці і ввечері"',
-        'Відкриє форму активності із заповненими полями'),
-    (Icons.calendar_month_rounded, Color(0xFFFFFBEB),
-        '"Запис до кардіолога у пʼятницю о 10"',
-        'Відкриє форму запису до лікаря'),
-  ];
+  List<(IconData, Color, String, String)> _examples(BuildContext context) => [
+        (Icons.medication_rounded, const Color(0xFFE9F4EC),
+            context.l10n.voiceExampleMedQuote, context.l10n.voiceExampleMedDesc),
+        (Icons.fitness_center_rounded, const Color(0xFFFFF1EB),
+            context.l10n.voiceExampleActivityQuote, context.l10n.voiceExampleActivityDesc),
+        (Icons.calendar_month_rounded, const Color(0xFFFFFBEB),
+            context.l10n.voiceExampleApptQuote, context.l10n.voiceExampleApptDesc),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -467,50 +457,31 @@ class _IdleBody extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Що хочеш зробити?',
+        Text(context.l10n.whatToDoTitle,
             textAlign: TextAlign.center,
             style: AppTextStyles.h3
                 .copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text('Натисни і скажи команду\nабо почни говорити',
+        Text(context.l10n.tapAndSayCommandHint,
             textAlign: TextAlign.center,
             style: AppTextStyles.bodyMd
                 .copyWith(color: AppColors.textSub)),
-        const SizedBox(height: AppDimensions.lg),
-        Center(
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: voiceLocales.map((l) {
-              final selected = l.id == selectedLocaleId;
-              return GestureDetector(
-                onTap: () => onLocaleChanged(l.id),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    border: Border.all(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.border),
-                  ),
-                  child: Text(
-                    l.label,
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: selected ? Colors.white : AppColors.textSub,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+        const SizedBox(height: AppDimensions.md),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Text(
+            context.l10n.dictateLanguageHint(languageLabel),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
           ),
         ),
         const SizedBox(height: AppDimensions.xl),
-        Text('ПРИКЛАДИ КОМАНД',
+        Text(context.l10n.commandExamplesCapsLabel,
             style: AppTextStyles.labelSm),
         const SizedBox(height: 10),
         Container(
@@ -528,9 +499,9 @@ class _IdleBody extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
-            children: _examples.asMap().entries.map((e) {
+            children: _examples(context).asMap().entries.map((e) {
               final ex = e.value;
-              final isLast = e.key == _examples.length - 1;
+              final isLast = e.key == _examples(context).length - 1;
               return Column(
                 children: [
                   Padding(
@@ -585,14 +556,13 @@ class _IdleBody extends StatelessWidget {
         ),
         const SizedBox(height: AppDimensions.lg),
         Text(
-          'Це експериментальна функція — розпізнавання може заповнити дані '
-          'неточно, завжди перевіряйте форму перед збереженням.',
+          context.l10n.experimentalFeatureNotice,
           textAlign: TextAlign.center,
           style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
         ),
         const SizedBox(height: AppDimensions.md),
         MkButton(
-          label: sttAvailable ? 'Утримуй і говори' : 'Мікрофон недоступний',
+          label: sttAvailable ? context.l10n.holdAndSpeakAction : context.l10n.micUnavailableLabel,
           icon: const Icon(Icons.mic_rounded, size: 20, color: Colors.white),
           onTap: sttAvailable ? onStart : null,
         ),
@@ -654,14 +624,14 @@ class _ListeningBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          Text(micReady ? 'Слухаю...' : 'Готуємось...',
+          Text(micReady ? context.l10n.listeningEllipsisLabel : context.l10n.preparingEllipsisLabel,
               style: AppTextStyles.h2
                   .copyWith(color: AppColors.primary)),
           const SizedBox(height: 8),
           Text(
               micReady
-                  ? 'Натисни на мікрофон щоб зупинити'
-                  : 'Зачекайте секунду перед тим, як говорити',
+                  ? context.l10n.tapMicToStopHint
+                  : context.l10n.waitBeforeSpeakingHint,
               style: AppTextStyles.bodyMd
                   .copyWith(color: AppColors.textSub)),
           if (transcript.isNotEmpty) ...[
@@ -675,7 +645,7 @@ class _ListeningBody extends StatelessWidget {
                     BorderRadius.circular(AppDimensions.radiusLg),
               ),
               child: Text(
-                '"$transcript"',
+                context.l10n.quotedTextLabel(transcript),
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(
                   fontStyle: FontStyle.italic,
@@ -710,7 +680,7 @@ class _AnalyzingBody extends StatelessWidget {
                   BorderRadius.circular(AppDimensions.radiusLg),
             ),
             child: Text(
-              '"$transcript"',
+              context.l10n.quotedTextLabel(transcript),
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMd
                   .copyWith(fontStyle: FontStyle.italic),
@@ -720,7 +690,7 @@ class _AnalyzingBody extends StatelessWidget {
           const CircularProgressIndicator(
               color: AppColors.primary),
           const SizedBox(height: 16),
-          Text('Аналізую команду...',
+          Text(context.l10n.analyzingCommandLabel,
               style: AppTextStyles.bodyMd
                   .copyWith(color: AppColors.textSub)),
         ],
@@ -748,47 +718,55 @@ class _ResultBody extends StatelessWidget {
     required this.onRetry,
   });
 
-  static const _refFoodLabels = {'before': 'До їжі', 'after': 'Після їжі', 'any': 'Незалежно від їжі'};
+  Map<String, String> _refFoodLabels(BuildContext context) => {
+        'before': context.l10n.foodOptBefore,
+        'after': context.l10n.foodOptAfter,
+        'any': context.l10n.refFoodAnyLabel,
+      };
 
-  static const _foodOpts = ['До їжі', 'Після їжі', 'Не важливо'];
+  List<String> _foodOpts(BuildContext context) => [
+        context.l10n.foodOptBefore,
+        context.l10n.foodOptAfter,
+        context.l10n.foodOptNotImportant,
+      ];
 
-  List<(String, String)> get _parsedRows {
+  List<(String, String)> _parsedRows(BuildContext context) {
     final rows = <(String, String)>[];
-    rows.add(('ДІЯ', _actionLabel(result.action)));
+    rows.add((context.l10n.actionCapsLabel, _actionLabel(context, result.action)));
     if (result.drugName != null) {
-      rows.add(('ПРЕПАРАТ', result.drugName!));
+      rows.add((context.l10n.drugCapsLabel, result.drugName!));
     }
     if (result.activityName != null) {
-      rows.add(('АКТИВНІСТЬ', result.activityName!));
+      rows.add((context.l10n.activityCapsLabel, result.activityName!));
     }
     if (result.doseAmount != null) {
       final dose = result.doseAmount!
           .toStringAsFixed(result.doseAmount! % 1 == 0 ? 0 : 1);
-      rows.add(('ДОЗА', '$dose ${result.doseUnit ?? ''}'));
+      rows.add((context.l10n.doseCapsLabel, '$dose ${result.doseUnit ?? ''}'));
     }
     if (result.scheduleTimes != null &&
         result.scheduleTimes!.isNotEmpty) {
-      rows.add(('РОЗКЛАД',
-          result.scheduleTimes!.map(_scheduleLabel).join(' + ')));
+      rows.add((context.l10n.scheduleCapsLabel,
+          result.scheduleTimes!.map((s) => _scheduleLabel(context, s)).join(' + ')));
     }
     if (result.appointmentType != null) {
-      rows.add(('ЛІКАР', result.appointmentType!));
+      rows.add((context.l10n.doctorCapsLabel, result.appointmentType!));
     }
     return rows;
   }
 
-  String _actionLabel(String a) => switch (a) {
-        'add_med' => 'Додати ліки',
-        'add_activity' => 'Додати активність',
-        'add_appointment' => 'Запис до лікаря',
-        _ => 'Невідома команда',
+  String _actionLabel(BuildContext context, String a) => switch (a) {
+        'add_med' => context.l10n.addMedsShortAction,
+        'add_activity' => context.l10n.addActivityActionLabel,
+        'add_appointment' => context.l10n.newAppointmentTitle,
+        _ => context.l10n.unknownCommandLabel,
       };
 
-  String _scheduleLabel(String s) => switch (s) {
-        'morning' => 'Вранці',
-        'evening' => 'Ввечері',
-        'afternoon' => 'Вдень',
-        'night' => 'Вночі',
+  String _scheduleLabel(BuildContext context, String s) => switch (s) {
+        'morning' => context.l10n.scheduleTimeMorning,
+        'evening' => context.l10n.scheduleTimeEvening,
+        'afternoon' => context.l10n.scheduleTimeAfternoon,
+        'night' => context.l10n.scheduleTimeNight,
         _ => s,
       };
 
@@ -797,7 +775,7 @@ class _ResultBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _parsedRows;
+    final rows = _parsedRows(context);
 
     return ListView(
       padding: const EdgeInsets.all(AppDimensions.screenPadding),
@@ -813,18 +791,18 @@ class _ResultBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ТИ СКАЗАВ',
+              Text(context.l10n.youSaidCapsLabel,
                   style: AppTextStyles.labelSm
                       .copyWith(color: AppColors.primary)),
               const SizedBox(height: 6),
-              Text('"${result.transcript}"',
+              Text(context.l10n.quotedTextLabel(result.transcript),
                   style: AppTextStyles.bodyMd
                       .copyWith(fontStyle: FontStyle.italic)),
             ],
           ),
         ),
         const SizedBox(height: AppDimensions.lg),
-        Text('Я зрозумів так:',
+        Text(context.l10n.iUnderstoodLabel,
             style: AppTextStyles.bodyMd
                 .copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
@@ -895,14 +873,14 @@ class _ResultBody extends StatelessWidget {
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: [
-                      Text('Уточни ще одне',
+                      Text(context.l10n.clarifyOneMoreLabel,
                           style: AppTextStyles.labelMd
                               .copyWith(
                                   color: const Color(
                                       0xFF92400E))),
                       const SizedBox(height: 2),
                       Text(
-                        'Ти не сказав, до чи після їжі. Вибери нижче або пропусти',
+                        context.l10n.foodRelationClarifyHint,
                         style: AppTextStyles.bodySm
                             .copyWith(
                                 color: const Color(
@@ -916,12 +894,12 @@ class _ResultBody extends StatelessWidget {
           ),
           const SizedBox(height: AppDimensions.md),
           Row(
-            children: List.generate(_foodOpts.length, (i) {
+            children: List.generate(_foodOpts(context).length, (i) {
               final sel = foodRelation == i;
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(
-                      right: i < _foodOpts.length - 1 ? 8 : 0),
+                      right: i < _foodOpts(context).length - 1 ? 8 : 0),
                   child: GestureDetector(
                     onTap: () => onFoodChanged(i),
                     child: Container(
@@ -940,7 +918,7 @@ class _ResultBody extends StatelessWidget {
                             : null,
                       ),
                       child: Text(
-                        _foodOpts[i],
+                        _foodOpts(context)[i],
                         textAlign: TextAlign.center,
                         style: AppTextStyles.labelMd
                             .copyWith(
@@ -969,7 +947,7 @@ class _ResultBody extends StatelessWidget {
               children: [
                 if (drugReference!.foodRelation != null)
                   Text(
-                    '🍽 ${_refFoodLabels[drugReference!.foodRelation] ?? drugReference!.foodRelation}',
+                    '🍽 ${_refFoodLabels(context)[drugReference!.foodRelation] ?? drugReference!.foodRelation}',
                     style: AppTextStyles.bodySm
                         .copyWith(color: const Color(0xFF92400E)),
                   ),
@@ -977,14 +955,14 @@ class _ResultBody extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      '⚡ Можливі побічні ефекти: ${drugReference!.sideEffects!.join(', ')}',
+                      context.l10n.possibleSideEffectsLabel(drugReference!.sideEffects!.join(', ')),
                       style: AppTextStyles.bodySm
                           .copyWith(color: const Color(0xFF92400E)),
                     ),
                   ),
                 const SizedBox(height: 4),
                 Text(
-                  '⚠️ Довідково, не гарантовано. Звірте з інструкцією до препарату.',
+                  context.l10n.referenceInfoDisclaimer,
                   style: AppTextStyles.caption
                       .copyWith(color: const Color(0xFF92400E)),
                 ),
@@ -993,11 +971,11 @@ class _ResultBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppDimensions.xl),
-        MkButton(label: 'Далі', onTap: onConfirm),
+        MkButton(label: context.l10n.nextShortAction, onTap: onConfirm),
         const SizedBox(height: 10),
         TextButton(
           onPressed: onRetry,
-          child: Text('Спробувати ще раз',
+          child: Text(context.l10n.tryAgainAction,
               style: AppTextStyles.bodyMd
                   .copyWith(color: AppColors.textSub)),
         ),
@@ -1025,7 +1003,7 @@ class _ErrorBody extends StatelessWidget {
           const Icon(Icons.sentiment_dissatisfied_rounded,
               size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text('Щось пішло не так',
+          Text(context.l10n.somethingWentWrongTitle,
               style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
@@ -1035,7 +1013,7 @@ class _ErrorBody extends StatelessWidget {
                 .copyWith(color: AppColors.textSub),
           ),
           const SizedBox(height: 32),
-          MkButton(label: 'Спробувати ще раз', isFullWidth: false, onTap: onRetry),
+          MkButton(label: context.l10n.tryAgainAction, isFullWidth: false, onTap: onRetry),
         ],
       ),
     );

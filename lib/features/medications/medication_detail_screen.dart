@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../core/services/affiliate_config_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
@@ -74,7 +76,7 @@ class _SideEffectsSection extends StatelessWidget {
               const Icon(Icons.bolt_rounded, size: 16, color: Color(0xFF92400E)),
               const SizedBox(width: 6),
               Text(
-                'МОЖЛИВІ ПОБІЧНІ ЕФЕКТИ',
+                context.l10n.sideEffectsSectionLabel,
                 style: AppTextStyles.labelSm.copyWith(color: const Color(0xFF92400E)),
               ),
             ],
@@ -86,8 +88,7 @@ class _SideEffectsSection extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Визначено AI під час сканування — ця інформація може бути неточною. '
-            'Обов\'язково звірте з інструкцією до препарату.',
+            context.l10n.sideEffectsAiDisclaimer,
             style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
           ),
         ],
@@ -150,38 +151,20 @@ Color _pillBarColor(int remaining, int total) {
   return AppColors.danger;
 }
 
-String _stockUnitLabel(String form) => switch (form) {
-  'tablet' || 'capsule' => 'ТАБЛЕТКИ / КАПСУЛИ',
-  'syrup' => 'СИРОП',
-  'drops' => 'КРАПЛІ',
-  'injection' => 'ІН\'ЄКЦІЇ',
-  'suppository' => 'СВІЧКИ',
-  'vial' => 'ФЛАКОН',
-  'cream' => 'КРЕМ',
-  'inhaler' => 'ІНГАЛЯТОР',
-  _ => 'ЗАЛИШОК',
+String _stockUnitLabel(BuildContext context, String form) => switch (form) {
+  'tablet' || 'capsule' => context.l10n.stockUnitTabletsCapsules,
+  'syrup' => context.l10n.stockUnitSyrup,
+  'drops' => context.l10n.stockUnitDrops,
+  'injection' => context.l10n.stockUnitInjections,
+  'suppository' => context.l10n.stockUnitSuppositories,
+  'vial' => context.l10n.stockUnitVial,
+  'cream' => context.l10n.stockUnitCream,
+  'inhaler' => context.l10n.stockUnitInhaler,
+  _ => context.l10n.stockUnitGeneric,
 };
 
-String _daysWordUk(int n) {
-  final mod10 = n % 10;
-  final mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return 'днів';
-  if (mod10 == 1) return 'день';
-  if (mod10 >= 2 && mod10 <= 4) return 'дні';
-  return 'днів';
-}
-
-String _timesWordUk(int n) {
-  final mod10 = n % 10;
-  final mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return 'разів';
-  if (mod10 == 1) return 'раз';
-  if (mod10 >= 2 && mod10 <= 4) return 'рази';
-  return 'разів';
-}
-
 // Підпис під назвою в шапці: "10 мг на прийом · 2 рази на день".
-String _doseSubtitle(Medication med) {
+String _doseSubtitle(BuildContext context, Medication med) {
   final phases = _parsePhases(med.phases);
   final idx = _activePhaseIndex(med, phases, DateTime.now());
   final activePhase = idx != null ? phases[idx] : null;
@@ -194,7 +177,7 @@ String _doseSubtitle(Medication med) {
   final timesPerDay = activePhase != null
       ? (activePhase['times'] as List? ?? const []).length
       : 1;
-  return '$doseAmountStr ${med.doseUnit} на прийом · $timesPerDay ${_timesWordUk(timesPerDay)} на день';
+  return '${context.l10n.perDoseLabel(doseAmountStr, med.doseUnit)} · ${context.l10n.timesPerDayLabel(timesPerDay)}';
 }
 
 // Спільний вигляд секцій-карток на кремовому фоні екрана: біла поверхня,
@@ -230,7 +213,7 @@ class MedicationDetailScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (_, _) => const Center(child: Text('Помилка')),
+          error: (_, _) => Center(child: Text(context.l10n.errorGenericShort)),
           data: (med) {
             if (med == null) {
               WidgetsBinding.instance.addPostFrameCallback(
@@ -263,7 +246,7 @@ class _DetailBody extends ConsumerWidget {
         SliverToBoxAdapter(
           child: _BackHeader(
             title: med.name,
-            subtitle: _doseSubtitle(med),
+            subtitle: _doseSubtitle(context, med),
             onBack: () => Navigator.pop(context),
           ),
         ),
@@ -352,9 +335,9 @@ class _HeroSection extends StatelessWidget {
         : null;
     final courseLabel = daysLeftInCourse != null
         ? (daysLeftInCourse > 0
-              ? '$daysLeftInCourse ${_daysWordUk(daysLeftInCourse)} курсу'
-              : 'курс завершено')
-        : 'постійний курс';
+              ? context.l10n.courseDaysLeft(daysLeftInCourse)
+              : context.l10n.courseFinished)
+        : context.l10n.courseOngoing;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
@@ -369,12 +352,12 @@ class _HeroSection extends StatelessWidget {
             children: [
               _FactChip(
                 icon: Icons.medication_outlined,
-                label: '$doseAmountStr ${med.doseUnit} на прийом',
+                label: context.l10n.perDoseLabel(doseAmountStr, med.doseUnit),
                 accent: accent,
               ),
               _FactChip(
                 icon: Icons.repeat_rounded,
-                label: '$timesPerDay ${_timesWordUk(timesPerDay)}/день',
+                label: context.l10n.timesPerDaySlash(timesPerDay),
                 accent: accent,
               ),
               _FactChip(
@@ -446,7 +429,7 @@ class _StockSection extends ConsumerWidget {
       children: [
         _SectionTitle(
           icon: Icons.inventory_2_outlined,
-          label: 'Залишок',
+          label: context.l10n.stockSectionLabel,
           accent: accent,
         ),
         const SizedBox(height: 10),
@@ -480,12 +463,12 @@ class _StockSection extends ConsumerWidget {
         if (daysRemaining > 0) {
           final neededForCourse = (dailyConsumption * daysRemaining).ceil();
           toBuy = (neededForCourse - med.remainingCount).clamp(0, 99999);
-          toBuyPeriodLabel = 'до кінця курсу';
+          toBuyPeriodLabel = context.l10n.untilCourseEndLabel;
         }
       } else if (daysLeft != null && daysLeft < 30) {
         final neededFor30Days = (dailyConsumption * 30).ceil();
         toBuy = (neededFor30Days - med.remainingCount).clamp(0, 99999);
-        toBuyPeriodLabel = 'на найближчі 30 днів';
+        toBuyPeriodLabel = context.l10n.next30DaysLabel;
       }
     }
 
@@ -504,7 +487,7 @@ class _StockSection extends ConsumerWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                _stockUnitLabel(med.form),
+                _stockUnitLabel(context, med.form),
                 style: AppTextStyles.labelSm.copyWith(fontSize: 11),
               ),
             ],
@@ -517,7 +500,7 @@ class _StockSection extends ConsumerWidget {
                 text: TextSpan(
                   style: AppTextStyles.bodyMd,
                   children: [
-                    const TextSpan(text: 'Залишилось: '),
+                    TextSpan(text: context.l10n.remainingColonLabel),
                     TextSpan(
                       text: '${med.remainingCount} ${med.doseUnit}',
                       style: AppTextStyles.bodyMd.copyWith(
@@ -529,7 +512,7 @@ class _StockSection extends ConsumerWidget {
               ),
               if (daysLeft != null)
                 Text(
-                  'на ${daysLeft.toStringAsFixed(1)} дн.',
+                  context.l10n.daysLeftShortLabel(daysLeft.toStringAsFixed(1)),
                   style: AppTextStyles.bodyMd.copyWith(
                     color: accent,
                     fontWeight: FontWeight.w700,
@@ -565,7 +548,7 @@ class _StockSection extends ConsumerWidget {
                       text: TextSpan(
                         style: AppTextStyles.bodySm,
                         children: [
-                          const TextSpan(text: 'Потрібно докупити: '),
+                          TextSpan(text: context.l10n.needToBuyLabel),
                           TextSpan(
                             text: '$toBuy ${med.doseUnit}',
                             style: AppTextStyles.labelMd.copyWith(
@@ -600,7 +583,7 @@ class _StockSection extends ConsumerWidget {
                 ),
               ),
               child: Text(
-                '+ Поповнити упаковку',
+                context.l10n.refillPackageAction,
                 style: AppTextStyles.labelMd.copyWith(color: accent),
               ),
             ),
@@ -617,27 +600,27 @@ class _StockSection extends ConsumerWidget {
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Поповнити упаковку'),
+        title: Text(context.l10n.refillPackageTitle),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
           autofocus: true,
           decoration: InputDecoration(
             suffixText: med.doseUnit,
-            hintText: 'Кількість',
+            hintText: context.l10n.quantityHint,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () {
               final v = int.tryParse(ctrl.text.trim());
               Navigator.pop(ctx, v != null && v > 0 ? v : null);
             },
-            child: const Text('OK'),
+            child: Text(context.l10n.okAction),
           ),
         ],
       ),
@@ -678,7 +661,7 @@ class _StockSection extends ConsumerWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                _stockUnitLabel(med.form),
+                _stockUnitLabel(context, med.form),
                 style: AppTextStyles.labelSm.copyWith(fontSize: 11),
               ),
             ],
@@ -722,7 +705,7 @@ class _StockSection extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Залишилось ~$percent%',
+                      context.l10n.remainingApproxPercent(percent),
                       style: AppTextStyles.bodyMd.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -730,7 +713,7 @@ class _StockSection extends ConsumerWidget {
                     const SizedBox(height: 3),
                     if (daysLeft != null)
                       Text(
-                        '~${daysLeft.toStringAsFixed(0)} днів при поточній витраті',
+                        context.l10n.daysLeftAtCurrentRate(daysLeft.toStringAsFixed(0)),
                         style: AppTextStyles.bodySm.copyWith(
                           color: AppColors.textSub,
                         ),
@@ -738,7 +721,7 @@ class _StockSection extends ConsumerWidget {
                     if (openedAt != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        _openedAgoLabel(openedAt),
+                        _openedAgoLabel(context, openedAt),
                         style: AppTextStyles.caption.copyWith(
                           color: AppColors.textMuted,
                         ),
@@ -751,7 +734,7 @@ class _StockSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Оновити оцінку залишку:',
+            context.l10n.updateStockEstimateLabel,
             style: AppTextStyles.labelSm.copyWith(fontSize: 11),
           ),
           const SizedBox(height: 6),
@@ -809,7 +792,7 @@ class _StockSection extends ConsumerWidget {
                 ),
               ),
               child: Text(
-                '+ Відкрив новий флакон',
+                context.l10n.openedNewContainerAction,
                 style: AppTextStyles.labelMd.copyWith(color: accent),
               ),
             ),
@@ -819,10 +802,10 @@ class _StockSection extends ConsumerWidget {
     );
   }
 
-  String _openedAgoLabel(DateTime openedAt) {
+  String _openedAgoLabel(BuildContext context, DateTime openedAt) {
     final days = DateTime.now().difference(openedAt).inDays;
-    if (days <= 0) return 'Відкрито сьогодні';
-    return 'Відкрито $days ${_daysWordUk(days)} тому';
+    if (days <= 0) return context.l10n.openedTodayLabel;
+    return context.l10n.openedDaysAgoLabel(days);
   }
 }
 
@@ -966,7 +949,7 @@ class _PhasesSection extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'Етап ${i + 1}',
+                    context.l10n.phaseNumberLabel(i + 1),
                     style: AppTextStyles.labelMd.copyWith(
                       color: isActive ? accent : AppColors.textMain,
                     ),
@@ -983,7 +966,7 @@ class _PhasesSection extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        'зараз',
+                        context.l10n.nowLabel,
                         style: AppTextStyles.caption.copyWith(
                           fontSize: 10,
                           color: Colors.white,
@@ -997,8 +980,8 @@ class _PhasesSection extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 end != null
-                    ? '${_fmtShortDate(start)} — ${_fmtShortDate(end)}'
-                    : 'з ${_fmtShortDate(start)}, постійно',
+                    ? '${_fmtShortDate(context, start)} — ${_fmtShortDate(context, end)}'
+                    : context.l10n.phaseFromOngoing(_fmtShortDate(context, start)),
                 style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
               ),
               const SizedBox(height: 2),
@@ -1027,7 +1010,7 @@ class _PhasesSection extends StatelessWidget {
       children: [
         _SectionTitle(
           icon: Icons.timeline_rounded,
-          label: 'Етапи курсу',
+          label: context.l10n.courseStagesLabel,
           accent: accent,
         ),
         Container(
@@ -1042,24 +1025,8 @@ class _PhasesSection extends StatelessWidget {
     );
   }
 
-  String _fmtShortDate(DateTime d) {
-    const m = [
-      '',
-      'січ',
-      'лют',
-      'бер',
-      'кві',
-      'тра',
-      'чер',
-      'лип',
-      'сер',
-      'вер',
-      'жов',
-      'лис',
-      'гру',
-    ];
-    return '${d.day} ${m[d.month]}';
-  }
+  String _fmtShortDate(BuildContext context, DateTime d) =>
+      DateFormat('d MMM', Localizations.localeOf(context).languageCode).format(d);
 }
 
 // ── Info Block ────────────────────────────────────────────────────────────────
@@ -1073,21 +1040,21 @@ class _InfoBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = _decodeJson(med.repeatConfig);
     final foodLabel = switch (med.foodRelation) {
-      'before' => '🕐 До їжі',
-      'after' => '🍽 Після їжі',
-      'with' => '🥗 Під час їжі',
-      _ => '✓ Незалежно від їжі',
+      'before' => context.l10n.foodBeforeLabel,
+      'after' => context.l10n.foodAfterLabel,
+      'with' => context.l10n.foodWithLabel,
+      _ => context.l10n.foodAnytimeLabel,
     };
     final endLabel = med.endDate != null
-        ? 'до ${_fmt(med.endDate!)}'
-        : 'постійно';
+        ? context.l10n.untilDateLabel(_fmt(context, med.endDate!))
+        : context.l10n.ongoingLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(
           icon: Icons.info_outline_rounded,
-          label: 'Деталі',
+          label: context.l10n.detailsLabel,
           accent: accent,
         ),
         Container(
@@ -1098,21 +1065,21 @@ class _InfoBlock extends StatelessWidget {
             children: [
               _InfoRow(
                 Icons.event_repeat_rounded,
-                'Прийом',
-                _repeatFull(med.repeatType, config),
+                context.l10n.intakeLabel,
+                _repeatFull(context, med.repeatType, config),
                 accent,
               ),
-              _InfoRow(Icons.restaurant_rounded, 'З їжею', foodLabel, accent),
+              _InfoRow(Icons.restaurant_rounded, context.l10n.withFoodLabel, foodLabel, accent),
               _InfoRow(
                 Icons.timer_rounded,
-                'Курс',
-                'з ${_fmt(med.startDate)} $endLabel',
+                context.l10n.courseNounLabel,
+                context.l10n.courseRangeLabel(_fmt(context, med.startDate), endLabel),
                 accent,
               ),
               if (med.instructions != null && med.instructions!.isNotEmpty)
                 _InfoRow(
                   Icons.edit_note_rounded,
-                  'Примітка',
+                  context.l10n.noteLabel,
                   med.instructions!,
                   accent,
                 ),
@@ -1123,18 +1090,27 @@ class _InfoBlock extends StatelessWidget {
     );
   }
 
-  String _repeatFull(String type, Map config) => switch (type) {
-    'daily' => 'Щодня',
-    'alternate' => 'Через день',
-    'every_n' => 'Кожні ${config['n'] ?? '?'} дні',
+  String _repeatFull(BuildContext context, String type, Map config) => switch (type) {
+    'daily' => context.l10n.repeatDailyCap,
+    'alternate' => context.l10n.repeatAlternateCap,
+    'every_n' => context.l10n.repeatEveryNCap('${config['n'] ?? '?'}'),
     'cycle' =>
-      '${config['on'] ?? '?'} днів / ${config['off'] ?? '?'} відпочинок',
+      context.l10n.repeatCycleCap('${config['on'] ?? '?'}', '${config['off'] ?? '?'}'),
     'weekdays' => () {
-      const names = ['', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
+      final names = [
+        '',
+        context.l10n.dayMon,
+        context.l10n.dayTue,
+        context.l10n.dayWed,
+        context.l10n.dayThu,
+        context.l10n.dayFri,
+        context.l10n.daySat,
+        context.l10n.daySun,
+      ];
       final days = (config['days'] as List? ?? []).cast<int>();
       return days.map((d) => names[d]).join(', ');
     }(),
-    _ => 'Щодня',
+    _ => context.l10n.repeatDailyCap,
   };
 
   Map _decodeJson(String json) {
@@ -1145,24 +1121,8 @@ class _InfoBlock extends StatelessWidget {
     }
   }
 
-  String _fmt(DateTime d) {
-    const m = [
-      '',
-      'січ',
-      'лют',
-      'бер',
-      'кві',
-      'тра',
-      'чер',
-      'лип',
-      'сер',
-      'вер',
-      'жов',
-      'лис',
-      'гру',
-    ];
-    return '${d.day} ${m[d.month]} ${d.year}';
-  }
+  String _fmt(BuildContext context, DateTime d) =>
+      DateFormat('d MMM yyyy', Localizations.localeOf(context).languageCode).format(d);
 }
 
 class _InfoRow extends StatelessWidget {
@@ -1248,7 +1208,7 @@ class _ActionRow extends ConsumerWidget {
       children: [
         Expanded(
           child: _ActBtn(
-            label: 'Зупинити',
+            label: context.l10n.stopAction,
             isDestructive: true,
             onTap: () =>
                 _openIfAllowed(context, ref, () => _confirmStop(context, ref)),
@@ -1257,7 +1217,7 @@ class _ActionRow extends ConsumerWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _ActBtn(
-            label: 'Редагувати',
+            label: context.l10n.editAction,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -1275,20 +1235,20 @@ class _ActionRow extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Зупинити курс?', style: AppTextStyles.h3),
+        title: Text(context.l10n.stopCourseConfirmTitle, style: AppTextStyles.h3),
         content: Text(
-          '«${med.name}» буде видалено зі списку активних ліків.',
+          context.l10n.stopCourseConfirmBody(med.name),
           style: AppTextStyles.bodyMd,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(context.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Зупинити',
+              context.l10n.stopAction,
               style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger),
             ),
           ),
