@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/app_env.dart';
 import '../providers/plan_provider.dart';
 import 'account_service.dart';
 import 'subscription_api_client.dart';
@@ -46,6 +48,29 @@ class SubscriptionService {
   static const _testSecret = String.fromEnvironment('BILLING_TEST_SECRET');
 
   static String get _platform => Platform.isIOS ? 'ios' : 'android';
+
+  /// Реальні відформатовані ціни (з символом валюти, локалізовані самим
+  /// стором під регіон акаунта користувача) для платних тарифів — ключ той
+  /// самий, що й [_productIds]. Порожня мапа, якщо стор недоступний чи
+  /// продукти ще не створені в App Store Connect/Google Play Console —
+  /// [PlansScreen] тоді лишає попередньо захардкожені орієнтовні ціни.
+  /// Безпечно викликати і в тестовій, і в продакшн-збірці: це лише
+  /// read-only запит каталогу, без жодної покупки.
+  static Future<Map<(AppPlan, bool), String>> queryPrices() async {
+    try {
+      if (!await InAppPurchase.instance.isAvailable()) return {};
+      final response = await InAppPurchase.instance.queryProductDetails(
+        _productIds.values.toSet(),
+      );
+      final byId = {for (final p in response.productDetails) p.id: p.price};
+      return {
+        for (final entry in _productIds.entries)
+          if (byId[entry.value] != null) entry.key: byId[entry.value]!,
+      };
+    } catch (_) {
+      return {};
+    }
+  }
 
   // ── Кеш статусу (SharedPreferences) — читає realPlanProvider ────────────
 
@@ -148,6 +173,38 @@ class SubscriptionService {
 
     final purchase = await _buyAndAwait(response.productDetails.first);
     return _verifyPurchase(plan: plan, productId: productId, purchase: purchase);
+  }
+
+  /// Єдина точка входу для UI (`PlansScreen`) — сама вирішує, реальна це
+  /// покупка через StoreKit/Play Billing чи тестова через сервер, залежно
+  /// від збірки. UI-код НЕ повинен сам обирати між [buy]/[buyTest] — весь
+  /// вибір тут, в одному місці, щоб продакшн-збірка фізично не могла
+  /// випадково піти тестовим шляхом.
+  static Future<PurchaseOutcome> purchase(AppPlan plan, {required bool yearly}) {
+    return AppEnv.isTestBuild ? buyTest(plan, yearly: yearly) : buy(plan, yearly: yearly);
+  }
+
+  /// Єдина точка входу для "піти геть з платного тарифу". Реальні підписки
+  /// App Store/Google Play НЕ можна скасувати викликом з застосунку —
+  /// Apple/Google це прямо забороняють, скасування завжди йде через рідне
+  /// керування підпискою. У тестовій збірці лишається старий шлях
+  /// ([cancelTest] — миттєво знімає план на сервері, зручно для тестування
+  /// грейс-періоду/розпаду сім'ї). Повертає true, якщо план змінено
+  /// локально одразу (тестовий шлях); false, якщо лише відкрито рідне
+  /// керування підпискою і користувач має завершити скасування там сам —
+  /// UI не повинен нічого міняти локально в цьому випадку, справжній
+  /// статус прийде з наступної [refreshStatus] (сервер дізнається про
+  /// скасування від Apple/Google через їхній власний механізм сповіщень).
+  static Future<bool> cancelOrManageSubscription() async {
+    if (AppEnv.isTestBuild) {
+      await cancelTest();
+      return true;
+    }
+    final uri = Uri.parse(Platform.isIOS
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    return false;
   }
 
   /// "Відновити покупки" — для нового пристрою чи переустановки. Play/App

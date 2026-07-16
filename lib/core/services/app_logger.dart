@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../config/app_env.dart';
+
 /// Легкий лог подій/помилок застосунку, який пишеться у файл на диску —
 /// щоб користувач міг переглянути й поділитись ним (через share sheet)
 /// без кабелю/Mac/Xcode, коли щось піде не так.
@@ -12,6 +14,13 @@ import 'package:path_provider/path_provider.dart';
 /// текст нотаток) — лише назви подій/типів, щоб лог було безпечно
 /// пересилати. Джерело правди — файл на диску (виживає між запусками,
 /// зокрема після краху), `_buffer` лише кеш для швидкого доступу.
+///
+/// ⚠️ Повністю no-op у продакшн-збірці (`!AppEnv.isTestBuild`) — жодного
+/// запису на диск, жодного `debugPrint`, `readAll()`/`exportFile()`
+/// повертають порожньо. Заголовки нагадувань містять реальні імена людей
+/// ("Кохана · Час прийняти ліки"), тож локальний лог-файл, доступний через
+/// UI (`DebugLogScreen`), прийнятний лише для тестових збірок команди, не
+/// для реальних користувачів у сторі.
 class AppLogger {
   AppLogger._();
 
@@ -33,6 +42,7 @@ class AppLogger {
   }
 
   static void log(String message, {String level = 'info'}) {
+    if (!AppEnv.isTestBuild) return;
     final line = '${DateTime.now().toIso8601String()} [$level] $message';
     debugPrint('📝 $line');
     _buffer.add(line);
@@ -63,6 +73,7 @@ class AppLogger {
   }
 
   static Future<String> readAll() async {
+    if (!AppEnv.isTestBuild) return '';
     try {
       final file = await _file();
       if (!await file.exists()) return _buffer.join('\n');

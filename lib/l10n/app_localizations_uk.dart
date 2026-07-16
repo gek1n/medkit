@@ -1800,7 +1800,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get voiceLanguageDescription =>
-      'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська та англійська — інші мови з\'являться після перекладів.';
+      'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська, англійська та російська — інші мови з\'являться після перекладів.';
 
   @override
   String get fontSizeLabel => 'Розмір шрифту';
@@ -3894,4 +3894,89 @@ class AppLocalizationsUk extends AppLocalizations {
   String forMemberSuffix(String name) {
     return ' для $name';
   }
+
+  @override
+  String get resetLocalDbConfirmTitle => 'Скинути локальну базу?';
+
+  @override
+  String get resetLocalDbConfirmBody =>
+      'Ключ шифрування не збігається з файлом бази на цьому пристрої — розшифрувати наявні дані неможливо. Це видалить пошкоджений файл локально і дасть змогу почати заново. Дію неможливо скасувати.';
+
+  @override
+  String get resetAction => 'Скинути';
+
+  @override
+  String get dbLoadErrorTitle => 'Не вдалося завантажити дані';
+
+  @override
+  String get dbLoadErrorBody =>
+      'Ваші дані нікуди не зникли — сталася технічна помилка при їх читанні.';
+
+  @override
+  String get dbErrorTryThisFirstLabel => 'Спробуйте це першим';
+
+  @override
+  String get dbErrorCloseReopenHint =>
+      'Повністю закрийте застосунок (не просто згорніть — справді закрийте його через список запущених застосунків) і відкрийте знову. У переважній більшості випадків це вирішує проблему без втрати даних.';
+
+  @override
+  String get tryAgainButtonAction => 'Спробувати ще раз';
+
+  @override
+  String get dbErrorMoreActionHint =>
+      'Якщо закриття й повторний запуск застосунку не допомогли — після кількох спроб тут з\'явиться додаткова дія.';
+
+  @override
+  String get resetLocalDbAction => 'Скинути локальну базу';
+
+  @override
+  String get hideDetailsAction => 'Сховати деталі';
+
+  @override
+  String get showErrorDetailsAction => 'Показати деталі помилки';
+
+  @override
+  String get copiedToClipboardSnackbar => 'Скопійовано';
+
+  @override
+  String get copyErrorTextAction => 'Копіювати текст помилки';
+
+  @override
+  String get unlockPhoneTitle => 'Розблокуйте телефон';
+
+  @override
+  String get unlockPhoneBody =>
+      'Ваші дані в безпеці — нічого не пошкоджено і видаляти нічого не потрібно. Просто iOS тримає ключ шифрування заблокованим, поки телефон не розблоковано хоча б раз після перезавантаження.';
+
+  @override
+  String get unlockStep1 =>
+      'Розблокуйте телефон (Face ID, Touch ID або код-пароль).';
+
+  @override
+  String get unlockStep2 =>
+      'Поверніться в Elly — дані підвантажаться самі, нічого натискати не треба.';
+
+  @override
+  String get checkAgainAction => 'Перевірити знову';
+
+  @override
+  String get loadingEllipsisLabel => 'Завантажую...';
+
+  @override
+  String get familyDisbandedReason =>
+      'Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.';
+
+  @override
+  String get manageSubscriptionExternallyHint =>
+      'Керування підпискою відкрито в App Store/Google Play — завершіть скасування там.';
+
+  @override
+  String get restorePurchasesAction => 'Відновити покупки';
+
+  @override
+  String get restorePurchasesSuccessSnackbar => 'Покупки відновлено';
+
+  @override
+  String get restorePurchasesNothingFoundSnackbar =>
+      'Активних покупок не знайдено на цьому Apple ID/Google-акаунті';
 }

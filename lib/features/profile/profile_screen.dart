@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_review/in_app_review.dart';
 import '../backup/backup_screen.dart';
+import '../../core/config/app_env.dart';
 import '../../core/services/backup_settings_service.dart';
 import 'debug_log_screen.dart';
 import '../export/export_data_screen.dart';
@@ -840,6 +841,9 @@ class _OtherSection extends StatelessWidget {
 
 // 7 тапів по цьому рядку відкривають журнал подій — навмисно не винесено
 // в окремий видимий пункт меню, щоб не плутати звичайних користувачів.
+// У продакшн-збірці (AppEnv.isTestBuild == false) тап взагалі нічого не
+// робить — AppLogger і так нічого не пише в проді (див. app_logger.dart),
+// тож сам вхід у порожній екран лише плутав би, і краще прибрати повністю.
 class _HiddenDebugLogTrigger extends StatefulWidget {
   const _HiddenDebugLogTrigger();
 
@@ -853,6 +857,7 @@ class _HiddenDebugLogTriggerState extends State<_HiddenDebugLogTrigger> {
   DateTime? _firstTapAt;
 
   void _onTap() {
+    if (!AppEnv.isTestBuild) return;
     final now = DateTime.now();
     if (_firstTapAt == null || now.difference(_firstTapAt!) > const Duration(seconds: 3)) {
       _firstTapAt = now;
