@@ -31,12 +31,25 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
   bool _isYearly = false;
   bool _busy = false;
 
+  // Реальні ціни зі стору (SubscriptionService.queryPrices) — порожньо, поки
+  // не завантажились чи якщо продукти ще не створені в App Store
+  // Connect/Google Play Console. До того часу картки показують орієнтовні
+  // захардкожені ціни нижче (build()), щоб екран не блимав пусткою.
+  Map<(AppPlan, bool), String> _realPrices = {};
+
   @override
   void initState() {
     super.initState();
     // "Покинутий кошик" — відкрила екран тарифів, але поки не купила.
     // Прибирається одразу після успішної покупки, [_selectPaid].
     MarketingTopicsService.markViewedPlansNoPurchase();
+    unawaited(_loadRealPrices());
+  }
+
+  Future<void> _loadRealPrices() async {
+    final prices = await SubscriptionService.queryPrices();
+    if (!mounted || prices.isEmpty) return;
+    setState(() => _realPrices = prices);
   }
 
   /// Свідома зміна тарифу ГЕТЬ від Family (не невдала оплата — окремий
@@ -103,18 +116,16 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
     return true;
   }
 
-  /// Тестовий режим біллінгу — реальний sync-акаунт + реальний сервер (інші
-  /// пристрої на тому ж акаунті побачать зміну), але БЕЗ реального
-  /// in_app_purchase/App Store/Google Play (docs/multifamily_billing_plan.md,
-  /// "Тестовий режим біллінгу"). Кнопки лишаються на цьому шляху, поки
-  /// користувач явно не попросить фінальне переключення на [SubscriptionService.buy].
+  /// [SubscriptionService.purchase] сама обирає реальний StoreKit/Play
+  /// Billing шлях чи тестовий сервер-only шлях залежно від збірки
+  /// (`AppEnv.isTestBuild`) — тут про це думати не треба.
   Future<void> _selectPaid(AppPlan plan, AppPlan currentPlan) async {
     if (_busy) return;
     if (!await _confirmDowngradeFromFamily(currentPlan)) return;
     if (!mounted) return;
     setState(() => _busy = true);
     try {
-      final outcome = await SubscriptionService.buyTest(
+      final outcome = await SubscriptionService.purchase(
         plan,
         yearly: _isYearly,
       );
@@ -146,15 +157,79 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
     }
   }
 
+  /// Apple/Google вимагають видиму кнопку відновлення покупок саме на
+  /// екрані, де підписку пропонують (App Store Review Guideline 3.1.2) —
+  /// онбординговий шлях (`RestoreAccountScreen`) цю вимогу не покриває, бо
+  /// доступний лише до створення профілю. Кожен [PurchaseOutcome] з
+  /// [SubscriptionService.restorePurchases] — окрема покупка (Plus і/чи
+  /// Family), тож локальний план ставимо як найвищий серед знайдених.
+  Future<void> _restorePurchases() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final outcomes = await SubscriptionService.restorePurchases();
+      if (!mounted) return;
+      if (outcomes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.restorePurchasesNothingFoundSnackbar)),
+        );
+        return;
+      }
+      final foundPlans = outcomes.map((o) => _planForProductId(o.status.productId));
+      final restoredPlan = foundPlans.contains(AppPlan.family)
+          ? AppPlan.family
+          : (foundPlans.contains(AppPlan.plus) ? AppPlan.plus : AppPlan.free);
+      ref.read(planProvider.notifier).state = restoredPlan;
+      ref.invalidate(realPlanProvider);
+      final newKey = outcomes
+          .map((o) => o.newRecoveryKeyDisplay)
+          .firstWhere((k) => k != null, orElse: () => null);
+      if (newKey != null) {
+        await showRecoveryKeyDialog(context, newKey);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.restorePurchasesSuccessSnackbar)),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  static AppPlan _planForProductId(String? productId) {
+    if (productId == null) return AppPlan.free;
+    if (productId.startsWith('family')) return AppPlan.family;
+    if (productId.startsWith('plus')) return AppPlan.plus;
+    return AppPlan.free;
+  }
+
   Future<void> _selectFree(AppPlan currentPlan) async {
     if (_busy) return;
     if (!await _confirmDowngradeFromFamily(currentPlan)) return;
     if (!mounted) return;
     setState(() => _busy = true);
     try {
-      await SubscriptionService.cancelTest();
-      ref.read(planProvider.notifier).state = AppPlan.free;
-      ref.invalidate(realPlanProvider);
+      // true = тестовий шлях, план вже знято на сервері миттєво; false =
+      // відкрито рідне керування підпискою App Store/Google Play — реальна
+      // підписка ще активна, поки користувач сам не завершить скасування
+      // там, тож локальний стан МІНЯТИ НЕ МОЖНА (інакше UI показував би
+      // "Free", поки Apple/Google досі списують гроші за Plus).
+      final cancelledNow = await SubscriptionService.cancelOrManageSubscription();
+      if (!mounted) return;
+      if (cancelledNow) {
+        ref.read(planProvider.notifier).state = AppPlan.free;
+        ref.invalidate(realPlanProvider);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.manageSubscriptionExternallyHint)),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -263,7 +338,9 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           _PlanCard(
                             title: 'Elly Plus',
                             isPaid: true,
-                            price: _isYearly ? '\$2.39' : '\$2.99',
+                            price:
+                                _realPrices[(AppPlan.plus, _isYearly)] ??
+                                (_isYearly ? '\$2.39' : '\$2.99'),
                             period: _isYearly
                                 ? context.l10n.planPerMonthYearlyPeriod
                                 : context.l10n.planPerMonthPeriod,
@@ -285,7 +362,9 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           _PlanCard(
                             title: 'Elly Family',
                             isPaid: true,
-                            price: _isYearly ? '\$4.79' : '\$5.99',
+                            price:
+                                _realPrices[(AppPlan.family, _isYearly)] ??
+                                (_isYearly ? '\$4.79' : '\$5.99'),
                             period: _isYearly
                                 ? context.l10n.planPerMonthYearlyPeriod
                                 : context.l10n.planPerMonthPeriod,
@@ -300,6 +379,11 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             onSelect: () =>
                                 _selectPaid(AppPlan.family, currentPlan),
                             comingSoon: true,
+                          ),
+                          const SizedBox(height: AppDimensions.md),
+                          _LegalLink(
+                            label: context.l10n.restorePurchasesAction,
+                            onTap: _restorePurchases,
                           ),
                           const SizedBox(height: AppDimensions.xl),
                           Text(

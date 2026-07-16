@@ -32,7 +32,7 @@ class NotificationService {
   static Future<AppLocalizations> _l10n() async {
     final id = await AppLanguageNotifier.loadLanguageId();
     final code = id.split('_').first;
-    final locale = const ['uk', 'en'].contains(code) ? Locale(code) : const Locale('uk');
+    final locale = const ['uk', 'en', 'ru'].contains(code) ? Locale(code) : const Locale('uk');
     return lookupAppLocalizations(locale);
   }
 

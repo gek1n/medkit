@@ -1,0 +1,2006 @@
+{
+  "@@locale": "ru",
+  "appName": "Elly",
+  "navAdd": "Добавить",
+  "navToday": "Сегодня",
+  "navMeds": "Расписание",
+  "navFamily": "Семья",
+  "navProfile": "Профиль",
+  "navMedCard": "Медкарта",
+  "todayProgressTitle": "{taken} из {total}",
+  "@todayProgressTitle": {
+    "placeholders": {
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "todayProgressSubtitle": "лекарств принято сегодня",
+  "todayProgressPercent": "{percent}%",
+  "@todayProgressPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sectionFamily": "Семья",
+  "sectionScheduled": "Запланировано",
+  "sectionDone": "Выполнено",
+  "actionAll": "Все",
+  "intakeTaken": "Принято",
+  "intakeSkipped": "Пропущено",
+  "intakeTake": "✓",
+  "intakeSkip": "✕",
+  "comingSoon": "Скоро",
+  "errorGeneric": "Ошибка: {error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "todaySectionFamily": "Семья",
+  "todayScheduleForToday": "Расписание на сегодня",
+  "todayScheduleForTomorrow": "Коротко о завтрашнем дне",
+  "todayNothingToday": "На сегодня ничего нет",
+  "todayTapToAdd": "Нажмите +, чтобы добавить",
+  "todayAllDoneChip": "Всё выполнено",
+  "todayNextNow": "сейчас",
+  "todayNextInMinutes": "через {minutes} мин",
+  "@todayNextInMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "todayAllDoneTitle": "Всё выполнено на сегодня!",
+  "todayAllDoneSubtitle": "Отличная работа — так держать",
+  "todayHurtsNow": "Сейчас\nболит",
+  "todayMissedSection": "Вы пропустили",
+  "todayActiveNowSection": "Сейчас нужно",
+  "dayPartMorning": "Утро",
+  "dayPartAfternoon": "День",
+  "dayPartEvening": "Вечер",
+  "dayPartNight": "Ночь",
+  "defaultMedName": "Лекарство",
+  "defaultActivityName": "Активность",
+  "wellbeingTitle": "Самочувствие",
+  "detailLabelTime": "Время",
+  "detailLabelDuration": "Длительность",
+  "durationMinutes": "{minutes} мин",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "detailLabelLocation": "Место",
+  "detailLabelNotes": "Заметки",
+  "todayDoneCount": "Выполнено · {count}",
+  "@todayDoneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "skipIntakeAction": "Пропустить приём",
+  "missedCaption": "пропущено",
+  "videoPlaybackError": "Не удалось воспроизвести видео здесь",
+  "openInYoutube": "Открыть в YouTube",
+  "missedWellbeingSlot": "Пропущенный чек-ин",
+  "wellbeingTimeToCheck": "Время проверить самочувствие",
+  "wellbeingCommentHint": "Оцените настроение и, если нужно, опишите симптомы",
+  "skipGenericAction": "Пропустить",
+  "snooze10": "Отложить на 10 мин",
+  "snooze30": "Отложить на 30 мин",
+  "snooze60": "Отложить на 1 ч",
+  "doneAction": "Выполнить",
+  "welcomeTitle": "Добро пожаловать в Elly",
+  "welcomeSubtitle": "Добавьте свой профиль, чтобы начать",
+  "categoryAll": "Все",
+  "categoryMeds": "Лекарства",
+  "categoryActivities": "Активности",
+  "categoryWellbeing": "Самочувствие",
+  "categoryDoctors": "Врачи",
+  "scheduleTitle": "Расписание",
+  "searchAllSections": "Поиск по всем разделам",
+  "sectionMeds": "Лекарства",
+  "noActiveMeds": "Нет активных лекарств",
+  "sectionAppointments": "Приёмы врачей",
+  "noScheduledAppointments": "Нет запланированных приёмов",
+  "sectionActivities": "Активности",
+  "noActiveActivities": "Нет активных занятий",
+  "sectionWellbeing": "Самочувствие",
+  "wellbeingScheduleNotSet": "Расписание не настроено",
+  "nothingFound": "Ничего не найдено",
+  "repeatDaily": "ежедневно",
+  "repeatAlternate": "через день",
+  "repeatWeekdays": "определённые дни",
+  "repeatEveryN": "каждые N дней",
+  "repeatCycle": "циклом",
+  "courseOngoing": "постоянный курс",
+  "courseFinished": "курс завершён",
+  "courseDaysLeft": "{count, plural, one{{count} день курса} few{{count} дня курса} other{{count} дней курса}}",
+  "@courseDaysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noLocation": "Без указания места",
+  "timesPerDayLabel": "{count, plural, one{{count} раз в день} few{{count} раза в день} other{{count} раз в день}}",
+  "@timesPerDayLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addAction": "Добавить",
+  "profileNotFound": "Профиль не найден",
+  "dayMon": "Пн",
+  "dayTue": "Вт",
+  "dayWed": "Ср",
+  "dayThu": "Чт",
+  "dayFri": "Пт",
+  "daySat": "Сб",
+  "daySun": "Вс",
+  "editAction": "Редактировать",
+  "fieldName": "Название",
+  "fieldDate": "Дата",
+  "fieldNotes": "Заметки",
+  "surgeryTitle": "Операция",
+  "chronicConditionTitle": "Хроническое заболевание",
+  "labResultTitle": "Анализ",
+  "vaccinationTitle": "Прививка",
+  "allergyTitle": "Аллергия",
+  "fieldDiagnosis": "Диагноз",
+  "fieldSpecialty": "Направление",
+  "fieldDiagnosisDate": "Дата диагноза",
+  "fieldDateGiven": "Дата введения",
+  "fieldNextDose": "Следующая ревакцинация",
+  "fieldAllergen": "Аллерген",
+  "fieldSeverity": "Тяжесть",
+  "fieldReaction": "Реакция",
+  "severityMild": "Лёгкая",
+  "severityModerate": "Средняя",
+  "severitySevere": "Тяжёлая",
+  "dayToday": "Сегодня",
+  "dayTomorrow": "Завтра",
+  "dayYesterday": "Вчера",
+  "surgeriesSectionTitle": "Операции и госпитализации",
+  "surgeriesEmptyHint": "Нажмите \"+ Добавить\" чтобы добавить первую запись",
+  "chronicConditionsSectionTitle": "Хронические заболевания",
+  "chronicConditionsEmptyHint": "Нажмите \"+ Добавить\" чтобы добавить первый диагноз",
+  "allergiesTitle": "Аллергии",
+  "allergiesEmptyHint": "Нажмите \"+ Добавить\" чтобы добавить первую аллергию",
+  "vaccinationsTitle": "Прививки",
+  "vaccinationsEmptyHint": "Нажмите \"+ Добавить\" чтобы добавить первую прививку",
+  "vaccinationGivenOn": "Введено {date}",
+  "@vaccinationGivenOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "vaccinationOverdue": "Просрочено",
+  "labResultsTitle": "Анализы",
+  "allSpecialtiesFilter": "Все направления",
+  "allTestTypesFilter": "Все типы анализов",
+  "labResultsEmptyFilteredTitle": "Нет анализов по этому фильтру",
+  "labResultsEmptyNoneTitle": "Пока ничего не добавлено",
+  "labResultsEmptyFilteredHint": "Попробуйте изменить фильтры или сбросить их",
+  "labResultsEmptyHint": "Нажмите \"+ Добавить\" чтобы добавить первый анализ",
+  "medCardTitle": "Медкарта",
+  "medCardHistoryByDoctorTitle": "История лечения по направлениям",
+  "medCardHistoryByDoctorSubtitle": "Визиты и анализы одного врача — всё в одном месте",
+  "medCardLabResultsSubtitle": "Результаты по направлениям",
+  "medCardArchiveTitle": "Архив лекарств",
+  "medCardArchiveSubtitle": "Все препараты и статус лечения",
+  "medCardAppointmentsTitle": "Визиты к врачам",
+  "medCardAppointmentsSubtitle": "Записи выбранного профиля",
+  "medCardWellbeingHistoryTitle": "История самочувствия",
+  "medCardWellbeingHistorySubtitle": "Настроение и симптомы за всё время",
+  "medCardAllergiesSubtitle": "Реакции на препараты и вещества",
+  "medCardChronicConditionsSubtitle": "Диагнозы, дата установления",
+  "medCardVaccinationsSubtitle": "История и ближайшие ревакцинации",
+  "medicationArchiveEmptyHint": "Здесь появятся все лекарства, которые вы когда-либо добавляли",
+  "medStatusOngoing": "Продолжается",
+  "medStatusFinished": "Завершено",
+  "medStatusCancelled": "Отменено",
+  "medArchiveDateRangeOngoing": "{start} — по настоящее время",
+  "@medArchiveDateRangeOngoing": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      }
+    }
+  },
+  "specialtyHistoryTitle": "История по направлению",
+  "sectionUpcoming": "Запланированные",
+  "sectionPast": "Прошедшие",
+  "visitPrefix": "Визит · {type}",
+  "@visitPrefix": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "labPrefix": "Анализ · {name}",
+  "@labPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyStateNoneYetTitle": "Пока ничего не добавлено",
+  "specialtyHistoryEmptyHint": "Визиты и анализы появятся здесь",
+  "actionCancel": "Отмена",
+  "deleteAction": "Удалить",
+  "documentsLabel": "Документы",
+  "notSelectedValue": "Не выбрано",
+  "notSpecifiedValue": "Не указано",
+  "deleteRecordBody": "Запись будет удалена.",
+  "deleteWithDocsBody": "Запись и все прикреплённые документы будут удалены.",
+  "deleteSurgeryConfirmTitle": "Удалить запись?",
+  "editSurgeryTitle": "Редактировать запись",
+  "newSurgeryTitle": "Новая операция или госпитализация",
+  "surgeryNameHint": "Аппендэктомия, госпитализация…",
+  "enterSurgeryNameError": "Введите название операции",
+  "surgeryNotesHint": "Больница, осложнения, рекомендации…",
+  "deleteConditionConfirmTitle": "Удалить диагноз?",
+  "editConditionTitle": "Редактировать диагноз",
+  "newConditionTitle": "Новый диагноз",
+  "conditionNameHint": "Астма, диабет, гипертония…",
+  "enterConditionNameError": "Введите название диагноза",
+  "fieldDoctorSpecialty": "Направление врача",
+  "conditionNotesHint": "Схема лечения, дозировка…",
+  "deleteAllergyConfirmTitle": "Удалить аллергию?",
+  "editAllergyTitle": "Редактировать аллергию",
+  "newAllergyTitle": "Новая аллергия",
+  "allergenHint": "Пенициллин, орехи, пыльца…",
+  "enterAllergenError": "Введите название аллергена",
+  "reactionHint": "Сыпь, отёк, одышка…",
+  "allergyNotesHint": "Дополнительные детали…",
+  "deleteLabResultConfirmTitle": "Удалить анализ?",
+  "editLabResultTitle": "Редактировать анализ",
+  "newLabResultTitle": "Новый анализ",
+  "chooseSpecialtyValue": "Выберите направление",
+  "fieldTestName": "Название анализа",
+  "chooseTestNameValue": "Выберите название анализа",
+  "labResultNotesHint": "Результаты, комментарий врача…",
+  "deleteVaccinationConfirmTitle": "Удалить прививку?",
+  "editVaccinationTitle": "Редактировать прививку",
+  "newVaccinationTitle": "Новая прививка",
+  "vaccinationNameField": "Название прививки",
+  "vaccinationNameHint": "Столбняк, грипп, COVID-19…",
+  "enterVaccinationNameError": "Введите название прививки",
+  "removeAction": "Убрать",
+  "notScheduledValue": "Не запланировано",
+  "vaccinationNotesHint": "Реакция, серия вакцины…",
+  "medsTitle": "Лекарства",
+  "activeMedsCountSection": "Активные ({count})",
+  "@activeMedsCountSection": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "finishedMedsCountSection": "Завершённые ({count})",
+  "@finishedMedsCountSection": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noMedsYetTitle": "Лекарств ещё нет",
+  "noMedsYetHint": "Нажмите +, чтобы добавить первое лекарство",
+  "addMedicationAction": "Добавить лекарство",
+  "errorGenericShort": "Ошибка",
+  "sideEffectsSectionLabel": "ВОЗМОЖНЫЕ ПОБОЧНЫЕ ЭФФЕКТЫ",
+  "sideEffectsAiDisclaimer": "Определено AI во время сканирования — эта информация может быть неточной. Обязательно сверьтесь с инструкцией к препарату.",
+  "stockUnitTabletsCapsules": "ТАБЛЕТКИ / КАПСУЛЫ",
+  "stockUnitSyrup": "СИРОП",
+  "stockUnitDrops": "КАПЛИ",
+  "stockUnitInjections": "ИНЪЕКЦИИ",
+  "stockUnitSuppositories": "СВЕЧИ",
+  "stockUnitVial": "ФЛАКОН",
+  "stockUnitCream": "КРЕМ",
+  "stockUnitInhaler": "ИНГАЛЯТОР",
+  "stockUnitGeneric": "ОСТАТОК",
+  "perDoseLabel": "{dose} {unit} на приём",
+  "@perDoseLabel": {
+    "placeholders": {
+      "dose": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "timesPerDaySlash": "{count, plural, one{{count} раз/день} few{{count} раза/день} other{{count} раз/день}}",
+  "@timesPerDaySlash": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stockSectionLabel": "Остаток",
+  "untilCourseEndLabel": "до конца курса",
+  "next30DaysLabel": "на ближайшие 30 дней",
+  "remainingColonLabel": "Осталось: ",
+  "daysLeftShortLabel": "на {days} дн.",
+  "@daysLeftShortLabel": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "needToBuyLabel": "Нужно докупить: ",
+  "refillPackageAction": "+ Пополнить упаковку",
+  "refillPackageTitle": "Пополнить упаковку",
+  "quantityHint": "Количество",
+  "okAction": "OK",
+  "remainingApproxPercent": "Осталось ~{percent}%",
+  "@remainingApproxPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "daysLeftAtCurrentRate": "~{days} дней при текущем расходе",
+  "@daysLeftAtCurrentRate": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "updateStockEstimateLabel": "Обновить оценку остатка:",
+  "openedNewContainerAction": "+ Открыл новый флакон",
+  "openedTodayLabel": "Открыто сегодня",
+  "openedDaysAgoLabel": "Открыто {count, plural, one{{count} день назад} few{{count} дня назад} other{{count} дней назад}}",
+  "@openedDaysAgoLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phaseNumberLabel": "Этап {number}",
+  "@phaseNumberLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "nowLabel": "сейчас",
+  "phaseFromOngoing": "с {date}, постоянно",
+  "@phaseFromOngoing": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "courseStagesLabel": "Этапы курса",
+  "foodBeforeLabel": "🕐 До еды",
+  "foodAfterLabel": "🍽 После еды",
+  "foodWithLabel": "🥗 Во время еды",
+  "foodAnytimeLabel": "✓ Не зависит от еды",
+  "untilDateLabel": "до {date}",
+  "@untilDateLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ongoingLabel": "постоянно",
+  "detailsLabel": "Детали",
+  "intakeLabel": "Приём",
+  "withFoodLabel": "С едой",
+  "courseNounLabel": "Курс",
+  "noteLabel": "Примечание",
+  "courseRangeLabel": "с {start} {endPart}",
+  "@courseRangeLabel": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "endPart": {
+        "type": "String"
+      }
+    }
+  },
+  "repeatDailyCap": "Ежедневно",
+  "repeatAlternateCap": "Через день",
+  "repeatEveryNCap": "Каждые {n} дня",
+  "@repeatEveryNCap": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "repeatCycleCap": "{on} дней / {off} отдых",
+  "@repeatCycleCap": {
+    "placeholders": {
+      "on": {
+        "type": "String"
+      },
+      "off": {
+        "type": "String"
+      }
+    }
+  },
+  "stopAction": "Остановить",
+  "stopCourseConfirmTitle": "Остановить курс?",
+  "stopCourseConfirmBody": "«{name}» будет удалено из списка активных лекарств.",
+  "@stopCourseConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "enterMedicationNameError": "Введите название лекарства",
+  "deleteMedicationConfirmTitle": "Удалить лекарство?",
+  "deleteMedicationConfirmBody": "Лекарство будет удалено из расписания.",
+  "editMedicationTitle": "Редактировать лекарство",
+  "medicationNameHint": "Название препарата",
+  "medicationFormLabel": "Форма выпуска",
+  "coursePhasesLabel": "Фазы курса",
+  "addPhaseAction": "Добавить фазу",
+  "repeatSectionLabel": "Повтор",
+  "savingLabel": "Сохраняем...",
+  "saveChangesAction": "Сохранить изменения",
+  "saveAndContinueAction": "Сохранить и продолжить →",
+  "saveAndViewScheduleAction": "Сохранить и посмотреть расписание →",
+  "moreInEllyPlusLabel": "Больше в Elly+",
+  "aiLabel": "AI",
+  "scanPrescriptionTitle": "Распознать рецепт по фото",
+  "scanPrescriptionSubtitle": "Элли внесёт лекарства в расписание",
+  "scansRemainingLabel": "{remaining} сканирований осталось для тарифа Elly Free",
+  "@scansRemainingLabel": {
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      }
+    }
+  },
+  "orEnterManuallyLabel": "или введите вручную",
+  "bulkSavedSnackbar": "Добавлено {count} препаратов. Проверьте детали в списке лекарств.",
+  "@bulkSavedSnackbar": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "phaseCardTitle": "Фаза {number}",
+  "@phaseCardTitle": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "removePhaseAction": "удалить",
+  "doseAmountLabel": "КОЛИЧЕСТВО НА ПРИЁМ",
+  "foodRelationSectionLabel": "ОТНОСИТЕЛЬНО ЕДЫ",
+  "durationSectionLabel": "ДЛИТЕЛЬНОСТЬ",
+  "daysCountDashLabel": "— дн.",
+  "daysCountLabel": "{n} дн.",
+  "@daysCountLabel": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "orLabel": "или",
+  "permanentLabel": "Постоянно",
+  "intakeTimeSectionLabel": "ВРЕМЯ ПРИЁМА",
+  "specificTimeLabel": "Конкретное время",
+  "everyNHoursLabel": "Каждые N часов",
+  "addTimeAction": "Добавить время",
+  "intervalLabel": "ИНТЕРВАЛ",
+  "hoursCountLabel": "{n} ч",
+  "@hoursCountLabel": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "startLabel": "НАЧАЛО",
+  "daysCountDialogTitle": "Количество дней",
+  "daysSuffix": "дн.",
+  "intervalDialogTitle": "Интервал",
+  "hoursSuffix": "ч.",
+  "doseCommentHint": "Комментарий к дозе (необязательно)",
+  "doseAmountDialogTitle": "Количество на приём",
+  "doseAmountExampleHint": "например 2.5",
+  "weekdayExampleLabel": "Пн, Ср, Пт, Вс…",
+  "weekdaysOptionLabel": "Определённые дни недели",
+  "everyNDaysOptionLabel": "Каждые N дней",
+  "everyNDaysExampleLabel": "Например каждые 3 дня",
+  "everyLabel": "Каждые",
+  "daysSuffixWord": "дней",
+  "cycleOptionLabel": "Циклом",
+  "cycleExampleLabel": "N дней принимать — M дней перерыв",
+  "drinkLabel": "Принимать",
+  "breakLabel": "Перерыв",
+  "optionalParamsLabel": "Дополнительные параметры",
+  "optionalLabel": "Необязательно",
+  "trackStockLabel": "Отслеживать и напоминать об остатке",
+  "vialPackageLabel": "Флакон / упаковка",
+  "markAsOpenedHint": "Отметим как только что открытую (100%) — обновить оценку остатка можно будет в карточке лекарства",
+  "inStockLabel": "В наличии",
+  "howManyNowLabel": "Сколько {unit} есть сейчас",
+  "@howManyNowLabel": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "courseAvailableLabel": " (курс: {needed}, есть: {available})",
+  "@courseAvailableLabel": {
+    "placeholders": {
+      "needed": {
+        "type": "int"
+      },
+      "available": {
+        "type": "int"
+      }
+    }
+  },
+  "enoughForCourseLabel": "Хватит на весь курс",
+  "noCameraAccessError": "Нет доступа к камере. Разрешите его в настройках телефона.",
+  "cameraOpenError": "Не удалось открыть камеру",
+  "packagePhotoLabel": "Фото упаковки",
+  "addPhotoAction": "Добавить фото",
+  "addPhotoHint": "чтобы не перепутать лекарства",
+  "inviteMemberTitle": "Пригласить {name}",
+  "@inviteMemberTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteToFamilyTitle": "Пригласить в семью",
+  "inviteCreateErrorTitle": "Не удалось создать приглашение",
+  "tryAgainAction": "Попробовать ещё раз",
+  "inviteDependentBody": "Пусть {name} введёт этот код в приложении на своём телефоне. Профиль станет независимым: вся имеющаяся история перенесётся как стартовые данные, а вы автоматически получите полный доступ к нему, как и раньше.",
+  "@inviteDependentBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteMemberBody": "Тот, кто введёт этот код, присоединится как равноправный участник вашей семейной группы — со своим профилем и своими данными. Что именно он увидит из ваших данных, вы настроите отдельно.",
+  "inviteScanOrEnterHint": "Отсканируйте этот код на другом устройстве\nили введите его вручную",
+  "codeCopiedSnackbar": "Код скопирован",
+  "inviteCodeExpiryNotice": "Код действует 30 минут и работает только один раз. Данные на сервере зашифрованы — там нет ничего, кроме кода доступа.",
+  "alreadyJoinedFamilyError": "Вы уже присоединены к семье \"{name}\"",
+  "@alreadyJoinedFamilyError": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "joinInvalidCodeError": "Не удалось присоединиться: неверный или просроченный код",
+  "joinFamilyTitle": "Присоединиться к семье",
+  "confirmationTitle": "Подтверждение",
+  "doneTitle": "Готово",
+  "scanQrOrEnterHint": "Наведите камеру на QR-код\nили введите код вручную",
+  "codeInputHint": "________",
+  "checkingLabel": "Проверка…",
+  "continueAction": "Продолжить",
+  "invitesYouToFamilyGroup": "приглашает вас в семейную группу",
+  "joinConsentBody": "Вы присоединяетесь как равноправный участник — ваш собственный профиль (имя и аватар) станет видимым \"{name}\". Это не отменяет и не изменяет никакие ваши данные, уже внесённые в приложение. Ваша медкарта НИКОМУ автоматически не показывается — какие именно данные будут видеть другие участники, вы настроите отдельно, уже после присоединения.",
+  "@joinConsentBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "joinConsentCheckbox": "Я согласен(-на) присоединиться к семейной группе \"{name}\"",
+  "@joinConsentCheckbox": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "joiningLabel": "Присоединяемся…",
+  "joinAction": "Присоединиться",
+  "joinedFamilyTitle": "Вы в семье!",
+  "joinedFamilyBody": "Теперь вы и \"{name}\" видите друг друга в разделе \"Семья\".",
+  "@joinedFamilyBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanQrCodeLabel": "Сканировать QR-код",
+  "tapToEnableCameraHint": "Нажмите, чтобы включить камеру",
+  "doctorVisitLabel": "Визит к врачу",
+  "recordFallbackLabel": "Запись",
+  "dataFromPeerTitle": "Данные от {name}",
+  "@dataFromPeerTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "peerNothingSharedYet": "{name} ещё ничем не поделился(-лась) с вами — или доступ ещё не предоставлен.",
+  "@peerNothingSharedYet": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noViewableDataLabel": "Нет данных, доступных для просмотра",
+  "fileRequestSentSnackbar": "Запрос отправлен — файл ещё нужно дождаться",
+  "fileRequestFailedError": "Не удалось отправить запрос: {error}",
+  "@fileRequestFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfReceivedSavedSnackbar": "PDF получен и сохранён",
+  "fileOpenFailedError": "Не удалось открыть файл: {error}",
+  "@fileOpenFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingEllipsis": "…",
+  "pdfLabel": "PDF",
+  "photoLabel": "Фото",
+  "awaitingFileLabel": "Ожидаем файл…",
+  "requestFileAction": "Запросить файл",
+  "editNotesTitle": "Редактировать заметки",
+  "editNotesDisclaimer": "Правку увидит владелец данных — она применится, только если он тем временем сам не изменял эту запись.",
+  "notesHintEllipsis": "Заметки…",
+  "editSentSnackbar": "Правка отправлена",
+  "sendFailedError": "Не удалось отправить: {error}",
+  "@sendFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "sendEditAction": "Отправить правку",
+  "familyLabel": "Семья",
+  "familyMembersCountLabel": "{count, plural, one{{count} член} few{{count} члена} other{{count} членов}}",
+  "@familyMembersCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noMedsTodayLabel": "Нет лекарств на сегодня",
+  "allDoneTodayLabel": "Всё выполнено сегодня",
+  "takenOfTotalIntakesLabel": "{taken} из {total} приёмов",
+  "@takenOfTotalIntakesLabel": {
+    "placeholders": {
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "missedRemindersLabel": "Пропущено {count, plural, one{{count} напоминание} few{{count} напоминания} other{{count} напоминаний}}",
+  "@missedRemindersLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "nextIntakeLabel": "Следующее: {medName} в {time}",
+  "@nextIntakeLabel": {
+    "placeholders": {
+      "medName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "meLabel": "я",
+  "localLabel": "Локальный",
+  "notTakenSuffixLabel": "{time} · не принято",
+  "@notTakenSuffixLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "autonomousProfilesPlusOnly": "Автономные профили — только на Elly Family",
+  "inviteAction": "Пригласить",
+  "awaitingJoinLabel": "Ожидаем присоединения",
+  "inviteToAppLabel": "Пригласить в приложение",
+  "viewAsLabel": "Просмотреть как {name}",
+  "@viewAsLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteForeverAction": "Удалить навсегда",
+  "areYouSureTitle": "Вы уверены?",
+  "deleteMemberConfirmBody": "Будут удалены всё расписание и медицинские карты, привязанные к профилю {name}",
+  "@deleteMemberConfirmBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "careSummaryLabel": "Вы заботитесь о {count, plural, one{{count} близком человеке} few{{count} близких людях} other{{count} близких людях}}. Элли пришлёт уведомление, если кто-то пропустит приём.",
+  "@careSummaryLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addFamilyMemberLabel": "Добавить члена семьи",
+  "addMemberHint": "Родители, дети, партнёр…",
+  "profileLimitReachedTitle": "Лимит профилей достигнут",
+  "profileLimitReachedSubtitle": "Перейдите на Elly Plus — неограниченное количество локальных профилей",
+  "localProfilesTitle": "Локальные профили",
+  "familyUpgradeSubtitle": "Чтобы семья тоже могла управлять — перейдите на Elly Family",
+  "leaveGroupConfirmTitle": "Покинуть \"{name}\"?",
+  "@leaveGroupConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveGroupConfirmBody": "Участники этой группы потеряют доступ к вашим данным, а вы — к тому, чем они с вами делились. Других семейных групп это не коснётся.",
+  "leaveAction": "Покинуть",
+  "leftGroupSnackbar": "Вы покинули \"{name}\"",
+  "@leftGroupSnackbar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyGroupSectionLabel": "Семейная группа",
+  "slotsUsedLabel": "{used} из {total}",
+  "@slotsUsedLabel": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "autonomousLimitReachedTitle": "Лимит автономных профилей достигнут",
+  "autonomousLimitReachedSubtitle": "Перейдите на Elly Family, чтобы пригласить ещё кого-то",
+  "myFamilyLabel": "Моя семья",
+  "peerFamilyLabel": "Семья {name}",
+  "@peerFamilyLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "doctorFallbackLabel": "Врач",
+  "reminderPushTitle": "🔔 Вам напоминают",
+  "reminderTakeMedBody": "Не забудьте принять \"{title}\"{detailSuffix} в {time}",
+  "@reminderTakeMedBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detailSuffix": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderDoActivityBody": "Не забудьте выполнить \"{title}\" в {time}",
+  "@reminderDoActivityBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderDoctorVisitBody": "Не забудьте про приём врача: {title}{detailSuffix}",
+  "@reminderDoctorVisitBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detailSuffix": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderWellbeingBody": "Не забудьте отметить самочувствие",
+  "reminderGenericBody": "Проверьте расписание",
+  "reminderSentSnackbar": "Напоминание для {name} отправлено",
+  "@reminderSentSnackbar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "independentAccountLabel": "Независимая учётная запись",
+  "missedLabel": "Пропущено",
+  "missedCountLabel": "Пропущено {count}",
+  "@missedCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remindAction": "🔔 Напомнить",
+  "removePeerConfirmTitle": "Убрать \"{name}\"?",
+  "@removePeerConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removePeerConfirmBody": "Вы оба потеряете доступ к данным, которыми делились друг с другом.",
+  "confirmGuardianConsentSnackbar": "Подтвердите, что вы имеете право вести данные этого человека",
+  "nameFieldLabel": "ИМЯ",
+  "avatarFieldLabel": "АВАТАР",
+  "memberNameHint": "Мама, Папа, Бабушка…",
+  "guardianConsentCheckbox": "Я являюсь законным представителем этого человека или получил(-а) его согласие на ведение его данных в приложении",
+  "debugLogTitle": "Журнал событий",
+  "debugLogEmptyBody": "Лог пуст.",
+  "debugLogEmptySnackbar": "Лог пуст",
+  "debugLogShareSubject": "Elly — журнал событий",
+  "clearAction": "Очистить",
+  "shareAction": "Поделиться",
+  "antiStressLabel": "Антистресс-упражнения",
+  "antiStressPickerSubtitle": "Выбери, что поможет прямо сейчас",
+  "breathingExerciseTitle": "Дышим вместе",
+  "breathingExerciseSubtitle": "Медленное дыхание за 2 минуты успокаивает нервную систему",
+  "grounding54321Title": "5-4-3-2-1",
+  "grounding54321Subtitle": "Техника заземления — возвращает внимание в здесь-и-сейчас",
+  "clearMindTitle": "Ясный ум",
+  "clearMindPickerSubtitle": "Проведи пальцем по экрану — и туман рассеется",
+  "breathingScreenHeaderLabel": "Минутка спокойствия",
+  "breathingDoneBody": "Молодец! Ты справился(-лась).",
+  "breathingCyclesLeftBody": "Медленный вдох... и выдох. Ещё {count, plural, one{{count} цикл} few{{count} цикла} other{{count} циклов}}.",
+  "@breathingCyclesLeftBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restartAction": "Ещё раз",
+  "inhaleLabel": "Вдох",
+  "exhaleLabel": "Выдох",
+  "safeYouTitle": "Ты в безопасности",
+  "safeYouSubtitle": "Тревога пройдёт. Элли рядом, пока тебе нужно.",
+  "differentExerciseAction": "Другое упражнение",
+  "feelBetterAction": "Мне лучше",
+  "clearMindHeading": "Развей туман",
+  "clearMindInstructions": "Проведи пальцем по экрану, чтобы увидеть, что скрывается за туманом",
+  "clearMindTouchHint": "👆 Коснись и веди пальцем",
+  "familyVisibilityLabel": "Видимость для семьи",
+  "familyVisibilityEmptyBody": "Если к вашей семейной группе присоединятся автономные участники (со своим аккаунтом), здесь можно будет управлять их доступом к вашему профилю",
+  "familyVisibilityIntro": "Что видят и могут делать другие члены семьи с вашим профилем",
+  "medcardSyncToggleLabel": "Синхронизировать медкарту на другие устройства",
+  "medcardSyncDescription": "Если выключено, аллергии, хронические заболевания, прививки, операции, анализы и визиты этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Лекарства и расписание приёма синхронизируются независимо от этого переключателя.",
+  "pendingConnectionLabel": "Ожидаем соединения",
+  "viewerNotifyPermissionLabel": "Получает уведомления",
+  "viewerEditPermissionLabel": "Может редактировать профиль",
+  "viewerViewPermissionLabel": "Видит задачи, медкарту и расписание",
+  "permissionDeniedNotYoursBody": "Не удалось изменить — это не ваш профиль",
+  "voiceConsentTitle": "Голосовые команды",
+  "voiceConsentDescription": "Распознавание голоса через Anthropic (Claude) — добавление лекарств, отметки приёма и другие голосовые команды.",
+  "scanConsentTitle": "Сканирование рецептов",
+  "scanConsentDescription": "Распознавание фото рецепта или упаковки через Anthropic (Claude) — определение названия, дозировки, формы выпуска.",
+  "privacyLabel": "Конфиденциальность",
+  "securityLabel": "Безопасность",
+  "privacyPolicyLabel": "Политика конфиденциальности",
+  "aiConsentSectionLabel": "Согласия на обработку данных AI-функциями",
+  "consentRevokeNoteBody": "Отзыв согласия не удаляет уже обработанные данные — он лишь означает, что перед следующим использованием этой функции приложение снова запросит подтверждение.",
+  "dangerZoneLabel": "Опасная зона",
+  "deleteProfileForeverLabel": "Удалить профиль навсегда",
+  "deleteProfileForeverBody": "Удалит все данные профиля \"{name}\" — локально и на сервере, если настроен обмен",
+  "@deleteProfileForeverBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "appLockToggleLabel": "Блокировка приложения",
+  "appLockDescription": "Face ID, Touch ID или пароль устройства при каждом открытии Elly",
+  "policyAcceptedLabel": "Принято {date} · версия {version}",
+  "@policyAcceptedLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "policyAcceptedOldVersionLabel": "Принята старая версия ({version}) — будет предложено согласиться снова",
+  "@policyAcceptedOldVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "policyNotAcceptedLabel": "Ещё не принято",
+  "viewFullTextAction": "Посмотреть полный текст",
+  "consentGivenLabel": "Предоставлено {date}",
+  "@consentGivenLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "consentNotGivenLabel": "Согласие не предоставлено",
+  "revokeConsentAction": "Отозвать согласие",
+  "groundStep5Title": "5 вещей, которые ты видишь",
+  "groundStep5Hint": "Одна вещь, напр. окно",
+  "groundStep4Title": "4 вещи, которые можешь почувствовать на ощупь",
+  "groundStep4Hint": "Одна вещь, напр. ткань свитера",
+  "groundStep3Title": "3 звука, которые ты слышишь",
+  "groundStep3Hint": "Один звук, напр. гудение холодильника",
+  "groundStep2Title": "2 запаха, которые ты чувствуешь",
+  "groundStep2Hint": "Один запах, напр. кофе",
+  "groundStep1Title": "1 вкус, который ты чувствуешь",
+  "groundStep1Hint": "Один вкус, напр. мята",
+  "groundingNameStepLabel": "Назови {title}",
+  "@groundingNameStepLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "groundingProgressCounter": "{count} / {total} названо",
+  "@groundingProgressCounter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "groundingListeningLabel": "Слушаю…",
+  "groundingSkipStepAction": "Пропустить этот шаг",
+  "groundingCompletedTitle": "Ты вернулся(-лась) в здесь-и-сейчас",
+  "groundingCompletedSubtitle": "Отличная работа. Возвращайся к этому упражнению, когда понадобится.",
+  "healthSectionHeader": "Здоровье и упражнения",
+  "appSettingsSectionHeader": "Настройки приложения",
+  "accountSectionHeader": "Аккаунт",
+  "otherSectionHeader": "Другое",
+  "backupDisabledTitle": "Резервная копия отключена",
+  "backupDisabledBody": "Данные хранятся только на этом устройстве — включите, чтобы не потерять их",
+  "connectFamilyTitle": "Подключите Семью",
+  "connectFamilySubtitle": "Заботьтесь обо всей семье",
+  "planFreeLabel": "Бесплатный план",
+  "planPlusLabel": "Elly Plus",
+  "planFamilyLabel": "Elly Family",
+  "languageLabel": "Язык",
+  "voiceLanguageDescription": "Управляет языком интерфейса и распознавания голоса (голосовое управление, запись самочувствия). Пока доступны украинский, английский и русский — другие языки появятся после переводов.",
+  "fontSizeLabel": "Размер шрифта",
+  "fontSizeSampleLabel": "Аа",
+  "notificationsLabel": "Уведомления",
+  "plansLabel": "Тарифы",
+  "backupLabel": "Резервная копия",
+  "rateAppLabel": "Оценить приложение",
+  "helpFaqLabel": "Помощь и FAQ",
+  "exportDataLabel": "Экспорт данных",
+  "logoutLabel": "Выйти из аккаунта",
+  "logoutConfirmTitle": "Выйти из аккаунта?",
+  "logoutConfirmBody": "Все данные будут удалены с этого устройства. Это действие невозможно отменить.",
+  "logoutConfirmAction": "Выйти",
+  "editProfileTitle": "Редактировать профиль",
+  "yourNameHint": "Ваше имя",
+  "saveAction": "Сохранить",
+  "appointmentsHistoryTitle": "Визиты к врачам",
+  "sectionFuture": "Будущие",
+  "visitPassedLabel": "✓ прошло",
+  "arrowRightLabel": "→",
+  "noRecordsYetTitle": "Записей ещё нет",
+  "noAppointmentsForSpecialty": "Нет визитов по этому направлению",
+  "tryDifferentSpecialtyHint": "Попробуйте выбрать другое направление или сбросить фильтр",
+  "tapToAddFirstHint": "Нажмите \"+ Добавить\" чтобы создать первый",
+  "meCapsLabel": "Я",
+  "monthAbbrJan": "ЯНВ",
+  "monthAbbrFeb": "ФЕВ",
+  "monthAbbrMar": "МАР",
+  "monthAbbrApr": "АПР",
+  "monthAbbrMay": "МАЙ",
+  "monthAbbrJun": "ИЮН",
+  "monthAbbrJul": "ИЮЛ",
+  "monthAbbrAug": "АВГ",
+  "monthAbbrSep": "СЕН",
+  "monthAbbrOct": "ОКТ",
+  "monthAbbrNov": "НОЯ",
+  "monthAbbrDec": "ДЕК",
+  "remindBefore1Hour": "За 1 час",
+  "remindBefore1Day": "За день",
+  "remindBefore2Days": "За 2 дня",
+  "deleteAppointmentBody": "Запись к врачу будет удалена.",
+  "enterDoctorTypeError": "Введите тип врача",
+  "recordVisitTitle": "Записать визит",
+  "newAppointmentTitle": "Запись к врачу",
+  "fieldWhere": "Где",
+  "locationHint": "Клиника, адрес или онлайн",
+  "fieldDateTime": "Дата и время",
+  "dateCapsLabel": "ДАТА",
+  "timeCapsLabel": "ВРЕМЯ",
+  "remindBeforeLabel": "Напомнить заранее",
+  "doctorConclusionLabel": "Заключение врача",
+  "noteSingularLabel": "Заметка",
+  "doctorConclusionHint": "Что сказал врач, рекомендации, назначения…",
+  "apptNoteHint": "Что спросить, взять с собой, номер полиса…",
+  "saveVisitAction": "Сохранить визит",
+  "saveReminderAction": "Сохранить напоминание",
+  "monthGenJan": "января",
+  "monthGenFeb": "февраля",
+  "monthGenMar": "марта",
+  "monthGenApr": "апреля",
+  "monthGenMay": "мая",
+  "monthGenJun": "июня",
+  "monthGenJul": "июля",
+  "monthGenAug": "августа",
+  "monthGenSep": "сентября",
+  "monthGenOct": "октября",
+  "monthGenNov": "ноября",
+  "monthGenDec": "декабря",
+  "symptomsTitle": "Симптомы",
+  "symptomSearchHint": "Поиск или новое название…",
+  "symptomListEmptyLabel": "Список пуст",
+  "addCustomSymptomLabel": "Добавить «{query}»",
+  "@addCustomSymptomLabel": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "historyLabel": "История",
+  "wellbeingScheduleInfoText": "Настройте расписание чек-инов самочувствия. В назначенное время на главном экране появится карточка для заполнения.",
+  "frequencyPerDayLabel": "ЧАСТОТА В ДЕНЬ",
+  "collectionTimeLabel": "ВРЕМЯ СБОРА",
+  "wellbeingSlotNumberLabel": "Чек-ин {index}",
+  "@wellbeingSlotNumberLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "timesCountShort": "{count, plural, one{{count} раз} few{{count} раза} other{{count} раз}}",
+  "@timesCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "saveScheduleAction": "Сохранить расписание",
+  "wellbeingByDaySubtitle": "самочувствие по дням",
+  "addWellbeingSlotAction": "+ Чек-ин",
+  "moodChartTitle": "Настроение — {month}",
+  "@moodChartTitle": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "monthNomJan": "январь",
+  "monthNomFeb": "февраль",
+  "monthNomMar": "март",
+  "monthNomApr": "апрель",
+  "monthNomMay": "май",
+  "monthNomJun": "июнь",
+  "monthNomJul": "июль",
+  "monthNomAug": "август",
+  "monthNomSep": "сентябрь",
+  "monthNomOct": "октябрь",
+  "monthNomNov": "ноябрь",
+  "monthNomDec": "декабрь",
+  "weekdayFullMon": "понедельник",
+  "weekdayFullTue": "вторник",
+  "weekdayFullWed": "среда",
+  "weekdayFullThu": "четверг",
+  "weekdayFullFri": "пятница",
+  "weekdayFullSat": "суббота",
+  "weekdayFullSun": "воскресенье",
+  "todayLowerLabel": "сегодня",
+  "yesterdayLowerLabel": "вчера",
+  "quotedCommentLabel": "«{comment}»",
+  "@quotedCommentLabel": {
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
+  },
+  "noWellbeingLogsTitle": "Чек-инов ещё нет",
+  "noWellbeingLogsHint": "Нажмите \"+ Чек-ин\" чтобы добавить первый",
+  "comingSoonEllipsis": "Скоро...",
+  "sendDiaryToDoctorLabel": "Отправить дневник врачу",
+  "diarySummaryHint": "Чек-ины + симптомы + приёмы за месяц",
+  "moodBadLabel": "Плохо",
+  "moodMehLabel": "Так себе",
+  "moodOkLabel": "Норм",
+  "moodGoodLabel": "Хорошо",
+  "moodGreatLabel": "Отлично",
+  "chooseWellbeingErrorSnackbar": "Выберите самочувствие",
+  "wellbeingSlotMorning": "утренний чек-ин",
+  "wellbeingSlotAfternoon": "дневной чек-ин",
+  "wellbeingSlotEvening": "вечерний чек-ин",
+  "howAreYouFeelingLabel": "Как вы себя чувствуете?",
+  "anySymptomsLabel": "Есть симптомы?",
+  "chooseFromListOrAddLabel": "Выберите из списка распространённых или добавьте своё",
+  "symptomsNotSelectedLabel": "Симптомы не выбраны",
+  "commentLabel": "Комментарий",
+  "optionalSuffixLabel": "· необязательно",
+  "orTypeTextLabel": "или введите текстом",
+  "describeFeelingHint": "Опишите, как себя чувствуете…",
+  "saveWellbeingCheckAction": "Сохранить чек-ин",
+  "voiceTranscriptLabel": "Расшифровка голоса",
+  "editableTextBelowHint": "Текст можно редактировать ниже в поле",
+  "recordAgainAction": "Записать снова",
+  "dictateCommentLabel": "Надиктуйте комментарий",
+  "micUnavailableLabel": "Микрофон недоступен",
+  "tapAndSpeakLabel": "Нажмите и говорите",
+  "speakNowLabel": "Говорите… нажмите, чтобы остановить",
+  "preparingMicLabel": "Готовимся… подождите секунду",
+  "symptomHeadache": "головная боль",
+  "symptomNausea": "тошнота",
+  "symptomDizziness": "головокружение",
+  "symptomWeakness": "слабость",
+  "symptomShortnessOfBreath": "одышка",
+  "symptomRash": "сыпь",
+  "symptomPain": "боль",
+  "symptomFever": "температура",
+  "symptomCough": "кашель",
+  "symptomSoreThroat": "боль в горле",
+  "symptomRunnyNose": "насморк",
+  "symptomStuffyNose": "заложенность носа",
+  "symptomSneezing": "чихание",
+  "symptomVomiting": "рвота",
+  "symptomDiarrhea": "диарея",
+  "symptomConstipation": "запор",
+  "symptomBloating": "вздутие живота",
+  "symptomHeartburn": "изжога",
+  "symptomStomachPain": "боль в животе",
+  "symptomLossOfAppetite": "потеря аппетита",
+  "symptomIncreasedAppetite": "повышенный аппетит",
+  "symptomInsomnia": "бессонница",
+  "symptomDrowsiness": "сонливость",
+  "symptomFatigue": "усталость",
+  "symptomChestPain": "боль в груди",
+  "symptomPalpitations": "учащённое сердцебиение",
+  "symptomHighBloodPressure": "повышенное давление",
+  "symptomLowBloodPressure": "пониженное давление",
+  "symptomBackPain": "боль в спине",
+  "symptomJointPain": "боль в суставах",
+  "symptomMusclePain": "боль в мышцах",
+  "symptomCramps": "судороги",
+  "symptomSwelling": "отёки",
+  "symptomItching": "зуд",
+  "symptomDrySkin": "сухость кожи",
+  "symptomBruising": "синяки",
+  "symptomDryMouth": "сухость во рту",
+  "symptomExcessiveSweating": "повышенная потливость",
+  "symptomChills": "озноб",
+  "symptomBlurredVision": "нечёткое зрение",
+  "symptomRingingInEars": "звон в ушах",
+  "symptomNumbness": "онемение",
+  "symptomTremor": "тремор",
+  "symptomMemoryIssues": "проблемы с памятью",
+  "symptomConcentrationIssues": "проблемы с концентрацией",
+  "symptomAnxiety": "тревожность",
+  "symptomIrritability": "раздражительность",
+  "symptomMoodSwings": "перепады настроения",
+  "symptomWeightLoss": "потеря веса",
+  "symptomWeightGain": "набор веса",
+  "restoreErrorBody": "Не удалось восстановить: проверьте пароль и соединение, попробуйте ещё раз",
+  "backupPasswordDialogTitle": "Пароль резервной копии",
+  "backupPasswordDialogBody": "Введите пароль, который вы указали при создании резервной копии.",
+  "passwordFieldLabel": "Пароль",
+  "restoreAccountTitle": "Восстановить аккаунт",
+  "restoreAccountSubtitle": "Подключитесь к хранилищу, где хранится ваша резервная копия",
+  "googleDriveLabel": "Google Drive",
+  "iCloudLabel": "iCloud",
+  "doneExclamationTitle": "Готово!",
+  "setupCompleteBody": "Всё настроено. Откройте дашборд и начните следить за здоровьем.",
+  "firstReminderTodayLabel": "Первое напоминание — сегодня",
+  "noRemindersYetLabel": "Напоминаний пока нет",
+  "reminderWillArriveLabel": "Напоминание придёт по расписанию, которое вы только что добавили",
+  "setupMedsToActivateLabel": "Настройте лекарства, чтобы активировать напоминания",
+  "privacyConsentPrefix": "Я ознакомлен(-а) и согласен(-на) с ",
+  "privacyConsentSuffix": " приложения",
+  "openDashboardAction": "Открыть дашборд →",
+  "joinFailedCheckCodeError": "Не удалось присоединиться: проверьте код",
+  "connectToFamilyTitle": "Подключение к семье",
+  "enterAccessCodeHint": "Введите код доступа, который вам прислали родные",
+  "checkingEllipsisLabel": "Проверка...",
+  "scheduleAlreadyReadyTitle": "Расписание уже готово",
+  "scheduleSetByInviterBody": "{name} уже составил(-а) для вас расписание приёма лекарств. Вы сможете отредактировать его в любой момент после подключения.",
+  "@scheduleSetByInviterBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "agreeUseFamilyScheduleCheckbox": "Я согласен(-на) использовать расписание, составленное моей семьёй",
+  "startAction": "Начать",
+  "creatingEllipsisLabel": "Создаём...",
+  "declineScheduleCreateOwnAction": "Не согласен, создать своё расписание",
+  "familyFallbackName": "Семья",
+  "profileFallbackName": "Профиль",
+  "enterYourNameError": "Введите своё имя",
+  "walkActivityName": "Прогулка",
+  "onboardingFinishError": "Ошибка при завершении: {error}",
+  "@onboardingFinishError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeGreeting": "Привет! 👋",
+  "welcomeDescription": "Elly поможет не забыть о лекарствах,\nактивности и самочувствии — для вас\nи всей семьи",
+  "onboardingStepLabel": "Шаг {step} из {total}",
+  "@onboardingStepLabel": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "accountChoiceTitle": "Как начнём?",
+  "accountChoiceSubtitle": "Выберите вариант, который вам подходит",
+  "createAccountTitle": "Создать аккаунт",
+  "createAccountSubtitle": "Настрою лекарства и расписание для себя",
+  "joinFamilyChoiceTitle": "Подключиться к семье",
+  "joinFamilyChoiceSubtitle": "У меня есть код доступа от родных",
+  "restoreAccountChoiceSubtitle": "Я уже пользовался(-лась) Elly раньше",
+  "tellAboutYourselfTitle": "Расскажите о себе",
+  "tellAboutYourselfSubtitle": "Укажите своё имя и выберите аватар профиля",
+  "nextToMedsAction": "Далее — лекарства →",
+  "scanOrEnterManuallyHint": "Сканируйте фото рецепта или введите вручную",
+  "addMedsShortAction": "Добавить лекарства",
+  "addMoreMedsAction": "Добавить ещё лекарства",
+  "addMedsHint": "Скан фото рецепта или название, доза и расписание вручную",
+  "addMedsLaterInfo": "Лекарства можно добавить позже через раздел «Лекарства» в главном меню",
+  "nextAction": "Далее →",
+  "skipAddLaterAction": "Пропустить — добавлю позже",
+  "activityWellbeingTitle": "Активность и самочувствие",
+  "activityWellbeingSubtitle": "Включите одним переключателем — настройки можно изменить позже",
+  "activitySectionLabel": "Активность",
+  "walkActivitySub": "30 мин · ежедневно · 08:30",
+  "wellbeingDiaryLabel": "Дневник самочувствия",
+  "wellbeingDiaryDescription": "Короткие отметки самочувствия помогут увидеть связь между приёмом лекарств и тем, как вы себя чувствуете",
+  "wellbeingSlotsTitle": "Чек-ины самочувствия",
+  "wellbeingSlotsSub": "2–3 раза в день · 08:00, 14:00, 20:00",
+  "almostDoneAction": "Почти готово →",
+  "scanNoResultsError": "Не удалось распознать лекарство на фото. Попробуйте сделать более чёткое фото.",
+  "scanErrorWithMessage": "Ошибка сканирования: {error}",
+  "@scanErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanPrescriptionScreenTitle": "Сканировать рецепт",
+  "beforeYouStartTitle": "Прежде чем начать",
+  "scanConsentDisclaimerBody": "Чтобы распознать лекарство, фото рецепта или упаковки отправляется сервису Anthropic (Claude). Фото используется только для распознавания и нигде не сохраняется после ответа.",
+  "scanDosageWarningPrefix": "⚠️ Дозировка, расписание и справочная информация о побочных эффектах — ориентировочные. ",
+  "alwaysCheckInstructionsLabel": "Всегда сверяйтесь с инструкцией к препарату.",
+  "understoodAgreeAction": "Понятно, соглашаюсь",
+  "takePhotoInstructionsBody": "Сфотографируйте рецепт или упаковку. Можно добавить несколько фото, если лекарств несколько.",
+  "cameraLabel": "Камера",
+  "galleryLabel": "Галерея",
+  "scanAction": "Сканировать",
+  "scanRecognizedCountLabel": "Распознано {count}. Проверьте перед добавлением:",
+  "@scanRecognizedCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "expandAndConfirmHint": "Разверните препарат, проверьте данные и поставьте галочку, чтобы подтвердить добавление.",
+  "chooseMedsAction": "Выберите препараты",
+  "addSelectedCountAction": "Добавить выбранные ({count})",
+  "@addSelectedCountAction": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scheduleTimeMorning": "Утром",
+  "scheduleTimeAfternoon": "Днём",
+  "scheduleTimeEvening": "Вечером",
+  "scheduleTimeNight": "Ночью",
+  "unnamedMedLabel": "Без названия",
+  "medNameCapsLabel": "НАЗВАНИЕ",
+  "releaseFormCapsLabel": "ФОРМА ВЫПУСКА",
+  "doseCapsLabel": "ДОЗА",
+  "courseDurationCapsLabel": "ДЛИТЕЛЬНОСТЬ КУРСА",
+  "foodRelationCapsLabel": "СВЯЗЬ С ЕДОЙ",
+  "possibleSideEffectsPrefix": "⚡ Возможные побочные эффекты: {list}. ",
+  "@possibleSideEffectsPrefix": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "checkInstructionsShortLabel": "Сверьтесь с инструкцией к препарату.",
+  "confirmedCheckLabel": "Подтверждено ✓",
+  "confirmAllCorrectAction": "Всё верно, подтвердить",
+  "somethingWentWrongTitle": "Что-то пошло не так",
+  "sttErrorLabel": "Ошибка STT: {error}",
+  "@sttErrorLabel": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "speechNotAvailableError": "Распознавание речи недоступно на этом устройстве",
+  "nothingHeardError": "Ничего не услышано. Попробуй ещё раз.",
+  "analysisErrorWithMessage": "Ошибка анализа: {error}",
+  "@analysisErrorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "commandNotRecognizedError": "Не удалось распознать команду",
+  "voiceControlTitle": "Голосовое управление",
+  "voiceConsentDisclaimerBody": "Распознавание голоса происходит на устройстве. Но чтобы понять команду, текст твоей фразы отправляется сервису Anthropic (Claude). Эта функция распознаёт только 3 команды: добавить лекарство, добавить активность или запись к врачу — свободное описание самочувствия или симптомов сюда никогда не отправляется, для этого есть отдельное поле в дневнике самочувствия, которое остаётся только на устройстве.",
+  "voiceExampleMedQuote": "\"Добавь Эналаприл 10 мг утром и вечером\"",
+  "voiceExampleMedDesc": "Откроет форму лекарства с заполненными полями. Распознаёт не все препараты — проверьте поля перед сохранением.",
+  "voiceExampleActivityQuote": "\"Добавь зарядку дважды в день утром и вечером\"",
+  "voiceExampleActivityDesc": "Откроет форму активности с заполненными полями",
+  "voiceExampleApptQuote": "\"Запись к кардиологу в пятницу в 10\"",
+  "voiceExampleApptDesc": "Откроет форму записи к врачу",
+  "whatToDoTitle": "Что хочешь сделать?",
+  "tapAndSayCommandHint": "Нажми и скажи команду\nили начни говорить",
+  "dictateLanguageHint": "Диктуйте на языке {language}. Изменить можно в Профиль → Язык.",
+  "@dictateLanguageHint": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "commandExamplesCapsLabel": "ПРИМЕРЫ КОМАНД",
+  "experimentalFeatureNotice": "Это экспериментальная функция — распознавание может заполнить данные неточно, всегда проверяйте форму перед сохранением.",
+  "holdAndSpeakAction": "Удерживай и говори",
+  "listeningEllipsisLabel": "Слушаю...",
+  "preparingEllipsisLabel": "Готовимся...",
+  "tapMicToStopHint": "Нажми на микрофон, чтобы остановить",
+  "waitBeforeSpeakingHint": "Подождите секунду перед тем, как говорить",
+  "quotedTextLabel": "\"{text}\"",
+  "@quotedTextLabel": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "analyzingCommandLabel": "Анализирую команду...",
+  "actionCapsLabel": "ДЕЙСТВИЕ",
+  "drugCapsLabel": "ПРЕПАРАТ",
+  "activityCapsLabel": "АКТИВНОСТЬ",
+  "scheduleCapsLabel": "РАСПИСАНИЕ",
+  "doctorCapsLabel": "ВРАЧ",
+  "addActivityActionLabel": "Добавить активность",
+  "unknownCommandLabel": "Неизвестная команда",
+  "youSaidCapsLabel": "ТЫ СКАЗАЛ",
+  "iUnderstoodLabel": "Я понял так:",
+  "clarifyOneMoreLabel": "Уточни ещё кое-что",
+  "foodRelationClarifyHint": "Ты не сказал, до или после еды. Выбери ниже или пропусти",
+  "foodOptBefore": "До еды",
+  "foodOptAfter": "После еды",
+  "foodOptNotImportant": "Не важно",
+  "refFoodAnyLabel": "Независимо от еды",
+  "possibleSideEffectsLabel": "⚡ Возможные побочные эффекты: {list}",
+  "@possibleSideEffectsLabel": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "referenceInfoDisclaimer": "⚠️ Справочно, без гарантий. Сверьтесь с инструкцией к препарату.",
+  "nextShortAction": "Далее",
+  "backupScreenTitle": "Резервная копия",
+  "backupIntroBody": "Лекарства, расписание, медкарта (фото/PDF) и все остальные данные — выбирайте, где хранить резервную копию.",
+  "backupModeLocalTitle": "Только на устройстве",
+  "backupModeLocalSubtitle": "При переустановке приложения все данные будут потеряны",
+  "backupModeGoogleDriveSubtitle": "Зашифровано на устройстве — Elly и Google не видят ваши данные",
+  "backupModeICloudSubtitle": "Зашифровано на устройстве — Elly и Apple не видят ваши данные",
+  "backupFrequencyCapsLabel": "ЧАСТОТА АВТОБЭКАПА",
+  "backupFrequencyDailyLabel": "Раз в день",
+  "backupFrequencyWeeklyLabel": "Раз в неделю",
+  "backupFrequencyExplainerBody": "Срабатывает, когда вы открываете приложение или возвращаетесь в него — это не настоящее фоновое расписание. Если не открывать Elly дольше выбранной частоты, бэкап будет сделан сразу при следующем открытии.",
+  "backupNeverDoneLabel": "Резервной копии ещё не было",
+  "lastBackupAtLabel": "Последний бэкап: {date}",
+  "@lastBackupAtLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "createBackupNowAction": "Создать резервную копию сейчас",
+  "restoreFromBackupAction": "Восстановить из резервной копии",
+  "changeBackupPassphraseAction": "Изменить пароль резервной копии",
+  "backupPassphraseDialogTitle": "Пароль для резервной копии",
+  "backupPassphraseDialogSubtitle": "Придумайте пароль. Без него восстановить данные будет невозможно — даже нам.",
+  "backupSavedSnackbar": "Резервная копия сохранена в {target}",
+  "@backupSavedSnackbar": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "restorePassphraseDialogTitle": "Пароль резервной копии",
+  "restorePassphraseDialogSubtitle": "Введите пароль, который вы указали при создании копии.",
+  "restoreDoneBody": "Данные восстановлены.",
+  "restoreFailedError": "Не удалось восстановить: неверный пароль или копия отсутствует",
+  "changePassphraseDialogTitle": "Новый пароль резервной копии",
+  "changePassphraseDialogSubtitle": "Сразу после изменения будет создана новая резервная копия с этим паролем — запомните его, старую резервную копию под старым паролем больше нельзя будет использовать.",
+  "passphraseChangedSnackbar": "Пароль изменён, новая резервная копия сохранена",
+  "confirmRestoreTitle": "Восстановить из резервной копии?",
+  "confirmRestoreBody": "Текущие данные на этом устройстве будут заменены данными из резервной копии. Это действие нельзя отменить.",
+  "restoreAction": "Восстановить",
+  "confirmPasswordFieldLabel": "Повторите пароль",
+  "passwordTooShortError": "Пароль должен быть не короче 6 символов",
+  "passwordsMismatchError": "Пароли не совпадают",
+  "gotItAction": "Понятно",
+  "choosePlanTitle": "Выбери план",
+  "choosePlanSubtitle": "Забота о здоровье всей семьи",
+  "monthToggleLabel": "Месяц",
+  "yearToggleDiscountLabel": "Год −20%",
+  "familyTiesBrokenTitle": "Связи с семьёй разорвутся",
+  "familyTiesBrokenBody": "Участники вашей семейной группы сразу потеряют доступ к плюшкам Family и перестанут видеть друг друга. Это произойдёт мгновенно, без грейс-периода — вы уже предупреждены сейчас.",
+  "breakAndChangePlanAction": "Разорвать и изменить план",
+  "planActivatedTestSnackbar": "{plan} активирован (тестовый режим, без реальной оплаты)",
+  "@planActivatedTestSnackbar": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
+  "actionFailedError": "Не удалось: {error}",
+  "@actionFailedError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "planForeverPeriod": "навсегда",
+  "planPerMonthYearlyPeriod": "в месяц (год)",
+  "planPerMonthPeriod": "ежемесячно",
+  "freeFeatureAllSections": "Все разделы без ограничений",
+  "freeFeatureUnlimitedMeds": "Неограниченно лекарств и медкарт",
+  "freeFeatureScanLimit": "3 сканирования фото рецепта",
+  "freeFeatureVoiceLimit": "5 голосовых команд",
+  "freeFeatureLocalBackup": "Локально + копия в Google Drive/iCloud",
+  "selectFreeAction": "Выбрать Бесплатный",
+  "plusFeatureAllFree": "Всё из бесплатного",
+  "plusFeatureUnlimitedScans": "Неограниченные сканирования фото",
+  "plusFeatureUnlimitedVoice": "Неограниченные голосовые команды",
+  "plusFeatureServerSync": "Синхронизация с сервером (зашифровано)",
+  "plusFeatureUnlimitedProfiles": "Неограниченное количество локальных профилей",
+  "selectPlusAction": "Выбрать Plus",
+  "familyFeatureAllPlus": "Всё из Elly Plus",
+  "familyFeatureAutonomousProfiles": "Автономные профили — до 8 человек",
+  "familyFeatureSelfManaged": "Каждый управляет своим профилем сам",
+  "selectFamilyAction": "Выбрать Family",
+  "billingTermsDisclaimer": "Оплата списывается с вашей учётной записи App Store или Google Play. Подписка автоматически продлевается на новый период по той же цене, если не отменить как минимум за 24 часа до окончания периода. Управлять подпиской и отменить автопродление можно в настройках учётной записи App Store · Google Play.",
+  "privacyPolicyLinkLabel": "Политика конфиденциальности",
+  "termsOfUseLinkLabel": "Условия использования",
+  "currentPlanLabel": "Текущий",
+  "tooManyProfilesForPlanTitle": "Слишком много профилей для этого плана",
+  "upgradeToEditSubtitle": "Продлите Elly Plus или Elly Family, чтобы редактировать",
+  "viewPlansAction": "Посмотреть тарифы",
+  "paymentFailedTitle": "Не удалось списать оплату",
+  "gracePeriodRemainingBody": "Осталось {timeLeft}, чтобы обновить способ оплаты — пока всё работает без ограничений, и для вас, и для всех участников вашей семейной группы.",
+  "@gracePeriodRemainingBody": {
+    "placeholders": {
+      "timeLeft": {
+        "type": "String"
+      }
+    }
+  },
+  "gracePeriodExpiredBody": "Обновите способ оплаты немедленно, иначе семейная группа разорвётся.",
+  "laterAction": "Позже",
+  "updatePaymentAction": "Обновить оплату",
+  "accessChangedTitle": "Доступ изменился",
+  "changePlanAction": "Изменить план",
+  "daysLeftLabel": "{count, plural, one{{count} день} few{{count} дня} other{{count} дней}}",
+  "@daysLeftLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursLeftLabel": "{count, plural, one{{count} час} few{{count} часа} other{{count} часов}}",
+  "@hoursLeftLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesLeftLabel": "{count, plural, one{{count} минуту} few{{count} минуты} other{{count} минут}}",
+  "@minutesLeftLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planFreeShortLabel": "Бесплатный",
+  "exportShareSubject": "Elly — экспорт данных",
+  "exportCopyTitle": "Копия всех ваших данных",
+  "exportDescriptionBody": "Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, самочувствием и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.",
+  "exportAction": "Экспортировать",
+  "appLockedTitle": "Elly заблокирован",
+  "authFailedRetryBody": "Не удалось подтвердить личность — попробуйте ещё раз",
+  "confirmIdentityBody": "Подтвердите личность, чтобы продолжить",
+  "checkingDotsLabel": "Проверка...",
+  "unlockAction": "Разблокировать",
+  "addTypeSheetTitle": "Что хотите добавить?",
+  "addTypeSheetSubtitle": "Выберите тип — форма подстроится",
+  "addTypeMedsSub": "Расписание, дозировка, AI-скан рецепта",
+  "addTypeActivitySub": "Прогулка, зарядка, упражнения, ЛФК",
+  "addTypeWellbeingSub": "Сделать чек-ин — настроение, симптомы, комментарий",
+  "addTypeAppointmentSub": "Выбрать специалиста, время и получить напоминание",
+  "voiceCommandLabel": "Голосовая команда",
+  "faqGroupPrivacyTitle": "Приватность и данные",
+  "faqPrivacyQ1": "Кто видит мои данные?",
+  "faqPrivacyA1": "Никто, кроме вас. Всё хранится зашифрованным на вашем устройстве (SQLCipher, AES-256). Сервер Elly намеренно \"слепой\": регистрации через email или пароль нет, а то, что всё же проходит через сервер (приглашения в семью, синхронизация, подтверждение подписки), видит только зашифрованные блоки и технические идентификаторы — без ключа расшифровать их невозможно.",
+  "faqPrivacyQ2": "В чём разница между Резервной копией и Приглашением в семью?",
+  "faqPrivacyA2": "Резервная копия — снимок ваших собственных данных в вашем Google Drive/iCloud на случай потери телефона или переустановки приложения. Приглашение в семью — живой обмен расписанием между РАЗНЫМИ людьми (например, ребёнок видит расписание мамы) через QR-код или код приглашения. Это два разных механизма: первый — про вас самих, второй — про совместный доступ между несколькими людьми.",
+  "faqPrivacyQ3": "Что будет, если я удалю приложение без бэкапа?",
+  "faqPrivacyA3": "Данные будут потеряны безвозвратно — копии на сервере не существует. Обязательно сделайте резервную копию заранее (Профиль → Резервная копия).",
+  "faqPrivacyQ4": "Как удалить свои данные полностью?",
+  "faqPrivacyA4": "Удалите приложение с устройства (и резервную копию с Drive/iCloud вручную, если создавали). Профиль также можно удалить отдельно — Профиль → Конфиденциальность → Опасная зона.",
+  "faqGroupFamilyTitle": "Семья",
+  "faqFamilyQ1": "Как добавить члена семьи или зависимый профиль?",
+  "faqFamilyA1": "На вкладке \"Семья\" — кнопка добавления профиля. Зависимые профили (дети, пожилые родители) не имеют собственного входа — ими управляет владелец устройства.",
+  "faqFamilyQ2": "Как передать управление профилем другому человеку (например, взрослому ребёнку)?",
+  "faqFamilyA2": "На карточке локального профиля — кнопка \"Пригласить в приложение\": покажите QR-код или назовите код приглашения человеку, который присоединяется на своём устройстве. Профиль превратится из локального в автономный — человек отныне будет управлять им сам, а вся история данных сохранится. Данные шифруются ключом, производным от кода приглашения, — сервер видит только зашифрованный блок.",
+  "faqFamilyQ3": "Кто что видит о других членах семьи?",
+  "faqFamilyA3": "Настраивается в Профиль → Видимость для семьи — отдельно для каждого профиля.",
+  "faqGroupAiTitle": "AI-функции",
+  "faqAiQ1": "Куда идут данные при голосовом вводе или скане рецепта?",
+  "faqAiA1": "Распознавание происходит через модель Claude от Anthropic — это явно указывается в запросе согласия перед первым использованием каждой функции. Свободное текстовое описание самочувствия или симптомов в облако никогда не отправляется.",
+  "faqAiQ2": "Насколько точна справочная информация о лекарствах от AI?",
+  "faqAiA2": "Это ориентировочная информация из общих знаний модели, а не проверенный медицинский каталог. Всегда сверяйтесь с инструкцией к препарату или врачом.",
+  "faqNotificationsQ1": "Почему не приходят напоминания?",
+  "faqNotificationsA1": "Самая частая причина — оптимизация батареи на Android ограничивает фоновую работу приложения. Добавьте Elly в исключения в настройках энергосбережения устройства. Также проверьте \"Тихие часы\" в Профиль → Уведомления.",
+  "faqNotificationsQ2": "Как настроить повторное напоминание, если не отметил приём?",
+  "faqNotificationsA2": "Профиль → Уведомления → \"Повторить, если нет ответа\" — выберите интервал ползунком.",
+  "faqPlansQ1": "Чем отличаются тарифы?",
+  "faqPlansA1": "Elly (бесплатный) — базовые функции с ограничениями. Elly Plus и Elly Family снимают лимиты и добавляют расширенные возможности. Подробности — Профиль → Тарифы.",
+  "faqGroupTechTitle": "Технические проблемы",
+  "faqTechQ1": "Не работает биометрия / забыл пароль от резервной копии",
+  "faqTechA1": "Пароль резервной копии запоминается только локально на этом устройстве (чтобы автоматические копии по расписанию не спрашивали его каждый раз) — на наши серверы он никогда не попадает. Если вы переустановите приложение или смените устройство, придётся ввести тот же пароль вручную; если забыли его — восстановить копию невозможно, придётся создать новую. Биометрию можно перенастроить в системных настройках устройства.",
+  "faqTechQ2": "Не удаётся восстановить данные из резервной копии",
+  "faqTechA2": "Самая частая причина — неверный пароль (тот же, который вы указали при создании копии) или отсутствует соединение с интернетом. Проверьте, что восстанавливаете копию на соответствующем типе устройства (с iCloud — только на iOS, с Google Drive — на Android или iOS). После успешного восстановления приложение попросит перезапуститься.",
+  "faqNotFoundQuestionTitle": "Не нашли ответ?",
+  "faqWriteUsSubtitle": "Напишите нам — ответим лично.",
+  "supportLabel": "Поддержка",
+  "supportChatLabel": "Чат поддержки",
+  "soonLabel": "Скоро",
+  "notificationsMainSectionTitle": "Основные",
+  "pushNotificationsLabel": "Push-уведомления",
+  "pushNotificationsSub": "Напоминания о приёме лекарств",
+  "vibrationLabel": "Вибрация",
+  "vibrationSub": "Вместе со звуком",
+  "reminderTimeSectionTitle": "Время напоминаний",
+  "quietHoursSectionTitle": "Тихие часы",
+  "doNotDisturbLabel": "Не беспокоить",
+  "nightModeSub": "Ночной режим",
+  "quietFromLabel": "С",
+  "quietToLabel": "До",
+  "memberMissedAlertsSectionTitle": "Алерты при пропуске у членов семьи",
+  "familyNotificationsSectionTitle": "Уведомления от семьи",
+  "peerNotifyExplainerBody": "Эти участники разрешили присылать вам уведомления о себе. Здесь вы решаете, хотите ли вы их получать.",
+  "reminderOffsetLabel": "Смещение напоминания",
+  "reminderOffsetSub": "Получать за N мин до запланированного времени",
+  "noOffsetLabel": "без смещения",
+  "minusMinutesLabel": "−{minutes} мин",
+  "@minusMinutesLabel": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "repeatIfNoResponseLabel": "Повторить, если нет ответа",
+  "repeatInLabel": "Через {label}",
+  "@repeatInLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteActivityConfirmTitle": "Удалить активность?",
+  "deleteActivityConfirmBody": "Активность будет удалена из расписания.",
+  "chooseActivityTypeError": "Выберите тип активности",
+  "enterActivityNameError": "Введите название активности",
+  "editActivityTitle": "Редактировать активность",
+  "activityTypeLabel": "Тип активности",
+  "activityTypeWorkout": "Зарядка",
+  "activityTypeGym": "Тренировка",
+  "activityTypeYoga": "Йога / ЛФК",
+  "activityTypeCycling": "Велосипед",
+  "activityTypeCustom": "Своё",
+  "activityNameHint": "Название активности",
+  "youtubeLinkLabel": "Ссылка на YouTube",
+  "youtubeLinkDescription": "Видео тренировки или клип — превью будет показываться в карточке на сегодня",
+  "addAnotherActivityAction": "Добавить ещё занятие",
+  "weekdaysLabel": "Дни недели",
+  "reminderLabel": "Напоминание",
+  "reminderActivityDescription": "За 10 минут до каждого занятия",
+  "saveActivityAction": "Сохранить активность",
+  "activitySessionNumberLabel": "Занятие {number}",
+  "@activitySessionNumberLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "noDurationLabel": "Без длительности",
+  "saveWithDurationLabel": "Сохранить · {duration}",
+  "@saveWithDurationLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "durationHoursMinutesLabel": "{hours} ч {minutes} мин",
+  "@durationHoursMinutesLabel": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesWithValueLabel": "{value} мин",
+  "@minutesWithValueLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "taskColorPickerLabel": "ЦВЕТ КАРТОЧКИ",
+  "viewingProfileLabel": "Вы просматриваете профиль: {name}",
+  "@viewingProfileLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "returnAction": "Вернуться",
+  "foodRelationUnspecified": "Не выбрано",
+  "foodRelationWith": "Во время еды",
+  "foodRelationPickerTitle": "Относительно еды",
+  "recoveryKeyDialogTitle": "Ваш recovery key",
+  "recoveryKeyDialogBody": "Сохраните этот код в надёжном месте. Это единственный способ восстановить данные на новом устройстве — без него мы тоже не сможем помочь.",
+  "copiedSnackbar": "Скопировано",
+  "recoveryKeySavedConfirmAction": "Я сохранил(-а) код",
+  "buyAction": "Купить",
+  "affiliateDisclaimerLabel": "Реклама · партнёрская ссылка, Elly товар не продаёт",
+  "legalPageLoadError": "Не удалось загрузить страницу. Проверьте соединение с интернетом.",
+  "medFormTablet": "Таблетка",
+  "medFormCapsule": "Капсула",
+  "medFormSuppository": "Свечи",
+  "medFormVial": "Флакон",
+  "medFormSyrup": "Сироп",
+  "medFormDrops": "Капли",
+  "medFormCream": "Крем",
+  "medFormInhaler": "Ингалятор",
+  "medFormInjection": "Инъекция",
+  "medUnitTablet": "таб.",
+  "medUnitCapsule": "капс.",
+  "medUnitMl": "мл",
+  "medUnitDrops": "кап.",
+  "medUnitGram": "г",
+  "medUnitInhale": "вдох",
+  "medUnitSuppository": "свеча",
+  "medUnitVial": "фл.",
+  "medUnitPiece": "шт.",
+  "chooseProfileLabel": "Выберите профиль",
+  "otherSpecialtyDialogTitle": "Другое направление",
+  "otherSpecialtyHint": "Напр. Гомеопат",
+  "chooseAction": "Выбрать",
+  "doctorSpecialtyPickerTitle": "Направление врача",
+  "specialtySearchHint": "Поиск…",
+  "specialtyTherapist": "Терапевт",
+  "specialtyPediatrician": "Педиатр",
+  "specialtyFamilyDoctor": "Семейный врач",
+  "specialtyCardiologist": "Кардиолог",
+  "specialtyNeurologist": "Невролог",
+  "specialtyEndocrinologist": "Эндокринолог",
+  "specialtyGastroenterologist": "Гастроэнтеролог",
+  "specialtyDermatologist": "Дерматолог",
+  "specialtyOphthalmologist": "Офтальмолог",
+  "specialtyEnt": "ЛОР (Отоларинголог)",
+  "specialtyDentist": "Стоматолог",
+  "specialtyGynecologist": "Гинеколог",
+  "specialtyUrologist": "Уролог",
+  "specialtySurgeon": "Хирург",
+  "specialtyOrthopedist": "Ортопед",
+  "specialtyTraumatologist": "Травматолог",
+  "specialtyAllergist": "Аллерголог",
+  "specialtyImmunologist": "Иммунолог",
+  "specialtyPsychiatrist": "Психиатр",
+  "specialtyPsychotherapist": "Психотерапевт",
+  "specialtyUltrasoundDiagnostics": "УЗИ-диагностика",
+  "specialtyOncologist": "Онколог",
+  "specialtyRheumatologist": "Ревматолог",
+  "specialtyPulmonologist": "Пульмонолог",
+  "specialtyNephrologist": "Нефролог",
+  "specialtyPhlebologist": "Флеболог",
+  "specialtyMammologist": "Маммолог",
+  "specialtyOther": "Другое",
+  "noDocumentsLabel": "Нет документов",
+  "addPhotoOrPdfLabel": "Добавить фото или PDF",
+  "labTestCbc": "Общий анализ крови",
+  "labTestUrinalysis": "Общий анализ мочи",
+  "labTestBloodChemistry": "Биохимический анализ крови",
+  "labTestBloodGlucose": "Глюкоза крови",
+  "labTestLipidProfile": "Липидный профиль (холестерин)",
+  "labTestTsh": "Гормоны щитовидной железы (ТТГ)",
+  "labTestFreeT3": "Т3 свободный",
+  "labTestFreeT4": "Т4 свободный",
+  "labTestLiverEnzymes": "Печёночные пробы (АЛТ, АСТ)",
+  "labTestBilirubin": "Билирубин",
+  "labTestCreatinine": "Креатинин",
+  "labTestUrea": "Мочевина",
+  "labTestUricAcid": "Мочевая кислота",
+  "labTestSerumIron": "Железо сыворотки",
+  "labTestFerritin": "Ферритин",
+  "labTestVitaminD": "Витамин D",
+  "labTestVitaminB12": "Витамин B12",
+  "labTestFolicAcid": "Фолиевая кислота",
+  "labTestCoagulogram": "Коагулограмма",
+  "labTestBloodType": "Группа крови и резус-фактор",
+  "labTestCrp": "С-реактивный белок (СРБ)",
+  "labTestEsr": "Скорость оседания эритроцитов (СОЭ)",
+  "labTestEstrogenProgesterone": "Эстроген, прогестерон",
+  "labTestTestosterone": "Тестостерон",
+  "labTestProlactin": "Пролактин",
+  "labTestInsulin": "Инсулин",
+  "labTestHba1c": "Гликированный гемоглобин (HbA1c)",
+  "labTestPcr": "ПЦР-тест",
+  "labTestAllergens": "Анализ на аллергены",
+  "labTestCoprogram": "Копрограмма",
+  "labTestOccultBlood": "Анализ кала на скрытую кровь",
+  "labTestFloraSwab": "Мазок на флору",
+  "labTestUrineCulture": "Посев мочи на стерильность",
+  "labTestHepatitis": "Анализ на гепатиты (B, C)",
+  "labTestHiv": "ВИЧ-тест",
+  "labTestSyphilis": "RW (сифилис)",
+  "labTestCalcium": "Кальций",
+  "labTestMagnesium": "Магний",
+  "labTestElectrolytesKNaCl": "Калий, натрий, хлор",
+  "labTestAmylase": "Амилаза",
+  "labTestLipase": "Липаза",
+  "labTestPsa": "ПСА (простатспецифический антиген)",
+  "labTestTumorMarkers": "Онкомаркеры (СА-125)",
+  "labTestParasites": "Анализ на паразитов (яйца гельминтов)",
+  "labTestCortisol": "Кортизол",
+  "labTestImmunogram": "Иммунограмма",
+  "labTestSpermogram": "Спермограмма",
+  "labTestBloodElectrolytes": "Электролиты крови",
+  "labTestTotalProtein": "Общий белок",
+  "labTestDDimer": "Д-димер",
+  "notifChannelName": "Напоминания Elly",
+  "notifChannelDesc": "Напоминания о лекарствах, активностях, визитах и самочувствии",
+  "notifTakeMedTitle": "💊 Время принять лекарство",
+  "notifIntakeNoResponseTitle": "🔔 Вы ещё не отметили приём",
+  "notifBackupReminderTitle": "Защитите свои данные",
+  "notifBackupReminderBody": "Резервная копия отключена — данные хранятся только на этом устройстве. Включите в Профиле, чтобы не потерять их.",
+  "notifLowStockTitle": "⚠️ Заканчиваются лекарства",
+  "notifLowStockBody": "{medName} — осталось {remaining} {unit}",
+  "@notifLowStockBody": {
+    "placeholders": {
+      "medName": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "notifActivityTitle": "🚶 Время для активности",
+  "notifActivityNoResponseTitle": "🔔 Вы ещё не отметили активность",
+  "notifAppointmentTitle": "🩺 Приём врача",
+  "notifAppointmentNoResponseTitle": "🔔 Не забудьте про приём врача",
+  "notifWellbeingTitle": "💜 Чек-ин самочувствия",
+  "notifWellbeingBody": "Как вы себя чувствуете?",
+  "notifVaccinationTitle": "💉 Время ревакцинации",
+  "notifPeerCheckTitle": "🔔 Проверьте {subjectName}",
+  "@notifPeerCheckTitle": {
+    "placeholders": {
+      "subjectName": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerIntakeCheckBody": "Принято ли \"{medName}\" ({dose}) в {timeStr}? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.",
+  "@notifPeerIntakeCheckBody": {
+    "placeholders": {
+      "medName": {
+        "type": "String"
+      },
+      "dose": {
+        "type": "String"
+      },
+      "timeStr": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerActivityCheckBody": "Выполнено ли \"{activityName}\" в {timeStr}? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.",
+  "@notifPeerActivityCheckBody": {
+    "placeholders": {
+      "activityName": {
+        "type": "String"
+      },
+      "timeStr": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerAppointmentCheckBody": "Состоялся ли приём (\"{doctorType}\") в {timeStr}? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.",
+  "@notifPeerAppointmentCheckBody": {
+    "placeholders": {
+      "doctorType": {
+        "type": "String"
+      },
+      "timeStr": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerWellbeingCheckBody": "Сделан ли чек-ин самочувствия в {timeStr}? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.",
+  "@notifPeerWellbeingCheckBody": {
+    "placeholders": {
+      "timeStr": {
+        "type": "String"
+      }
+    }
+  },
+  "forMemberSuffix": " для {name}",
+  "@forMemberSuffix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "resetLocalDbConfirmTitle": "Сбросить локальную базу?",
+  "resetLocalDbConfirmBody": "Ключ шифрования не совпадает с файлом базы на этом устройстве — расшифровать имеющиеся данные невозможно. Это удалит повреждённый файл локально и позволит начать заново. Действие невозможно отменить.",
+  "resetAction": "Сбросить",
+  "dbLoadErrorTitle": "Не удалось загрузить данные",
+  "dbLoadErrorBody": "Ваши данные никуда не исчезли — произошла техническая ошибка при их чтении.",
+  "dbErrorTryThisFirstLabel": "Попробуйте это в первую очередь",
+  "dbErrorCloseReopenHint": "Полностью закройте приложение (не просто сверните — по-настоящему закройте его через список запущенных приложений) и откройте снова. В подавляющем большинстве случаев это решает проблему без потери данных.",
+  "tryAgainButtonAction": "Попробовать ещё раз",
+  "dbErrorMoreActionHint": "Если закрытие и повторный запуск приложения не помогли — после нескольких попыток здесь появится дополнительное действие.",
+  "resetLocalDbAction": "Сбросить локальную базу",
+  "hideDetailsAction": "Скрыть детали",
+  "showErrorDetailsAction": "Показать детали ошибки",
+  "copiedToClipboardSnackbar": "Скопировано",
+  "copyErrorTextAction": "Копировать текст ошибки",
+  "unlockPhoneTitle": "Разблокируйте телефон",
+  "unlockPhoneBody": "Ваши данные в безопасности — ничего не повреждено и удалять ничего не нужно. Просто iOS держит ключ шифрования заблокированным, пока телефон не разблокирован хотя бы раз после перезагрузки.",
+  "unlockStep1": "Разблокируйте телефон (Face ID, Touch ID или код-пароль).",
+  "unlockStep2": "Вернитесь в Elly — данные подгрузятся сами, ничего нажимать не нужно.",
+  "checkAgainAction": "Проверить снова",
+  "loadingEllipsisLabel": "Загружаю...",
+  "familyDisbandedReason": "Не удалось вовремя продлить оплату Family, поэтому семейная группа расформирована. Ваши локальные данные никуда не делись.",
+  "manageSubscriptionExternallyHint": "Управление подпиской открыто в App Store/Google Play — завершите отмену там.",
+  "restorePurchasesAction": "Восстановить покупки",
+  "restorePurchasesSuccessSnackbar": "Покупки восстановлены",
+  "restorePurchasesNothingFoundSnackbar": "Активных покупок не найдено на этом Apple ID/Google-аккаунте"
+}

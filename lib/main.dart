@@ -95,9 +95,9 @@ class MedKitApp extends ConsumerWidget {
         (dbFontSize - 1).clamp(0, fontScaleValues.length - 1)];
     final languageId = ref.watch(appLanguageProvider);
     final languageCode = languageId.split('_').first;
-    // 'ru' ще не має власного ARB-файлу (лише uk/en перекладено) — доки
-    // перекладів більше немає, показуємо українську як безпечний фолбек.
-    final appLocale = const ['uk', 'en'].contains(languageCode)
+    // Мови без власного ARB-файлу (перекладів ще нема) — показуємо
+    // українську як безпечний фолбек.
+    final appLocale = const ['uk', 'en', 'ru'].contains(languageCode)
         ? Locale(languageCode)
         : const Locale('uk');
 
@@ -111,7 +111,7 @@ class MedKitApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('uk'), Locale('en')],
+      supportedLocales: const [Locale('uk'), Locale('en'), Locale('ru')],
       locale: appLocale,
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context)

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_ru.dart';
 import 'app_localizations_uk.dart';
 
 // ignore_for_file: type=lint
@@ -95,6 +96,7 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('ru'),
     Locale('uk'),
   ];
 
@@ -3197,7 +3199,7 @@ abstract class AppLocalizations {
   /// No description provided for @voiceLanguageDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська та англійська — інші мови з\'являться після перекладів.'**
+  /// **'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська, англійська та російська — інші мови з\'являться після перекладів.'**
   String get voiceLanguageDescription;
 
   /// No description provided for @fontSizeLabel.
@@ -7117,6 +7119,30 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.'**
   String get familyDisbandedReason;
+
+  /// No description provided for @manageSubscriptionExternallyHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Керування підпискою відкрито в App Store/Google Play — завершіть скасування там.'**
+  String get manageSubscriptionExternallyHint;
+
+  /// No description provided for @restorePurchasesAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Відновити покупки'**
+  String get restorePurchasesAction;
+
+  /// No description provided for @restorePurchasesSuccessSnackbar.
+  ///
+  /// In uk, this message translates to:
+  /// **'Покупки відновлено'**
+  String get restorePurchasesSuccessSnackbar;
+
+  /// No description provided for @restorePurchasesNothingFoundSnackbar.
+  ///
+  /// In uk, this message translates to:
+  /// **'Активних покупок не знайдено на цьому Apple ID/Google-акаунті'**
+  String get restorePurchasesNothingFoundSnackbar;
 }
 
 class _AppLocalizationsDelegate
@@ -7130,7 +7156,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'uk'].contains(locale.languageCode);
+      <String>['en', 'ru', 'uk'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -7141,6 +7167,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'ru':
+      return AppLocalizationsRu();
     case 'uk':
       return AppLocalizationsUk();
   }

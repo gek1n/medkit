@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local-only secrets (never commit) — see CLAUDE.md "Build & release"
+local.secrets.md
+
 # IntelliJ related
 *.iml
 *.ipr

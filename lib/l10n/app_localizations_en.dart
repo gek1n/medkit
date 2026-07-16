@@ -1793,7 +1793,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceLanguageDescription =>
-      'Controls the interface language and voice recognition (voice commands, wellbeing check-ins). Currently Ukrainian and English are available — more languages will follow as translations are added.';
+      'Controls the interface and voice-recognition language (voice commands, wellbeing check-in dictation). Ukrainian, English, and Russian are available for now — more languages will follow as translations are added.';
 
   @override
   String get fontSizeLabel => 'Font size';
@@ -3958,4 +3958,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get familyDisbandedReason =>
       'Family payment couldn\'t be renewed in time, so the family group has been disbanded. Your local data hasn\'t gone anywhere.';
+
+  @override
+  String get manageSubscriptionExternallyHint =>
+      'Subscription management opened in the App Store/Google Play — finish cancelling there.';
+
+  @override
+  String get restorePurchasesAction => 'Restore purchases';
+
+  @override
+  String get restorePurchasesSuccessSnackbar => 'Purchases restored';
+
+  @override
+  String get restorePurchasesNothingFoundSnackbar =>
+      'No active purchases found for this Apple ID/Google account';
 }

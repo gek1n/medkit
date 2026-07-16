@@ -1800,7 +1800,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get voiceLanguageDescription =>
-      'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська та англійська — інші мови з\'являться після перекладів.';
+      'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська, англійська та російська — інші мови з\'являться після перекладів.';
 
   @override
   String get fontSizeLabel => 'Розмір шрифту';
@@ -3965,4 +3965,18 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get familyDisbandedReason =>
       'Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.';
+
+  @override
+  String get manageSubscriptionExternallyHint =>
+      'Керування підпискою відкрито в App Store/Google Play — завершіть скасування там.';
+
+  @override
+  String get restorePurchasesAction => 'Відновити покупки';
+
+  @override
+  String get restorePurchasesSuccessSnackbar => 'Покупки відновлено';
+
+  @override
+  String get restorePurchasesNothingFoundSnackbar =>
+      'Активних покупок не знайдено на цьому Apple ID/Google-акаунті';
 }

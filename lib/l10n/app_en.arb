@@ -1048,7 +1048,7 @@
   "planPlusLabel": "Elly Plus",
   "planFamilyLabel": "Elly Family",
   "languageLabel": "Language",
-  "voiceLanguageDescription": "Controls the interface language and voice recognition (voice commands, wellbeing check-ins). Currently Ukrainian and English are available — more languages will follow as translations are added.",
+  "voiceLanguageDescription": "Controls the interface and voice-recognition language (voice commands, wellbeing check-in dictation). Ukrainian, English, and Russian are available for now — more languages will follow as translations are added.",
   "fontSizeLabel": "Font size",
   "fontSizeSampleLabel": "Aa",
   "notificationsLabel": "Notifications",
@@ -1998,5 +1998,9 @@
   "unlockStep2": "Return to Elly — your data will load automatically, nothing to tap.",
   "checkAgainAction": "Check again",
   "loadingEllipsisLabel": "Loading...",
-  "familyDisbandedReason": "Family payment couldn't be renewed in time, so the family group has been disbanded. Your local data hasn't gone anywhere."
+  "familyDisbandedReason": "Family payment couldn't be renewed in time, so the family group has been disbanded. Your local data hasn't gone anywhere.",
+  "manageSubscriptionExternallyHint": "Subscription management opened in the App Store/Google Play — finish cancelling there.",
+  "restorePurchasesAction": "Restore purchases",
+  "restorePurchasesSuccessSnackbar": "Purchases restored",
+  "restorePurchasesNothingFoundSnackbar": "No active purchases found for this Apple ID/Google account"
 }
