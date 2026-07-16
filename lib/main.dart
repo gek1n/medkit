@@ -184,7 +184,7 @@ class _LoadingScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Завантажую...', style: AppTextStyles.labelLg),
+            Text(context.l10n.loadingEllipsisLabel, style: AppTextStyles.labelLg),
           ],
         ),
       ),
@@ -270,6 +270,14 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
   // лок файлу після відновлення бекапу, повільний диск), і без цього
   // порогу користувач міг би втратити всі дані через звичайний глюк
   // з'єднання замість того, щоб просто спробувати ще раз.
+  //
+  // Поріг навмисно піднято з 1 до 3: реальні звіти користувачів (і логи)
+  // показують, що цей конкретний код 26 після оновлення/сну пристрою
+  // майже завжди минає сам — але НЕ від "Спробувати ще раз" у тому ж
+  // процесі (ретрай лише перечитує той самий застиглий Keychain-стан), а
+  // ЛИШЕ від повного закриття й повторного відкриття застосунку. Занизький
+  // поріг тут уже призводив би до пропозиції видалити реальні дані там, де
+  // проблема через кілька секунд минула б сама після релончу.
   int _retryCount = 0;
 
   @override
@@ -311,21 +319,17 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Скинути локальну базу?'),
-        content: const Text(
-            'Ключ шифрування не збігається з файлом бази на цьому '
-            'пристрої — розшифрувати наявні дані неможливо. Це видалить '
-            'пошкоджений файл локально і дасть змогу почати заново. Дію '
-            'неможливо скасувати.'),
+        title: Text(ctx.l10n.resetLocalDbConfirmTitle),
+        content: Text(ctx.l10n.resetLocalDbConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Скасувати'),
+            child: Text(ctx.l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Скинути'),
+            child: Text(ctx.l10n.resetAction),
           ),
         ],
       ),
@@ -355,16 +359,58 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
               const Icon(Icons.error_outline_rounded,
                   size: 48, color: AppColors.textMuted),
               const SizedBox(height: 16),
-              Text('Не вдалося завантажити дані', style: AppTextStyles.h3),
+              Text(context.l10n.dbLoadErrorTitle, style: AppTextStyles.h3),
               const SizedBox(height: 8),
               Text(
-                'Ваші дані нікуди не зникли — сталася технічна помилка при '
-                'їх читанні. Спробуйте ще раз; якщо не допоможе — '
-                'перезапустіть застосунок.',
+                context.l10n.dbLoadErrorBody,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
-              const SizedBox(height: 24),
+              // Для code-26 випадку кнопка "Спробувати ще раз" нижче лише
+              // перечитує той самий застиглий стан у ТОМУ Ж процесі — за
+              // спостереженнями (логи користувачів) вона тут майже ніколи
+              // не допомагає. Реально вирішує лише повне закриття
+              // застосунку (не згортання) і повторний запуск — новий
+              // процес отримує свіже, коректне значення з Keychain. Тому
+              // ця інструкція — головна порада, а не кнопка retry.
+              if (_isKeyMismatch) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.lightbulb_outline_rounded,
+                              size: 18, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              context.l10n.dbErrorTryThisFirstLabel,
+                              style: AppTextStyles.labelMd
+                                  .copyWith(color: AppColors.primaryDark),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        context.l10n.dbErrorCloseReopenHint,
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: AppColors.primaryDark),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   ref.invalidate(databaseProvider);
@@ -378,18 +424,17 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Спробувати ще раз'),
+                child: Text(context.l10n.tryAgainButtonAction),
               ),
-              if (_isKeyMismatch && _retryCount == 0) ...[
+              if (_isKeyMismatch && _retryCount < 3) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'Якщо після повторної спроби помилка лишиться — з\'явиться '
-                  'додаткова дія.',
+                  context.l10n.dbErrorMoreActionHint,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                 ),
               ],
-              if (_isKeyMismatch && _retryCount >= 1) ...[
+              if (_isKeyMismatch && _retryCount >= 3) ...[
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: _resetting ? null : _resetLocalDatabase,
@@ -407,14 +452,15 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Скинути локальну базу'),
+                      : Text(context.l10n.resetLocalDbAction),
                 ),
               ],
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => setState(() => _showDetails = !_showDetails),
-                child: Text(
-                    _showDetails ? 'Сховати деталі' : 'Показати деталі помилки'),
+                child: Text(_showDetails
+                    ? context.l10n.hideDetailsAction
+                    : context.l10n.showErrorDetailsAction),
               ),
               if (_showDetails) ...[
                 const SizedBox(height: 8),
@@ -438,11 +484,11 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _detailsText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Скопійовано')),
+                      SnackBar(content: Text(context.l10n.copiedToClipboardSnackbar)),
                     );
                   },
                   icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: const Text('Копіювати текст помилки'),
+                  label: Text(context.l10n.copyErrorTextAction),
                 ),
               ],
             ],
@@ -478,13 +524,10 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                     size: 34, color: AppColors.primary),
               ),
               const SizedBox(height: 20),
-              Text('Розблокуйте телефон', style: AppTextStyles.h3),
+              Text(context.l10n.unlockPhoneTitle, style: AppTextStyles.h3),
               const SizedBox(height: 8),
               Text(
-                'Ваші дані в безпеці — нічого не пошкоджено і видаляти '
-                'нічого не потрібно. Просто iOS тримає ключ шифрування '
-                'заблокованим, поки телефон не розблоковано хоча б раз '
-                'після перезавантаження.',
+                context.l10n.unlockPhoneBody,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
@@ -502,13 +545,12 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                   children: [
                     _LockedStep(
                       number: '1',
-                      text: 'Розблокуйте телефон (Face ID, Touch ID або код-пароль).',
+                      text: context.l10n.unlockStep1,
                     ),
                     const SizedBox(height: 10),
                     _LockedStep(
                       number: '2',
-                      text: 'Поверніться в Elly — дані підвантажаться самі, '
-                          'нічого натискати не треба.',
+                      text: context.l10n.unlockStep2,
                     ),
                   ],
                 ),
@@ -527,7 +569,7 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Перевірити знову'),
+                child: Text(context.l10n.checkAgainAction),
               ),
             ],
           ),
@@ -718,8 +760,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
           if (mounted) {
             unawaited(showAccessChangedModal(
               context,
-              reason:
-                  'Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.',
+              reason: context.l10n.familyDisbandedReason,
             ));
           }
         case GraceCheckResult.none:

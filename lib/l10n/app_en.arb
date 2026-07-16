@@ -10,15 +10,21 @@
   "todayProgressTitle": "{taken} of {total}",
   "@todayProgressTitle": {
     "placeholders": {
-      "taken": { "type": "int" },
-      "total": { "type": "int" }
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "todayProgressSubtitle": "medications taken today",
   "todayProgressPercent": "{percent}%",
   "@todayProgressPercent": {
     "placeholders": {
-      "percent": { "type": "int" }
+      "percent": {
+        "type": "int"
+      }
     }
   },
   "sectionFamily": "Family",
@@ -30,10 +36,13 @@
   "intakeTake": "✓",
   "intakeSkip": "✕",
   "comingSoon": "Coming soon",
-
   "errorGeneric": "Error: {error}",
   "@errorGeneric": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "todaySectionFamily": "Family",
   "todayScheduleForToday": "Today's schedule",
@@ -44,7 +53,11 @@
   "todayNextNow": "now",
   "todayNextInMinutes": "in {minutes} min",
   "@todayNextInMinutes": {
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "todayAllDoneTitle": "All done for today!",
   "todayAllDoneSubtitle": "Great job — keep it up",
@@ -62,13 +75,21 @@
   "detailLabelDuration": "Duration",
   "durationMinutes": "{minutes} min",
   "@durationMinutes": {
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "detailLabelLocation": "Location",
   "detailLabelNotes": "Notes",
   "todayDoneCount": "Done · {count}",
   "@todayDoneCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "skipIntakeAction": "Skip dose",
   "missedCaption": "missed",
@@ -84,7 +105,6 @@
   "doneAction": "Done",
   "welcomeTitle": "Welcome to Elly",
   "welcomeSubtitle": "Add your profile to get started",
-
   "categoryAll": "All",
   "categoryMeds": "Medications",
   "categoryActivities": "Activities",
@@ -110,12 +130,20 @@
   "courseFinished": "course finished",
   "courseDaysLeft": "{count, plural, one{{count} day left} other{{count} days left}}",
   "@courseDaysLeft": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "noLocation": "No location set",
   "timesPerDayLabel": "{count, plural, one{{count} time a day} other{{count} times a day}}",
   "@timesPerDayLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "addAction": "Add",
   "profileNotFound": "Profile not found",
@@ -126,7 +154,6 @@
   "dayFri": "Fri",
   "daySat": "Sat",
   "daySun": "Sun",
-
   "editAction": "Edit",
   "fieldName": "Name",
   "fieldDate": "Date",
@@ -147,23 +174,24 @@
   "severityMild": "Mild",
   "severityModerate": "Moderate",
   "severitySevere": "Severe",
-
   "dayToday": "Today",
   "dayTomorrow": "Tomorrow",
   "dayYesterday": "Yesterday",
-
   "surgeriesSectionTitle": "Surgeries & hospitalizations",
   "surgeriesEmptyHint": "Tap \"+ Add\" to add your first record",
   "chronicConditionsSectionTitle": "Chronic conditions",
   "chronicConditionsEmptyHint": "Tap \"+ Add\" to add your first diagnosis",
-
   "allergiesTitle": "Allergies",
   "allergiesEmptyHint": "Tap \"+ Add\" to add your first allergy",
   "vaccinationsTitle": "Vaccinations",
   "vaccinationsEmptyHint": "Tap \"+ Add\" to add your first vaccination",
   "vaccinationGivenOn": "Given on {date}",
   "@vaccinationGivenOn": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "vaccinationOverdue": "Overdue",
   "labResultsTitle": "Lab results",
@@ -173,7 +201,6 @@
   "labResultsEmptyNoneTitle": "Nothing added yet",
   "labResultsEmptyFilteredHint": "Try changing the filters or reset them",
   "labResultsEmptyHint": "Tap \"+ Add\" to add your first lab result",
-
   "medCardTitle": "Med Card",
   "medCardHistoryByDoctorTitle": "Treatment history by specialty",
   "medCardHistoryByDoctorSubtitle": "One doctor's visits and lab results, all in one place",
@@ -187,30 +214,39 @@
   "medCardAllergiesSubtitle": "Reactions to medications and substances",
   "medCardChronicConditionsSubtitle": "Diagnoses and dates identified",
   "medCardVaccinationsSubtitle": "History and upcoming boosters",
-
   "medicationArchiveEmptyHint": "All the medications you've ever added will appear here",
   "medStatusOngoing": "Ongoing",
   "medStatusFinished": "Finished",
   "medStatusCancelled": "Cancelled",
   "medArchiveDateRangeOngoing": "{start} — ongoing",
   "@medArchiveDateRangeOngoing": {
-    "placeholders": { "start": { "type": "String" } }
+    "placeholders": {
+      "start": {
+        "type": "String"
+      }
+    }
   },
-
   "specialtyHistoryTitle": "History by specialty",
   "sectionUpcoming": "Upcoming",
   "sectionPast": "Past",
   "visitPrefix": "Visit · {type}",
   "@visitPrefix": {
-    "placeholders": { "type": { "type": "String" } }
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
   },
   "labPrefix": "Lab result · {name}",
   "@labPrefix": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "emptyStateNoneYetTitle": "Nothing added yet",
   "specialtyHistoryEmptyHint": "Visits and lab results will appear here",
-
   "actionCancel": "Cancel",
   "deleteAction": "Delete",
   "documentsLabel": "Documents",
@@ -218,14 +254,12 @@
   "notSpecifiedValue": "Not specified",
   "deleteRecordBody": "This record will be deleted.",
   "deleteWithDocsBody": "This record and all attached documents will be deleted.",
-
   "deleteSurgeryConfirmTitle": "Delete this record?",
   "editSurgeryTitle": "Edit record",
   "newSurgeryTitle": "New surgery or hospitalization",
   "surgeryNameHint": "Appendectomy, hospitalization…",
   "enterSurgeryNameError": "Enter a name for the surgery",
   "surgeryNotesHint": "Hospital, complications, recommendations…",
-
   "deleteConditionConfirmTitle": "Delete this diagnosis?",
   "editConditionTitle": "Edit diagnosis",
   "newConditionTitle": "New diagnosis",
@@ -233,7 +267,6 @@
   "enterConditionNameError": "Enter a name for the diagnosis",
   "fieldDoctorSpecialty": "Doctor's specialty",
   "conditionNotesHint": "Treatment plan, dosage…",
-
   "deleteAllergyConfirmTitle": "Delete this allergy?",
   "editAllergyTitle": "Edit allergy",
   "newAllergyTitle": "New allergy",
@@ -241,7 +274,6 @@
   "enterAllergenError": "Enter the name of the allergen",
   "reactionHint": "Rash, swelling, shortness of breath…",
   "allergyNotesHint": "Additional details…",
-
   "deleteLabResultConfirmTitle": "Delete this lab result?",
   "editLabResultTitle": "Edit lab result",
   "newLabResultTitle": "New lab result",
@@ -249,7 +281,6 @@
   "fieldTestName": "Test name",
   "chooseTestNameValue": "Choose a test name",
   "labResultNotesHint": "Results, doctor's comment…",
-
   "deleteVaccinationConfirmTitle": "Delete this vaccination?",
   "editVaccinationTitle": "Edit vaccination",
   "newVaccinationTitle": "New vaccination",
@@ -259,24 +290,29 @@
   "removeAction": "Remove",
   "notScheduledValue": "Not scheduled",
   "vaccinationNotesHint": "Reaction, vaccine batch…",
-
   "medsTitle": "Medications",
   "activeMedsCountSection": "Active ({count})",
   "@activeMedsCountSection": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "finishedMedsCountSection": "Finished ({count})",
   "@finishedMedsCountSection": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "noMedsYetTitle": "No medications yet",
   "noMedsYetHint": "Tap + to add your first medication",
   "addMedicationAction": "Add medication",
-
   "errorGenericShort": "Error",
   "sideEffectsSectionLabel": "POSSIBLE SIDE EFFECTS",
   "sideEffectsAiDisclaimer": "Identified by AI during scanning — this information may be inaccurate. Always check the medication's instructions.",
-
   "stockUnitTabletsCapsules": "TABLETS / CAPSULES",
   "stockUnitSyrup": "SYRUP",
   "stockUnitDrops": "DROPS",
@@ -286,64 +322,98 @@
   "stockUnitCream": "CREAM",
   "stockUnitInhaler": "INHALER",
   "stockUnitGeneric": "REMAINING",
-
   "perDoseLabel": "{dose} {unit} per dose",
   "@perDoseLabel": {
-    "placeholders": { "dose": { "type": "String" }, "unit": { "type": "String" } }
+    "placeholders": {
+      "dose": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
   },
   "timesPerDaySlash": "{count, plural, one{{count} time/day} other{{count} times/day}}",
   "@timesPerDaySlash": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-
   "stockSectionLabel": "Stock",
   "untilCourseEndLabel": "until end of course",
   "next30DaysLabel": "for the next 30 days",
   "remainingColonLabel": "Remaining: ",
   "daysLeftShortLabel": "for {days} d.",
   "@daysLeftShortLabel": {
-    "placeholders": { "days": { "type": "String" } }
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
   },
   "needToBuyLabel": "Need to buy: ",
   "refillPackageAction": "+ Refill package",
   "refillPackageTitle": "Refill package",
   "quantityHint": "Quantity",
   "okAction": "OK",
-
   "remainingApproxPercent": "About {percent}% left",
   "@remainingApproxPercent": {
-    "placeholders": { "percent": { "type": "int" } }
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
   },
   "daysLeftAtCurrentRate": "~{days} days left at current rate",
   "@daysLeftAtCurrentRate": {
-    "placeholders": { "days": { "type": "String" } }
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
   },
   "updateStockEstimateLabel": "Update stock estimate:",
   "openedNewContainerAction": "+ Opened a new container",
   "openedTodayLabel": "Opened today",
   "openedDaysAgoLabel": "Opened {count, plural, one{{count} day ago} other{{count} days ago}}",
   "@openedDaysAgoLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-
   "phaseNumberLabel": "Stage {number}",
   "@phaseNumberLabel": {
-    "placeholders": { "number": { "type": "int" } }
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
   "nowLabel": "now",
   "phaseFromOngoing": "from {date}, ongoing",
   "@phaseFromOngoing": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "courseStagesLabel": "Course stages",
-
   "foodBeforeLabel": "🕐 Before food",
   "foodAfterLabel": "🍽 After food",
   "foodWithLabel": "🥗 With food",
   "foodAnytimeLabel": "✓ Regardless of food",
   "untilDateLabel": "until {date}",
   "@untilDateLabel": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "ongoingLabel": "ongoing",
   "detailsLabel": "Details",
@@ -353,26 +423,46 @@
   "noteLabel": "Note",
   "courseRangeLabel": "from {start} {endPart}",
   "@courseRangeLabel": {
-    "placeholders": { "start": { "type": "String" }, "endPart": { "type": "String" } }
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "endPart": {
+        "type": "String"
+      }
+    }
   },
   "repeatDailyCap": "Daily",
   "repeatAlternateCap": "Every other day",
   "repeatEveryNCap": "Every {n} days",
   "@repeatEveryNCap": {
-    "placeholders": { "n": { "type": "String" } }
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
   },
   "repeatCycleCap": "{on} days on / {off} off",
   "@repeatCycleCap": {
-    "placeholders": { "on": { "type": "String" }, "off": { "type": "String" } }
+    "placeholders": {
+      "on": {
+        "type": "String"
+      },
+      "off": {
+        "type": "String"
+      }
+    }
   },
-
   "stopAction": "Stop",
   "stopCourseConfirmTitle": "Stop the course?",
   "stopCourseConfirmBody": "\"{name}\" will be removed from your active medications.",
   "@stopCourseConfirmBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
-
   "enterMedicationNameError": "Enter the medication name",
   "deleteMedicationConfirmTitle": "Delete this medication?",
   "deleteMedicationConfirmBody": "The medication will be removed from your schedule.",
@@ -392,17 +482,28 @@
   "scanPrescriptionSubtitle": "Elly will add the medication to your schedule",
   "scansRemainingLabel": "{remaining} scans left on the Elly Free plan",
   "@scansRemainingLabel": {
-    "placeholders": { "remaining": { "type": "int" } }
+    "placeholders": {
+      "remaining": {
+        "type": "int"
+      }
+    }
   },
   "orEnterManuallyLabel": "or enter manually",
   "bulkSavedSnackbar": "Added {count} medications. Check the details in your medication list.",
   "@bulkSavedSnackbar": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-
   "phaseCardTitle": "Phase {number}",
   "@phaseCardTitle": {
-    "placeholders": { "number": { "type": "int" } }
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
   "removePhaseAction": "remove",
   "doseAmountLabel": "AMOUNT PER DOSE",
@@ -411,7 +512,11 @@
   "daysCountDashLabel": "— d.",
   "daysCountLabel": "{n} d.",
   "@daysCountLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "orLabel": "or",
   "permanentLabel": "Ongoing",
@@ -422,18 +527,20 @@
   "intervalLabel": "INTERVAL",
   "hoursCountLabel": "{n} h",
   "@hoursCountLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "startLabel": "START",
   "daysCountDialogTitle": "Number of days",
   "daysSuffix": "d.",
   "intervalDialogTitle": "Interval",
   "hoursSuffix": "h",
-
   "doseCommentHint": "Dose comment (optional)",
   "doseAmountDialogTitle": "Amount per dose",
   "doseAmountExampleHint": "e.g. 2.5",
-
   "weekdayExampleLabel": "Mon, Wed, Fri, Sun…",
   "weekdaysOptionLabel": "Specific days of the week",
   "everyNDaysOptionLabel": "Every N days",
@@ -444,7 +551,6 @@
   "cycleExampleLabel": "N days on — M days off",
   "drinkLabel": "Take",
   "breakLabel": "Break",
-
   "optionalParamsLabel": "Additional parameters",
   "optionalLabel": "Optional",
   "trackStockLabel": "Track stock and remind when low",
@@ -453,11 +559,22 @@
   "inStockLabel": "In stock",
   "howManyNowLabel": "How many {unit} do you have now",
   "@howManyNowLabel": {
-    "placeholders": { "unit": { "type": "String" } }
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
   },
   "courseAvailableLabel": " (course needs: {needed}, have: {available})",
   "@courseAvailableLabel": {
-    "placeholders": { "needed": { "type": "int" }, "available": { "type": "int" } }
+    "placeholders": {
+      "needed": {
+        "type": "int"
+      },
+      "available": {
+        "type": "int"
+      }
+    }
   },
   "enoughForCourseLabel": "Enough for the whole course",
   "noCameraAccessError": "No camera access. Allow it in your phone settings.",
@@ -465,26 +582,36 @@
   "packagePhotoLabel": "Package photo",
   "addPhotoAction": "Add photo",
   "addPhotoHint": "so you don't mix up medications",
-
   "inviteMemberTitle": "Invite {name}",
   "@inviteMemberTitle": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "inviteToFamilyTitle": "Invite to family",
   "inviteCreateErrorTitle": "Couldn't create the invitation",
   "tryAgainAction": "Try again",
   "inviteDependentBody": "Have {name} enter this code in the app on their phone. The profile will become independent: all existing history will carry over as starting data, and you'll automatically keep full access to it, just as before.",
   "@inviteDependentBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "inviteMemberBody": "Whoever enters this code will join as an equal member of your family group — with their own profile and their own data. You'll decide separately what they can see of your data.",
   "inviteScanOrEnterHint": "Scan this code on another device\nor enter it manually",
   "codeCopiedSnackbar": "Code copied",
   "inviteCodeExpiryNotice": "The code is valid for 30 minutes and works only once. Data on the server is encrypted — it contains nothing but the access code.",
-
   "alreadyJoinedFamilyError": "You've already joined the family \"{name}\"",
   "@alreadyJoinedFamilyError": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "joinInvalidCodeError": "Couldn't join: invalid or expired code",
   "joinFamilyTitle": "Join a family",
@@ -497,42 +624,69 @@
   "invitesYouToFamilyGroup": "invites you to their family group",
   "joinConsentBody": "You're joining as an equal member — your own profile (name and avatar) will become visible to \"{name}\". This doesn't cancel or change any of your data already entered in the app. Your med card is NEVER automatically shown to anyone — you'll decide exactly what other members can see after joining.",
   "@joinConsentBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "joinConsentCheckbox": "I agree to join the family group \"{name}\"",
   "@joinConsentCheckbox": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "joiningLabel": "Joining…",
   "joinAction": "Join",
   "joinedFamilyTitle": "You're in the family!",
   "joinedFamilyBody": "Now you and \"{name}\" can see each other in the \"Family\" section.",
   "@joinedFamilyBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "scanQrCodeLabel": "Scan QR code",
   "tapToEnableCameraHint": "Tap to enable the camera",
-
   "doctorVisitLabel": "Doctor visit",
   "recordFallbackLabel": "Record",
   "dataFromPeerTitle": "Data from {name}",
   "@dataFromPeerTitle": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "peerNothingSharedYet": "{name} hasn't shared anything with you yet — or access hasn't been granted yet.",
   "@peerNothingSharedYet": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "noViewableDataLabel": "No data available to view",
   "fileRequestSentSnackbar": "Request sent — the file hasn't arrived yet",
   "fileRequestFailedError": "Couldn't send the request: {error}",
   "@fileRequestFailedError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "pdfReceivedSavedSnackbar": "PDF received and saved",
   "fileOpenFailedError": "Couldn't open the file: {error}",
   "@fileOpenFailedError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "loadingEllipsis": "…",
   "pdfLabel": "PDF",
@@ -545,34 +699,63 @@
   "editSentSnackbar": "Edit sent",
   "sendFailedError": "Couldn't send: {error}",
   "@sendFailedError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "sendEditAction": "Send edit",
-
   "familyLabel": "Family",
   "familyMembersCountLabel": "{count, plural, one{{count} member} other{{count} members}}",
   "@familyMembersCountLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "noMedsTodayLabel": "No medications today",
   "allDoneTodayLabel": "All done for today",
   "takenOfTotalIntakesLabel": "{taken} of {total} doses taken",
   "@takenOfTotalIntakesLabel": {
-    "placeholders": { "taken": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "missedRemindersLabel": "{count, plural, one{Missed {count} reminder} other{Missed {count} reminders}}",
   "@missedRemindersLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "nextIntakeLabel": "Next: {medName} at {time}",
   "@nextIntakeLabel": {
-    "placeholders": { "medName": { "type": "String" }, "time": { "type": "String" } }
+    "placeholders": {
+      "medName": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "meLabel": "me",
   "localLabel": "Local",
   "notTakenSuffixLabel": "{time} · not taken",
   "@notTakenSuffixLabel": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "autonomousProfilesPlusOnly": "Independent profiles — Elly Family only",
   "inviteAction": "Invite",
@@ -580,17 +763,29 @@
   "inviteToAppLabel": "Invite to the app",
   "viewAsLabel": "View as {name}",
   "@viewAsLabel": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "deleteForeverAction": "Delete forever",
   "areYouSureTitle": "Are you sure?",
   "deleteMemberConfirmBody": "This will delete all schedule and medical records linked to {name}'s profile",
   "@deleteMemberConfirmBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "careSummaryLabel": "{count, plural, one{You're caring for {count} loved one} other{You're caring for {count} loved ones}}. Elly will notify you if someone misses a dose.",
   "@careSummaryLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "addFamilyMemberLabel": "Add family member",
   "addMemberHint": "Parent, child, partner…",
@@ -600,60 +795,111 @@
   "familyUpgradeSubtitle": "So your family can manage it too — upgrade to Elly Family",
   "leaveGroupConfirmTitle": "Leave \"{name}\"?",
   "@leaveGroupConfirmTitle": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "leaveGroupConfirmBody": "Members of this group will lose access to your data, and you'll lose access to what they shared with you. Other family groups won't be affected.",
   "leaveAction": "Leave",
   "leftGroupSnackbar": "You left \"{name}\"",
   "@leftGroupSnackbar": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "familyGroupSectionLabel": "Family group",
   "slotsUsedLabel": "{used} of {total}",
   "@slotsUsedLabel": {
-    "placeholders": { "used": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "autonomousLimitReachedTitle": "Independent profile limit reached",
   "autonomousLimitReachedSubtitle": "Upgrade to Elly Family to invite more people",
   "myFamilyLabel": "My family",
   "peerFamilyLabel": "{name}'s family",
   "@peerFamilyLabel": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "doctorFallbackLabel": "Doctor",
   "reminderPushTitle": "🔔 Reminder",
   "reminderTakeMedBody": "Don't forget to take \"{title}\"{detailSuffix} at {time}",
   "@reminderTakeMedBody": {
     "placeholders": {
-      "title": { "type": "String" },
-      "detailSuffix": { "type": "String" },
-      "time": { "type": "String" }
+      "title": {
+        "type": "String"
+      },
+      "detailSuffix": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
     }
   },
   "reminderDoActivityBody": "Don't forget to do \"{title}\" at {time}",
   "@reminderDoActivityBody": {
-    "placeholders": { "title": { "type": "String" }, "time": { "type": "String" } }
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "reminderDoctorVisitBody": "Don't forget your appointment: {title}{detailSuffix}",
   "@reminderDoctorVisitBody": {
-    "placeholders": { "title": { "type": "String" }, "detailSuffix": { "type": "String" } }
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detailSuffix": {
+        "type": "String"
+      }
+    }
   },
   "reminderWellbeingBody": "Don't forget to log your wellbeing",
   "reminderGenericBody": "Check your schedule",
   "reminderSentSnackbar": "Reminder sent to {name}",
   "@reminderSentSnackbar": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "independentAccountLabel": "Independent account",
   "missedLabel": "Missed",
   "missedCountLabel": "Missed {count}",
   "@missedCountLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "remindAction": "🔔 Remind",
   "removePeerConfirmTitle": "Remove \"{name}\"?",
   "@removePeerConfirmTitle": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "removePeerConfirmBody": "You'll both lose access to the data you shared with each other.",
   "confirmGuardianConsentSnackbar": "Please confirm you're authorized to manage this person's data",
@@ -661,14 +907,12 @@
   "avatarFieldLabel": "AVATAR",
   "memberNameHint": "Mom, Dad, Grandma…",
   "guardianConsentCheckbox": "I am this person's legal guardian, or I have their consent to manage their data in the app",
-
   "debugLogTitle": "Event log",
   "debugLogEmptyBody": "The log is empty.",
   "debugLogEmptySnackbar": "Log is empty",
   "debugLogShareSubject": "Elly — event log",
   "clearAction": "Clear",
   "shareAction": "Share",
-
   "antiStressLabel": "Anti-stress exercises",
   "antiStressPickerSubtitle": "Choose what will help right now",
   "breathingExerciseTitle": "Let's breathe together",
@@ -677,12 +921,15 @@
   "grounding54321Subtitle": "A grounding technique that brings your attention back to the here and now",
   "clearMindTitle": "Clear mind",
   "clearMindPickerSubtitle": "Swipe your finger across the screen and the fog will clear",
-
   "breathingScreenHeaderLabel": "A moment of calm",
   "breathingDoneBody": "Well done! You made it through.",
   "breathingCyclesLeftBody": "Slow inhale... and exhale. {count, plural, one{{count} cycle left.} other{{count} cycles left.}}",
   "@breathingCyclesLeftBody": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "restartAction": "Again",
   "inhaleLabel": "Inhale",
@@ -691,11 +938,9 @@
   "safeYouSubtitle": "This anxiety will pass. Elly is here for as long as you need.",
   "differentExerciseAction": "Different exercise",
   "feelBetterAction": "I feel better",
-
   "clearMindHeading": "Clear the fog",
   "clearMindInstructions": "Swipe your finger across the screen to see what's hiding behind the fog",
   "clearMindTouchHint": "👆 Touch and drag your finger",
-
   "familyVisibilityLabel": "Family visibility",
   "familyVisibilityEmptyBody": "If independent members (with their own account) join your family group, you'll be able to manage their access to your profile here",
   "familyVisibilityIntro": "What other family members can see and do with your profile",
@@ -706,7 +951,6 @@
   "viewerEditPermissionLabel": "Can edit the profile",
   "viewerViewPermissionLabel": "Can see tasks, med card, and schedule",
   "permissionDeniedNotYoursBody": "Couldn't change it — this isn't your profile",
-
   "voiceConsentTitle": "Voice commands",
   "voiceConsentDescription": "Voice recognition via Anthropic (Claude) — for adding medications, marking doses taken, and other voice commands.",
   "scanConsentTitle": "Prescription scanning",
@@ -720,27 +964,45 @@
   "deleteProfileForeverLabel": "Delete profile forever",
   "deleteProfileForeverBody": "This will delete all data for \"{name}\"'s profile — locally and on the server, if sharing is set up",
   "@deleteProfileForeverBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "appLockToggleLabel": "App lock",
   "appLockDescription": "Face ID, Touch ID, or device passcode every time you open Elly",
   "policyAcceptedLabel": "Accepted {date} · version {version}",
   "@policyAcceptedLabel": {
-    "placeholders": { "date": { "type": "String" }, "version": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
   },
   "policyAcceptedOldVersionLabel": "You accepted an older version ({version}) — you'll be asked to agree again",
   "@policyAcceptedOldVersionLabel": {
-    "placeholders": { "version": { "type": "String" } }
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
   },
   "policyNotAcceptedLabel": "Not accepted yet",
   "viewFullTextAction": "View full text",
   "consentGivenLabel": "Given on {date}",
   "@consentGivenLabel": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "consentNotGivenLabel": "Consent not given",
   "revokeConsentAction": "Revoke consent",
-
   "groundStep5Title": "5 things you can see",
   "groundStep5Hint": "One thing, e.g. a window",
   "groundStep4Title": "4 things you can feel",
@@ -753,17 +1015,27 @@
   "groundStep1Hint": "One taste, e.g. mint",
   "groundingNameStepLabel": "Name {title}",
   "@groundingNameStepLabel": {
-    "placeholders": { "title": { "type": "String" } }
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   },
   "groundingProgressCounter": "{count} / {total} named",
   "@groundingProgressCounter": {
-    "placeholders": { "count": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "groundingListeningLabel": "Listening…",
   "groundingSkipStepAction": "Skip this step",
   "groundingCompletedTitle": "You're back in the here and now",
   "groundingCompletedSubtitle": "Great work. Come back to this exercise whenever you need it.",
-
   "healthSectionHeader": "Health & exercises",
   "appSettingsSectionHeader": "App settings",
   "accountSectionHeader": "Account",
@@ -792,7 +1064,6 @@
   "editProfileTitle": "Edit profile",
   "yourNameHint": "Your name",
   "saveAction": "Save",
-
   "appointmentsHistoryTitle": "Doctor visits",
   "sectionFuture": "Upcoming",
   "visitPassedLabel": "✓ completed",
@@ -814,7 +1085,6 @@
   "monthAbbrOct": "OCT",
   "monthAbbrNov": "NOV",
   "monthAbbrDec": "DEC",
-
   "remindBefore1Hour": "1 hour before",
   "remindBefore1Day": "1 day before",
   "remindBefore2Days": "2 days before",
@@ -846,13 +1116,16 @@
   "monthGenOct": "October",
   "monthGenNov": "November",
   "monthGenDec": "December",
-
   "symptomsTitle": "Symptoms",
   "symptomSearchHint": "Search or type a new name…",
   "symptomListEmptyLabel": "The list is empty",
   "addCustomSymptomLabel": "Add \"{query}\"",
   "@addCustomSymptomLabel": {
-    "placeholders": { "query": { "type": "String" } }
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
   },
   "historyLabel": "History",
   "wellbeingScheduleInfoText": "Set up a schedule for wellbeing check-ins. A card to fill in will appear on the home screen at the scheduled time.",
@@ -860,19 +1133,30 @@
   "collectionTimeLabel": "CHECK-IN TIME",
   "wellbeingSlotNumberLabel": "Check-in {index}",
   "@wellbeingSlotNumberLabel": {
-    "placeholders": { "index": { "type": "int" } }
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
   },
   "timesCountShort": "{count, plural, one{{count} time} other{{count} times}}",
   "@timesCountShort": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "saveScheduleAction": "Save schedule",
-
   "wellbeingByDaySubtitle": "wellbeing by day",
   "addWellbeingSlotAction": "+ Check-in",
   "moodChartTitle": "Mood — {month}",
   "@moodChartTitle": {
-    "placeholders": { "month": { "type": "String" } }
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
   },
   "monthNomJan": "January",
   "monthNomFeb": "February",
@@ -897,14 +1181,17 @@
   "yesterdayLowerLabel": "yesterday",
   "quotedCommentLabel": "\"{comment}\"",
   "@quotedCommentLabel": {
-    "placeholders": { "comment": { "type": "String" } }
+    "placeholders": {
+      "comment": {
+        "type": "String"
+      }
+    }
   },
   "noWellbeingLogsTitle": "No check-ins yet",
   "noWellbeingLogsHint": "Tap \"+ Check-in\" to add your first one",
   "comingSoonEllipsis": "Coming soon...",
   "sendDiaryToDoctorLabel": "Send diary to doctor",
   "diarySummaryHint": "Check-ins + symptoms + doses for the month",
-
   "moodBadLabel": "Bad",
   "moodMehLabel": "Meh",
   "moodOkLabel": "OK",
@@ -931,7 +1218,6 @@
   "tapAndSpeakLabel": "Tap and speak",
   "speakNowLabel": "Speak now… tap to stop",
   "preparingMicLabel": "Getting ready… one second",
-
   "symptomHeadache": "headache",
   "symptomNausea": "nausea",
   "symptomDizziness": "dizziness",
@@ -982,7 +1268,6 @@
   "symptomMoodSwings": "mood swings",
   "symptomWeightLoss": "weight loss",
   "symptomWeightGain": "weight gain",
-
   "restoreErrorBody": "Couldn't restore: check your password and connection, then try again",
   "backupPasswordDialogTitle": "Backup password",
   "backupPasswordDialogBody": "Enter the password you set when creating the backup.",
@@ -991,7 +1276,6 @@
   "restoreAccountSubtitle": "Connect to the storage where your backup is saved",
   "googleDriveLabel": "Google Drive",
   "iCloudLabel": "iCloud",
-
   "doneExclamationTitle": "Done!",
   "setupCompleteBody": "Everything's set up. Open the dashboard and start tracking your health.",
   "firstReminderTodayLabel": "First reminder — today",
@@ -1001,7 +1285,6 @@
   "privacyConsentPrefix": "I have read and agree to the ",
   "privacyConsentSuffix": " of the app",
   "openDashboardAction": "Open dashboard →",
-
   "joinFailedCheckCodeError": "Couldn't join: check the code",
   "connectToFamilyTitle": "Connect to family",
   "enterAccessCodeHint": "Enter the access code your family sent you",
@@ -1009,7 +1292,11 @@
   "scheduleAlreadyReadyTitle": "Schedule is already set up",
   "scheduleSetByInviterBody": "{name} has already set up a medication schedule for you. You'll be able to edit it any time after connecting.",
   "@scheduleSetByInviterBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "agreeUseFamilyScheduleCheckbox": "I agree to use the schedule set up by my family",
   "startAction": "Start",
@@ -1017,18 +1304,28 @@
   "declineScheduleCreateOwnAction": "No, I'll create my own schedule",
   "familyFallbackName": "Family",
   "profileFallbackName": "Profile",
-
   "enterYourNameError": "Enter your name",
   "walkActivityName": "Walk",
   "onboardingFinishError": "Error finishing setup: {error}",
   "@onboardingFinishError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "welcomeGreeting": "Hi there! 👋",
   "welcomeDescription": "Elly helps you keep track of medications,\nactivities, and wellbeing — for you\nand your whole family",
   "onboardingStepLabel": "Step {step} of {total}",
   "@onboardingStepLabel": {
-    "placeholders": { "step": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "accountChoiceTitle": "How would you like to start?",
   "accountChoiceSubtitle": "Choose the option that fits you",
@@ -1056,11 +1353,14 @@
   "wellbeingSlotsTitle": "Wellbeing check-ins",
   "wellbeingSlotsSub": "2–3 times a day · 8:00 AM, 2:00 PM, 8:00 PM",
   "almostDoneAction": "Almost done →",
-
   "scanNoResultsError": "Couldn't recognize any medication in the photo. Try taking a clearer picture.",
   "scanErrorWithMessage": "Scan error: {error}",
   "@scanErrorWithMessage": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "scanPrescriptionScreenTitle": "Scan prescription",
   "beforeYouStartTitle": "Before you start",
@@ -1074,13 +1374,21 @@
   "scanAction": "Scan",
   "scanRecognizedCountLabel": "Recognized {count}. Review before adding:",
   "@scanRecognizedCountLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "expandAndConfirmHint": "Expand a medication, check the details, and check the box to confirm adding it.",
   "chooseMedsAction": "Choose medications",
   "addSelectedCountAction": "Add selected ({count})",
   "@addSelectedCountAction": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "scheduleTimeMorning": "Morning",
   "scheduleTimeAfternoon": "Afternoon",
@@ -1094,22 +1402,33 @@
   "foodRelationCapsLabel": "RELATION TO FOOD",
   "possibleSideEffectsPrefix": "⚡ Possible side effects: {list}. ",
   "@possibleSideEffectsPrefix": {
-    "placeholders": { "list": { "type": "String" } }
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
   },
   "checkInstructionsShortLabel": "Check the medication's instructions.",
   "confirmedCheckLabel": "Confirmed ✓",
   "confirmAllCorrectAction": "Everything's correct, confirm",
   "somethingWentWrongTitle": "Something went wrong",
-
   "sttErrorLabel": "Speech recognition error: {error}",
   "@sttErrorLabel": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "speechNotAvailableError": "Speech recognition isn't available on this device",
   "nothingHeardError": "Didn't hear anything. Try again.",
   "analysisErrorWithMessage": "Analysis error: {error}",
   "@analysisErrorWithMessage": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "commandNotRecognizedError": "Couldn't recognize the command",
   "voiceControlTitle": "Voice control",
@@ -1124,7 +1443,11 @@
   "tapAndSayCommandHint": "Tap and say a command\nor start speaking",
   "dictateLanguageHint": "Dictate in {language}. You can change this in Profile → Language.",
   "@dictateLanguageHint": {
-    "placeholders": { "language": { "type": "String" } }
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
   },
   "commandExamplesCapsLabel": "EXAMPLE COMMANDS",
   "experimentalFeatureNotice": "This is an experimental feature — recognition may fill in data inaccurately, always check the form before saving.",
@@ -1135,7 +1458,11 @@
   "waitBeforeSpeakingHint": "Wait a second before speaking",
   "quotedTextLabel": "\"{text}\"",
   "@quotedTextLabel": {
-    "placeholders": { "text": { "type": "String" } }
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
   },
   "analyzingCommandLabel": "Analyzing command...",
   "actionCapsLabel": "ACTION",
@@ -1155,11 +1482,14 @@
   "refFoodAnyLabel": "Regardless of food",
   "possibleSideEffectsLabel": "⚡ Possible side effects: {list}",
   "@possibleSideEffectsLabel": {
-    "placeholders": { "list": { "type": "String" } }
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
   },
   "referenceInfoDisclaimer": "⚠️ For reference only, not guaranteed. Check the medication's instructions.",
   "nextShortAction": "Next",
-
   "backupScreenTitle": "Backup",
   "backupIntroBody": "Medications, schedule, med card (photos/PDFs), and all other data — choose where to keep your backup.",
   "backupModeLocalTitle": "Device only",
@@ -1173,7 +1503,11 @@
   "backupNeverDoneLabel": "No backup yet",
   "lastBackupAtLabel": "Last backup: {date}",
   "@lastBackupAtLabel": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "createBackupNowAction": "Create backup now",
   "restoreFromBackupAction": "Restore from backup",
@@ -1182,7 +1516,11 @@
   "backupPassphraseDialogSubtitle": "Choose a password. Without it, your data can't be restored — not even by us.",
   "backupSavedSnackbar": "Backup saved to {target}",
   "@backupSavedSnackbar": {
-    "placeholders": { "target": { "type": "String" } }
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
   },
   "restorePassphraseDialogTitle": "Backup password",
   "restorePassphraseDialogSubtitle": "Enter the password you set when creating the backup.",
@@ -1198,7 +1536,6 @@
   "passwordTooShortError": "Password must be at least 6 characters",
   "passwordsMismatchError": "Passwords don't match",
   "gotItAction": "Got it",
-
   "choosePlanTitle": "Choose your plan",
   "choosePlanSubtitle": "Health care for your whole family",
   "monthToggleLabel": "Month",
@@ -1208,11 +1545,19 @@
   "breakAndChangePlanAction": "Break ties and change plan",
   "planActivatedTestSnackbar": "{plan} activated (test mode, no real payment)",
   "@planActivatedTestSnackbar": {
-    "placeholders": { "plan": { "type": "String" } }
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
   },
   "actionFailedError": "Failed: {error}",
   "@actionFailedError": {
-    "placeholders": { "error": { "type": "String" } }
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
   },
   "planForeverPeriod": "forever",
   "planPerMonthYearlyPeriod": "per month (billed yearly)",
@@ -1237,15 +1582,17 @@
   "privacyPolicyLinkLabel": "Privacy Policy",
   "termsOfUseLinkLabel": "Terms of Use",
   "currentPlanLabel": "Current",
-
   "tooManyProfilesForPlanTitle": "Too many profiles for this plan",
   "upgradeToEditSubtitle": "Upgrade to Elly Plus or Elly Family to edit",
   "viewPlansAction": "View plans",
-
   "paymentFailedTitle": "Payment couldn't be charged",
   "gracePeriodRemainingBody": "You have {timeLeft} left to update your payment method — everything still works without limits in the meantime, for you and everyone in your family group.",
   "@gracePeriodRemainingBody": {
-    "placeholders": { "timeLeft": { "type": "String" } }
+    "placeholders": {
+      "timeLeft": {
+        "type": "String"
+      }
+    }
   },
   "gracePeriodExpiredBody": "Update your payment method right away, or your family group will be broken up.",
   "laterAction": "Later",
@@ -1254,30 +1601,38 @@
   "changePlanAction": "Change plan",
   "daysLeftLabel": "{count, plural, one{{count} day} other{{count} days}}",
   "@daysLeftLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "hoursLeftLabel": "{count, plural, one{{count} hour} other{{count} hours}}",
   "@hoursLeftLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "minutesLeftLabel": "{count, plural, one{{count} minute} other{{count} minutes}}",
   "@minutesLeftLabel": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
-
   "planFreeShortLabel": "Free",
-
   "exportShareSubject": "Elly — data export",
   "exportCopyTitle": "A copy of all your data",
   "exportDescriptionBody": "A JSON file with all profiles, medications, schedule, doses, wellbeing logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they're already in your \"Backup\") — text data only.",
   "exportAction": "Export",
-
   "appLockedTitle": "Elly is locked",
   "authFailedRetryBody": "Couldn't verify your identity — try again",
   "confirmIdentityBody": "Confirm your identity to continue",
   "checkingDotsLabel": "Checking...",
   "unlockAction": "Unlock",
-
   "addTypeSheetTitle": "What would you like to add?",
   "addTypeSheetSubtitle": "Choose a type — the form will adjust",
   "addTypeMedsSub": "Schedule, dosage, AI prescription scan",
@@ -1285,7 +1640,6 @@
   "addTypeWellbeingSub": "Log a check-in — mood, symptoms, comment",
   "addTypeAppointmentSub": "Choose a specialist, time, and get reminders",
   "voiceCommandLabel": "Voice command",
-
   "faqGroupPrivacyTitle": "Privacy & data",
   "faqPrivacyQ1": "Who can see my data?",
   "faqPrivacyA1": "No one but you. Everything is stored encrypted on your device (SQLCipher, AES-256). Elly's server is deliberately \"blind\": there's no email or password registration, and whatever does pass through the server (family invitations, sync, subscription confirmation) only sees encrypted blocks and technical identifiers — impossible to decrypt without the key.",
@@ -1323,7 +1677,6 @@
   "supportLabel": "Support",
   "supportChatLabel": "Support chat",
   "soonLabel": "Coming soon",
-
   "notificationsMainSectionTitle": "Main",
   "pushNotificationsLabel": "Push notifications",
   "pushNotificationsSub": "Reminders to take your medications",
@@ -1343,14 +1696,21 @@
   "noOffsetLabel": "no offset",
   "minusMinutesLabel": "−{minutes} min",
   "@minusMinutesLabel": {
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "repeatIfNoResponseLabel": "Repeat if no response",
   "repeatInLabel": "In {label}",
   "@repeatInLabel": {
-    "placeholders": { "label": { "type": "String" } }
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
   },
-
   "deleteActivityConfirmTitle": "Delete this activity?",
   "deleteActivityConfirmBody": "The activity will be removed from your schedule.",
   "chooseActivityTypeError": "Choose an activity type",
@@ -1372,44 +1732,60 @@
   "saveActivityAction": "Save activity",
   "activitySessionNumberLabel": "Session {number}",
   "@activitySessionNumberLabel": {
-    "placeholders": { "number": { "type": "int" } }
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   },
   "noDurationLabel": "No duration",
   "saveWithDurationLabel": "Save · {duration}",
   "@saveWithDurationLabel": {
-    "placeholders": { "duration": { "type": "String" } }
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
   },
   "durationHoursMinutesLabel": "{hours} h {minutes} min",
   "@durationHoursMinutesLabel": {
-    "placeholders": { "hours": { "type": "int" }, "minutes": { "type": "int" } }
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "minutesWithValueLabel": "{value} min",
   "@minutesWithValueLabel": {
-    "placeholders": { "value": { "type": "String" } }
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
-
   "taskColorPickerLabel": "CARD COLOR",
-
   "viewingProfileLabel": "You're viewing: {name}",
   "@viewingProfileLabel": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "returnAction": "Return",
-
   "foodRelationUnspecified": "Not selected",
   "foodRelationWith": "With food",
   "foodRelationPickerTitle": "Relation to food",
-
   "recoveryKeyDialogTitle": "Your recovery key",
   "recoveryKeyDialogBody": "Save this code somewhere safe. It's the only way to restore your data on a new device — without it, we can't help you either.",
   "copiedSnackbar": "Copied",
   "recoveryKeySavedConfirmAction": "I've saved the code",
-
   "buyAction": "Buy",
   "affiliateDisclaimerLabel": "Ad · affiliate link, Elly doesn't sell this product",
-
   "legalPageLoadError": "Couldn't load the page. Check your internet connection.",
-
   "medFormTablet": "Tablet",
   "medFormCapsule": "Capsule",
   "medFormSuppository": "Suppository",
@@ -1428,9 +1804,7 @@
   "medUnitSuppository": "supp.",
   "medUnitVial": "vial",
   "medUnitPiece": "pc.",
-
   "chooseProfileLabel": "Choose a profile",
-
   "otherSpecialtyDialogTitle": "Other specialty",
   "otherSpecialtyHint": "E.g. Homeopath",
   "chooseAction": "Choose",
@@ -1464,10 +1838,8 @@
   "specialtyPhlebologist": "Phlebologist",
   "specialtyMammologist": "Mammologist",
   "specialtyOther": "Other",
-
   "noDocumentsLabel": "No documents",
   "addPhotoOrPdfLabel": "Add photo or PDF",
-
   "labTestCbc": "Complete blood count",
   "labTestUrinalysis": "Urinalysis",
   "labTestBloodChemistry": "Blood chemistry panel",
@@ -1518,7 +1890,6 @@
   "labTestBloodElectrolytes": "Blood electrolytes",
   "labTestTotalProtein": "Total protein",
   "labTestDDimer": "D-dimer",
-
   "notifChannelName": "Elly reminders",
   "notifChannelDesc": "Reminders for medications, activities, visits, and wellbeing check-ins",
   "notifTakeMedTitle": "💊 Time to take your medication",
@@ -1529,9 +1900,15 @@
   "notifLowStockBody": "{medName} — {remaining} {unit} left",
   "@notifLowStockBody": {
     "placeholders": {
-      "medName": { "type": "String" },
-      "remaining": { "type": "int" },
-      "unit": { "type": "String" }
+      "medName": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "notifActivityTitle": "🚶 Time for your activity",
@@ -1543,37 +1920,83 @@
   "notifVaccinationTitle": "💉 Time for a booster",
   "notifPeerCheckTitle": "🔔 Check on {subjectName}",
   "@notifPeerCheckTitle": {
-    "placeholders": { "subjectName": { "type": "String" } }
+    "placeholders": {
+      "subjectName": {
+        "type": "String"
+      }
+    }
   },
   "notifPeerIntakeCheckBody": "Was \"{medName}\" ({dose}) taken at {timeStr}? Open the app and wait for sync to see the current status.",
   "@notifPeerIntakeCheckBody": {
     "placeholders": {
-      "medName": { "type": "String" },
-      "dose": { "type": "String" },
-      "timeStr": { "type": "String" }
+      "medName": {
+        "type": "String"
+      },
+      "dose": {
+        "type": "String"
+      },
+      "timeStr": {
+        "type": "String"
+      }
     }
   },
   "notifPeerActivityCheckBody": "Was \"{activityName}\" done at {timeStr}? Open the app and wait for sync to see the current status.",
   "@notifPeerActivityCheckBody": {
     "placeholders": {
-      "activityName": { "type": "String" },
-      "timeStr": { "type": "String" }
+      "activityName": {
+        "type": "String"
+      },
+      "timeStr": {
+        "type": "String"
+      }
     }
   },
   "notifPeerAppointmentCheckBody": "Did the appointment (\"{doctorType}\") at {timeStr} happen? Open the app and wait for sync to see the current status.",
   "@notifPeerAppointmentCheckBody": {
     "placeholders": {
-      "doctorType": { "type": "String" },
-      "timeStr": { "type": "String" }
+      "doctorType": {
+        "type": "String"
+      },
+      "timeStr": {
+        "type": "String"
+      }
     }
   },
   "notifPeerWellbeingCheckBody": "Was the wellbeing check-in at {timeStr} done? Open the app and wait for sync to see the current status.",
   "@notifPeerWellbeingCheckBody": {
-    "placeholders": { "timeStr": { "type": "String" } }
+    "placeholders": {
+      "timeStr": {
+        "type": "String"
+      }
+    }
   },
-
   "forMemberSuffix": " for {name}",
   "@forMemberSuffix": {
-    "placeholders": { "name": { "type": "String" } }
-  }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "resetLocalDbConfirmTitle": "Reset local database?",
+  "resetLocalDbConfirmBody": "The encryption key doesn't match the database file on this device — the existing data can't be decrypted. This will delete the corrupted file locally so you can start fresh. This action can't be undone.",
+  "resetAction": "Reset",
+  "dbLoadErrorTitle": "Couldn't load your data",
+  "dbLoadErrorBody": "Your data hasn't gone anywhere — a technical error occurred while reading it.",
+  "dbErrorTryThisFirstLabel": "Try this first",
+  "dbErrorCloseReopenHint": "Fully close the app (not just minimize it — actually close it from the app switcher) and reopen it. This resolves the issue in most cases without any data loss.",
+  "tryAgainButtonAction": "Try again",
+  "dbErrorMoreActionHint": "If closing and reopening the app didn't help — after a few tries an additional option will appear here.",
+  "resetLocalDbAction": "Reset local database",
+  "hideDetailsAction": "Hide details",
+  "showErrorDetailsAction": "Show error details",
+  "copiedToClipboardSnackbar": "Copied",
+  "copyErrorTextAction": "Copy error text",
+  "unlockPhoneTitle": "Unlock your phone",
+  "unlockPhoneBody": "Your data is safe — nothing is damaged and there's nothing to delete. iOS is simply keeping the encryption key locked until the phone has been unlocked at least once since restart.",
+  "unlockStep1": "Unlock your phone (Face ID, Touch ID, or passcode).",
+  "unlockStep2": "Return to Elly — your data will load automatically, nothing to tap.",
+  "checkAgainAction": "Check again",
+  "loadingEllipsisLabel": "Loading...",
+  "familyDisbandedReason": "Family payment couldn't be renewed in time, so the family group has been disbanded. Your local data hasn't gone anywhere."
 }

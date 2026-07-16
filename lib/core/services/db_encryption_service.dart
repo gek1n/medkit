@@ -88,14 +88,22 @@ class DbEncryptionService {
     // (не з кешу _getOrCreateKey, а справжній read()), перш ніж здатись і
     // віддати Drift-у те, що є (тоді спрацює вже наявний _isKeyMismatch UI
     // у main.dart, як і раніше).
-    for (var attempt = 0; attempt < 3 && !_keyOpensDatabase(dbFile, key); attempt++) {
+    // Емпірика з логів (звіти користувачів): цей розсинхрон майже завжди
+    // самостійно минає, але НЕ від повторної спроби в тому ж процесі —
+    // лише від повного вбивства й перезапуску застосунку (нова спроба
+    // Keychain-читання з чистого процесу). Тобто короткий ретрай тут
+    // рідко встигає щось "вилікувати" сам по собі — але подовжуємо вікно
+    // з 3×300мс (макс. ~1.8с) до 5×500мс (макс. ~7.5с) про всяк випадок,
+    // якщо причина — все ж таки повільний Keystore/securityd, а не
+    // по-справжньому "чекає на новий процес".
+    for (var attempt = 0; attempt < 5 && !_keyOpensDatabase(dbFile, key); attempt++) {
       AppLogger.log(
         'DbEncryptionService: key from secure storage does not open '
-        'existing db (attempt ${attempt + 1}/3) — re-reading Keychain '
+        'existing db (attempt ${attempt + 1}/5) — re-reading Keychain '
         'before giving up',
         level: 'warn',
       );
-      await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
       key = await _getOrCreateKey();
     }
 

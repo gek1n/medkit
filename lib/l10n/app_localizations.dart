@@ -6991,6 +6991,132 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **' для {name}'**
   String forMemberSuffix(String name);
+
+  /// No description provided for @resetLocalDbConfirmTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скинути локальну базу?'**
+  String get resetLocalDbConfirmTitle;
+
+  /// No description provided for @resetLocalDbConfirmBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ключ шифрування не збігається з файлом бази на цьому пристрої — розшифрувати наявні дані неможливо. Це видалить пошкоджений файл локально і дасть змогу почати заново. Дію неможливо скасувати.'**
+  String get resetLocalDbConfirmBody;
+
+  /// No description provided for @resetAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скинути'**
+  String get resetAction;
+
+  /// No description provided for @dbLoadErrorTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Не вдалося завантажити дані'**
+  String get dbLoadErrorTitle;
+
+  /// No description provided for @dbLoadErrorBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ваші дані нікуди не зникли — сталася технічна помилка при їх читанні.'**
+  String get dbLoadErrorBody;
+
+  /// No description provided for @dbErrorTryThisFirstLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Спробуйте це першим'**
+  String get dbErrorTryThisFirstLabel;
+
+  /// No description provided for @dbErrorCloseReopenHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Повністю закрийте застосунок (не просто згорніть — справді закрийте його через список запущених застосунків) і відкрийте знову. У переважній більшості випадків це вирішує проблему без втрати даних.'**
+  String get dbErrorCloseReopenHint;
+
+  /// No description provided for @tryAgainButtonAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Спробувати ще раз'**
+  String get tryAgainButtonAction;
+
+  /// No description provided for @dbErrorMoreActionHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Якщо закриття й повторний запуск застосунку не допомогли — після кількох спроб тут з\'явиться додаткова дія.'**
+  String get dbErrorMoreActionHint;
+
+  /// No description provided for @resetLocalDbAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скинути локальну базу'**
+  String get resetLocalDbAction;
+
+  /// No description provided for @hideDetailsAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Сховати деталі'**
+  String get hideDetailsAction;
+
+  /// No description provided for @showErrorDetailsAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Показати деталі помилки'**
+  String get showErrorDetailsAction;
+
+  /// No description provided for @copiedToClipboardSnackbar.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скопійовано'**
+  String get copiedToClipboardSnackbar;
+
+  /// No description provided for @copyErrorTextAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Копіювати текст помилки'**
+  String get copyErrorTextAction;
+
+  /// No description provided for @unlockPhoneTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розблокуйте телефон'**
+  String get unlockPhoneTitle;
+
+  /// No description provided for @unlockPhoneBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ваші дані в безпеці — нічого не пошкоджено і видаляти нічого не потрібно. Просто iOS тримає ключ шифрування заблокованим, поки телефон не розблоковано хоча б раз після перезавантаження.'**
+  String get unlockPhoneBody;
+
+  /// No description provided for @unlockStep1.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розблокуйте телефон (Face ID, Touch ID або код-пароль).'**
+  String get unlockStep1;
+
+  /// No description provided for @unlockStep2.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поверніться в Elly — дані підвантажаться самі, нічого натискати не треба.'**
+  String get unlockStep2;
+
+  /// No description provided for @checkAgainAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Перевірити знову'**
+  String get checkAgainAction;
+
+  /// No description provided for @loadingEllipsisLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Завантажую...'**
+  String get loadingEllipsisLabel;
+
+  /// No description provided for @familyDisbandedReason.
+  ///
+  /// In uk, this message translates to:
+  /// **'Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.'**
+  String get familyDisbandedReason;
 }
 
 class _AppLocalizationsDelegate
