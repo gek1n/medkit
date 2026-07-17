@@ -6994,89 +6994,17 @@ abstract class AppLocalizations {
   /// **' для {name}'**
   String forMemberSuffix(String name);
 
-  /// No description provided for @resetLocalDbConfirmTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скинути локальну базу?'**
-  String get resetLocalDbConfirmTitle;
-
-  /// No description provided for @resetLocalDbConfirmBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ключ шифрування не збігається з файлом бази на цьому пристрої — розшифрувати наявні дані неможливо. Це видалить пошкоджений файл локально і дасть змогу почати заново. Дію неможливо скасувати.'**
-  String get resetLocalDbConfirmBody;
-
-  /// No description provided for @resetAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скинути'**
-  String get resetAction;
-
   /// No description provided for @dbLoadErrorTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Не вдалося завантажити дані'**
+  /// **'Потрібно перезапустити Elly'**
   String get dbLoadErrorTitle;
 
   /// No description provided for @dbLoadErrorBody.
   ///
   /// In uk, this message translates to:
-  /// **'Ваші дані нікуди не зникли — сталася технічна помилка при їх читанні.'**
+  /// **'Закрийте застосунок повністю — проведіть пальцем вгору з нижнього краю екрана й змахніть картку Elly — а тоді відкрийте знову. Ваші дані нікуди не зникли, за кілька секунд усе повернеться на місце.'**
   String get dbLoadErrorBody;
-
-  /// No description provided for @dbErrorTryThisFirstLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Спробуйте це першим'**
-  String get dbErrorTryThisFirstLabel;
-
-  /// No description provided for @dbErrorCloseReopenHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Повністю закрийте застосунок (не просто згорніть — справді закрийте його через список запущених застосунків) і відкрийте знову. У переважній більшості випадків це вирішує проблему без втрати даних.'**
-  String get dbErrorCloseReopenHint;
-
-  /// No description provided for @tryAgainButtonAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Спробувати ще раз'**
-  String get tryAgainButtonAction;
-
-  /// No description provided for @dbErrorMoreActionHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Якщо закриття й повторний запуск застосунку не допомогли — після кількох спроб тут з\'явиться додаткова дія.'**
-  String get dbErrorMoreActionHint;
-
-  /// No description provided for @resetLocalDbAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скинути локальну базу'**
-  String get resetLocalDbAction;
-
-  /// No description provided for @hideDetailsAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сховати деталі'**
-  String get hideDetailsAction;
-
-  /// No description provided for @showErrorDetailsAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Показати деталі помилки'**
-  String get showErrorDetailsAction;
-
-  /// No description provided for @copiedToClipboardSnackbar.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скопійовано'**
-  String get copiedToClipboardSnackbar;
-
-  /// No description provided for @copyErrorTextAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Копіювати текст помилки'**
-  String get copyErrorTextAction;
 
   /// No description provided for @unlockPhoneTitle.
   ///

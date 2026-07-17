@@ -3889,50 +3889,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get resetLocalDbConfirmTitle => 'Reset local database?';
-
-  @override
-  String get resetLocalDbConfirmBody =>
-      'The encryption key doesn\'t match the database file on this device — the existing data can\'t be decrypted. This will delete the corrupted file locally so you can start fresh. This action can\'t be undone.';
-
-  @override
-  String get resetAction => 'Reset';
-
-  @override
-  String get dbLoadErrorTitle => 'Couldn\'t load your data';
+  String get dbLoadErrorTitle => 'Elly needs a restart';
 
   @override
   String get dbLoadErrorBody =>
-      'Your data hasn\'t gone anywhere — a technical error occurred while reading it.';
-
-  @override
-  String get dbErrorTryThisFirstLabel => 'Try this first';
-
-  @override
-  String get dbErrorCloseReopenHint =>
-      'Fully close the app (not just minimize it — actually close it from the app switcher) and reopen it. This resolves the issue in most cases without any data loss.';
-
-  @override
-  String get tryAgainButtonAction => 'Try again';
-
-  @override
-  String get dbErrorMoreActionHint =>
-      'If closing and reopening the app didn\'t help — after a few tries an additional option will appear here.';
-
-  @override
-  String get resetLocalDbAction => 'Reset local database';
-
-  @override
-  String get hideDetailsAction => 'Hide details';
-
-  @override
-  String get showErrorDetailsAction => 'Show error details';
-
-  @override
-  String get copiedToClipboardSnackbar => 'Copied';
-
-  @override
-  String get copyErrorTextAction => 'Copy error text';
+      'Fully close the app — swipe up from the bottom of the screen and swipe the Elly card away — then open it again. Your data hasn\'t gone anywhere, everything will be back in a few seconds.';
 
   @override
   String get unlockPhoneTitle => 'Unlock your phone';

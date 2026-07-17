@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
@@ -218,7 +217,7 @@ class _RootRouter extends ConsumerWidget {
         // онбординг) — тепер пишемо в AppLogger (файл на диску, доступний
         // через "Журнал подій" у профілі) замість лише debugPrint.
         AppLogger.logError('currentMemberProvider', e, st);
-        return _DatabaseErrorScreen(error: e, stackTrace: st);
+        return _DatabaseErrorScreen(error: e);
       },
       data: (member) =>
           member == null ? const OnboardingScreen() : const _Shell(),
@@ -228,8 +227,7 @@ class _RootRouter extends ConsumerWidget {
 
 class _DatabaseErrorScreen extends ConsumerStatefulWidget {
   final Object error;
-  final StackTrace? stackTrace;
-  const _DatabaseErrorScreen({required this.error, this.stackTrace});
+  const _DatabaseErrorScreen({required this.error});
 
   @override
   ConsumerState<_DatabaseErrorScreen> createState() =>
@@ -238,9 +236,6 @@ class _DatabaseErrorScreen extends ConsumerStatefulWidget {
 
 class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     with WidgetsBindingObserver {
-  bool _showDetails = false;
-  bool _resetting = false;
-
   @override
   void initState() {
     super.initState();
@@ -253,10 +248,9 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     super.dispose();
   }
 
-  // iOS: Keychain стає знову доступним одразу після розблокування —
-  // на відміну від _isKeyMismatch (де retry принципово безглуздий), тут
-  // повторна спроба після кожного resume майже напевно спрацює сама, без
-  // натискання кнопки користувачем.
+  // iOS: Keychain стає знову доступним одразу після розблокування — повторна
+  // спроба після кожного resume майже напевно спрацює сама, без будь-якої
+  // дії користувача.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _isDeviceLocked) {
@@ -264,87 +258,22 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
       ref.invalidate(currentMemberProvider);
     }
   }
-  // Кількість разів, коли ця помилка повторилась ПІСЛЯ явного "Спробувати
-  // ще раз" — 0 при першій появі екрана. Деструктивний "Скинути" не можна
-  // пропонувати одразу: помилка може бути транзитною (напр. тимчасовий
-  // лок файлу після відновлення бекапу, повільний диск), і без цього
-  // порогу користувач міг би втратити всі дані через звичайний глюк
-  // з'єднання замість того, щоб просто спробувати ще раз.
-  //
-  // Поріг навмисно піднято з 1 до 3: реальні звіти користувачів (і логи)
-  // показують, що цей конкретний код 26 після оновлення/сну пристрою
-  // майже завжди минає сам — але НЕ від "Спробувати ще раз" у тому ж
-  // процесі (ретрай лише перечитує той самий застиглий Keychain-стан), а
-  // ЛИШЕ від повного закриття й повторного відкриття застосунку. Занизький
-  // поріг тут уже призводив би до пропозиції видалити реальні дані там, де
-  // проблема через кілька секунд минула б сама після релончу.
-  int _retryCount = 0;
-
-  @override
-  void didUpdateWidget(_DatabaseErrorScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _retryCount++;
-  }
-
-  String get _detailsText =>
-      '${widget.error}\n\n${widget.stackTrace ?? ''}';
-
-  // SQLITE_NOTADB (code 26): PRAGMA key встановлено, але перший реальний
-  // read падає — означає, що ключ у Keychain не той, яким зашифровано файл
-  // на диску (типово після Delete App + перевстановлення). "Спробувати ще
-  // раз" тут ніколи не допоможе: без правильного ключа розшифрувати дані
-  // криптографічно неможливо, тож для цього конкретного випадку показуємо
-  // окрему, явно деструктивну дію.
-  //
-  // NativeDatabase.createInBackground працює через ізолят — Drift
-  // серіалізує помилку в рядок ще на боці фонового ізоляту (bool `_serialize`
-  // у DriftCommunication), тож на момент, коли вона долітає сюди, це вже НЕ
-  // `SqliteException`, а обгортка `DriftRemoteException` над самим лише
-  // текстом. Перевіряти доводиться за текстом, `is SqliteException` тут
-  // завжди буде false.
-  bool get _isKeyMismatch =>
-      widget.error.toString().contains('(code 26)') ||
-      widget.error.toString().contains('file is not a database');
 
   // iOS: пристрій не розблоковували з моменту перезавантаження, тому
   // Keychain-ключ фізично на місці, але зараз недосяжний
-  // (DbTemporarilyLockedException, db_encryption_service.dart) — на
-  // відміну від _isKeyMismatch, деструктивний скид тут НЕ пропонується
-  // ніколи, лише прохання розблокувати пристрій. Кидається до перетину
-  // ізолятної межі (див. коментар вище про DriftRemoteException), тож тип
-  // тут завжди справжній, без string-matching.
+  // (DbTemporarilyLockedException, db_encryption_service.dart) — окремий,
+  // спокійний екран з проханням розблокувати пристрій замість інструкції
+  // нижче про повний перезапуск. Кидається до перетину ізолятної межі
+  // (Drift-серіалізація в рядок стосується лише SqliteException з
+  // фонового ізоляту), тож тип тут завжди справжній, без string-matching.
   bool get _isDeviceLocked => widget.error is DbTemporarilyLockedException;
 
-  Future<void> _resetLocalDatabase() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.l10n.resetLocalDbConfirmTitle),
-        content: Text(ctx.l10n.resetLocalDbConfirmBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(ctx.l10n.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: Text(ctx.l10n.resetAction),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-
-    setState(() => _resetting = true);
-    AppLogger.log('db_reset_after_key_mismatch');
-    final file = await DbEncryptionService.databaseFile();
-    await DbEncryptionService.resetCorruptedDatabase(file);
-    if (!mounted) return;
-    ref.invalidate(databaseProvider);
-    ref.invalidate(currentMemberProvider);
-  }
-
+  // Єдина дія, яка реально допомагає (і для транзитної Keychain-затримки, і
+  // для вже виправлених на рівні коду причин розсинхрону) — повний
+  // перезапуск застосунку: новий процес отримує свіже, коректне значення з
+  // Keychain. Ретрай/деталі помилки/деструктивний скид бази навмисно не
+  // пропонуємо тут — вони або марні (ретрай у тому самому процесі), або
+  // страшні й незрозумілі для звичайного користувача.
   @override
   Widget build(BuildContext context) {
     if (_isDeviceLocked) return _buildLockedScreen(context);
@@ -356,9 +285,9 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 48, color: AppColors.textMuted),
-              const SizedBox(height: 16),
+              Image.asset('assets/illustrations/elly-thinking-2.png',
+                  height: 120),
+              const SizedBox(height: 20),
               Text(context.l10n.dbLoadErrorTitle, style: AppTextStyles.h3),
               const SizedBox(height: 8),
               Text(
@@ -366,131 +295,6 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
-              // Для code-26 випадку кнопка "Спробувати ще раз" нижче лише
-              // перечитує той самий застиглий стан у ТОМУ Ж процесі — за
-              // спостереженнями (логи користувачів) вона тут майже ніколи
-              // не допомагає. Реально вирішує лише повне закриття
-              // застосунку (не згортання) і повторний запуск — новий
-              // процес отримує свіже, коректне значення з Keychain. Тому
-              // ця інструкція — головна порада, а не кнопка retry.
-              if (_isKeyMismatch) ...[
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.lightbulb_outline_rounded,
-                              size: 18, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              context.l10n.dbErrorTryThisFirstLabel,
-                              style: AppTextStyles.labelMd
-                                  .copyWith(color: AppColors.primaryDark),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        context.l10n.dbErrorCloseReopenHint,
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.primaryDark),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  ref.invalidate(databaseProvider);
-                  ref.invalidate(currentMemberProvider);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(context.l10n.tryAgainButtonAction),
-              ),
-              if (_isKeyMismatch && _retryCount < 3) ...[
-                const SizedBox(height: 8),
-                Text(
-                  context.l10n.dbErrorMoreActionHint,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                ),
-              ],
-              if (_isKeyMismatch && _retryCount >= 3) ...[
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: _resetting ? null : _resetLocalDatabase,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                    side: const BorderSide(color: AppColors.danger),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _resetting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(context.l10n.resetLocalDbAction),
-                ),
-              ],
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => setState(() => _showDetails = !_showDetails),
-                child: Text(_showDetails
-                    ? context.l10n.hideDetailsAction
-                    : context.l10n.showErrorDetailsAction),
-              ),
-              if (_showDetails) ...[
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SelectableText(
-                    _detailsText,
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.textSub,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _detailsText));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.l10n.copiedToClipboardSnackbar)),
-                    );
-                  },
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  label: Text(context.l10n.copyErrorTextAction),
-                ),
-              ],
             ],
           ),
         ),
