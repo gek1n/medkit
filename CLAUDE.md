@@ -10,6 +10,42 @@ Repo: `C:\Users\user\Desktop\medkit` (this repo). Separate, sibling backend repo
 `DEPLOY.md`, not git-tracked, deployed manually via cPanel; cPanel username `gdtmclhw`,
 use it wherever `DEPLOY.md` says `CPANEL_USER`).
 
+## ⚠️ Live in production — active users, backward compatibility required
+
+Elly is published in the App Store with real, active users (initial distribution:
+Ukraine only). This changes the ground rules from earlier development: **any change
+that touches data already stored on real devices/servers, a sync/API contract, or
+already-scheduled notifications must be backward-compatible** — it must not break,
+silently corrupt, or lose data/functionality for someone already running an
+older-or-current version. App stores don't force-update everyone instantly, so
+old and new versions run concurrently in the wild for a while after every release.
+Concretely:
+
+- **DB schema changes**: every migration must correctly transform *existing* rows,
+  not just define the new shape for fresh installs — reason about the
+  `if (from < N) { ... }` block against realistic old data, not just a clean
+  `flutter run` on an empty simulator/fresh install.
+- **Sync/API contract changes** (`medkit-backend` relay, `SubscriptionApiClient`,
+  `AccountService`, family sync): the backend must keep serving whatever
+  request/response shape *older still-installed* client versions send, until you're
+  confident nobody is running that old version anymore. Don't rename/remove a field
+  or endpoint outright — add a new one and deprecate gradually, or keep the old one
+  working alongside it.
+- **Notification ID scheme / scheduling logic changes**: changing the
+  `xNotificationId(id)` offset convention or the `IntakeGenerator`/
+  `ActivityLogGenerator` dedup logic can orphan or duplicate reminders already
+  scheduled on real users' devices right now.
+- **Removing/renaming a `context.l10n` key, a provider, or a stored
+  SharedPreferences/secure-storage key** that an already-installed build still reads
+  — an in-flight update shouldn't crash or silently reset a user's settings because a
+  key it expects has vanished.
+- **In-App Purchase product IDs** (`plus_monthly`, `plus_yearly`, `family_monthly`,
+  `family_yearly`) are now live in App Store Connect — never rename/repurpose one;
+  Apple/Google tie a user's entire purchase and renewal history to the exact string.
+- When in doubt whether a change is "safe" for existing users, ask explicitly rather
+  than assume — this wasn't a live concern earlier in development (no real users
+  yet), it is now.
+
 ## Brand / design
 
 - **Palette (current, do not confuse with older purple mockups)**: sage green
@@ -69,7 +105,8 @@ test/            narrow unit tests for crypto/sync services — no widget test c
   `@DriftDatabase(tables: [...])` list, bump `schemaVersion`, add a
   `if (from < N) { ... }` migration block, then run
   `dart run build_runner build --delete-conflicting-outputs` to regenerate
-  `app_database.g.dart`.
+  `app_database.g.dart`. **The migration block is not optional/theoretical
+  anymore — see "Live in production" above, it runs against real users' real data.**
 - New repository → wraps a table (or a few related ones), exposed as
   `final xRepositoryProvider = Provider<XRepository>((ref) => XRepository(ref.watch(databaseProvider), ref));`.
 - **Any mutating repository method that changes data feeding a background-scheduled
@@ -193,12 +230,16 @@ test/            narrow unit tests for crypto/sync services — no widget test c
 
 ## Feature-creation checklist
 
+0. Does this change touch data/contracts already live for real users (DB rows, sync
+   API shape, notification IDs, stored preference keys, IAP product IDs)? Read
+   "Live in production — active users" at the top of this file first.
 1. New schedulable entity (has its own reminder notification)? Follow the
    Notifications section above exactly — cancel-before-reschedule on every time
    edit, retroactive resync on relevant settings changes, locale via
    `lookupAppLocalizations` if the code path has no `BuildContext`.
 2. New DB table/column? Migration + `build_runner`, `updatedAt` on every mutator if
-   it should participate in sync.
+   it should participate in sync — the migration must handle existing installs'
+   real data, not just fresh installs.
 3. New screen/dialog/snackbar text? Extract through `context.l10n` from the start —
    don't hardcode Ukrainian "temporarily", it always needs doing eventually and is
    cheaper to do inline while the strings are fresh in context.
