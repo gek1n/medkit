@@ -41,6 +41,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Elly використовує камеру для фотографування упаковки ліків</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Elly може використовувати ваше місцезнаходження, щоб підказати найближчі аптеки</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Elly може використовувати ваше місцезнаходження, щоб підказати найближчі аптеки</string>
 	<key>NSMicrophoneUsageDescription</key>
