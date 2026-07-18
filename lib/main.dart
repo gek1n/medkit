@@ -29,6 +29,7 @@ import 'core/services/notification_service.dart';
 import 'core/services/review_prompt_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/services/sync_service.dart';
+import 'core/services/timezone_resync_service.dart';
 import 'data/repositories/family_peers_repository.dart';
 import 'data/repositories/members_repository.dart';
 import 'features/plans/billing_lifecycle_dialogs.dart';
@@ -357,6 +358,41 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     }
   }
 
+  // Запасний варіант, коли активного хмарного бекапу немає (build() нижче
+  // показує цю кнопку замість "Відновити з резервної копії" саме тоді) —
+  // єдиний вихід зі стійкого розсинхрону ключа без бекапу: без правильного
+  // ключа розшифрувати наявний файл криптографічно неможливо, тож дані
+  // справді втрачаються, звідси explicit підтвердження.
+  Future<void> _resetLocalDatabase() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.resetLocalDbConfirmTitle),
+        content: Text(ctx.l10n.resetLocalDbConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(ctx.l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: Text(ctx.l10n.resetAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _resetting = true);
+    AppLogger.log('db_reset_after_key_mismatch');
+    final file = await DbEncryptionService.databaseFile();
+    await DbEncryptionService.resetCorruptedDatabase(file);
+    if (!mounted) return;
+    ref.invalidate(databaseProvider);
+    ref.invalidate(currentMemberProvider);
+  }
+
   Future<String?> _askBackupPassphrase() {
     final controller = TextEditingController();
     return showDialog<String>(
@@ -433,6 +469,33 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                               strokeWidth: 2, color: Colors.white),
                         )
                       : Text(context.l10n.restoreFromBackupAction),
+                ),
+              ],
+              // Запасний варіант — той самий поріг (3), але коли активного
+              // хмарного бекапу немає (нема з чого відновлювати). Це
+              // деструктивна дія, показуємо окремим стилем (outlined,
+              // danger-колір) з explicit підтвердженням у діалозі.
+              if (_isKeyMismatch &&
+                  (_persistentAttemptCount ?? 0) >= 3 &&
+                  (_backupMode == null || _backupMode == BackupMode.local)) ...[
+                const SizedBox(height: 20),
+                OutlinedButton(
+                  onPressed: _resetting ? null : _resetLocalDatabase,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _resetting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(context.l10n.resetLocalDbAction),
                 ),
               ],
             ],
@@ -597,6 +660,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     _familySyncIfNeeded();
     _billingSyncIfNeeded();
     _backupIfDue();
+    unawaited(ref.read(timezoneResyncServiceProvider).resyncIfTimezoneChanged());
     unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
     unawaited(ReviewPromptService.recordInstallIfNeeded());
     unawaited(ReviewPromptService.maybeShow());
@@ -628,6 +692,10 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       _familySyncIfNeeded();
       _billingSyncIfNeeded();
       _backupIfDue();
+      // Найімовірніший момент, коли пристрій "переїхав" у інший часовий
+      // пояс, — саме resume після повернення на передній план (не
+      // cold-start, це вже покрито в initState вище).
+      unawaited(ref.read(timezoneResyncServiceProvider).resyncIfTimezoneChanged());
       unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
       unawaited(ReviewPromptService.maybeShow());
       unawaited(BackupReminderService.maybeRemind());

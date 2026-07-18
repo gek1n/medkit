@@ -3939,4 +3939,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intakeSnoozed => 'Postponed';
+
+  @override
+  String get resetLocalDbConfirmTitle => 'Reset local database?';
+
+  @override
+  String get resetLocalDbConfirmBody =>
+      'This will delete all data on this device (medications, schedule, medical records). No backup was found — this data cannot be recovered afterward.';
+
+  @override
+  String get resetAction => 'Reset';
+
+  @override
+  String get resetLocalDbAction => 'Reset local database';
+
+  @override
+  String get petAvatarsSectionLabel => 'Pets';
 }
