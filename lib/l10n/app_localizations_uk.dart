@@ -3946,4 +3946,20 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get intakeSnoozed => 'Перенесено';
+
+  @override
+  String get resetLocalDbConfirmTitle => 'Скинути локальну базу даних?';
+
+  @override
+  String get resetLocalDbConfirmBody =>
+      'Це видалить усі дані на цьому пристрої (ліки, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.';
+
+  @override
+  String get resetAction => 'Скинути';
+
+  @override
+  String get resetLocalDbAction => 'Скинути локальну БД';
+
+  @override
+  String get petAvatarsSectionLabel => 'Домашні улюбленці';
 }

@@ -1993,5 +1993,10 @@
   "restorePurchasesNothingFoundSnackbar": "Активных покупок не найдено на этом Apple ID/Google-аккаунте",
   "todayScheduleForMedLabel": "Расписание на сегодня",
   "intakeTaken": "Выполнено",
-  "intakeSnoozed": "Перенесено"
+  "intakeSnoozed": "Перенесено",
+  "resetLocalDbConfirmTitle": "Сбросить локальную базу данных?",
+  "resetLocalDbConfirmBody": "Это удалит все данные на этом устройстве (лекарства, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.",
+  "resetAction": "Сбросить",
+  "resetLocalDbAction": "Сбросить локальную БД",
+  "petAvatarsSectionLabel": "Домашние питомцы"
 }

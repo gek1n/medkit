@@ -3952,4 +3952,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get intakeSnoozed => 'Перенесено';
+
+  @override
+  String get resetLocalDbConfirmTitle => 'Сбросить локальную базу данных?';
+
+  @override
+  String get resetLocalDbConfirmBody =>
+      'Это удалит все данные на этом устройстве (лекарства, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.';
+
+  @override
+  String get resetAction => 'Сбросить';
+
+  @override
+  String get resetLocalDbAction => 'Сбросить локальную БД';
+
+  @override
+  String get petAvatarsSectionLabel => 'Домашние питомцы';
 }

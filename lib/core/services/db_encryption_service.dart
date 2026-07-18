@@ -308,6 +308,20 @@ class DbEncryptionService {
     return File(p.join(dir.path, 'medkit.db'));
   }
 
+  /// Видаляє файл БД разом із ключем шифрування — запасний вихід зі стану
+  /// "ключ встановлено, але файл усе одно нечитабельний" (SqliteException
+  /// code 26), коли активного хмарного бекапу немає (інакше пріоритетний
+  /// шлях — відновлення з нього, `_DatabaseErrorScreen._restoreFromBackup`).
+  /// Без правильного ключа розшифрувати наявний файл криптографічно
+  /// неможливо, тож дані справді втрачаються — викликається лише явно, з
+  /// підтвердженням користувача.
+  static Future<void> resetCorruptedDatabase(File dbFile) async {
+    if (await dbFile.exists()) {
+      await dbFile.delete();
+    }
+    await _secureStorage.delete(key: _keyStorageKey);
+  }
+
   /// Викликається з `_DatabaseErrorScreen` щоразу, коли він показується через
   /// розсинхрон ключа (і при першому показі, і при кожному "Спробувати ще
   /// раз") — повертає нове значення лічильника. Персистентність через

@@ -7083,6 +7083,36 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Перенесено'**
   String get intakeSnoozed;
+
+  /// No description provided for @resetLocalDbConfirmTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скинути локальну базу даних?'**
+  String get resetLocalDbConfirmTitle;
+
+  /// No description provided for @resetLocalDbConfirmBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Це видалить усі дані на цьому пристрої (ліки, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.'**
+  String get resetLocalDbConfirmBody;
+
+  /// No description provided for @resetAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скинути'**
+  String get resetAction;
+
+  /// No description provided for @resetLocalDbAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скинути локальну БД'**
+  String get resetLocalDbAction;
+
+  /// No description provided for @petAvatarsSectionLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Домашні улюбленці'**
+  String get petAvatarsSectionLabel;
 }
 
 class _AppLocalizationsDelegate

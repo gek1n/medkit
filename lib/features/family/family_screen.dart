@@ -1356,6 +1356,81 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(text, style: AppTextStyles.labelSm);
 }
 
+// Розділ пікера аватарів на діапазон [start, end) — той самий вигляд плиток,
+// що й раніше, лише параметризований, щоб малювати і людські аватари, і
+// секцію "Домашні улюбленці" одним і тим самим кодом.
+class _AvatarGrid extends StatelessWidget {
+  final int start;
+  final int end;
+  final int selectedIndex;
+  final void Function(int) onChanged;
+  const _AvatarGrid({
+    required this.start,
+    required this.end,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: end - start,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (_, i) {
+        final index = start + i;
+        final sel = index == selectedIndex;
+        return GestureDetector(
+          onTap: () => onChanged(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            decoration: BoxDecoration(
+              color: sel ? AppColors.primaryLight : AppColors.surface,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: sel ? AppColors.success : AppColors.border,
+                width: sel ? 2 : 1.5,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(1.5),
+              child: AvatarImage(index: index, size: 49),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AvatarSectionDivider extends StatelessWidget {
+  final String label;
+  const _AvatarSectionDivider({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: AppColors.border)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            label,
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textMuted),
+          ),
+        ),
+        const Expanded(child: Divider(color: AppColors.border)),
+      ],
+    );
+  }
+}
+
 class _AddMemberBackHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
@@ -1466,39 +1541,31 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 220,
-                      child: GridView.builder(
-                        itemCount: avatarCount,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 1,
-                        ),
-                        itemBuilder: (_, i) {
-                          final sel = i == _avatarIndex;
-                          return GestureDetector(
-                            onTap: () => setState(() => _avatarIndex = i),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              decoration: BoxDecoration(
-                                color: sel
-                                    ? AppColors.primaryLight
-                                    : AppColors.surface,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color:
-                                      sel ? AppColors.success : AppColors.border,
-                                  width: sel ? 2 : 1.5,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(1.5),
-                                child: AvatarImage(index: i, size: 49),
-                              ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _AvatarGrid(
+                              start: 0,
+                              end: avatarCount,
+                              selectedIndex: _avatarIndex,
+                              onChanged: (i) =>
+                                  setState(() => _avatarIndex = i),
                             ),
-                          );
-                        },
+                            const SizedBox(height: AppDimensions.md),
+                            _AvatarSectionDivider(
+                              label: context.l10n.petAvatarsSectionLabel,
+                            ),
+                            const SizedBox(height: AppDimensions.md),
+                            _AvatarGrid(
+                              start: avatarCount,
+                              end: totalAvatarCount,
+                              selectedIndex: _avatarIndex,
+                              onChanged: (i) =>
+                                  setState(() => _avatarIndex = i),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppDimensions.lg),
