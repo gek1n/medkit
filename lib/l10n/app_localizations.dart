@@ -187,7 +187,7 @@ abstract class AppLocalizations {
   /// No description provided for @intakeTaken.
   ///
   /// In uk, this message translates to:
-  /// **'Прийнято'**
+  /// **'Виконано'**
   String get intakeTaken;
 
   /// No description provided for @intakeSkipped.
@@ -7071,6 +7071,18 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Активних покупок не знайдено на цьому Apple ID/Google-акаунті'**
   String get restorePurchasesNothingFoundSnackbar;
+
+  /// No description provided for @todayScheduleForMedLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розклад на сьогодні'**
+  String get todayScheduleForMedLabel;
+
+  /// No description provided for @intakeSnoozed.
+  ///
+  /// In uk, this message translates to:
+  /// **'Перенесено'**
+  String get intakeSnoozed;
 }
 
 class _AppLocalizationsDelegate

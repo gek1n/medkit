@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'app_logger.dart';
@@ -53,8 +54,31 @@ bool _isKeychainLockedError(Object e) =>
 /// наявної незашифрованої БД (для пристроїв, де вона вже існувала до
 /// впровадження шифрування).
 class DbEncryptionService {
-  static const _secureStorage = FlutterSecureStorage();
+  // iOS: явний accessibility-рівень замість дефолту пакета
+  // (`KeychainAccessibility.unlocked` — доступний ЛИШЕ поки пристрій прямо
+  // зараз розблокований, будь-яке фонове читання під час блокування падає з
+  // errSecInteractionNotAllowed). `first_unlock_this_device` лишається
+  // доступним одразу після ПЕРШОГО розблокування з моменту перезавантаження
+  // й аж до наступного — стандартна рекомендація Apple саме для секретів,
+  // потрібних у фоні (UIBackgroundModes: remote-notification у Info.plist).
+  // `_this_device` (+ вже наявний дефолт `synchronizable: false`) означає
+  // ключ ніколи не "пливе" окремо від файлу БД через iCloud Keychain —
+  // прив'язаний виключно до фізичного заліза цього пристрою.
+  static final _secureStorage = FlutterSecureStorage(
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
+  );
   static const _keyStorageKey = 'db_encryption_key';
+
+  // Персистентний (переживає повний перезапуск процесу) лічильник кількості
+  // разів поспіль, коли користувач бачив _DatabaseErrorScreen через
+  // розсинхрон ключа. На відміну від колишнього in-memory State-поля в
+  // main.dart, це не обнуляється при "закрити застосунок і відкрити знову" —
+  // а це саме та дія, яку сам екран радить як ГОЛОВНУ пораду. Без цього
+  // лічильник ніколи не досягав порогу для показу порятункової дії (скидання
+  // БД / відновлення з бекапу) для випадків, що переживають relaunch.
+  static const _mismatchStreakKey = 'db_key_mismatch_streak_v1';
 
   /// Повертає готовий до використання ключ (у форматі SQLCipher raw-key,
   /// напр. "x'AB12...'") і гарантує, що файл БД на диску зашифрований саме
@@ -116,6 +140,13 @@ class DbEncryptionService {
     // назавжди блокував перешифрування — саме це й спричиняло
     // "file is not a database" при відкритті через Drift з ключем.
     await _rekeyIfPlaintext(dbFile, key);
+
+    // Дійшли сюди — ключ або відкрив файл одразу, або відкрив після
+    // ре-читання Keychain у циклі вище. У будь-якому разі БД зараз робоча:
+    // прибираємо лічильник розсинхронів, якщо він десь накопичився раніше
+    // (напр. один минущий збій, який сам минув, не мусить наближати до
+    // пропозиції деструктивного скидання наступного разу).
+    await clearKeyMismatchStreak();
 
     return key;
   }
@@ -212,6 +243,10 @@ class DbEncryptionService {
     final key = "x'$hex'";
 
     await _secureStorage.write(key: _keyStorageKey, value: key);
+    // Свіжий ключ для свіжого файлу (перший запуск або щойно після
+    // resetCorruptedDatabase) — будь-який попередній лічильник розсинхронів
+    // більше не стосується нової пари ключ/файл.
+    await clearKeyMismatchStreak();
     return key;
   }
 
@@ -271,5 +306,22 @@ class DbEncryptionService {
   static Future<File> databaseFile() async {
     final dir = await getApplicationDocumentsDirectory();
     return File(p.join(dir.path, 'medkit.db'));
+  }
+
+  /// Викликається з `_DatabaseErrorScreen` щоразу, коли він показується через
+  /// розсинхрон ключа (і при першому показі, і при кожному "Спробувати ще
+  /// раз") — повертає нове значення лічильника. Персистентність через
+  /// SharedPreferences (не in-memory) — саме це дозволяє відрізнити "минуло
+  /// вже кілька повних перезапусків, а не минає" від "щойно трапилось".
+  static Future<int> recordKeyMismatchOccurrence() async {
+    final prefs = await SharedPreferences.getInstance();
+    final next = (prefs.getInt(_mismatchStreakKey) ?? 0) + 1;
+    await prefs.setInt(_mismatchStreakKey, next);
+    return next;
+  }
+
+  static Future<void> clearKeyMismatchStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_mismatchStreakKey);
   }
 }

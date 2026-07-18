@@ -1990,5 +1990,8 @@
   "manageSubscriptionExternallyHint": "Subscription management opened in the App Store/Google Play — finish cancelling there.",
   "restorePurchasesAction": "Restore purchases",
   "restorePurchasesSuccessSnackbar": "Purchases restored",
-  "restorePurchasesNothingFoundSnackbar": "No active purchases found for this Apple ID/Google account"
+  "restorePurchasesNothingFoundSnackbar": "No active purchases found for this Apple ID/Google account",
+  "todayScheduleForMedLabel": "Today's schedule",
+  "intakeTaken": "Taken",
+  "intakeSnoozed": "Postponed"
 }

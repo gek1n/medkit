@@ -1990,5 +1990,8 @@
   "manageSubscriptionExternallyHint": "Управление подпиской открыто в App Store/Google Play — завершите отмену там.",
   "restorePurchasesAction": "Восстановить покупки",
   "restorePurchasesSuccessSnackbar": "Покупки восстановлены",
-  "restorePurchasesNothingFoundSnackbar": "Активных покупок не найдено на этом Apple ID/Google-аккаунте"
+  "restorePurchasesNothingFoundSnackbar": "Активных покупок не найдено на этом Apple ID/Google-аккаунте",
+  "todayScheduleForMedLabel": "Расписание на сегодня",
+  "intakeTaken": "Выполнено",
+  "intakeSnoozed": "Перенесено"
 }

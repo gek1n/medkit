@@ -236,10 +236,16 @@ class _DatabaseErrorScreen extends ConsumerStatefulWidget {
 
 class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     with WidgetsBindingObserver {
+  bool _resetting = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (_isKeyMismatch) {
+      unawaited(_recordOccurrence());
+      unawaited(_loadBackupMode());
+    }
   }
 
   @override
@@ -258,6 +264,44 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
       ref.invalidate(currentMemberProvider);
     }
   }
+  // Кількість разів поспіль, коли користувач бачив саме цю помилку —
+  // ПЕРСИСТЕНТНА (SharedPreferences через DbEncryptionService, не
+  // in-memory State-поле) — переживає повний перезапуск процесу. Потрібна
+  // лише для одного: коли пропонувати позитивну дію "Відновити з резервної
+  // копії" нижче — не одразу, а лише якщо relaunch (головна порада в тексті
+  // помилки нижче) кілька разів поспіль не допоміг.
+  int? _persistentAttemptCount;
+  BackupMode? _backupMode;
+
+  Future<void> _recordOccurrence() async {
+    final count = await DbEncryptionService.recordKeyMismatchOccurrence();
+    if (mounted) setState(() => _persistentAttemptCount = count);
+  }
+
+  Future<void> _loadBackupMode() async {
+    final mode = await BackupSettingsService.currentMode();
+    if (mounted) setState(() => _backupMode = mode);
+  }
+
+  @override
+  void didUpdateWidget(_DatabaseErrorScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isKeyMismatch) unawaited(_recordOccurrence());
+  }
+
+  // SQLITE_NOTADB (code 26): PRAGMA key встановлено, але перший реальний
+  // read падає — означає, що ключ у Keychain не той, яким зашифровано файл
+  // на диску (типово після Delete App + перевстановлення).
+  //
+  // NativeDatabase.createInBackground працює через ізолят — Drift
+  // серіалізує помилку в рядок ще на боці фонового ізоляту (bool `_serialize`
+  // у DriftCommunication), тож на момент, коли вона долітає сюди, це вже НЕ
+  // `SqliteException`, а обгортка `DriftRemoteException` над самим лише
+  // текстом. Перевіряти доводиться за текстом, `is SqliteException` тут
+  // завжди буде false.
+  bool get _isKeyMismatch =>
+      widget.error.toString().contains('(code 26)') ||
+      widget.error.toString().contains('file is not a database');
 
   // iOS: пристрій не розблоковували з моменту перезавантаження, тому
   // Keychain-ключ фізично на місці, але зараз недосяжний
@@ -268,12 +312,77 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
   // фонового ізоляту), тож тип тут завжди справжній, без string-matching.
   bool get _isDeviceLocked => widget.error is DbTemporarilyLockedException;
 
-  // Єдина дія, яка реально допомагає (і для транзитної Keychain-затримки, і
-  // для вже виправлених на рівні коду причин розсинхрону) — повний
-  // перезапуск застосунку: новий процес отримує свіже, коректне значення з
-  // Keychain. Ретрай/деталі помилки/деструктивний скид бази навмисно не
-  // пропонуємо тут — вони або марні (ретрай у тому самому процесі), або
-  // страшні й незрозумілі для звичайного користувача.
+  // Активна хмарна резервна копія (Google Drive/iCloud) — єдина ДОДАТКОВА
+  // дія понад просту пораду "перезапустіть застосунок" (dbLoadErrorBody
+  // вище): позитивне відновлення, не деструктивне скидання — тому не
+  // суперечить рішенню прибрати ретрай/деталі/скид як "страшні й
+  // незрозумілі". З'являється лише коли BackupSettingsService.currentMode()
+  // не 'local' і relaunch кілька разів поспіль не допоміг.
+  Future<void> _restoreFromBackup(BackupMode mode) async {
+    final target = mode == BackupMode.googleDrive
+        ? BackupTarget.googleDrive
+        : BackupTarget.iCloud;
+
+    var passphrase = await BackupSettingsService.savedPassphrase();
+    if (passphrase == null || passphrase.isEmpty) {
+      passphrase = await _askBackupPassphrase();
+      if (passphrase == null || passphrase.isEmpty) return;
+    }
+
+    setState(() => _resetting = true);
+    AppLogger.log('db_restore_from_backup_after_key_mismatch');
+    try {
+      // Той самий порядок дій, що й у RestoreAccountScreen (онбординг):
+      // закриваємо поточне (нефункціональне) з'єднання ДО того, як
+      // restoreBackup підмінить сам файл medkit.db і ключ у secure storage
+      // "під ногами" — інакше фоновий ізолят Drift лишається живим поверх
+      // файлу, який міняється в нього під час читання.
+      await ref.read(databaseProvider).close();
+      await BackupService().restoreBackup(target: target, passphrase: passphrase);
+      await DbEncryptionService.clearKeyMismatchStreak();
+      if (!mounted) return;
+      ref.invalidate(databaseProvider);
+      ref.invalidate(currentMemberProvider);
+    } catch (e) {
+      // Провал відновлення (невірний пароль, немає мережі) — лишаємось на
+      // цьому ж екрані, деструктивне "Скинути" все ще доступне як запасний
+      // варіант (build() нижче), просто повідомляємо про невдачу.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _resetting = false);
+    }
+  }
+
+  Future<String?> _askBackupPassphrase() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.backupPasswordDialogTitle),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: InputDecoration(hintText: ctx.l10n.passwordFieldLabel),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ctx.l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(ctx.l10n.okAction),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isDeviceLocked) return _buildLockedScreen(context);
@@ -295,6 +404,37 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
+              // Позитивна (не деструктивна) дія — з'являється лише після
+              // кількох поспіль показів цієї помилки (лічильник переживає
+              // relaunch, DbEncryptionService.recordKeyMismatchOccurrence) і
+              // лише якщо в користувача активний хмарний бекап. До цього
+              // порогу єдина порада — сам текст dbLoadErrorBody вище.
+              if (_isKeyMismatch &&
+                  (_persistentAttemptCount ?? 0) >= 3 &&
+                  _backupMode != null &&
+                  _backupMode != BackupMode.local) ...[
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed:
+                      _resetting ? null : () => _restoreFromBackup(_backupMode!),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _resetting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(context.l10n.restoreFromBackupAction),
+                ),
+              ],
             ],
           ),
         ),
