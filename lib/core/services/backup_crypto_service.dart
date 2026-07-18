@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Пакує ВЕСЬ secure storage пристрою (не лише ключі шифрування БД/файлів,
 /// а й обліковий запис синхронізації з AccountService, і per-канальні ключі
@@ -18,6 +19,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// лишається повним автоматично і для розділів, доданих ПІСЛЯ написання
 /// цього файлу (будь-що нове, що зберігається через secure storage, саме
 /// потрапить у бекап без окремої правки тут).
+///
+/// Додатково (з `_backedUpPrefsKeys`) пакує explicit allowlist рядкових
+/// значень із SharedPreferences — власноруч додані елементи "спільний
+/// список + свої варіанти" (напр. `SymptomLibraryService`,
+/// `LabTestLibraryService`), які інакше губляться при відновленні бекапу:
+/// старі записи в БД, де такий варіант уже використаний, лишаються
+/// читабельними (БД відновлюється окремо, через zip), але сам варіант
+/// зникає зі списку вибору для НОВИХ записів, бо SharedPreferences не
+/// зачіпають ні цей клас, ні `BackupService._buildZip()`. На відміну від
+/// secure storage — тут НЕ readAll(): SharedPreferences містить і суто
+/// локальні налаштування пристрою (мова, тема), які не повинні "переїжджати"
+/// між пристроями при відновленні.
 class BackupCryptoService {
   static const _secureStorage = FlutterSecureStorage();
   static const _syncedIOSOptions = IOSOptions(synchronizable: true);
@@ -30,6 +43,26 @@ class BackupCryptoService {
     'sync_encryption_key',
     'sync_recovery_key_hash',
   };
+
+  // "Спільний+власний" списки (типова назва аналізу, симптому тощо), де
+  // власноруч додані користувачем варіанти зберігаються в SharedPreferences,
+  // а не в БД чи secure storage — жоден з тих двох механізмів backup їх не
+  // зачіпає. Без цього списку розсинхрон резервної копії від
+  // SharedPreferences (реальний звіт: після відновлення бекапу власноруч
+  // додані симптоми зникали зі списку вибору, хоча старі записи в БД, де
+  // вони вже використані, лишались читабельними — самі назви просто більше
+  // не пропонувались для нового вибору). На відміну від secure storage,
+  // тут НЕ можна просто "прочитати все" — SharedPreferences містить і суто
+  // локальні налаштування пристрою (мова, тема), які НЕ мають переїжджати
+  // між пристроями при відновленні бекапу, тож явний allowlist навмисний.
+  // Додавайте сюди кожен новий `_customKey` за тим самим патерном
+  // ("спільний список + свої варіанти, збережені в SharedPreferences").
+  static const _backedUpPrefsKeys = {
+    'wellbeing_custom_symptoms', // SymptomLibraryService
+    'lab_test_custom_names', // LabTestLibraryService
+  };
+  static const _prefsKeyPrefix = 'prefs:';
+
   static final _cipher = AesGcm.with256bits();
 
   static Uint8List _generateSalt() {
@@ -52,9 +85,13 @@ class BackupCryptoService {
   /// синхронізації — і будь-що додане пізніше) і шифрує паролем бекапу.
   /// Повертає готовий до запису у файл blob: [salt(16)][nonce(12)][ciphertext][mac(16)].
   static Future<Uint8List> wrapKeys(String passphrase) async {
+    final prefs = await SharedPreferences.getInstance();
     final entries = <String, String>{
       ...await _secureStorage.readAll(),
       ...await _secureStorage.readAll(iOptions: _syncedIOSOptions),
+      for (final prefsKey in _backedUpPrefsKeys)
+        if (prefs.getString(prefsKey) != null)
+          '$_prefsKeyPrefix$prefsKey': prefs.getString(prefsKey)!,
     };
     if (entries.isEmpty) {
       throw StateError('Ключі шифрування не знайдено на цьому пристрої');
@@ -97,7 +134,15 @@ class BackupCryptoService {
     final plain = await _cipher.decrypt(box, secretKey: key);
 
     final envelope = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
+    final prefs = await SharedPreferences.getInstance();
     for (final entry in envelope.entries) {
+      if (entry.key.startsWith(_prefsKeyPrefix)) {
+        await prefs.setString(
+          entry.key.substring(_prefsKeyPrefix.length),
+          entry.value as String,
+        );
+        continue;
+      }
       final synced = _syncedKeyNames.contains(entry.key);
       await _secureStorage.write(
         key: entry.key,
