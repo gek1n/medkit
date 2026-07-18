@@ -55,7 +55,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get actionAll => 'Всі';
 
   @override
-  String get intakeTaken => 'Прийнято';
+  String get intakeTaken => 'Виконано';
 
   @override
   String get intakeSkipped => 'Пропущено';
@@ -3979,4 +3979,10 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get restorePurchasesNothingFoundSnackbar =>
       'Активних покупок не знайдено на цьому Apple ID/Google-акаунті';
+
+  @override
+  String get todayScheduleForMedLabel => 'Розклад на сьогодні';
+
+  @override
+  String get intakeSnoozed => 'Перенесено';
 }

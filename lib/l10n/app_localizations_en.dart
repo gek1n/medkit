@@ -3972,4 +3972,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get restorePurchasesNothingFoundSnackbar =>
       'No active purchases found for this Apple ID/Google account';
+
+  @override
+  String get todayScheduleForMedLabel => 'Today\'s schedule';
+
+  @override
+  String get intakeSnoozed => 'Postponed';
 }

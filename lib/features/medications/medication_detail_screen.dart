@@ -15,6 +15,7 @@ import '../../core/utils/task_color.dart';
 import '../../shared/widgets/affiliate_buy_button.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
 import '../plans/elly_denied_screen.dart';
@@ -31,6 +32,20 @@ final _schedWatchProvider = StreamProvider.family<List<Schedule>, int>(
   (ref, medId) =>
       ref.watch(schedulesRepositoryProvider).watchByMedication(medId),
 );
+
+// (medicationId, memberId) — прийоми саме цих ліків, заплановані на сьогодні
+// для профілю, який зараз переглядається (не для всіх учасників родини
+// одразу, watchByMedicationAndDateRange вже фільтрує по memberId).
+final _medTodayIntakesProvider =
+    StreamProvider.family<List<Intake>, (int, int)>((ref, key) {
+  final (medicationId, memberId) = key;
+  final now = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day);
+  final end = start.add(const Duration(days: 1));
+  return ref
+      .watch(intakesRepositoryProvider)
+      .watchByMedicationAndDateRange(medicationId, memberId, start, end);
+});
 
 // ── Фази курсу ────────────────────────────────────────────────────────────────
 
@@ -262,6 +277,7 @@ class _DetailBody extends ConsumerWidget {
           ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              _TodayScheduleSection(med: med, accent: accent),
               if (_parsePhases(med.phases).isNotEmpty) ...[
                 _PhasesSection(med: med, accent: accent),
                 const SizedBox(height: AppDimensions.xl),
@@ -408,6 +424,159 @@ class _FactChip extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Розклад на сьогодні (позначити прийом раніше, ніж настане час) ─────────────
+
+// Дозволяє відмітити прийом виконаним ДО настання запланованого часу — щоб
+// не чекати точної хвилини, якщо ліки фактично вже прийнято. Викликає той
+// самий IntakesRepository.markTaken(), що й Today screen: рахує залишок
+// (decrementRemaining), скасовує нагадування, прибирає з розкладу на
+// сьогодні через реактивний provider — жодної окремої логіки, лише інший
+// вхід до вже наявного, повністю робочого шляху.
+class _TodayScheduleSection extends ConsumerWidget {
+  final Medication med;
+  final Color accent;
+  const _TodayScheduleSection({required this.med, required this.accent});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final intakes = ref
+            .watch(_medTodayIntakesProvider((med.id, med.memberId)))
+            .valueOrNull ??
+        const <Intake>[];
+    if (intakes.isEmpty) return const SizedBox.shrink();
+
+    final sorted = [...intakes]
+      ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          icon: Icons.today_rounded,
+          label: context.l10n.todayScheduleForMedLabel,
+          accent: accent,
+        ),
+        Container(
+          decoration: _softCard(accent),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < sorted.length; i++)
+                _TodayIntakeRow(
+                  intake: sorted[i],
+                  accent: accent,
+                  isLast: i == sorted.length - 1,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppDimensions.xl),
+      ],
+    );
+  }
+}
+
+class _TodayIntakeRow extends ConsumerWidget {
+  final Intake intake;
+  final Color accent;
+  final bool isLast;
+  const _TodayIntakeRow({
+    required this.intake,
+    required this.accent,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canMark = intake.status == 'pending' || intake.status == 'snoozed';
+    final (icon, color, label) = switch (intake.status) {
+      'taken' => (
+          Icons.check_circle_rounded,
+          AppColors.success,
+          context.l10n.intakeTaken,
+        ),
+      'skipped' => (
+          Icons.cancel_outlined,
+          AppColors.textMuted,
+          context.l10n.intakeSkipped,
+        ),
+      'snoozed' => (
+          Icons.snooze_rounded,
+          AppColors.warning,
+          context.l10n.intakeSnoozed,
+        ),
+      _ => (null, null, null),
+    };
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 42,
+                child: Text(
+                  _fmtTime(intake.scheduledAt),
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  label!,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              if (canMark)
+                GestureDetector(
+                  onTap: () =>
+                      ref.read(intakesRepositoryProvider).markTaken(intake.id),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      context.l10n.doneAction,
+                      style: AppTextStyles.labelSm.copyWith(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (!isLast)
+          const Divider(
+            height: 1,
+            thickness: 1,
+            indent: 14,
+            endIndent: 14,
+            color: AppColors.border,
+          ),
+      ],
+    );
+  }
+
+  String _fmtTime(DateTime dt) =>
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
 
 // ── Залишок ────────────────────────────────────────────────────────────────────

@@ -2002,5 +2002,8 @@
   "manageSubscriptionExternallyHint": "Керування підпискою відкрито в App Store/Google Play — завершіть скасування там.",
   "restorePurchasesAction": "Відновити покупки",
   "restorePurchasesSuccessSnackbar": "Покупки відновлено",
-  "restorePurchasesNothingFoundSnackbar": "Активних покупок не знайдено на цьому Apple ID/Google-акаунті"
+  "restorePurchasesNothingFoundSnackbar": "Активних покупок не знайдено на цьому Apple ID/Google-акаунті",
+  "todayScheduleForMedLabel": "Розклад на сьогодні",
+  "intakeTaken": "Виконано",
+  "intakeSnoozed": "Перенесено"
 }
