@@ -245,6 +245,10 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (_isKeyMismatch) {
+      unawaited(_recordOccurrence());
+      unawaited(_loadBackupMode());
+    }
   }
 
   @override
@@ -264,26 +268,39 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
       ref.invalidate(currentMemberProvider);
     }
   }
-  // Кількість разів, коли ця помилка повторилась ПІСЛЯ явного "Спробувати
-  // ще раз" — 0 при першій появі екрана. Деструктивний "Скинути" не можна
-  // пропонувати одразу: помилка може бути транзитною (напр. тимчасовий
-  // лок файлу після відновлення бекапу, повільний диск), і без цього
-  // порогу користувач міг би втратити всі дані через звичайний глюк
-  // з'єднання замість того, щоб просто спробувати ще раз.
+  // Кількість разів поспіль, коли користувач бачив саме цю помилку —
+  // ПЕРСИСТЕНТНА (SharedPreferences через DbEncryptionService, не
+  // in-memory State-поле, як було раніше). Це принципово: головна порада
+  // на екрані нижче — "закрийте застосунок і відкрийте знову", а стара
+  // реалізація рахувала лише натискання "Спробувати ще раз" у ТОМУ Ж
+  // процесі. Хто слухняно слідував пораді (relaunch), ніколи не досягав
+  // порогу — лічильник щоразу обнулявся разом з новим State-об'єктом, і
+  // рятівна дія (скидання/відновлення) нижче не з'являлась НІКОЛИ для
+  // випадків, що переживають перезапуск. Тепер рахуємо і при першому показі
+  // (initState), і при кожному "Спробувати ще раз" (didUpdateWidget) —
+  // обидва шляхи ведуть до того самого персистентного лічильника.
   //
-  // Поріг навмисно піднято з 1 до 3: реальні звіти користувачів (і логи)
-  // показують, що цей конкретний код 26 після оновлення/сну пристрою
-  // майже завжди минає сам — але НЕ від "Спробувати ще раз" у тому ж
-  // процесі (ретрай лише перечитує той самий застиглий Keychain-стан), а
-  // ЛИШЕ від повного закриття й повторного відкриття застосунку. Занизький
-  // поріг тут уже призводив би до пропозиції видалити реальні дані там, де
-  // проблема через кілька секунд минула б сама після релончу.
-  int _retryCount = 0;
+  // Поріг — 3: перші два покази лишень підказують "закрийте й відкрийте
+  // знову" (транзієнтний Keystore-збій зазвичай минає сам за 1-2 спроби),
+  // з третього — пропонуємо або відновлення з бекапу (якщо ввімкнено), або
+  // деструктивне скидання.
+  int? _persistentAttemptCount;
+  BackupMode? _backupMode;
+
+  Future<void> _recordOccurrence() async {
+    final count = await DbEncryptionService.recordKeyMismatchOccurrence();
+    if (mounted) setState(() => _persistentAttemptCount = count);
+  }
+
+  Future<void> _loadBackupMode() async {
+    final mode = await BackupSettingsService.currentMode();
+    if (mounted) setState(() => _backupMode = mode);
+  }
 
   @override
   void didUpdateWidget(_DatabaseErrorScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _retryCount++;
+    if (_isKeyMismatch) unawaited(_recordOccurrence());
   }
 
   String get _detailsText =>
@@ -343,6 +360,75 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     if (!mounted) return;
     ref.invalidate(databaseProvider);
     ref.invalidate(currentMemberProvider);
+  }
+
+  // Активна хмарна резервна копія (Google Drive/iCloud) — набагато кращий
+  // вихід із розсинхрону ключа, ніж порожнє скидання: дані повертаються
+  // замість втрати. Пропонується ЗАМІСТЬ "Скинути" на порозі спроб, лише
+  // коли BackupSettingsService.currentMode() не 'local'.
+  Future<void> _restoreFromBackup(BackupMode mode) async {
+    final target = mode == BackupMode.googleDrive
+        ? BackupTarget.googleDrive
+        : BackupTarget.iCloud;
+
+    var passphrase = await BackupSettingsService.savedPassphrase();
+    if (passphrase == null || passphrase.isEmpty) {
+      passphrase = await _askBackupPassphrase();
+      if (passphrase == null || passphrase.isEmpty) return;
+    }
+
+    setState(() => _resetting = true);
+    AppLogger.log('db_restore_from_backup_after_key_mismatch');
+    try {
+      // Той самий порядок дій, що й у RestoreAccountScreen (онбординг):
+      // закриваємо поточне (нефункціональне) з'єднання ДО того, як
+      // restoreBackup підмінить сам файл medkit.db і ключ у secure storage
+      // "під ногами" — інакше фоновий ізолят Drift лишається живим поверх
+      // файлу, який міняється в нього під час читання.
+      await ref.read(databaseProvider).close();
+      await BackupService().restoreBackup(target: target, passphrase: passphrase);
+      await DbEncryptionService.clearKeyMismatchStreak();
+      if (!mounted) return;
+      ref.invalidate(databaseProvider);
+      ref.invalidate(currentMemberProvider);
+    } catch (e) {
+      // Провал відновлення (невірний пароль, немає мережі) — лишаємось на
+      // цьому ж екрані, деструктивне "Скинути" все ще доступне як запасний
+      // варіант (build() нижче), просто повідомляємо про невдачу.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _resetting = false);
+    }
+  }
+
+  Future<String?> _askBackupPassphrase() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.backupPasswordDialogTitle),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: InputDecoration(hintText: ctx.l10n.passwordFieldLabel),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(ctx.l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(ctx.l10n.okAction),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -426,7 +512,7 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                 ),
                 child: Text(context.l10n.tryAgainButtonAction),
               ),
-              if (_isKeyMismatch && _retryCount < 3) ...[
+              if (_isKeyMismatch && (_persistentAttemptCount ?? 0) < 3) ...[
                 const SizedBox(height: 8),
                 Text(
                   context.l10n.dbErrorMoreActionHint,
@@ -434,7 +520,39 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                 ),
               ],
-              if (_isKeyMismatch && _retryCount >= 3) ...[
+              // Поріг досягнуто (3+ показів цієї помилки, рахунок переживає
+              // relaunch — див. коментар біля _recordOccurrence) — пропонуємо
+              // або відновлення з активного хмарного бекапу (без втрати
+              // даних), або деструктивне скидання, якщо бекапу нема.
+              if (_isKeyMismatch &&
+                  (_persistentAttemptCount ?? 0) >= 3 &&
+                  _backupMode != null &&
+                  _backupMode != BackupMode.local) ...[
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed:
+                      _resetting ? null : () => _restoreFromBackup(_backupMode!),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _resetting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(context.l10n.restoreFromBackupAction),
+                ),
+              ],
+              if (_isKeyMismatch &&
+                  (_persistentAttemptCount ?? 0) >= 3 &&
+                  (_backupMode == null || _backupMode == BackupMode.local)) ...[
                 const SizedBox(height: 12),
                 OutlinedButton(
                   onPressed: _resetting ? null : _resetLocalDatabase,
