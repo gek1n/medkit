@@ -2,7 +2,7 @@ name: medkit
 description: "Family medication manager with AI"
 publish_to: 'none'
 
-version: 1.0.0+23
+version: 1.0.0+24
 
 environment:
   sdk: ^3.12.2
