@@ -535,37 +535,20 @@ class _StepName extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Owner: avatar picker (only this list scrolls)
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: avatarCount,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 1,
-                  ),
-                  itemBuilder: (context, i) => GestureDetector(
-                    onTap: () => onAvatarChange(i),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: i == avatarIndex
-                            ? AppColors.primaryLight
-                            : AppColors.bgPage,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: i == avatarIndex
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: AvatarImage(index: i, size: 52),
-                      ),
-                    ),
-                  ),
+                _AvatarGrid(
+                  start: 0,
+                  end: avatarCount,
+                  selectedIndex: avatarIndex,
+                  onChanged: onAvatarChange,
+                ),
+                const SizedBox(height: AppDimensions.lg),
+                _SectionDivider(label: context.l10n.petAvatarsSectionLabel),
+                const SizedBox(height: AppDimensions.md),
+                _AvatarGrid(
+                  start: avatarCount,
+                  end: totalAvatarCount,
+                  selectedIndex: avatarIndex,
+                  onChanged: onAvatarChange,
                 ),
 
                 const SizedBox(height: 12),
@@ -577,6 +560,83 @@ class _StepName extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           child: _NextButton(label: context.l10n.nextToMedsAction, onTap: onNext),
         ),
+      ],
+    );
+  }
+}
+
+// Розділ пікера аватарів на діапазон [start, end) — той самий вигляд плиток,
+// що й раніше, лише параметризований, щоб малювати і людські аватари, і
+// секцію "Домашні улюбленці" одним і тим самим кодом.
+class _AvatarGrid extends StatelessWidget {
+  final int start;
+  final int end;
+  final int selectedIndex;
+  final void Function(int) onChanged;
+  const _AvatarGrid({
+    required this.start,
+    required this.end,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: end - start,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1,
+      ),
+      itemBuilder: (context, i) {
+        final index = start + i;
+        return GestureDetector(
+          onTap: () => onChanged(index),
+          child: Container(
+            decoration: BoxDecoration(
+              color: index == selectedIndex
+                  ? AppColors.primaryLight
+                  : AppColors.bgPage,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: index == selectedIndex
+                    ? AppColors.primary
+                    : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: AvatarImage(index: index, size: 52),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SectionDivider extends StatelessWidget {
+  final String label;
+  const _SectionDivider({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: AppColors.border)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            label,
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textMuted),
+          ),
+        ),
+        const Expanded(child: Divider(color: AppColors.border)),
       ],
     );
   }
