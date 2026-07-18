@@ -3902,50 +3902,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get resetLocalDbConfirmTitle => 'Сбросить локальную базу?';
-
-  @override
-  String get resetLocalDbConfirmBody =>
-      'Ключ шифрования не совпадает с файлом базы на этом устройстве — расшифровать имеющиеся данные невозможно. Это удалит повреждённый файл локально и позволит начать заново. Действие невозможно отменить.';
-
-  @override
-  String get resetAction => 'Сбросить';
-
-  @override
-  String get dbLoadErrorTitle => 'Не удалось загрузить данные';
+  String get dbLoadErrorTitle => 'Нужно перезапустить Elly';
 
   @override
   String get dbLoadErrorBody =>
-      'Ваши данные никуда не исчезли — произошла техническая ошибка при их чтении.';
-
-  @override
-  String get dbErrorTryThisFirstLabel => 'Попробуйте это в первую очередь';
-
-  @override
-  String get dbErrorCloseReopenHint =>
-      'Полностью закройте приложение (не просто сверните — по-настоящему закройте его через список запущенных приложений) и откройте снова. В подавляющем большинстве случаев это решает проблему без потери данных.';
-
-  @override
-  String get tryAgainButtonAction => 'Попробовать ещё раз';
-
-  @override
-  String get dbErrorMoreActionHint =>
-      'Если закрытие и повторный запуск приложения не помогли — после нескольких попыток здесь появится дополнительное действие.';
-
-  @override
-  String get resetLocalDbAction => 'Сбросить локальную базу';
-
-  @override
-  String get hideDetailsAction => 'Скрыть детали';
-
-  @override
-  String get showErrorDetailsAction => 'Показать детали ошибки';
-
-  @override
-  String get copiedToClipboardSnackbar => 'Скопировано';
-
-  @override
-  String get copyErrorTextAction => 'Копировать текст ошибки';
+      'Закройте приложение полностью — проведите пальцем вверх от нижнего края экрана и смахните карточку Elly — а затем откройте снова. Ваши данные никуда не делись, через несколько секунд всё вернётся на место.';
 
   @override
   String get unlockPhoneTitle => 'Разблокируйте телефон';

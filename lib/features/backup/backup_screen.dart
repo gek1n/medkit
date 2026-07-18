@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/backup_settings_service.dart';
+import '../../core/services/notification_resync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -150,6 +151,13 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       // би стару БД, поки користувач не перезапустить його вручну.
       container.invalidate(databaseProvider);
       container.invalidate(currentMemberProvider);
+
+      // ⚠️ Відновлені рядки приходять зі статусом "pending" і реальним
+      // scheduledAt, але самі OS-нагадування (zonedSchedule) — стан
+      // планувальника пристрою, не щось, що зберігається у файлі БД чи
+      // бекапиться разом з нею. Без явного resyncAll() тут відновлені
+      // задачі лишались би без жодного запланованого нагадування назавжди.
+      await container.read(notificationResyncServiceProvider).resyncAll();
 
       if (!mounted) return;
       await showDialog<void>(

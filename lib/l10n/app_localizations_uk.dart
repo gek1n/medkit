@@ -3896,50 +3896,11 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get resetLocalDbConfirmTitle => 'Скинути локальну базу?';
-
-  @override
-  String get resetLocalDbConfirmBody =>
-      'Ключ шифрування не збігається з файлом бази на цьому пристрої — розшифрувати наявні дані неможливо. Це видалить пошкоджений файл локально і дасть змогу почати заново. Дію неможливо скасувати.';
-
-  @override
-  String get resetAction => 'Скинути';
-
-  @override
-  String get dbLoadErrorTitle => 'Не вдалося завантажити дані';
+  String get dbLoadErrorTitle => 'Потрібно перезапустити Elly';
 
   @override
   String get dbLoadErrorBody =>
-      'Ваші дані нікуди не зникли — сталася технічна помилка при їх читанні.';
-
-  @override
-  String get dbErrorTryThisFirstLabel => 'Спробуйте це першим';
-
-  @override
-  String get dbErrorCloseReopenHint =>
-      'Повністю закрийте застосунок (не просто згорніть — справді закрийте його через список запущених застосунків) і відкрийте знову. У переважній більшості випадків це вирішує проблему без втрати даних.';
-
-  @override
-  String get tryAgainButtonAction => 'Спробувати ще раз';
-
-  @override
-  String get dbErrorMoreActionHint =>
-      'Якщо закриття й повторний запуск застосунку не допомогли — після кількох спроб тут з\'явиться додаткова дія.';
-
-  @override
-  String get resetLocalDbAction => 'Скинути локальну базу';
-
-  @override
-  String get hideDetailsAction => 'Сховати деталі';
-
-  @override
-  String get showErrorDetailsAction => 'Показати деталі помилки';
-
-  @override
-  String get copiedToClipboardSnackbar => 'Скопійовано';
-
-  @override
-  String get copyErrorTextAction => 'Копіювати текст помилки';
+      'Закрийте застосунок повністю — проведіть пальцем вгору з нижнього краю екрана й змахніть картку Elly — а тоді відкрийте знову. Ваші дані нікуди не зникли, за кілька секунд усе повернеться на місце.';
 
   @override
   String get unlockPhoneTitle => 'Розблокуйте телефон';

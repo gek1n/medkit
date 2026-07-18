@@ -250,20 +250,6 @@ class DbEncryptionService {
     return key;
   }
 
-  /// Видаляє файл БД разом із ключем шифрування — єдиний вихід із стану
-  /// "PRAGMA key встановлено, але файл усе одно нечитабельний" (SqliteException
-  /// code 26, "file is not a database"): це означає, що збережений ключ
-  /// фізично не той, яким зашифровано файл (типово — залишок Keychain від
-  /// попередньої інсталяції), а без правильного ключа розшифрувати дані
-  /// криптографічно неможливо в принципі. Викликається лише явно, з
-  /// підтвердженням користувача.
-  static Future<void> resetCorruptedDatabase(File dbFile) async {
-    if (await dbFile.exists()) {
-      await dbFile.delete();
-    }
-    await _secureStorage.delete(key: _keyStorageKey);
-  }
-
   /// Якщо файл — незашифрована SQLite-база (стара версія застосунку),
   /// перешифровує її на місці через PRAGMA rekey. Якщо файл вже зашифрований
   /// цим-таки ключем — нічого не робить.

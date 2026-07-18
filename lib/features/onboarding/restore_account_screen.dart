@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/backup_settings_service.dart';
+import '../../core/services/notification_resync_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -78,6 +79,15 @@ class _RestoreAccountScreenState extends ConsumerState<RestoreAccountScreen> {
       // просто лишався б на кроці "Як почнемо?".
       container.invalidate(databaseProvider);
       container.invalidate(currentMemberProvider);
+
+      // ⚠️ Відновлені рядки (ліки/активності/записи/самопочуття) приходять
+      // з backup-архіву зі статусом "pending" і реальним scheduledAt, але
+      // самі OS-нагадування (zonedSchedule) — це стан планувальника
+      // пристрою, а не щось, що зберігається у файлі БД чи бекапиться
+      // разом з нею. Без явного resyncAll() тут відновлені задачі
+      // залишались би без жодного запланованого нагадування назавжди —
+      // мовчки, без помилки, аж доки хтось не відредагує їх вручну.
+      await container.read(notificationResyncServiceProvider).resyncAll();
 
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
