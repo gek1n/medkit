@@ -964,6 +964,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.13.0"
+  medkit_db_key_storage:
+    dependency: "direct main"
+    description:
+      path: "packages/medkit_db_key_storage"
+      relative: true
+    source: path
+    version: "1.0.0"
   meta:
     dependency: transitive
     description:

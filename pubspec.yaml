@@ -21,6 +21,8 @@ dependencies:
   sqlcipher_flutter_libs: ^0.6.4
   sqlite3: ^2.4.6
   flutter_secure_storage: ^9.2.2
+  medkit_db_key_storage:
+    path: packages/medkit_db_key_storage
   local_auth: ^2.3.0
   cryptography: ^2.7.0
   path_provider: ^2.1.5
