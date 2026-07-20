@@ -138,27 +138,31 @@ class DbEncryptionService {
           'DbEncryptionService: removing orphaned WAL/SHM sidecars fixed '
           'the key-mismatch — proceeding silently, no error screen needed',
         );
-      } else if (removedSidecars) {
-        AppLogger.log(
-          'DbEncryptionService: removed WAL/SHM sidecars but db still '
-          "doesn't open — not a sidecar issue, falling through to error UI",
-          level: 'warn',
-        );
       } else {
-        // Раніше тут не логувалось НІЧОГО, якщо супутників просто не було —
-        // саме та інформація, якої найбільше бракувало при розборі реальних
-        // звітів: без цього рядка неможливо відрізнити "перевірили, файлів
-        // не було" від "перевірку взагалі не викликали". Якщо це видно в
-        // логу поруч із key resolved успішно і без WAL/SHM — значить,
-        // причина в самому файлі БД (напр. пошкодження після різкого
-        // завершення процесу одразу після запису), а не в ключі чи
-        // осиротілих супутниках.
-        AppLogger.log(
-          'DbEncryptionService: key does not open db, no WAL/SHM/journal '
-          'sidecars present — likely main file corruption, not a key or '
-          'sidecar issue',
-          level: 'warn',
-        );
+        if (removedSidecars) {
+          AppLogger.log(
+            'DbEncryptionService: removed WAL/SHM sidecars but db still '
+            "doesn't open — not a sidecar issue, falling through to error UI",
+            level: 'warn',
+          );
+        } else {
+          // Раніше тут не логувалось НІЧОГО, якщо супутників просто не
+          // було — саме та інформація, якої найбільше бракувало при
+          // розборі реальних звітів: без цього рядка неможливо відрізнити
+          // "перевірили, файлів не було" від "перевірку взагалі не
+          // викликали".
+          AppLogger.log(
+            'DbEncryptionService: key does not open db, no WAL/SHM/journal '
+            'sidecars present — likely main file corruption, not a key or '
+            'sidecar issue',
+            level: 'warn',
+          );
+        }
+        // Наступний рівень діагностики (звіт: checkpoint при уході у фон
+        // НЕ виправив проблему — теорія "WAL не встиг злитись" або
+        // спростована, або недостатня) — реальний розмір файлів на диску й
+        // перші байти головного файлу, замість подальших здогадок наосліп.
+        await logFileDiagnostics(dbFile, context: 'after all retries exhausted');
       }
     }
 
@@ -457,6 +461,51 @@ class DbEncryptionService {
       }
     }
     return foundAny;
+  }
+
+  /// Реальний розмір кожного файлу на диску (0/відсутній — теж значуща
+  /// інформація, не лише "є") плюс перші 16 байт головного файлу. Перші 16
+  /// байт SQLCipher-файлу — це сіль (salt) для KDF, не сам зашифрований
+  /// вміст, тож безпечно логувати: нічого не розкриває про ключ чи дані,
+  /// лише дозволяє відрізнити, наприклад, порожній/усічений файл (нулі або
+  /// закорочений) від файлу з правдоподібним випадковим заголовком.
+  ///
+  /// Публічний (не `_`) і бере опціональний [context]-ярлик — використовується
+  /// і тут (коли всі відомі причини вже виключені, а файл усе одно не
+  /// відкривається), і з `_ShellState._checkpointDatabase` у main.dart
+  /// (до/після WAL checkpoint при уході в фон) — щоб порівнювати стан файлу
+  /// В ОДНОМУ й тому самому форматі до і після підозрюваної дії, а не лише
+  /// в момент, коли вже все зламано.
+  static Future<void> logFileDiagnostics(File dbFile, {String context = ''}) async {
+    try {
+      final sizes = <String, String>{};
+      for (final suffix in ['', '-wal', '-shm', '-journal']) {
+        final f = File('${dbFile.path}$suffix');
+        final label = suffix.isEmpty ? 'main' : suffix;
+        sizes[label] = await f.exists() ? '${await f.length()}b' : 'absent';
+      }
+
+      var headerHex = 'n/a';
+      if (await dbFile.exists()) {
+        final raf = await dbFile.open();
+        try {
+          final header = await raf.read(16);
+          headerHex =
+              header.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+        } finally {
+          await raf.close();
+        }
+      }
+
+      final label = context.isEmpty ? '' : '($context) ';
+      AppLogger.log(
+        'DbEncryptionService: file diagnostics $label— sizes: $sizes, '
+        'first 16 bytes of main file (salt, not sensitive): $headerHex',
+        level: 'warn',
+      );
+    } catch (e, st) {
+      AppLogger.logError('DbEncryptionService.logFileDiagnostics', e, st);
+    }
   }
 
   /// Викликається з `_DatabaseErrorScreen` щоразу, коли він показується через
