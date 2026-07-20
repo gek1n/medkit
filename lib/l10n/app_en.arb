@@ -911,6 +911,7 @@
   "debugLogEmptyBody": "The log is empty.",
   "debugLogEmptySnackbar": "Log is empty",
   "debugLogShareSubject": "Elly — event log",
+  "viewDebugLogAction": "View event log",
   "clearAction": "Clear",
   "shareAction": "Share",
   "antiStressLabel": "Anti-stress exercises",

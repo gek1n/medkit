@@ -1510,6 +1510,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debugLogShareSubject => 'Elly — event log';
 
   @override
+  String get viewDebugLogAction => 'View event log';
+
+  @override
   String get clearAction => 'Clear';
 
   @override

@@ -2704,6 +2704,12 @@ abstract class AppLocalizations {
   /// **'Elly — журнал подій'**
   String get debugLogShareSubject;
 
+  /// No description provided for @viewDebugLogAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Переглянути журнал подій'**
+  String get viewDebugLogAction;
+
   /// No description provided for @clearAction.
   ///
   /// In uk, this message translates to:

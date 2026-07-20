@@ -1517,6 +1517,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get debugLogShareSubject => 'Elly — журнал событий';
 
   @override
+  String get viewDebugLogAction => 'Просмотреть журнал событий';
+
+  @override
   String get clearAction => 'Очистить';
 
   @override
