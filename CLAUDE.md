@@ -335,6 +335,90 @@ test/            narrow unit tests for crypto/sync services — no widget test c
 
 ## Build & release — test vs production
 
+### 🔴 CONFIRMED ROOT CAUSE of "file is not a database" (SQLite code 26) — fix this first
+
+After days of Dart-side diagnostics (key fingerprints, WAL checkpoints, byte-level
+file inspection — all ruled out), device logs from two different phones proved the
+actual mechanism: **the iOS build inconsistently links two different native
+sqlite3 libraries into the same process across different app launches** — one
+with SQLCipher compiled in (`sqlite3_lib_version: 3.50.4`, real `cipher_*`
+PRAGMAs), one plain/unencrypted (`sqlite3_lib_version: 3.51.0`, all `cipher_*`
+PRAGMAs return empty). Which one "wins" for a given launch is effectively
+random. This explains every symptom seen in this investigation:
+- Same correct key "works" on one launch, fails on the next — it was never
+  about the key, it's about which sqlite3 build is active that session.
+- "Just restart the app" sometimes fixed it (got lucky, matching library loaded)
+  and sometimes didn't (same wrong library loaded again) — never a real fix.
+- **Serious side effect**: if the plain (non-cipher) library wins at the moment
+  a *fresh* database file is first written (onboarding), health data is written
+  to disk **completely unencrypted**, silently. `PRAGMA key = '...'` is simply
+  ignored by a non-cipher sqlite3 build — it does not error.
+
+This is a **known, documented issue in `sqlcipher_flutter_libs` itself**, not
+something specific to this app — see its README, "Incompatibilities with
+sqlite3 on iOS and macOS":
+> When depending on another package linking the regular `sqlite3` pod or
+> library, this can lead to undefined behavior which may mean that SQLCipher
+> will not be available in your app. On such problematic package is
+> `google_mobile_ads`, or **`firebase_messaging`**.
+
+`firebase_messaging` is in this app's `pubspec.yaml` (added for push
+notifications). Its iOS pod (or one of its transitive Firebase dependencies)
+links the plain system `sqlite3` via a CocoaPods-generated `-l"sqlite3"` linker
+flag, which collides with SQLCipher's statically-linked symbols at the process
+level.
+
+**Fix — apply on the Mac, in this order:**
+
+1. Add this `post_install` snippet to [ios/Podfile](ios/Podfile), replacing the
+   existing (simpler) `post_install do |installer| ... end` block — it strips
+   the conflicting `-l"sqlite3"` flag from every pod's generated xcconfig so
+   only SQLCipher's linked symbols remain:
+   ```ruby
+   post_install do |installer|
+     installer.pods_project.targets.each do |target|
+       flutter_additional_ios_build_settings(target)
+       target.build_configurations.each do |config|
+         xcconfig_path = config.base_configuration_reference.real_path
+         xcconfig = File.read(xcconfig_path)
+         new_xcconfig = xcconfig.sub(' -l"sqlite3"', '')
+         File.open(xcconfig_path, "w") { |file| file << new_xcconfig }
+       end
+     end
+   end
+   ```
+   (Source: [drift#1810](https://github.com/simolus3/drift/issues/1810), a
+   contributor hit this exact combination — "without firebase messaging &&
+   with flutter_cache_manager → startup works" — confirming
+   `firebase_messaging` as a trigger.)
+2. `rm -rf ios/Pods ios/Podfile.lock && cd ios && pod install` — a full clean
+   reinstall, not an incremental one, since the whole point is regenerating
+   every pod's xcconfig through the new snippet.
+   **Also check**: the currently-committed `ios/Podfile.lock` has **zero**
+   Firebase pods listed at all, despite `firebase_core`/`firebase_messaging`/
+   `firebase_crashlytics` being in `pubspec.yaml` since build 26. That likely
+   means Firebase is being linked via **Swift Package Manager** instead of
+   CocoaPods (there's an earlier "fix: iOS build pipeline — SPM/CocoaPods
+   deps" commit). If so, the linker-flag strip above may not be the whole
+   story — check whether the SPM-provided Firebase package products also
+   declare a plain sqlite3 link, and if so, the fallback is adding
+   `-framework SQLCipher` explicitly to "Other Linker Flags" in the Runner
+   target's Xcode build settings (also documented in the README above) so
+   SQLCipher's symbols are forced to resolve first regardless of link order.
+3. **Verify it actually worked** before doing anything else: run the app,
+   trigger a DB open, and check the "ТИМЧАСОВЕ" diagnostic log
+   (`DbEncryptionService._logCipherDiagnostics`, viewable via the debug-log
+   button on the DB error screen or Profile → tap "Elly" 7×) — every single
+   session, forever, should show `sqlite3_lib_version: 3.50.4` and non-empty
+   `cipher_version`/`cipher_provider`. If you ever see `3.51.0` or empty
+   `cipher_*` fields again, the fix didn't fully take — don't consider this
+   closed on the strength of "it opened fine once."
+4. Once confirmed stable across several real restarts (including the
+   force-quit-overnight and cloud-restore cases below), remove the
+   `ТИМЧАСОВЕ` diagnostic logging added across PRs #40/#42/#43 in
+   `db_encryption_service.dart`/`app_database.dart` per the standing
+   cleanup-debt note — it served its purpose.
+
 ### ⚠️ Post-migration Mac checklist (do this before the next real build)
 
 `packages/medkit_db_key_storage` (see "Data layer" above) was built and verified
