@@ -3,15 +3,18 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services") apply false
+    id("com.google.firebase.crashlytics") apply false
 }
 
-// Застосовуємо плагін лише якщо файл вже покладений — інакше він падає з
+// Застосовуємо плагіни лише якщо файл вже покладений — інакше вони падають з
 // build-помилкою "File google-services.json is missing", а не мовчки
-// пропускає крок. Додайте android/app/google-services.json з Firebase
-// Console (Project settings → Your apps → Android), і плагін підхопиться
-// сам за наступної збірки.
+// пропускають крок. Додайте android/app/google-services.json з Firebase
+// Console (Project settings → Your apps → Android), і обидва підхопляться
+// самі за наступної збірки. crashlytics-плагін потребує google-services —
+// той самий файл вмикає обидва.
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {

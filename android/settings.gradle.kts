@@ -23,6 +23,9 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.3.20" apply false
     // Підхоплює android/app/google-services.json, коли його додадуть з Firebase Console.
     id("com.google.gms.google-services") version "4.4.2" apply false
+    // Потрібен для build-ID mapping/символізації нативних крешів — той самий
+    // умовний патерн застосування, що й google-services, у app/build.gradle.kts.
+    id("com.google.firebase.crashlytics") version "3.0.2" apply false
 }
 
 include(":app")
