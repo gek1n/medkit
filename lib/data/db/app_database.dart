@@ -7,6 +7,7 @@ import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
 import 'package:uuid/uuid.dart';
 
+import '../../core/services/app_logger.dart';
 import '../../core/services/db_encryption_service.dart';
 import 'tables/members_table.dart';
 import 'tables/medications_table.dart';
@@ -417,6 +418,20 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final file = await DbEncryptionService.databaseFile();
     final key = await DbEncryptionService.ensureEncryptedDatabase(file);
+    // ТИМЧАСОВЕ діагностичне логування (розслідування SqliteException(26) —
+    // байтовий аналіз завантаженого medkit.db показав ЖОДНИХ ознак
+    // пошкодження/обрізання файлу, тож підозра повертається до самого
+    // значення ключа/його застосування). Логуємо лише ВІДБИТОК (не сам
+    // ключ — секрет) того значення, яке за мить піде у PRAGMA key
+    // реального з'єднання (виконується тут, на головному ізоляті, ДО
+    // передачі в замикання setup нижче — сам setup-колбек виконується у
+    // фоновому ізоляті createInBackground, де AppLogger писати ненадійно,
+    // бо platform channels там окремі). Прибрати після завершення
+    // розслідування.
+    AppLogger.log(
+      'AppDatabase: opening real connection, key fingerprint='
+      '${DbEncryptionService.keyFingerprint(key)}',
+    );
     return NativeDatabase.createInBackground(
       file,
       // createInBackground виконується у власному ізоляті — override
