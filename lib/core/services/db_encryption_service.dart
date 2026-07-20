@@ -131,6 +131,34 @@ class DbEncryptionService {
       key = await _getOrCreateKey();
     }
 
+    // Якщо навіть 5 спроб перечитати Keychain не допомогли — перш ніж
+    // здатись і показати користувачу екран помилки, перевіряємо ОДНУ
+    // конкретну, вже реально підтверджену причину: осиротілі WAL/SHM-
+    // супутники від попередньої генерації бази (напр. після старого,
+    // ще не виправленого скидання) — їхній SQLCipher-salt не збігається з
+    // поточним головним файлом, тому навіть правильний ключ не відкриває
+    // PRAGMA user_version. Прибираємо їх ЛИШЕ тут, коли пара ключ+файл і
+    // так уже не відкривається (гірше не станеться — ці дані все одно
+    // недосяжні прямо зараз), і одразу перевіряємо, чи це реально
+    // допомогло, перш ніж мовчки продовжити. Якщо не допомогло — нічого
+    // додатково не втрачено, просто падаємо далі в уже наявний UI
+    // помилки, як і раніше.
+    if (!_keyOpensDatabase(dbFile, key)) {
+      final removedSidecars = await _removeWalSidecarsIfPresent(dbFile);
+      if (removedSidecars && _keyOpensDatabase(dbFile, key)) {
+        AppLogger.log(
+          'DbEncryptionService: removing orphaned WAL/SHM sidecars fixed '
+          'the key-mismatch — proceeding silently, no error screen needed',
+        );
+      } else if (removedSidecars) {
+        AppLogger.log(
+          'DbEncryptionService: removed WAL/SHM sidecars but db still '
+          "doesn't open — not a sidecar issue, falling through to error UI",
+          level: 'warn',
+        );
+      }
+    }
+
     // Виконується на кожному запуску (не одноразово через прапорець у
     // SharedPreferences) — _rekeyIfPlaintext сам по собі безпечний і
     // ідемпотентний: якщо файл вже зашифрований цим ключем, спроба
@@ -328,13 +356,46 @@ class DbEncryptionService {
   /// на наступному запуску, хай скільки разів натискати "Скинути" —
   /// реальний, підтверджений корінь звітів "проблема так і не фіксується".
   static Future<void> resetCorruptedDatabase(File dbFile) async {
-    for (final suffix in ['', '-wal', '-shm', '-journal']) {
+    await _deleteSidecarFiles(dbFile, includeMain: true);
+    await _secureStorage.delete(key: _keyStorageKey);
+  }
+
+  /// Видаляє лише `-wal`/`-shm`/`-journal` (за бажанням і сам головний
+  /// файл) — спільна реалізація для [resetCorruptedDatabase] (явне
+  /// скидання користувачем) і превентивної тихої перевірки в
+  /// [ensureEncryptedDatabase] нижче (коли ключ+файл і так уже не
+  /// відкриваються, ще до показу екрана помилки).
+  static Future<void> _deleteSidecarFiles(
+    File dbFile, {
+    required bool includeMain,
+  }) async {
+    final suffixes = includeMain
+        ? ['', '-wal', '-shm', '-journal']
+        : ['-wal', '-shm', '-journal'];
+    for (final suffix in suffixes) {
       final f = File('${dbFile.path}$suffix');
       if (await f.exists()) {
         await f.delete();
       }
     }
-    await _secureStorage.delete(key: _keyStorageKey);
+  }
+
+  /// Превентивна, ТИХА перевірка — викликається лише коли `_keyOpensDatabase`
+  /// вже провалилась навіть після повторних спроб перечитати Keychain (див.
+  /// [ensureEncryptedDatabase]), тобто гірше вже не зробимо. Повертає true,
+  /// якщо `-wal`/`-shm`/`-journal` реально існували й були видалені —
+  /// виклик-сторона сама перевіряє, чи це насправді відкрило файл, перш ніж
+  /// вважати це "виправленням", а не просто побічним ефектом.
+  static Future<bool> _removeWalSidecarsIfPresent(File dbFile) async {
+    var foundAny = false;
+    for (final suffix in ['-wal', '-shm', '-journal']) {
+      final f = File('${dbFile.path}$suffix');
+      if (await f.exists()) {
+        foundAny = true;
+        await f.delete();
+      }
+    }
+    return foundAny;
   }
 
   /// Викликається з `_DatabaseErrorScreen` щоразу, коли він показується через
