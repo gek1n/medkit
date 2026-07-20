@@ -264,16 +264,101 @@ class DbEncryptionService {
     );
   }
 
+  /// Реальний звіт (iOS, прод-збірка зі стору): видалили застосунок,
+  /// встановили заново, пройшли онбординг (файл БД щойно створився і
+  /// реально шифрувався НОВИМ ключем — інакше сам онбординг не зберігся б),
+  /// закрили — відкрили — "ошибка бд". iOS НЕ чистить Keychain при
+  /// видаленні застосунку, тож на пристрої, де MedKit уже стояв раніше, під
+  /// тим самим `_keyStorageKey` міг лишитись СТАРИЙ запис.
+  ///
+  /// Джерело підтверджене прямо в коді плагіна (`FlutterSecureStorage.swift`,
+  /// `write()`): коли ключ уже існує, плагін пробує `SecItemUpdate`, а якщо
+  /// не знайшла збігу — видаляє старий запис по ВСІХ можливих
+  /// accessibility-рівнях і лише тоді додає новий. Але ця "прибиральна"
+  /// петля щоразу викликає `delete()` з ОДНИМ ФІКСОВАНИМ значенням
+  /// `synchronizable` (тим самим, що передали ми — завжди `false`), і
+  /// НІКОЛИ не пробує `synchronizable: true`. А `kSecAttrSynchronizable`,
+  /// на відміну від `kSecAttrAccessible`, реально впливає на ідентичність
+  /// запису в Keychain (iCloud Keychain-синхронізований і локальний запис
+  /// із однаковим account/service УСПІШНО співіснують як ДВА різні записи).
+  /// Якщо старий запис (з давнішої інсталяції/версії пакета) виявиться
+  /// `synchronizable: true` — жодна ітерація тієї петлі його не знайде,
+  /// новий запис (`synchronizable: false`) спокійно додасться ПОРУЧ, і
+  /// подальше читання (`read()` спершу шукає БЕЗ фільтра по
+  /// synchronizable — тобто знаходить обидва) поверне НЕВИЗНАЧЕНО який із
+  /// двох — можливо, щойно записаний, можливо, старий чужий.
+  ///
+  /// Тому явно прибираємо ОБИДВА можливі стани synchronizable нашою
+  /// стороною, перед тим як покладатись на внутрішню логіку `write()` —
+  /// безпечно (файлу БД ще нема, старому значенню в будь-якому разі нема
+  /// чим відповідати) — а після запису перечитуємо і звіряємо.
+  ///
+  /// ВАЖЛИВО (свідома відмова від "падати одразу, якщо не збіглось"):
+  /// це перший запуск ЩОЙНО встановленого застосунку — сюди потрапляє КОЖЕН
+  /// новий користувач, ДО онбордингу. Якщо звірка не збіглась і ми кинемо
+  /// виняток тут — замість "фікса рідкісного edge-кейсу" це стає новим
+  /// способом заблокувати онбординг НАЗАВЖДИ будь-якому користувачу, у кого
+  /// Keychain на мить "загальмував" одразу після інсталяції (типовий
+  /// транзієнтний стан securityd, а не помилка) — набагато гірше за
+  /// початкову проблему. Тому: кілька спроб (delete+write+read) з паузою, а
+  /// якщо й після них не збіглось — ПРОДОВЖУЄМО з останнім згенерованим
+  /// ключем (як і робилось до цієї перевірки), лише голосно логуючи —
+  /// основний захист від дублікатів-по-synchronizable вище вже мав
+  /// спрацювати для реальної причини з продового звіту; ця звірка — лише
+  /// canary на випадок ще не відомої причини, не привід зупиняти новачка.
   static Future<String> _generateAndStoreKey() async {
     final random = Random.secure();
     final bytes = List<int>.generate(32, (_) => random.nextInt(256));
     final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
     final key = "x'$hex'";
 
-    await _secureStorage.write(key: _keyStorageKey, value: key);
-    // Свіжий ключ для свіжого файлу (перший запуск або щойно після
-    // resetCorruptedDatabase) — будь-який попередній лічильник розсинхронів
-    // більше не стосується нової пари ключ/файл.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      if (Platform.isIOS) {
+        // accessibility: null — щоб цей запит НЕ фільтрував по
+        // kSecAttrAccessible (той плагін і сам не вважає значущим для
+        // ідентичності запису), єдина змінна тут — synchronizable, саме та,
+        // яку внутрішня петля `write()` ніколи не варіює.
+        await _secureStorage.delete(
+          key: _keyStorageKey,
+          iOptions:
+              const IOSOptions(accessibility: null, synchronizable: true),
+        );
+        await _secureStorage.delete(
+          key: _keyStorageKey,
+          iOptions:
+              const IOSOptions(accessibility: null, synchronizable: false),
+        );
+      } else {
+        await _secureStorage.delete(key: _keyStorageKey);
+      }
+      await _secureStorage.write(key: _keyStorageKey, value: key);
+
+      final verify = await _secureStorage.read(key: _keyStorageKey);
+      if (verify == key) {
+        // Свіжий ключ для свіжого файлу (перший запуск або щойно після
+        // resetCorruptedDatabase) — будь-який попередній лічильник
+        // розсинхронів більше не стосується нової пари ключ/файл.
+        await clearKeyMismatchStreak();
+        return key;
+      }
+
+      AppLogger.log(
+        'DbEncryptionService: freshly written key does not read back '
+        'from secure storage (attempt ${attempt + 1}/3) — retrying',
+        level: 'warn',
+      );
+      if (attempt < 2) {
+        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      }
+    }
+
+    AppLogger.log(
+      'DbEncryptionService: key still does not read back after 3 attempts '
+      '— proceeding with it anyway rather than blocking onboarding '
+      '(the duplicate-synchronizable cleanup above already covers the '
+      'known cause; this is an unverified fallback for anything else)',
+      level: 'error',
+    );
     await clearKeyMismatchStreak();
     return key;
   }
