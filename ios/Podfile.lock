@@ -27,6 +27,8 @@ PODS:
   - GTMSessionFetcher/Core (3.5.0)
   - icloud_storage (0.0.1):
     - Flutter
+  - medkit_db_key_storage (1.0.0):
+    - Flutter
   - MLImage (1.0.0-beta6)
   - MLKitBarcodeScanning (6.0.0):
     - MLKitCommon (~> 12.0)
@@ -68,6 +70,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - icloud_storage (from `.symlinks/plugins/icloud_storage/ios`)
+  - medkit_db_key_storage (from `.symlinks/plugins/medkit_db_key_storage/ios`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/ios`)
   - sign_in_with_apple (from `.symlinks/plugins/sign_in_with_apple/ios`)
   - sqlcipher_flutter_libs (from `.symlinks/plugins/sqlcipher_flutter_libs/ios`)
@@ -94,6 +97,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
   icloud_storage:
     :path: ".symlinks/plugins/icloud_storage/ios"
+  medkit_db_key_storage:
+    :path: ".symlinks/plugins/medkit_db_key_storage/ios"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/ios"
   sign_in_with_apple:
@@ -110,6 +115,7 @@ SPEC CHECKSUMS:
   GoogleUtilities: 766ace00c6b10d8148408f329d10c4f051931850
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
   icloud_storage: e55639f0c0d7cb2b0ba9c0b3d5968ccca9cd9aa2
+  medkit_db_key_storage: 2c85b15456deb7b89d6eb4350d603cb7abc0eb11
   MLImage: 0ad1c5f50edd027672d8b26b0fee78a8b4a0fc56
   MLKitBarcodeScanning: 0a3064da0a7f49ac24ceb3cb46a5bc67496facd2
   MLKitCommon: 07c2c33ae5640e5380beaaa6e4b9c249a205542d
