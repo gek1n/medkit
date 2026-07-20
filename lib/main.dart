@@ -781,6 +781,28 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       unawaited(ReviewPromptService.maybeShow());
       unawaited(BackupReminderService.maybeRemind());
       unawaited(NotificationService.logDiagnostics());
+    } else if (state == AppLifecycleState.paused) {
+      unawaited(_checkpointDatabase());
+    }
+  }
+
+  // SQLite WAL-режим сам по собі crash-safe (закомічена транзакція завжди
+  // відновлюється при наступному відкритті) — але без явного checkpoint'а
+  // дані можуть як завгодно довго лишатись розкиданими між medkit.db-wal і
+  // головним файлом. Реальний звіт: щойно завершили онбординг (кілька
+  // записів поспіль: профіль, ліки, розклад) і одразу згорнули застосунок —
+  // наступний запуск стабільно не міг відкрити БД (ключ підтверджено
+  // правильний логами, WAL/SHM-супутників не лишалось) навіть після кількох
+  // перезапусків поспіль. Явний checkpoint при відході у фон — стандартна
+  // практика для мобільних SQLite-застосунків саме на цей випадок:
+  // мінімізує вікно, коли щойно записані дані лежать лише в WAL, а не в
+  // головному файлі. TRUNCATE (не PASSIVE/FULL) — щоб WAL справді
+  // спорожнів, а не лишався "чекати" на майбутній автоматичний checkpoint.
+  Future<void> _checkpointDatabase() async {
+    try {
+      await ref.read(databaseProvider).customStatement('PRAGMA wal_checkpoint(TRUNCATE);');
+    } catch (e, st) {
+      AppLogger.logError('_ShellState._checkpointDatabase', e, st);
     }
   }
 
