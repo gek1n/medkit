@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:medkit_db_key_storage/medkit_db_key_storage.dart';
@@ -81,6 +83,18 @@ class DbEncryptionService {
   // лічильник ніколи не досягав порогу для показу порятункової дії (скидання
   // БД / відновлення з бекапу) для випадків, що переживають relaunch.
   static const _mismatchStreakKey = 'db_key_mismatch_streak_v1';
+
+  /// ТИМЧАСОВЕ (розслідування SqliteException(26)) — короткий, безпечний
+  /// для логування "відбиток" ключа: sha256, перші 8 hex-символів. НІКОЛИ
+  /// не логуємо сам ключ (це секрет), лише цей відбиток — двох різних
+  /// ключів досить, щоб відрізнити "той самий ключ у різних точках коду"
+  /// від "десь підмінився інший", не розкриваючи саме значення. Прибрати
+  /// разом з рештою діагностичного логування після завершення розслідування.
+  static String keyFingerprint(String key) {
+    final digest = Sha256().toSync().hashSync(utf8.encode(key));
+    final hex = digest.bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return hex.substring(0, 8);
+  }
 
   /// Повертає готовий до використання ключ (у форматі SQLCipher raw-key,
   /// напр. "x'AB12...'") і гарантує, що файл БД на диску зашифрований саме
@@ -196,7 +210,14 @@ class DbEncryptionService {
       } finally {
         db.dispose();
       }
-    } catch (_) {
+    } catch (e) {
+      // ТИМЧАСОВЕ діагностичне логування — відбиток ключа (не сам ключ),
+      // яким щойно намагались відкрити файл, і сама помилка sqlite3.
+      AppLogger.log(
+        'DbEncryptionService: _keyOpensDatabase failed, key fingerprint='
+        '${keyFingerprint(key)}: $e',
+        level: 'warn',
+      );
       return false;
     }
   }
@@ -216,7 +237,10 @@ class DbEncryptionService {
       // одного інциденту було видно, ЯКЕ саме джерело врешті спрацювало
       // (і з якої спроби), а не лише те, що щось не відкрилось. Раніше цей
       // деталь доводилось відновлювати непрямо, за форматом рядків логу.
-      AppLogger.log('DbEncryptionService: key resolved from native storage');
+      AppLogger.log(
+        'DbEncryptionService: key resolved from native storage, fingerprint='
+        '${keyFingerprint(fromNewStorage)}',
+      );
       return fromNewStorage;
     }
 
@@ -229,8 +253,9 @@ class DbEncryptionService {
     );
     if (fromLegacyStorage != null) {
       AppLogger.log(
-        'DbEncryptionService: key resolved from legacy flutter_secure_storage '
-        '— migrating to native storage',
+        'DbEncryptionService: key resolved from legacy flutter_secure_storage, '
+        'fingerprint=${keyFingerprint(fromLegacyStorage)} — migrating to '
+        'native storage',
       );
       await _migrateLegacyKey(fromLegacyStorage);
       return fromLegacyStorage;
@@ -320,6 +345,13 @@ class DbEncryptionService {
     await MedkitDbKeyStorage.write(key);
 
     final verify = await MedkitDbKeyStorage.read();
+    // ТИМЧАСОВЕ діагностичне логування — лише відбиток (не сам ключ), щоб
+    // порівняти з відбитком у момент реального застосування нижче за
+    // течією (app_database.dart _openConnection).
+    AppLogger.log(
+      'DbEncryptionService: generated key fingerprint=${keyFingerprint(key)}, '
+      'verify-read fingerprint=${verify == null ? 'null' : keyFingerprint(verify)}',
+    );
     if (verify != key) {
       // На відміну від колишньої реалізації на flutter_secure_storage —
       // тут нема відомого механізму, який міг би це спричинити (жодних
