@@ -144,6 +144,21 @@ class DbEncryptionService {
           "doesn't open — not a sidecar issue, falling through to error UI",
           level: 'warn',
         );
+      } else {
+        // Раніше тут не логувалось НІЧОГО, якщо супутників просто не було —
+        // саме та інформація, якої найбільше бракувало при розборі реальних
+        // звітів: без цього рядка неможливо відрізнити "перевірили, файлів
+        // не було" від "перевірку взагалі не викликали". Якщо це видно в
+        // логу поруч із key resolved успішно і без WAL/SHM — значить,
+        // причина в самому файлі БД (напр. пошкодження після різкого
+        // завершення процесу одразу після запису), а не в ключі чи
+        // осиротілих супутниках.
+        AppLogger.log(
+          'DbEncryptionService: key does not open db, no WAL/SHM/journal '
+          'sidecars present — likely main file corruption, not a key or '
+          'sidecar issue',
+          level: 'warn',
+        );
       }
     }
 
