@@ -33,6 +33,18 @@ class AppLogger {
 
   static File? _logFile;
 
+  // Черга, що серіалізує записи у файл — БЕЗ цього кожен виклик log()
+  // запускав _appendToFile() незалежно, без очікування завершення
+  // попереднього виклику. При кількох log() поспіль (саме такий шаблон у
+  // ensureEncryptedDatabase — 5 спроб за секунди) паралельні незавершені
+  // writeAsString(..., mode: FileMode.append) до ОДНОГО файлу можуть
+  // перекривати одна одну — реальний, підтверджений наслідок: у зібраних
+  // під час цього розслідування логах регулярно бракувало проміжних рядків
+  // "key resolved from...", хоча сам код їх точно писав. Тепер кожен
+  // виклик приєднується до кінця ланцюжка попереднього — гарантовано по
+  // одному, у правильному хронологічному порядку.
+  static Future<void> _writeQueue = Future.value();
+
   static Future<File> _file() async {
     final existing = _logFile;
     if (existing != null) return existing;
@@ -48,7 +60,7 @@ class AppLogger {
     debugPrint('📝 $line');
     _buffer.add(line);
     if (_buffer.length > _maxBufferLines) _buffer.removeAt(0);
-    _appendToFile(line);
+    _writeQueue = _writeQueue.then((_) => _appendToFile(line));
   }
 
   static void logError(String context, Object error, [StackTrace? stack]) {
@@ -105,6 +117,10 @@ class AppLogger {
   static Future<String> readAll() async {
     if (!AppEnv.isTestBuild) return '';
     try {
+      // Чекаємо на завершення всіх ще незаписаних рядків у черзі — інакше
+      // "Переглянути журнал" одразу після події міг би показати текст без
+      // щойно записаних останніх рядків.
+      await _writeQueue;
       final file = await _file();
       if (!await file.exists()) return _buffer.join('\n');
       return await file.readAsString();
@@ -113,7 +129,10 @@ class AppLogger {
     }
   }
 
-  static Future<File> exportFile() => _file();
+  static Future<File> exportFile() async {
+    await _writeQueue;
+    return _file();
+  }
 
   static Future<void> clear() async {
     _buffer.clear();

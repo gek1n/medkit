@@ -798,12 +798,36 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   // мінімізує вікно, коли щойно записані дані лежать лише в WAL, а не в
   // головному файлі. TRUNCATE (не PASSIVE/FULL) — щоб WAL справді
   // спорожнів, а не лишався "чекати" на майбутній автоматичний checkpoint.
+  //
+  // Логуємо навколо самої дії — до/після розміри файлів (є з чим порівняти,
+  // а не лише "вже зламано" в момент майбутнього провалу) і РЕЗУЛЬТАТ
+  // самого checkpoint'а: PRAGMA wal_checkpoint повертає (busy, log,
+  // checkpointed) — busy=1 означає, що checkpoint НЕ зміг завершитись
+  // повністю (щось інше тримало БД зайнятою), а не що він мовчки
+  // спрацював. Без цього неможливо відрізнити "checkpoint відпрацював, але
+  // проблема десь інде" від "checkpoint насправді не спрацював".
   Future<void> _checkpointDatabase() async {
+    final file = await DbEncryptionService.databaseFile();
+    AppLogger.log('_ShellState: app paused, running WAL checkpoint');
+    await DbEncryptionService.logFileDiagnostics(file, context: 'before checkpoint');
     try {
-      await ref.read(databaseProvider).customStatement('PRAGMA wal_checkpoint(TRUNCATE);');
+      final rows = await ref
+          .read(databaseProvider)
+          .customSelect('PRAGMA wal_checkpoint(TRUNCATE);')
+          .get();
+      if (rows.isNotEmpty) {
+        final row = rows.first;
+        AppLogger.log(
+          '_ShellState: WAL checkpoint result — busy=${row.read<int>('busy')} '
+          "log=${row.read<int>('log')} checkpointed=${row.read<int>('checkpointed')}",
+        );
+      } else {
+        AppLogger.log('_ShellState: WAL checkpoint returned no row', level: 'warn');
+      }
     } catch (e, st) {
       AppLogger.logError('_ShellState._checkpointDatabase', e, st);
     }
+    await DbEncryptionService.logFileDiagnostics(file, context: 'after checkpoint');
   }
 
   /// Тихо синхронізує в фоні, якщо режим не "тільки локально". Помилки
