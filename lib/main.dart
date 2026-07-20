@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -47,6 +49,15 @@ import 'features/today/providers/today_providers.dart';
 import 'features/profile/profile_screen.dart';
 import 'shared/widgets/app_bottom_nav.dart';
 
+// Стає true лише якщо Firebase.initializeApp() реально відпрацював —
+// без цього виклик будь-якого методу FirebaseCrashlytics.instance впаде.
+// AppLogger (файл на диску) — no-op у прод-збірці (див. app_logger.dart), а
+// саме тому кожен реальний інцидент у сторі досі доводилось діагностувати
+// наосліп за описом користувача. Crashlytics — той самий принцип
+// приватності, що й AppLogger: жодних імен/ліків/симптомів, лише текст
+// винятку й службовий контекст (платформа, який саме екран).
+bool _crashReportingReady = false;
+
 void main() {
   runZonedGuarded(
     () async {
@@ -57,7 +68,20 @@ void main() {
       // проходять через runZonedGuarded, бо Flutter обробляє їх сам.
       FlutterError.onError = (details) {
         AppLogger.logError('FlutterError', details.exception, details.stack);
+        if (_crashReportingReady) {
+          FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+        }
         FlutterError.presentError(details);
+      };
+      // Помилки поза Flutter-фреймворком (напр. у платформних callback'ах),
+      // які не проходять ні через FlutterError.onError, ні через
+      // runZonedGuarded — офіційна рекомендація Firebase для повного
+      // покриття.
+      PlatformDispatcher.instance.onError = (error, stack) {
+        if (_crashReportingReady) {
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        }
+        return true;
       };
       // sqlite3 за замовчуванням шукає звичайний libsqlite3.so на Android —
       // це вказує йому натомість вантажити SQLCipher-збірку з
@@ -72,6 +96,8 @@ void main() {
         // Поки google-services.json/GoogleService-Info.plist не додані в
         // нативні проєкти, це кине виняток, який тут навмисно не фатальний.
         await Firebase.initializeApp();
+        await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+        _crashReportingReady = true;
       } catch (e) {
         debugPrint('🔶 Firebase не налаштований: $e');
       }
@@ -81,7 +107,12 @@ void main() {
       unawaited(AffiliateConfigService.warmUp());
       runApp(const ProviderScope(child: MedKitApp()));
     },
-    (error, stack) => AppLogger.logError('Zone', error, stack),
+    (error, stack) {
+      AppLogger.logError('Zone', error, stack);
+      if (_crashReportingReady) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      }
+    },
   );
 }
 
@@ -218,6 +249,22 @@ class _RootRouter extends ConsumerWidget {
         // онбординг) — тепер пишемо в AppLogger (файл на диску, доступний
         // через "Журнал подій" у профілі) замість лише debugPrint.
         AppLogger.logError('currentMemberProvider', e, st);
+        // Найцінніший хук у всьому файлі: саме тут щоразу спливає той самий
+        // повторюваний виробничий баг "помилка БД". AppLogger не допомагає
+        // діагностувати прод (no-op у релізі) — це ЄДИНЕ місце, де ми
+        // бачимо РЕАЛЬНИЙ текст винятку (напр. точний OSStatus/повідомлення
+        // Keychain, а не переказ користувача) з реального пристрою. non-fatal
+        // (fatal: false) — застосунок далі показує керований UI помилки,
+        // не падає.
+        if (_crashReportingReady) {
+          FirebaseCrashlytics.instance.recordError(
+            e,
+            st,
+            fatal: false,
+            reason: 'currentMemberProvider error — _DatabaseErrorScreen shown',
+            information: ['platform: ${Platform.operatingSystem}'],
+          );
+        }
         return _DatabaseErrorScreen(error: e);
       },
       data: (member) =>
@@ -276,6 +323,16 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
 
   Future<void> _recordOccurrence() async {
     final count = await DbEncryptionService.recordKeyMismatchOccurrence();
+    if (_crashReportingReady) {
+      // Дозволяє в дашборді Crashlytics відрізнити "показалось один раз і
+      // саме минуло" від "показується вже N разів поспіль, переживши
+      // relaunch" — саме та відмінність, яку раніше доводилось вгадувати
+      // з опису користувача.
+      unawaited(
+        FirebaseCrashlytics.instance
+            .setCustomKey('db_key_mismatch_streak', count),
+      );
+    }
     if (mounted) setState(() => _persistentAttemptCount = count);
   }
 
