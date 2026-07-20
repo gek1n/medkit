@@ -115,6 +115,16 @@ class DbEncryptionService {
 
     var key = await _getOrCreateKey();
 
+    // ТИМЧАСОВЕ (до підтвердження, що iOS-збірка більше ніколи не пише
+    // plaintext-файл — див. CLAUDE.md "CONFIRMED ROOT CAUSE") — перевіряємо
+    // ОДРАЗУ, до retry-циклу нижче: якщо файл на диску фізично незашифрований
+    // (стара до-encryption версія АБО наслідок iOS sqlite3/SQLCipher
+    // лінкінг-конфлікту), жодна кількість повторних читань ключа з Keychain
+    // цього не виправить — PRAGMA key на насправді-plaintext вмісті завжди
+    // дає "file is not a database", скільки не пробуй. Мігруємо тут, до
+    // марного очікування retry-циклу.
+    await _rekeyIfPlaintext(dbFile, key);
+
     // Реальний кейс (звіт користувача): оновлення через TestFlight поки
     // застосунок був згорнутий (не вбитий), потім "Відкрити" — сховище
     // повернуло НЕПОРОЖНІЙ, але тимчасово НЕПРАВИЛЬНИЙ ключ (само читання
@@ -179,12 +189,6 @@ class DbEncryptionService {
         await logFileDiagnostics(dbFile, context: 'after all retries exhausted');
       }
     }
-
-    // Виконується на кожному запуску (не одноразово через прапорець у
-    // SharedPreferences) — _rekeyIfPlaintext сам по собі безпечний і
-    // ідемпотентний: якщо файл вже зашифрований цим ключем, спроба
-    // прочитати його без PRAGMA key просто впаде і мовчки проковтнеться.
-    await _rekeyIfPlaintext(dbFile, key);
 
     // Дійшли сюди — ключ або відкрив файл одразу, або відкрив після
     // ре-читання сховища у циклі вище. У будь-якому разі БД зараз робоча:
@@ -428,24 +432,77 @@ class DbEncryptionService {
     return key;
   }
 
-  /// Якщо файл — незашифрована SQLite-база (стара версія застосунку),
-  /// перешифровує її на місці через PRAGMA rekey. Якщо файл вже зашифрований
-  /// цим-таки ключем — нічого не робить.
+  /// Якщо файл — незашифрована SQLite-база (стара версія застосунку до
+  /// впровадження шифрування, АБО наслідок ТИМЧАСОВОГО iOS sqlite3/SQLCipher
+  /// лінкінг-конфлікту — див. CLAUDE.md "CONFIRMED ROOT CAUSE"), мігрує її
+  /// дані в новий зашифрований файл і підміняє ним оригінал. Якщо файл вже
+  /// зашифрований цим-таки ключем — нічого не робить.
   ///
   /// Спершу перевіряємо заголовок файлу по байтах (без відкриття
   /// FFI-з'єднання) і відкриваємо реальне sqlite3-з'єднання лише якщо
-  /// точно знаємо, що rekey треба.
+  /// точно знаємо, що міграція треба.
+  ///
+  /// НАВМИСНО не `PRAGMA rekey` (ризикованіший in-place підхід, який сам
+  /// Zetetic не рекомендує для реальної міграції — офіційний рецепт:
+  /// https://discuss.zetetic.net/t/how-to-encrypt-a-plaintext-sqlite-database-to-use-sqlcipher/... ),
+  /// а ATTACH + sqlcipher_export() у ОКРЕМИЙ новий файл, який підміняє
+  /// оригінал лише ПІСЛЯ підтвердженого успішного відкриття цим самим
+  /// ключем — якщо щось піде не так, plaintext-оригінал лишається
+  /// недоторканим замість ризику залишити БД у напівмігрованому стані.
   static Future<void> _rekeyIfPlaintext(File dbFile, String key) async {
     if (!await _looksLikePlaintextSqlite(dbFile)) return;
-    final db = sqlite3.open(dbFile.path);
+
+    AppLogger.log(
+      'DbEncryptionService: main db file is plaintext SQLite (not '
+      'encrypted) — migrating in place to encrypted storage before '
+      'proceeding',
+      level: 'warn',
+    );
+
+    final tmpFile = File('${dbFile.path}.rekey_tmp');
+    await _deleteSidecarFiles(tmpFile, includeMain: true);
+
+    Database? db;
     try {
-      db.execute('PRAGMA rekey = "$key";');
-    } catch (_) {
-      // Малоймовірно (заголовок уже перевірили побайтово), але про всяк
-      // випадок — не блокуємо запуск, Drift далі спробує відкрити з
-      // реальним ключем сам.
-    } finally {
+      db = sqlite3.open(dbFile.path);
+      db.execute(
+        'ATTACH DATABASE ? AS encrypted KEY ?;',
+        [tmpFile.path, key],
+      );
+      final exported = db.select("SELECT sqlcipher_export('encrypted');");
+      db.execute('DETACH DATABASE encrypted;');
       db.dispose();
+      db = null;
+
+      // sqlcipher_export теж працює у WAL — прибираємо будь-які супутники
+      // щойно створеного файлу ПЕРЕД перевіркою нижче, щоб не тягнути їх
+      // далі разом з підміною.
+      await _deleteSidecarFiles(tmpFile, includeMain: false);
+
+      if (!await tmpFile.exists() || !_keyOpensDatabase(tmpFile, key)) {
+        throw StateError(
+          'migrated file missing or does not open with the same key '
+          'after export (tables exported: '
+          '${exported.isEmpty ? '?' : exported.first.values.join(',')})',
+        );
+      }
+
+      await _deleteSidecarFiles(dbFile, includeMain: true);
+      await tmpFile.rename(dbFile.path);
+      AppLogger.log(
+        'DbEncryptionService: plaintext db migrated to encrypted storage '
+        'successfully (tables exported: '
+        '${exported.isEmpty ? '?' : exported.first.values.join(',')}), '
+        'old plaintext copy removed',
+      );
+    } catch (e, st) {
+      db?.dispose();
+      await _deleteSidecarFiles(tmpFile, includeMain: true);
+      AppLogger.logError('DbEncryptionService._rekeyIfPlaintext', e, st);
+      // Не блокуємо запуск — Drift далі спробує відкрити оригінальний файл
+      // з реальним ключем сам (і провалиться тим самим шляхом, що й
+      // раніше, якщо міграція не вдалась) — принаймні тепер причина видна
+      // в логах, а не проковтнута мовчки.
     }
   }
 

@@ -3,25 +3,49 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:medkit_db_key_storage/medkit_db_key_storage.dart';
 
 /// Шифрує вкладення (фото ліків, у майбутньому — фото/PDF медкартки, войс-
 /// нотатки) окремим ключем від БД, щоб на диску ніколи не лежав plaintext.
 /// AES-256-GCM: свіжий nonce на кожен файл, тег автентичності перевіряє
 /// цілісність при розшифровці.
+///
+/// Ключ живе в тому самому нативному сховищі (`medkit_db_key_storage`), що й
+/// ключ шифрування БД (`DbEncryptionService`) — під окремим `account`, щоб не
+/// перетнутись. Спочатку цей ключ жив лише у flutter_secure_storage, як і
+/// ключ БД до свого переходу — той самий клас багів (дублікати записів у
+/// Keychain через розсинхрон атрибутів між write-викликами різних
+/// версій/збірок застосунку) теоретично міг зачепити і цей ключ так само,
+/// навіть якщо жодного підтвердженого інциденту саме з фото ще не було.
+/// `_legacySecureStorage` лишається ЛИШЕ як одноразове джерело міграції для
+/// пристроїв, де ключ ще лежить у старому місці — нових записів туди більше
+/// ніколи не робимо.
 class FileEncryptionService {
-  static const _secureStorage = FlutterSecureStorage();
-  static const _keyStorageKey = 'file_encryption_key';
+  static const _legacySecureStorage = FlutterSecureStorage();
+  static const _legacyKeyStorageKey = 'file_encryption_key';
+  static const _nativeAccount = 'file_encryption_key';
   static final _algorithm = AesGcm.with256bits();
 
   static Future<SecretKey> _getOrCreateKey() async {
-    final existing = await _secureStorage.read(key: _keyStorageKey);
-    if (existing != null && existing.isNotEmpty) {
-      return SecretKey(base64Decode(existing));
+    final fromNative = await MedkitDbKeyStorage.read(account: _nativeAccount);
+    if (fromNative != null && fromNative.isNotEmpty) {
+      return SecretKey(base64Decode(fromNative));
+    }
+
+    final fromLegacy =
+        await _legacySecureStorage.read(key: _legacyKeyStorageKey);
+    if (fromLegacy != null && fromLegacy.isNotEmpty) {
+      // Одноразова міграція — наступний виклик уже піде через гілку
+      // fromNative вище. Стару копію навмисно не видаляємо (та сама логіка,
+      // що й у DbEncryptionService._migrateLegacyKey — аварійний запасний
+      // варіант, дублювання нешкідливе).
+      await MedkitDbKeyStorage.write(fromLegacy, account: _nativeAccount);
+      return SecretKey(base64Decode(fromLegacy));
     }
 
     final key = await _algorithm.newSecretKey();
     final bytes = await key.extractBytes();
-    await _secureStorage.write(key: _keyStorageKey, value: base64Encode(bytes));
+    await MedkitDbKeyStorage.write(base64Encode(bytes), account: _nativeAccount);
     return key;
   }
 
@@ -61,8 +85,11 @@ class FileEncryptionService {
   // свій — інакше відновлені фото/PDF назавжди лишились би нечитаемыми.
 
   static Future<bool> hasLocalKey() async {
-    final existing = await _secureStorage.read(key: _keyStorageKey);
-    return existing != null && existing.isNotEmpty;
+    final fromNative = await MedkitDbKeyStorage.read(account: _nativeAccount);
+    if (fromNative != null && fromNative.isNotEmpty) return true;
+    final fromLegacy =
+        await _legacySecureStorage.read(key: _legacyKeyStorageKey);
+    return fromLegacy != null && fromLegacy.isNotEmpty;
   }
 
   static Future<Uint8List> exportKeyBytes() async {
@@ -75,6 +102,22 @@ class FileEncryptionService {
   /// стали б нечитаемыми назавжди.
   static Future<void> installKeyIfAbsent(Uint8List keyBytes) async {
     if (await hasLocalKey()) return;
-    await _secureStorage.write(key: _keyStorageKey, value: base64Encode(keyBytes));
+    await MedkitDbKeyStorage.write(
+      base64Encode(keyBytes),
+      account: _nativeAccount,
+    );
+  }
+
+  /// Read-only доступ до поточного ключа для `BackupCryptoService.wrapKeys()`
+  /// — той самий трюк, що і `DbEncryptionService.currentKeyForBackup()`:
+  /// readAll() у BackupCryptoService бачить лише flutter_secure_storage, а
+  /// це сховище тепер нативне й повністю окреме, тож без явного виклику тут
+  /// ключ шифрування фото мовчки випав би з резервної копії.
+  static Future<String?> currentKeyForBackup() async {
+    final fromNative = await MedkitDbKeyStorage.read(account: _nativeAccount);
+    if (fromNative != null && fromNative.isNotEmpty) return fromNative;
+    final fromLegacy =
+        await _legacySecureStorage.read(key: _legacyKeyStorageKey);
+    return (fromLegacy != null && fromLegacy.isNotEmpty) ? fromLegacy : null;
   }
 }
