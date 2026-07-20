@@ -912,6 +912,8 @@
   "debugLogEmptySnackbar": "Лог пуст",
   "debugLogShareSubject": "Elly — журнал событий",
   "viewDebugLogAction": "Просмотреть журнал событий",
+  "shareDbFileAction": "Поделиться файлом БД",
+  "shareDbFileEmptySnackbar": "Файл БД не найден",
   "clearAction": "Очистить",
   "shareAction": "Поделиться",
   "antiStressLabel": "Антистресс-упражнения",

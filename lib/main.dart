@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
 import 'core/config/app_env.dart';
@@ -452,6 +453,25 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
     ref.invalidate(currentMemberProvider);
   }
 
+  Future<void> _shareDbFile() async {
+    final dbFile = await DbEncryptionService.databaseFile();
+    final files = <XFile>[];
+    for (final suffix in ['', '-wal', '-shm', '-journal']) {
+      final f = File('${dbFile.path}$suffix');
+      if (await f.exists()) files.add(XFile(f.path));
+    }
+    if (files.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.shareDbFileEmptySnackbar)),
+      );
+      return;
+    }
+    await SharePlus.instance.share(
+      ShareParams(files: files, subject: 'Elly — medkit.db diagnostics'),
+    );
+  }
+
   Future<String?> _askBackupPassphrase() {
     final controller = TextEditingController();
     return showDialog<String>(
@@ -519,6 +539,22 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                   ),
                   icon: const Icon(Icons.article_outlined, size: 18),
                   label: Text(context.l10n.viewDebugLogAction),
+                ),
+                // Для випадків, коли текстового логу недостатньо (напр.
+                // потрібно порівняти реальні байти файлу, а не лише
+                // побічні наслідки) і немає фізичного доступу до пристрою
+                // (Xcode Devices → Download Container), щоб витягнути
+                // medkit.db напряму — той самий share sheet, що й для
+                // логу, тепер може віддати сам файл БД (+ -wal/-shm, якщо
+                // є) будь-яким каналом (AirDrop, Файли, пошта тощо), без
+                // кабелю. Файл лишається SQLCipher-зашифрованим — сам
+                // ключ ніколи звідси не йде (він у Keychain/нативному
+                // сховищі, окремо), тож ділитись їм для діагностики
+                // безпечно.
+                TextButton.icon(
+                  onPressed: _shareDbFile,
+                  icon: const Icon(Icons.ios_share_rounded, size: 18),
+                  label: Text(context.l10n.shareDbFileAction),
                 ),
               ],
               // Позитивна (не деструктивна) дія — з'являється лише після

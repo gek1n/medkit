@@ -1519,6 +1519,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get viewDebugLogAction => 'Переглянути журнал подій';
 
   @override
+  String get shareDbFileAction => 'Поділитись файлом БД';
+
+  @override
+  String get shareDbFileEmptySnackbar => 'Файл БД не знайдено';
+
+  @override
   String get clearAction => 'Очистити';
 
   @override
