@@ -206,20 +206,78 @@ class DbEncryptionService {
       try {
         db.execute('PRAGMA key = "$key";');
         db.select('PRAGMA user_version;');
+        _logCipherDiagnostics(db, context: 'opened successfully');
         return true;
+      } catch (e) {
+        // ТИМЧАСОВЕ діагностичне логування — відбиток ключа (не сам
+        // ключ), яким щойно намагались відкрити файл, і сама помилка
+        // sqlite3.
+        AppLogger.log(
+          'DbEncryptionService: _keyOpensDatabase failed, key fingerprint='
+          '${keyFingerprint(key)}: $e',
+          level: 'warn',
+        );
+        _logCipherDiagnostics(db, context: 'failed to open');
+        return false;
       } finally {
         db.dispose();
       }
-    } catch (e) {
-      // ТИМЧАСОВЕ діагностичне логування — відбиток ключа (не сам ключ),
-      // яким щойно намагались відкрити файл, і сама помилка sqlite3.
-      AppLogger.log(
-        'DbEncryptionService: _keyOpensDatabase failed, key fingerprint='
-        '${keyFingerprint(key)}: $e',
-        level: 'warn',
-      );
+    } catch (_) {
+      // sqlite3.open() сам по собі впав (файлова система тощо) — до
+      // PRAGMA key справа навіть не дійшла, діагностувати шифр нема сенсу.
       return false;
     }
+  }
+
+  /// ТИМЧАСОВЕ (розслідування SqliteException(26), етап 3 — ключ і
+  /// побитова цілісність файлу вже виключені попередніми раундами).
+  /// Жодне значення тут не секрет — усе це публічно документовані
+  /// параметри самого SQLCipher (версія бібліотеки, KDF-ітерації, розмір
+  /// сторінки, алгоритми), не похідні від ключа, тож логуємо напряму.
+  /// `cipher_integrity_check` — вбудований у сам SQLCipher інструмент:
+  /// перевіряє HMAC КОЖНОЇ сторінки окремо і повертає перелік тих, що не
+  /// пройшли, або порожньо, якщо все гаразд — набагато точніше, ніж наш
+  /// власний побайтовий аналіз ззовні. Викликається і на успішному, і на
+  /// провальному шляху [_keyOpensDatabase] — щоб було з чим порівняти
+  /// "здорову" сесію (одразу після онбордингу) з тією, що впала.
+  static void _logCipherDiagnostics(Database db, {required String context}) {
+    final fields = <String, String>{};
+    try {
+      fields['sqlite3_lib_version'] = sqlite3.version.libVersion;
+    } catch (e) {
+      fields['sqlite3_lib_version'] = '(error: $e)';
+    }
+    for (final pragma in [
+      'cipher_version',
+      'cipher_provider',
+      'cipher_provider_version',
+      'kdf_iter',
+      'cipher_page_size',
+      'cipher_hmac_algorithm',
+      'cipher_kdf_algorithm',
+      'cipher_salt',
+    ]) {
+      try {
+        final rows = db.select('PRAGMA $pragma;');
+        fields[pragma] =
+            rows.isEmpty ? '(empty)' : rows.first.values.join(',');
+      } catch (e) {
+        fields[pragma] = '(error: $e)';
+      }
+    }
+    String integrityResult;
+    try {
+      final rows = db.select('PRAGMA cipher_integrity_check;');
+      integrityResult = rows.isEmpty
+          ? 'clean (no failing pages)'
+          : rows.map((r) => r.values.join(',')).join('; ');
+    } catch (e) {
+      integrityResult = '(error: $e)';
+    }
+    AppLogger.log(
+      'DbEncryptionService: cipher diagnostics ($context) — $fields, '
+      'integrity_check: $integrityResult',
+    );
   }
 
   /// Raw-key у форматі SQLCipher: x'64 hex-символи' (32 байти, без PBKDF2 —
