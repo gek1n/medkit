@@ -4,7 +4,10 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:medkit_db_key_storage/medkit_db_key_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'db_encryption_service.dart';
 
 /// Пакує ВЕСЬ secure storage пристрою (не лише ключі шифрування БД/файлів,
 /// а й обліковий запис синхронізації з AccountService, і per-канальні ключі
@@ -15,10 +18,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// не бачить plaintext, а без пароля бекапу нічого з архіву не витягнути,
 /// навіть маючи повний доступ до хмарного сховища.
 ///
-/// Навмисно readAll(), а не список конкретних ключів — так відновлення
+/// Здебільшого readAll(), а не список конкретних ключів — так відновлення
 /// лишається повним автоматично і для розділів, доданих ПІСЛЯ написання
-/// цього файлу (будь-що нове, що зберігається через secure storage, саме
-/// потрапить у бекап без окремої правки тут).
+/// цього файлу (будь-що нове, що зберігається через flutter_secure_storage,
+/// саме потрапить у бекап без окремої правки тут). Виняток — ключ шифрування
+/// БД (`DbEncryptionService`): він живе в ОКРЕМОМУ нативному сховищі
+/// (medkit_db_key_storage), яке readAll() фізично не бачить, тож для нього —
+/// явний виклик `DbEncryptionService.currentKeyForBackup()` (див.
+/// `_nativeDbKeyEnvelopeKey` нижче).
 ///
 /// Додатково (з `_backedUpPrefsKeys`) пакує explicit allowlist рядкових
 /// значень із SharedPreferences — власноруч додані елементи "спільний
@@ -63,6 +70,19 @@ class BackupCryptoService {
   };
   static const _prefsKeyPrefix = 'prefs:';
 
+  // Ключ шифрування локальної БД (DbEncryptionService) з версії, коли
+  // перейшли на власний нативний плагін medkit_db_key_storage, більше НЕ
+  // видно через readAll() нижче — той дивиться лише в flutter_secure_storage,
+  // а наше сховище тепер повністю окреме (Keychain/Keystore напряму, без
+  // цього пакета). Реальний наслідок ДО цього виправлення: ключ БД, судячи з
+  // усього, взагалі не потрапляв у хмарний бекап на iOS (readAll() з
+  // дефолтним accessibility "unlocked" не бачив запис із
+  // "first_unlock_this_device" — різні accessibility-рівні Keychain
+  // фактично ізольовані одне від одного), тож відновлення з бекапу могло
+  // розпакувати файл medkit.db, але без ключа до нього. Читаємо/пишемо
+  // явно, окремим ключем у конверті.
+  static const _nativeDbKeyEnvelopeKey = 'native:db_encryption_key';
+
   static final _cipher = AesGcm.with256bits();
 
   static Uint8List _generateSalt() {
@@ -86,9 +106,11 @@ class BackupCryptoService {
   /// Повертає готовий до запису у файл blob: [salt(16)][nonce(12)][ciphertext][mac(16)].
   static Future<Uint8List> wrapKeys(String passphrase) async {
     final prefs = await SharedPreferences.getInstance();
+    final dbKey = await DbEncryptionService.currentKeyForBackup();
     final entries = <String, String>{
       ...await _secureStorage.readAll(),
       ...await _secureStorage.readAll(iOptions: _syncedIOSOptions),
+      if (dbKey != null) _nativeDbKeyEnvelopeKey: dbKey,
       for (final prefsKey in _backedUpPrefsKeys)
         if (prefs.getString(prefsKey) != null)
           '$_prefsKeyPrefix$prefsKey': prefs.getString(prefsKey)!,
@@ -141,6 +163,10 @@ class BackupCryptoService {
           entry.key.substring(_prefsKeyPrefix.length),
           entry.value as String,
         );
+        continue;
+      }
+      if (entry.key == _nativeDbKeyEnvelopeKey) {
+        await MedkitDbKeyStorage.write(entry.value as String);
         continue;
       }
       final synced = _syncedKeyNames.contains(entry.key);

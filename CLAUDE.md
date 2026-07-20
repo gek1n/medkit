@@ -88,6 +88,12 @@ lib/
   l10n/          app_uk.arb (template/source of truth), app_en.arb, app_ru.arb,
                  generated app_localizations*.dart (never hand-edit generated files)
   main.dart      MedKitApp (MaterialApp + locale wiring) + _Shell (bottom-nav root)
+packages/
+  medkit_db_key_storage/  local, first-party Flutter plugin — direct native
+                 Keychain (iOS) / EncryptedSharedPreferences+Keystore (Android)
+                 storage for exactly one value, the DB encryption key. See
+                 "Data layer" below for why this exists instead of
+                 flutter_secure_storage.
 docs/            marketing brief, screens doc, legal doc drafts, l10n_glossary.md,
                  multifamily_billing_plan.md
 test/            narrow unit tests for crypto/sync services — no widget test coverage
@@ -99,8 +105,34 @@ test/            narrow unit tests for crypto/sync services — no widget test c
 
 ### Data layer (Drift + SQLCipher)
 - Local DB is SQLCipher-encrypted (`lib/core/services/db_encryption_service.dart`
-  manages the key via `flutter_secure_storage`/Keychain, `app_database.dart` wires it
-  into Drift's `NativeDatabase.createInBackground`).
+  manages the key, `app_database.dart` wires it into Drift's
+  `NativeDatabase.createInBackground`).
+- **DB encryption key storage**: as of the native-storage migration, the key lives in
+  `packages/medkit_db_key_storage` — a local, first-party Flutter plugin that calls
+  Keychain (iOS)/Keystore (Android) directly, with ONE fixed, never-varying set of
+  storage attributes. This replaced `flutter_secure_storage` for this specific key
+  after three separate production incidents traced to that package's own documented
+  Keychain-accessibility/duplicate-item bugs (GitHub issues #960, #573, #762 on
+  `juliansteenbakker/flutter_secure_storage`) — see git history around July 2026 for
+  the full investigation. `flutter_secure_storage` is still used for everything else
+  (`AccountService`, `FileEncryptionService`, `SharedChannelKeyStorage`,
+  `BackupSettingsService`) — only the DB key moved, since it was the one causing
+  repeated "database error" reports for real users.
+  - `DbEncryptionService._getOrCreateKey()` reads the new native store first; if
+    empty (device hasn't migrated yet), falls back to the legacy
+    `flutter_secure_storage` location, migrates it into the new store, and keeps the
+    old copy untouched as a fallback (never deletes it automatically — only
+    `resetCorruptedDatabase()` clears both explicitly).
+  - `BackupCryptoService.wrapKeys()`/`unwrapAndInstallKeys()` handle the DB key
+    explicitly via `DbEncryptionService.currentKeyForBackup()` — it does **not** come
+    through the generic `flutter_secure_storage.readAll()` sweep, because the native
+    store isn't part of that package and readAll() can't see it. If you ever touch
+    the backup envelope format, make sure this explicit key stays wired — it's easy
+    to assume readAll() is "getting everything" and silently drop it again (that was
+    the actual, previously-undetected bug: the DB key was never actually included in
+    cloud backups on iOS due to a Keychain accessibility mismatch).
+  - **iOS side needs Mac-side verification** — see "Build & release" below,
+    "Post-migration Mac checklist".
 - New table → add to `data/db/tables/`, register in `app_database.dart`'s
   `@DriftDatabase(tables: [...])` list, bump `schemaVersion`, add a
   `if (from < N) { ... }` migration block, then run
@@ -145,6 +177,26 @@ test/            narrow unit tests for crypto/sync services — no widget test c
   `NotificationSettingsNotifier` calls it after every relevant setter. This was an
   explicit, firm user requirement (turning off push must silence everything
   immediately, not just "from now on").
+
+### Diagnostics (Firebase Crashlytics)
+- Wired in `lib/main.dart` (`FlutterError.onError`, `PlatformDispatcher.instance.onError`,
+  the top-level `runZonedGuarded` catch-all, gated on a `_crashReportingReady` bool
+  that only flips true if `Firebase.initializeApp()` actually succeeded).
+  `AppLogger` is a **no-op in production builds** (see "Build & release" below), so
+  before this, every production incident had to be diagnosed blind from a user's
+  description — this is the fix for that gap, added after three separate blind
+  guesses at the same underlying DB-key bug this month.
+- A non-fatal report is recorded at the exact point `_DatabaseErrorScreen` is shown
+  (`_RootRouter`'s `currentMemberProvider` error branch) — this is the single most
+  useful hook in the file for diagnosing any future recurrence, since it's the
+  real thrown exception/stack from a real device, not a paraphrase. A custom key
+  (`db_key_mismatch_streak`) is also set from `recordKeyMismatchOccurrence()` so the
+  dashboard can distinguish "happened once" from "still happening after relaunch".
+- No PII goes into any Crashlytics call (no names/medications/symptoms) — same
+  privacy stance as `AppLogger`.
+- Android needs the Crashlytics Gradle plugin applied (`android/settings.gradle.kts`
+  + `android/app/build.gradle.kts`, same file-exists-gated pattern as
+  `google-services.json`) — already done, don't remove it when touching those files.
 
 ### Screens / widgets
 - Feature-per-directory under `lib/features/<feature>/`. Cross-feature reusable
@@ -283,6 +335,55 @@ test/            narrow unit tests for crypto/sync services — no widget test c
 
 ## Build & release — test vs production
 
+### ⚠️ Post-migration Mac checklist (do this before the next real build)
+
+`packages/medkit_db_key_storage` (see "Data layer" above) was built and verified
+from a Windows machine, which cannot run CocoaPods/Xcode. Android was fully
+build-verified (`flutter build apk --debug` succeeded, plugin compiled and linked
+into a real APK, auto-registered in `GeneratedPluginRegistrant.java`). **iOS side
+registration goes through CocoaPods (`pod install`), which was never actually run**
+— `ios/Runner/GeneratedPluginRegistrant.{h,m}` are gitignored/build-generated and
+don't exist yet in this checkout. Before shipping:
+
+1. `cd ios && pod install` (or just `flutter build ipa`/`flutter run -d <device>`,
+   which triggers it automatically) — confirm it resolves
+   `packages/medkit_db_key_storage/ios/medkit_db_key_storage.podspec` cleanly and
+   that `MedkitDbKeyStoragePlugin` shows up in the generated
+   `GeneratedPluginRegistrant.m`. If pod install fails on this podspec, the
+   attribute names/structure were copied from `flutter_secure_storage`'s own
+   working podspec as a reference — compare against
+   `~/.pub-cache/hosted/pub.dev/flutter_secure_storage-*/ios/` if something looks
+   off.
+2. **Run on a real iOS device (not just Simulator)** — Keychain accessibility
+   semantics (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`) that this whole
+   fix hinges on don't meaningfully exercise on Simulator. Test, in this rough
+   order of importance:
+   - Fresh install → onboarding → force-quit → reopen (baseline).
+   - Force-quit → wait several hours/overnight → reopen (the specific case that was
+     still broken after the previous `flutter_secure_storage`-side fix — this is
+     the one that actually justified this whole migration).
+   - **Restore from iCloud/Google Drive backup** (fresh install or existing data,
+     either) — this is the highest-stakes untested path: the previously-undetected
+     bug was that the DB key likely was never actually included in cloud backups
+     at all (`BackupCryptoService.wrapKeys()`'s `readAll()` couldn't see a key
+     stored under `first_unlock_this_device` accessibility). Confirm the restored
+     app actually opens, not just that "restore" reports success.
+   - If you have (or can get) a device that still has the *previous* app version
+     installed with real data: update it to this build and confirm the one-time
+     legacy-key migration in `DbEncryptionService._getOrCreateKey()` works —
+     without this, existing users lose access on update.
+3. Watch the Firebase Crashlytics console during all of the above — any
+   `DbKeyUnavailableException`/`DbTemporarilyLockedException`/native
+   `keychain_locked`/`write_failed`/`read_failed` error means something in the
+   native Swift (`packages/medkit_db_key_storage/ios/Classes/MedkitDbKeyStoragePlugin.swift`)
+   needs a fix, not another workaround layered on top — reason from the actual
+   OSStatus in the error `details`.
+
+The app builds (`flutter analyze` clean, Android APK builds) — what's unverified is
+specifically the iOS native Keychain code path end-to-end on real hardware.
+
+### Test vs production build flag
+
 The app ships from ONE codebase in two distinct build configurations, switched
 by a single compile-time flag — never a runtime toggle, so an installed app
 can never flip itself between modes and a build that forgets the flag
@@ -384,15 +485,22 @@ treating it as a code bug:
   (every 15-30s in observed logs) for channels that return "no state yet" and never
   seems to give up or surface the problem to the user — flagged, not yet
   investigated/fixed.
-- iOS SQLCipher "file is not a database" (SQLite code 26) key-mismatch errors are
-  usually transient Keychain staleness after the device has been idle/locked a
-  while, and historically only resolve via a **full app relaunch** (kill from the
-  app switcher), not an in-app retry. `main.dart`'s `_DatabaseErrorScreen` now leads
-  with that instruction and only offers the destructive "reset local DB" button
-  after 3 failed retries (raised from 1, which risked wiping real data for what is
-  usually just a transient OS quirk). If this still recurs frequently, the next step
-  would be adding device-side diagnostics (time-since-last-unlock, background vs.
-  foreground launch) to confirm the exact trigger.
+- **iOS SQLCipher "file is not a database" (SQLite code 26) key-mismatch — long
+  investigation, structural fix landed but not yet device-verified.** Root-caused
+  through several rounds to real bugs in `flutter_secure_storage` itself (orphaned
+  WAL/SHM sidecars not cleaned on reset — fixed; duplicate Keychain items from the
+  package's own accessibility/synchronizable handling across app versions —
+  documented in upstream issues #960/#573/#762). The structural fix: moved the DB
+  key off `flutter_secure_storage` entirely onto a local first-party plugin
+  (`packages/medkit_db_key_storage`, see "Data layer" above) with one fixed,
+  never-varying Keychain attribute set, which makes that whole bug class
+  impossible by construction rather than working around it. `main.dart`'s
+  `_DatabaseErrorScreen` still leads with "restart the app" and only offers the
+  destructive "reset local DB"/"restore from backup" buttons after 3 failed
+  retries. **Not yet verified on a real device** — see "Post-migration Mac
+  checklist" in "Build & release" below before assuming this is closed. Firebase
+  Crashlytics (see "Diagnostics" above) is now wired specifically so any
+  recurrence surfaces a real stack trace instead of another blind guess.
 
 ## Commands
 

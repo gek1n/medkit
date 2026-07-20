@@ -1,0 +1,33 @@
+name: medkit_db_key_storage
+description: >
+  Мінімальний, повністю власний нативний сховище одного значення (ключа
+  шифрування локальної БД) — прямі виклики Keychain (iOS) / EncryptedSharedPreferences
+  поверх Android Keystore (Android), БЕЗ стороннього пакету. Один фіксований
+  набір атрибутів на кожній платформі — жодних варіацій accessibility/
+  synchronizable, тож немає способу випадково створити дублікат запису чи
+  "загубити" значення через розсинхрон параметрів між викликами (той клас
+  багів, що ми мали з flutter_secure_storage). Не для загального використання —
+  лише для db_encryption_key з DbEncryptionService.
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.12.2
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.ellyapp.medkit.dbkeystorage
+        pluginClass: MedkitDbKeyStoragePlugin
+      ios:
+        pluginClass: MedkitDbKeyStoragePlugin
