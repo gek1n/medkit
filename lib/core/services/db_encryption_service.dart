@@ -315,9 +315,24 @@ class DbEncryptionService {
   /// Без правильного ключа розшифрувати наявний файл криптографічно
   /// неможливо, тож дані справді втрачаються — викликається лише явно, з
   /// підтвердженням користувача.
+  ///
+  /// КРИТИЧНО видаляти й WAL-супутники (`-wal`/`-shm`/`-journal`), не лише
+  /// сам `medkit.db` — Drift/SQLCipher за замовчуванням працює в WAL-режимі.
+  /// Якщо лишити стару `-wal` (зашифровану СТАРИМ ключем, з іншим
+  /// SQLCipher-salt) на диску, а `_generateAndStoreKey()` далі створить
+  /// НОВИЙ файл+ключ поруч із нею — SQLite при наступному відкритті бачить
+  /// осиротілу WAL, salt якої не збігається з новим головним файлом, і
+  /// падає з тим самим SqliteException(26) "file is not a database". Це
+  /// перетворювало саму кнопку "Скинути" на самовідтворювану пастку: вона
+  /// ніколи повністю не прибирала стару БД, тож помилка поверталась знову
+  /// на наступному запуску, хай скільки разів натискати "Скинути" —
+  /// реальний, підтверджений корінь звітів "проблема так і не фіксується".
   static Future<void> resetCorruptedDatabase(File dbFile) async {
-    if (await dbFile.exists()) {
-      await dbFile.delete();
+    for (final suffix in ['', '-wal', '-shm', '-journal']) {
+      final f = File('${dbFile.path}$suffix');
+      if (await f.exists()) {
+        await f.delete();
+      }
     }
     await _secureStorage.delete(key: _keyStorageKey);
   }

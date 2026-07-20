@@ -51,10 +51,22 @@ class BackupService {
     final docs = await getApplicationDocumentsDirectory();
     final archive = Archive();
 
-    final dbFile = File(p.join(docs.path, 'medkit.db'));
-    if (await dbFile.exists()) {
-      final bytes = await dbFile.readAsBytes();
-      archive.addFile(ArchiveFile('medkit.db', bytes.length, bytes));
+    // Drift/SQLCipher працює в WAL-режимі за замовчуванням — окрім
+    // medkit.db, останні незакеймічені зміни можуть лежати в medkit.db-wal
+    // (+ medkit.db-shm, спільна пам'ять-індекс до неї). Пакувати ЛИШЕ
+    // головний файл означало б (а) губити найсвіжіші записи, яких ще не
+    // було checkpoint, і (б) головне — якщо на пристрої з якоїсь причини
+    // вже лежить ОСИРОТІЛА wal від іншої генерації бази, наступний
+    // extractZip() змішав би її з відновленим головним файлом і дав ту
+    // саму SqliteException(26) "file is not a database", яку відновлення
+    // з бекапу якраз мало виправити. Пакуємо всі наявні файли-супутники
+    // разом, як єдиний узгоджений знімок.
+    for (final suffix in ['', '-wal', '-shm']) {
+      final f = File('${p.join(docs.path, 'medkit.db')}$suffix');
+      if (await f.exists()) {
+        final bytes = await f.readAsBytes();
+        archive.addFile(ArchiveFile('medkit.db$suffix', bytes.length, bytes));
+      }
     }
 
     final photosDir = Directory(p.join(docs.path, 'med_photos'));
@@ -74,6 +86,20 @@ class BackupService {
 
   Future<void> _extractZip(Uint8List zipBytes) async {
     final docs = await getApplicationDocumentsDirectory();
+
+    // Прибираємо БУДЬ-ЯКІ наявні на пристрої medkit.db(-wal/-shm) ДО
+    // розпакування — інакше стара, вже на диску WAL-супутня від
+    // попередньої (можливо іншої) генерації бази могла б лишитись поруч із
+    // щойно відновленим головним файлом і дати salt-розсинхрон при
+    // наступному відкритті (та сама причина, що й у
+    // DbEncryptionService.resetCorruptedDatabase — див. коментар там).
+    for (final suffix in ['', '-wal', '-shm', '-journal']) {
+      final f = File('${p.join(docs.path, 'medkit.db')}$suffix');
+      if (await f.exists()) {
+        await f.delete();
+      }
+    }
+
     final archive = ZipDecoder().decodeBytes(zipBytes);
 
     for (final file in archive) {
