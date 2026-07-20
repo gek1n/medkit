@@ -419,6 +419,42 @@ level.
    `db_encryption_service.dart`/`app_database.dart` per the standing
    cleanup-debt note — it served its purpose.
 
+**Auto-recovery for already-affected devices/backups**: `DbEncryptionService.
+_rekeyIfPlaintext` (called at the top of `ensureEncryptedDatabase`, every
+launch, idempotent no-op if the file is already encrypted) now detects a
+plaintext-headed `medkit.db` — the exact state real devices/backups already
+ended up in during this bug — and migrates it to a freshly SQLCipher-encrypted
+file automatically, via `ATTACH ... KEY ?` + `sqlcipher_export()` (the
+Zetetic-recommended approach, not the riskier in-place `PRAGMA rekey`), only
+swapping it in after confirming the new file actually opens with the same key.
+Verified against a real recovered device file
+(`medkit (5).db`, header `53514c...` = literal "SQLite format 3\0", 4
+members/12 medications/39 intakes etc. — see conversation, extracted to
+`node:sqlite` locally to confirm the data was genuinely intact, low entropy,
+zero encryption). This is **also ТИМЧАСОВЕ** — remove alongside the rest of
+the diagnostic logging once the Podfile fix above is confirmed to have
+stopped new plaintext writes; it's a recovery net for data already affected,
+not a permanent feature.
+
+**Photos (`med_photos/`) — key migrated too, same structural fix, no
+confirmed bug**: `FileEncryptionService`'s AES-256-GCM key (separate from the
+DB key) also used to live only in plain `flutter_secure_storage` — the same
+package/bug class the DB key was moved off of. `packages/medkit_db_key_storage`
+was generalized to a multi-`account` store (still one fixed attribute set per
+`account`, just parametrized instead of hardcoded to `db_encryption_key`) and
+`FileEncryptionService` now reads/writes through it under
+`account: 'file_encryption_key'`, with the same one-time legacy-migration
+pattern as the DB key (`_legacySecureStorage` kept as a fallback source only).
+`BackupCryptoService` updated to explicitly include this key in backups too
+(`native:file_encryption_key` envelope entry) — otherwise it would have
+silently stopped being backed up the same way the DB key once did. **Unlike
+the DB migration, this is NOT a response to a confirmed bug** — no photo has
+been observed failing to decrypt — it's a preemptive close of the same
+theoretical risk. The actual photo *files* on disk are untouched (still
+individually AES-GCM encrypted, unchanged); only where the key lives changed.
+Not marked ТИМЧАСОВЕ — this one's meant to stay permanently, unlike the
+plaintext-migration recovery net above.
+
 ### ⚠️ Post-migration Mac checklist (do this before the next real build)
 
 `packages/medkit_db_key_storage` (see "Data layer" above) was built and verified

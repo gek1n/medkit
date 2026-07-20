@@ -8,6 +8,7 @@ import 'package:medkit_db_key_storage/medkit_db_key_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'db_encryption_service.dart';
+import 'file_encryption_service.dart';
 
 /// Пакує ВЕСЬ secure storage пристрою (не лише ключі шифрування БД/файлів,
 /// а й обліковий запис синхронізації з AccountService, і per-канальні ключі
@@ -83,6 +84,11 @@ class BackupCryptoService {
   // явно, окремим ключем у конверті.
   static const _nativeDbKeyEnvelopeKey = 'native:db_encryption_key';
 
+  // Той самий випадок, що й вище, для ключа шифрування вкладень
+  // (FileEncryptionService) після його переходу на те саме нативне сховище —
+  // readAll() теж більше його не бачить.
+  static const _nativeFileKeyEnvelopeKey = 'native:file_encryption_key';
+
   static final _cipher = AesGcm.with256bits();
 
   static Uint8List _generateSalt() {
@@ -107,10 +113,12 @@ class BackupCryptoService {
   static Future<Uint8List> wrapKeys(String passphrase) async {
     final prefs = await SharedPreferences.getInstance();
     final dbKey = await DbEncryptionService.currentKeyForBackup();
+    final fileKey = await FileEncryptionService.currentKeyForBackup();
     final entries = <String, String>{
       ...await _secureStorage.readAll(),
       ...await _secureStorage.readAll(iOptions: _syncedIOSOptions),
       if (dbKey != null) _nativeDbKeyEnvelopeKey: dbKey,
+      if (fileKey != null) _nativeFileKeyEnvelopeKey: fileKey,
       for (final prefsKey in _backedUpPrefsKeys)
         if (prefs.getString(prefsKey) != null)
           '$_prefsKeyPrefix$prefsKey': prefs.getString(prefsKey)!,
@@ -167,6 +175,13 @@ class BackupCryptoService {
       }
       if (entry.key == _nativeDbKeyEnvelopeKey) {
         await MedkitDbKeyStorage.write(entry.value as String);
+        continue;
+      }
+      if (entry.key == _nativeFileKeyEnvelopeKey) {
+        await MedkitDbKeyStorage.write(
+          entry.value as String,
+          account: 'file_encryption_key',
+        );
         continue;
       }
       final synced = _syncedKeyNames.contains(entry.key);
