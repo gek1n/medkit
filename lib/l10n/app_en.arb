@@ -912,6 +912,8 @@
   "debugLogEmptySnackbar": "Log is empty",
   "debugLogShareSubject": "Elly — event log",
   "viewDebugLogAction": "View event log",
+  "shareDbFileAction": "Share DB file",
+  "shareDbFileEmptySnackbar": "DB file not found",
   "clearAction": "Clear",
   "shareAction": "Share",
   "antiStressLabel": "Anti-stress exercises",

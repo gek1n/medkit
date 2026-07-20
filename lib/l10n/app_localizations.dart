@@ -2710,6 +2710,18 @@ abstract class AppLocalizations {
   /// **'Переглянути журнал подій'**
   String get viewDebugLogAction;
 
+  /// No description provided for @shareDbFileAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поділитись файлом БД'**
+  String get shareDbFileAction;
+
+  /// No description provided for @shareDbFileEmptySnackbar.
+  ///
+  /// In uk, this message translates to:
+  /// **'Файл БД не знайдено'**
+  String get shareDbFileEmptySnackbar;
+
   /// No description provided for @clearAction.
   ///
   /// In uk, this message translates to:

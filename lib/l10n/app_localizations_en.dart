@@ -1513,6 +1513,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewDebugLogAction => 'View event log';
 
   @override
+  String get shareDbFileAction => 'Share DB file';
+
+  @override
+  String get shareDbFileEmptySnackbar => 'DB file not found';
+
+  @override
   String get clearAction => 'Clear';
 
   @override

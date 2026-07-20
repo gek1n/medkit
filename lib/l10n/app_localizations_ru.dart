@@ -1520,6 +1520,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get viewDebugLogAction => 'Просмотреть журнал событий';
 
   @override
+  String get shareDbFileAction => 'Поделиться файлом БД';
+
+  @override
+  String get shareDbFileEmptySnackbar => 'Файл БД не найден';
+
+  @override
   String get clearAction => 'Очистить';
 
   @override
