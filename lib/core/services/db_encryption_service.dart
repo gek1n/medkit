@@ -192,7 +192,14 @@ class DbEncryptionService {
   /// ДО цього переходу і ще не мігрував) — [_migrateLegacyKey] нижче.
   static Future<String> _getOrCreateKey() async {
     final fromNewStorage = await _readWithRetry(MedkitDbKeyStorage.read);
-    if (fromNewStorage != null) return fromNewStorage;
+    if (fromNewStorage != null) {
+      // Логуємо і на успішному шляху, не лише на провалі — щоб з логу
+      // одного інциденту було видно, ЯКЕ саме джерело врешті спрацювало
+      // (і з якої спроби), а не лише те, що щось не відкрилось. Раніше цей
+      // деталь доводилось відновлювати непрямо, за форматом рядків логу.
+      AppLogger.log('DbEncryptionService: key resolved from native storage');
+      return fromNewStorage;
+    }
 
     // Нове сховище порожнє для вже наявного файлу БД — або пристрій ще не
     // проходив міграцію (перший запуск ЦІЄЇ версії застосунку після
@@ -202,6 +209,10 @@ class DbEncryptionService {
       () => _legacySecureStorage.read(key: _legacyKeyStorageKey),
     );
     if (fromLegacyStorage != null) {
+      AppLogger.log(
+        'DbEncryptionService: key resolved from legacy flutter_secure_storage '
+        '— migrating to native storage',
+      );
       await _migrateLegacyKey(fromLegacyStorage);
       return fromLegacyStorage;
     }

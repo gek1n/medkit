@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
+import 'core/config/app_env.dart';
 import 'core/providers/app_language_provider.dart';
 import 'core/providers/database_provider.dart';
 import 'core/providers/font_scale_provider.dart';
@@ -46,6 +47,7 @@ import 'features/schedule/schedule_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/today/today_screen.dart';
 import 'features/today/providers/today_providers.dart';
+import 'features/profile/debug_log_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'shared/widgets/app_bottom_nav.dart';
 
@@ -62,7 +64,7 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
-      AppLogger.log('app_start');
+      unawaited(AppLogger.logAppStart());
       // FlutterError.onError ловить помилки під час build/layout/paint
       // (напр. кинуте виключення всередині widget.build) — вони НЕ
       // проходять через runZonedGuarded, бо Flutter обробляє їх сам.
@@ -497,6 +499,28 @@ class _DatabaseErrorScreenState extends ConsumerState<_DatabaseErrorScreen>
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
               ),
+              // Доступ до журналу подій ПРЯМО з екрана помилки — на відміну
+              // від прихованого 7-тапів-по-Elly в Профілі (там навмисно
+              // непомітно для звичайних юзерів), цей екран блокує весь
+              // застосунок, тож дорога через Профіль недоступна взагалі:
+              // раніше єдиним способом дістати лог із пристрою тестувальника
+              // саме в момент, коли він найпотрібніший, було попросити
+              // переслати весь telnet/Console.app вивід вручну. Без порогу
+              // за кількістю спроб — потрібен одразу, не після 3-го падіння.
+              // Той самий AppEnv.isTestBuild гейт, що й скрізь — AppLogger
+              // все одно порожній у проді (app_logger.dart), показувати
+              // порожній екран реальним користувачам нема сенсу.
+              if (AppEnv.isTestBuild) ...[
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DebugLogScreen()),
+                  ),
+                  icon: const Icon(Icons.article_outlined, size: 18),
+                  label: Text(context.l10n.viewDebugLogAction),
+                ),
+              ],
               // Позитивна (не деструктивна) дія — з'являється лише після
               // кількох поспіль показів цієї помилки (лічильник переживає
               // relaunch, DbEncryptionService.recordKeyMismatchOccurrence) і

@@ -911,6 +911,7 @@
   "debugLogEmptyBody": "Лог порожній.",
   "debugLogEmptySnackbar": "Лог порожній",
   "debugLogShareSubject": "Elly — журнал подій",
+  "viewDebugLogAction": "Переглянути журнал подій",
   "clearAction": "Очистити",
   "shareAction": "Поділитись",
   "antiStressLabel": "Антистрес-вправи",

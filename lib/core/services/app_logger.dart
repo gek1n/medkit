@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_env.dart';
 
@@ -53,6 +54,35 @@ class AppLogger {
   static void logError(String context, Object error, [StackTrace? stack]) {
     final details = stack == null ? '$error' : '$error\n$stack';
     log('$context: $details', level: 'error');
+  }
+
+  static const _lastAppStartKey = 'app_logger_last_app_start_millis';
+
+  /// Логує "app_start" РАЗОМ із тим, скільки минуло часу з попереднього
+  /// такого запуску (новий холодний процес — не resume з фону) — без цього
+  /// з самого тексту логу неможливо відрізнити "щойно оновили застосунок"
+  /// від "не відкривали кілька годин/днів", доводилось щоразу перепитувати
+  /// користувача й співставляти вручну. Час зберігається в SharedPreferences
+  /// (переживає між запусками), не в `_buffer`.
+  static Future<void> logAppStart() async {
+    if (!AppEnv.isTestBuild) return;
+    final prefs = await SharedPreferences.getInstance();
+    final lastMillis = prefs.getInt(_lastAppStartKey);
+    final now = DateTime.now();
+    if (lastMillis == null) {
+      log('app_start (перший відомий запуск на цьому пристрої)');
+    } else {
+      final gap = now.difference(DateTime.fromMillisecondsSinceEpoch(lastMillis));
+      log('app_start (${_formatGap(gap)} з попереднього запуску)');
+    }
+    await prefs.setInt(_lastAppStartKey, now.millisecondsSinceEpoch);
+  }
+
+  static String _formatGap(Duration d) {
+    if (d.inDays > 0) return '${d.inDays}д ${d.inHours % 24}г';
+    if (d.inHours > 0) return '${d.inHours}г ${d.inMinutes % 60}хв';
+    if (d.inMinutes > 0) return '${d.inMinutes}хв ${d.inSeconds % 60}с';
+    return '${d.inSeconds}с';
   }
 
   static Future<void> _appendToFile(String line) async {
