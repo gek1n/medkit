@@ -692,13 +692,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get errorGenericShort => 'Ошибка';
 
   @override
-  String get sideEffectsSectionLabel => 'ВОЗМОЖНЫЕ ПОБОЧНЫЕ ЭФФЕКТЫ';
-
-  @override
-  String get sideEffectsAiDisclaimer =>
-      'Определено AI во время сканирования — эта информация может быть неточной. Обязательно сверьтесь с инструкцией к препарату.';
-
-  @override
   String get stockUnitTabletsCapsules => 'ТАБЛЕТКИ / КАПСУЛЫ';
 
   @override
@@ -1973,7 +1966,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Что сказал врач, рекомендации, назначения…';
 
   @override
-  String get apptNoteHint => 'Что спросить, взять с собой, номер полиса…';
+  String get apptNoteHint => 'Что спросить, что взять с собой…';
 
   @override
   String get saveVisitAction => 'Сохранить визит';
@@ -2686,15 +2679,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get foodRelationCapsLabel => 'СВЯЗЬ С ЕДОЙ';
 
   @override
-  String possibleSideEffectsPrefix(String list) {
-    return '⚡ Возможные побочные эффекты: $list. ';
-  }
-
-  @override
-  String get checkInstructionsShortLabel =>
-      'Сверьтесь с инструкцией к препарату.';
-
-  @override
   String get confirmedCheckLabel => 'Подтверждено ✓';
 
   @override
@@ -2840,15 +2824,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get refFoodAnyLabel => 'Независимо от еды';
-
-  @override
-  String possibleSideEffectsLabel(String list) {
-    return '⚡ Возможные побочные эффекты: $list';
-  }
-
-  @override
-  String get referenceInfoDisclaimer =>
-      '⚠️ Справочно, без гарантий. Сверьтесь с инструкцией к препарату.';
 
   @override
   String get nextShortAction => 'Далее';
@@ -3056,8 +3031,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get selectFamilyAction => 'Выбрать Family';
 
   @override
-  String get billingTermsDisclaimer =>
-      'Оплата списывается с вашей учётной записи App Store или Google Play. Подписка автоматически продлевается на новый период по той же цене, если не отменить как минимум за 24 часа до окончания периода. Управлять подпиской и отменить автопродление можно в настройках учётной записи App Store · Google Play.';
+  String billingTermsDisclaimer(String store) {
+    return 'Оплата списывается с вашей учётной записи $store. Подписка автоматически продлевается на новый период по той же цене, если не отменить как минимум за 24 часа до окончания периода. Управлять подпиской и отменить автопродление можно в настройках учётной записи $store.';
+  }
 
   @override
   String get privacyPolicyLinkLabel => 'Политика конфиденциальности';
@@ -3681,6 +3657,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addPhotoOrPdfLabel => 'Добавить фото или PDF';
 
   @override
+  String get documentsPrivacyHint =>
+      'Хранится только на устройстве (и в облаке, если включена резервная копия) — приложение не просматривает и не анализирует эти файлы.';
+
+  @override
   String get labTestCbc => 'Общий анализ крови';
 
   @override
@@ -3943,8 +3923,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось вовремя продлить оплату Family, поэтому семейная группа расформирована. Ваши локальные данные никуда не делись.';
 
   @override
-  String get manageSubscriptionExternallyHint =>
-      'Управление подпиской открыто в App Store/Google Play — завершите отмену там.';
+  String manageSubscriptionExternallyHint(String store) {
+    return 'Управление подпиской открыто в $store — завершите отмену там.';
+  }
 
   @override
   String get restorePurchasesAction => 'Восстановить покупки';
@@ -3954,7 +3935,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get restorePurchasesNothingFoundSnackbar =>
-      'Активных покупок не найдено на этом Apple ID/Google-аккаунте';
+      'Активных покупок не найдено на этом аккаунте';
 
   @override
   String get todayScheduleForMedLabel => 'Расписание на сегодня';

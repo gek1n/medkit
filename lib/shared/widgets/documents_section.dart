@@ -139,6 +139,20 @@ class _DocumentsSectionState extends State<DocumentsSection> {
                     ))
                 .toList(),
           ),
+        if (!widget.readOnly) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.textMuted),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(l10n.documentsPrivacyHint,
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

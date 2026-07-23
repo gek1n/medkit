@@ -1360,18 +1360,6 @@ abstract class AppLocalizations {
   /// **'Помилка'**
   String get errorGenericShort;
 
-  /// No description provided for @sideEffectsSectionLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'МОЖЛИВІ ПОБІЧНІ ЕФЕКТИ'**
-  String get sideEffectsSectionLabel;
-
-  /// No description provided for @sideEffectsAiDisclaimer.
-  ///
-  /// In uk, this message translates to:
-  /// **'Визначено AI під час сканування — ця інформація може бути неточною. Обов\'язково звірте з інструкцією до препарату.'**
-  String get sideEffectsAiDisclaimer;
-
   /// No description provided for @stockUnitTabletsCapsules.
   ///
   /// In uk, this message translates to:
@@ -3535,7 +3523,7 @@ abstract class AppLocalizations {
   /// No description provided for @apptNoteHint.
   ///
   /// In uk, this message translates to:
-  /// **'Що запитати, взяти з собою, номер поліса…'**
+  /// **'Що запитати, взяти з собою…'**
   String get apptNoteHint;
 
   /// No description provided for @saveVisitAction.
@@ -4846,18 +4834,6 @@ abstract class AppLocalizations {
   /// **'ЗВ\'ЯЗОК З ЇЖЕЮ'**
   String get foodRelationCapsLabel;
 
-  /// No description provided for @possibleSideEffectsPrefix.
-  ///
-  /// In uk, this message translates to:
-  /// **'⚡ Можливі побічні ефекти: {list}. '**
-  String possibleSideEffectsPrefix(String list);
-
-  /// No description provided for @checkInstructionsShortLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Звірте з інструкцією до препарату.'**
-  String get checkInstructionsShortLabel;
-
   /// No description provided for @confirmedCheckLabel.
   ///
   /// In uk, this message translates to:
@@ -5115,18 +5091,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Незалежно від їжі'**
   String get refFoodAnyLabel;
-
-  /// No description provided for @possibleSideEffectsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'⚡ Можливі побічні ефекти: {list}'**
-  String possibleSideEffectsLabel(String list);
-
-  /// No description provided for @referenceInfoDisclaimer.
-  ///
-  /// In uk, this message translates to:
-  /// **'⚠️ Довідково, не гарантовано. Звірте з інструкцією до препарату.'**
-  String get referenceInfoDisclaimer;
 
   /// No description provided for @nextShortAction.
   ///
@@ -5497,8 +5461,8 @@ abstract class AppLocalizations {
   /// No description provided for @billingTermsDisclaimer.
   ///
   /// In uk, this message translates to:
-  /// **'Оплата списується з вашого облікового запису App Store чи Google Play. Підписка автоматично продовжується на новий період за тією самою ціною, якщо не скасувати щонайменше за 24 години до завершення періоду. Керувати підпискою та скасувати автопродовження можна в налаштуваннях облікового запису App Store · Google Play.'**
-  String get billingTermsDisclaimer;
+  /// **'Оплата списується з вашого облікового запису {store}. Підписка автоматично продовжується на новий період за тією самою ціною, якщо не скасувати щонайменше за 24 години до завершення періоду. Керувати підпискою та скасувати автопродовження можна в налаштуваннях облікового запису {store}.'**
+  String billingTermsDisclaimer(String store);
 
   /// No description provided for @privacyPolicyLinkLabel.
   ///
@@ -6586,6 +6550,12 @@ abstract class AppLocalizations {
   /// **'Додати фото чи PDF'**
   String get addPhotoOrPdfLabel;
 
+  /// No description provided for @documentsPrivacyHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Зберігається лише на пристрої (і в хмарі, якщо ввімкнено резервну копію) — застосунок не переглядає й не аналізує ці файли.'**
+  String get documentsPrivacyHint;
+
   /// No description provided for @labTestCbc.
   ///
   /// In uk, this message translates to:
@@ -7069,8 +7039,8 @@ abstract class AppLocalizations {
   /// No description provided for @manageSubscriptionExternallyHint.
   ///
   /// In uk, this message translates to:
-  /// **'Керування підпискою відкрито в App Store/Google Play — завершіть скасування там.'**
-  String get manageSubscriptionExternallyHint;
+  /// **'Керування підпискою відкрито в {store} — завершіть скасування там.'**
+  String manageSubscriptionExternallyHint(String store);
 
   /// No description provided for @restorePurchasesAction.
   ///
@@ -7087,7 +7057,7 @@ abstract class AppLocalizations {
   /// No description provided for @restorePurchasesNothingFoundSnackbar.
   ///
   /// In uk, this message translates to:
-  /// **'Активних покупок не знайдено на цьому Apple ID/Google-акаунті'**
+  /// **'Активних покупок не знайдено на цьому обліковому записі'**
   String get restorePurchasesNothingFoundSnackbar;
 
   /// No description provided for @todayScheduleForMedLabel.

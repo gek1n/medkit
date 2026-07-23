@@ -35,14 +35,12 @@ class _MedDraft {
   // дефолт, щоб у списку нижче нічого не виглядало хибно "вже підтвердженим".
   String? foodRelation;
   int durationDays;
-  final List<String>? sideEffects;
 
   _MedDraft(ScannedMedication m, {required bool expandByDefault})
       : form = m.form ?? 'tablet',
         scheduleTimes = List.of(m.scheduleTimes ?? const ['morning']),
         foodRelation = m.foodRelation,
         durationDays = m.durationDays ?? 7,
-        sideEffects = m.sideEffects,
         expanded = expandByDefault {
     nameController = TextEditingController(text: m.name);
     doseController = TextEditingController(text: m.doseAmount?.toString() ?? '');
@@ -61,7 +59,6 @@ class _MedDraft {
         scheduleTimes: scheduleTimes,
         durationDays: durationDays,
         foodRelation: foodRelation,
-        sideEffects: sideEffects,
       );
 }
 
@@ -661,31 +658,6 @@ class _DraftCardState extends State<_DraftCard> {
                       );
                     }).toList(),
                   ),
-
-                  if (d.sideEffects?.isNotEmpty ?? false) ...[
-                    const SizedBox(height: 14),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningLight,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFDE68A)),
-                      ),
-                      child: Text.rich(
-                        TextSpan(
-                          style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF92400E)),
-                          children: [
-                            TextSpan(text: context.l10n.possibleSideEffectsPrefix(d.sideEffects!.join(', '))),
-                            TextSpan(
-                              text: context.l10n.checkInstructionsShortLabel,
-                              style: const TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
 
                   const SizedBox(height: 14),
                   MkButton.secondary(

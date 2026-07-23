@@ -691,13 +691,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorGenericShort => 'Error';
 
   @override
-  String get sideEffectsSectionLabel => 'POSSIBLE SIDE EFFECTS';
-
-  @override
-  String get sideEffectsAiDisclaimer =>
-      'Identified by AI during scanning — this information may be inaccurate. Always check the medication\'s instructions.';
-
-  @override
   String get stockUnitTabletsCapsules => 'TABLETS / CAPSULES';
 
   @override
@@ -1965,7 +1958,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'What the doctor said, recommendations, prescriptions…';
 
   @override
-  String get apptNoteHint => 'What to ask, what to bring, insurance number…';
+  String get apptNoteHint => 'What to ask, what to bring…';
 
   @override
   String get saveVisitAction => 'Save visit';
@@ -2677,15 +2670,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get foodRelationCapsLabel => 'RELATION TO FOOD';
 
   @override
-  String possibleSideEffectsPrefix(String list) {
-    return '⚡ Possible side effects: $list. ';
-  }
-
-  @override
-  String get checkInstructionsShortLabel =>
-      'Check the medication\'s instructions.';
-
-  @override
   String get confirmedCheckLabel => 'Confirmed ✓';
 
   @override
@@ -2830,15 +2814,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refFoodAnyLabel => 'Regardless of food';
-
-  @override
-  String possibleSideEffectsLabel(String list) {
-    return '⚡ Possible side effects: $list';
-  }
-
-  @override
-  String get referenceInfoDisclaimer =>
-      '⚠️ For reference only, not guaranteed. Check the medication\'s instructions.';
 
   @override
   String get nextShortAction => 'Next';
@@ -3044,8 +3019,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectFamilyAction => 'Choose Family';
 
   @override
-  String get billingTermsDisclaimer =>
-      'Payment is charged to your App Store or Google Play account. The subscription renews automatically for the same price unless cancelled at least 24 hours before the end of the period. You can manage your subscription and turn off auto-renewal in your App Store · Google Play account settings.';
+  String billingTermsDisclaimer(String store) {
+    return 'Payment is charged to your $store account. The subscription renews automatically for the same price unless cancelled at least 24 hours before the end of the period. You can manage your subscription and turn off auto-renewal in your $store account settings.';
+  }
 
   @override
   String get privacyPolicyLinkLabel => 'Privacy Policy';
@@ -3666,6 +3642,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addPhotoOrPdfLabel => 'Add photo or PDF';
 
   @override
+  String get documentsPrivacyHint =>
+      'Stored only on your device (and in the cloud if backup is enabled) — the app never views or analyzes these files.';
+
+  @override
   String get labTestCbc => 'Complete blood count';
 
   @override
@@ -3930,8 +3910,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Family payment couldn\'t be renewed in time, so the family group has been disbanded. Your local data hasn\'t gone anywhere.';
 
   @override
-  String get manageSubscriptionExternallyHint =>
-      'Subscription management opened in the App Store/Google Play — finish cancelling there.';
+  String manageSubscriptionExternallyHint(String store) {
+    return 'Subscription management opened in the $store — finish cancelling there.';
+  }
 
   @override
   String get restorePurchasesAction => 'Restore purchases';
@@ -3941,7 +3922,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restorePurchasesNothingFoundSnackbar =>
-      'No active purchases found for this Apple ID/Google account';
+      'No active purchases found for this account';
 
   @override
   String get todayScheduleForMedLabel => 'Today\'s schedule';
