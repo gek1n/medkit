@@ -2609,7 +2609,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get scanDosageWarningPrefix =>
-      '⚠️ Дозировка, расписание и справочная информация о побочных эффектах — ориентировочные. ';
+      '⚠️ Распознавание названия, дозировки и расписания может содержать ошибки. ';
 
   @override
   String get alwaysCheckInstructionsLabel =>
@@ -3237,14 +3237,6 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get faqAiA1 =>
       'Распознавание происходит через модель Claude от Anthropic — это явно указывается в запросе согласия перед первым использованием каждой функции. Свободное текстовое описание самочувствия или симптомов в облако никогда не отправляется.';
-
-  @override
-  String get faqAiQ2 =>
-      'Насколько точна справочная информация о лекарствах от AI?';
-
-  @override
-  String get faqAiA2 =>
-      'Это ориентировочная информация из общих знаний модели, а не проверенный медицинский каталог. Всегда сверяйтесь с инструкцией к препарату или врачом.';
 
   @override
   String get faqNotificationsQ1 => 'Почему не приходят напоминания?';

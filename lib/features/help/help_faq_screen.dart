@@ -36,7 +36,6 @@ List<_FaqGroup> _buildGroups(BuildContext context) {
     ]),
     _FaqGroup(l10n.faqGroupAiTitle, Icons.smart_toy_outlined, [
       _Faq(l10n.faqAiQ1, l10n.faqAiA1),
-      _Faq(l10n.faqAiQ2, l10n.faqAiA2),
     ]),
     _FaqGroup(l10n.notificationsLabel, Icons.notifications_none_rounded, [
       _Faq(l10n.faqNotificationsQ1, l10n.faqNotificationsA1),

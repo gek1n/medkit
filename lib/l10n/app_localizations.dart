@@ -4711,7 +4711,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanDosageWarningPrefix.
   ///
   /// In uk, this message translates to:
-  /// **'⚠️ Дозування, розклад і довідкова інформація про побічні ефекти — орієнтовні. '**
+  /// **'⚠️ Розпізнавання назви, дозування та розкладу може містити помилки. '**
   String get scanDosageWarningPrefix;
 
   /// No description provided for @alwaysCheckInstructionsLabel.
@@ -5775,18 +5775,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Розпізнавання відбувається через модель Claude від Anthropic — це явно вказується в запиті згоди перед першим використанням кожної функції. Вільний текстовий опис самопочуття чи симптомів у хмару ніколи не надсилається.'**
   String get faqAiA1;
-
-  /// No description provided for @faqAiQ2.
-  ///
-  /// In uk, this message translates to:
-  /// **'Наскільки точна довідкова інформація про ліки від AI?'**
-  String get faqAiQ2;
-
-  /// No description provided for @faqAiA2.
-  ///
-  /// In uk, this message translates to:
-  /// **'Це орієнтовна інформація із загальних знань моделі, а не перевірений медичний каталог. Завжди звіряйте з інструкцією до препарату чи лікарем.'**
-  String get faqAiA2;
 
   /// No description provided for @faqNotificationsQ1.
   ///

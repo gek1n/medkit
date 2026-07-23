@@ -2606,7 +2606,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get scanDosageWarningPrefix =>
-      '⚠️ Дозування, розклад і довідкова інформація про побічні ефекти — орієнтовні. ';
+      '⚠️ Розпізнавання назви, дозування та розкладу може містити помилки. ';
 
   @override
   String get alwaysCheckInstructionsLabel =>
@@ -3233,13 +3233,6 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get faqAiA1 =>
       'Розпізнавання відбувається через модель Claude від Anthropic — це явно вказується в запиті згоди перед першим використанням кожної функції. Вільний текстовий опис самопочуття чи симптомів у хмару ніколи не надсилається.';
-
-  @override
-  String get faqAiQ2 => 'Наскільки точна довідкова інформація про ліки від AI?';
-
-  @override
-  String get faqAiA2 =>
-      'Це орієнтовна інформація із загальних знань моделі, а не перевірений медичний каталог. Завжди звіряйте з інструкцією до препарату чи лікарем.';
 
   @override
   String get faqNotificationsQ1 => 'Чому не приходять нагадування?';
