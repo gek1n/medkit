@@ -311,8 +311,6 @@
   "noMedsYetHint": "Натисніть + щоб додати перше лікарство",
   "addMedicationAction": "Додати лікарство",
   "errorGenericShort": "Помилка",
-  "sideEffectsSectionLabel": "МОЖЛИВІ ПОБІЧНІ ЕФЕКТИ",
-  "sideEffectsAiDisclaimer": "Визначено AI під час сканування — ця інформація може бути неточною. Обов'язково звірте з інструкцією до препарату.",
   "stockUnitTabletsCapsules": "ТАБЛЕТКИ / КАПСУЛИ",
   "stockUnitSyrup": "СИРОП",
   "stockUnitDrops": "КРАПЛІ",
@@ -1104,7 +1102,7 @@
   "doctorConclusionLabel": "Висновок лікаря",
   "noteSingularLabel": "Нотатка",
   "doctorConclusionHint": "Що сказав лікар, рекомендації, призначення…",
-  "apptNoteHint": "Що запитати, взяти з собою, номер поліса…",
+  "apptNoteHint": "Що запитати, взяти з собою…",
   "saveVisitAction": "Зберегти візит",
   "saveReminderAction": "Зберегти нагадування",
   "monthGenJan": "січня",
@@ -1403,15 +1401,6 @@
   "doseCapsLabel": "ДОЗА",
   "courseDurationCapsLabel": "ТРИВАЛІСТЬ КУРСУ",
   "foodRelationCapsLabel": "ЗВ'ЯЗОК З ЇЖЕЮ",
-  "possibleSideEffectsPrefix": "⚡ Можливі побічні ефекти: {list}. ",
-  "@possibleSideEffectsPrefix": {
-    "placeholders": {
-      "list": {
-        "type": "String"
-      }
-    }
-  },
-  "checkInstructionsShortLabel": "Звірте з інструкцією до препарату.",
   "confirmedCheckLabel": "Підтверджено ✓",
   "confirmAllCorrectAction": "Все вірно, підтвердити",
   "somethingWentWrongTitle": "Щось пішло не так",
@@ -1483,15 +1472,6 @@
   "foodOptAfter": "Після їжі",
   "foodOptNotImportant": "Не важливо",
   "refFoodAnyLabel": "Незалежно від їжі",
-  "possibleSideEffectsLabel": "⚡ Можливі побічні ефекти: {list}",
-  "@possibleSideEffectsLabel": {
-    "placeholders": {
-      "list": {
-        "type": "String"
-      }
-    }
-  },
-  "referenceInfoDisclaimer": "⚠️ Довідково, не гарантовано. Звірте з інструкцією до препарату.",
   "nextShortAction": "Далі",
   "backupScreenTitle": "Резервна копія",
   "backupIntroBody": "Ліки, розклад, медкартка (фото/PDF) і всі інші дані — обирайте, де зберігати резервну копію.",
@@ -1581,7 +1561,14 @@
   "familyFeatureAutonomousProfiles": "Автономні профілі — до 8 осіб",
   "familyFeatureSelfManaged": "Кожен керує своїм профілем сам",
   "selectFamilyAction": "Обрати Family",
-  "billingTermsDisclaimer": "Оплата списується з вашого облікового запису App Store чи Google Play. Підписка автоматично продовжується на новий період за тією самою ціною, якщо не скасувати щонайменше за 24 години до завершення періоду. Керувати підпискою та скасувати автопродовження можна в налаштуваннях облікового запису App Store · Google Play.",
+  "billingTermsDisclaimer": "Оплата списується з вашого облікового запису {store}. Підписка автоматично продовжується на новий період за тією самою ціною, якщо не скасувати щонайменше за 24 години до завершення періоду. Керувати підпискою та скасувати автопродовження можна в налаштуваннях облікового запису {store}.",
+  "@billingTermsDisclaimer": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "privacyPolicyLinkLabel": "Політика конфіденційності",
   "termsOfUseLinkLabel": "Умови використання",
   "currentPlanLabel": "Поточний",
@@ -1843,6 +1830,7 @@
   "specialtyOther": "Інше",
   "noDocumentsLabel": "Немає документів",
   "addPhotoOrPdfLabel": "Додати фото чи PDF",
+  "documentsPrivacyHint": "Зберігається лише на пристрої (і в хмарі, якщо ввімкнено резервну копію) — застосунок не переглядає й не аналізує ці файли.",
   "labTestCbc": "Загальний аналіз крові",
   "labTestUrinalysis": "Загальний аналіз сечі",
   "labTestBloodChemistry": "Біохімічний аналіз крові",
@@ -1990,10 +1978,17 @@
   "checkAgainAction": "Перевірити знову",
   "loadingEllipsisLabel": "Завантажую...",
   "familyDisbandedReason": "Не вдалось поновити оплату Family вчасно, тож сімейна група розірвана. Ваші локальні дані нікуди не поділись.",
-  "manageSubscriptionExternallyHint": "Керування підпискою відкрито в App Store/Google Play — завершіть скасування там.",
+  "manageSubscriptionExternallyHint": "Керування підпискою відкрито в {store} — завершіть скасування там.",
+  "@manageSubscriptionExternallyHint": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "restorePurchasesAction": "Відновити покупки",
   "restorePurchasesSuccessSnackbar": "Покупки відновлено",
-  "restorePurchasesNothingFoundSnackbar": "Активних покупок не знайдено на цьому Apple ID/Google-акаунті",
+  "restorePurchasesNothingFoundSnackbar": "Активних покупок не знайдено на цьому обліковому записі",
   "todayScheduleForMedLabel": "Розклад на сьогодні",
   "intakeTaken": "Виконано",
   "intakeSnoozed": "Перенесено",

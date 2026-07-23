@@ -126,11 +126,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   // Card color (null = дефолтний колір типу завдання)
   String? _colorHex;
 
-  // Побічні ефекти, знайдені ІІ під час сканування рецепта/упаковки —
-  // null для ручного додавання чи редагування (форма немає поля для їх
-  // ручного введення, лише зберігає/показує те, що прийшло зі сканування).
-  List<String>? _sideEffects;
-
   bool _isSaving = false;
 
   // null = ще завантажується; true/false — чи лишились безкоштовні спроби
@@ -192,11 +187,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     try {
       _photoPaths = List<String>.from(jsonDecode(ex.photoPaths) as List);
     } catch (_) {}
-    if (ex.sideEffects != null) {
-      try {
-        _sideEffects = List<String>.from(jsonDecode(ex.sideEffects!) as List);
-      } catch (_) {}
-    }
 
     try {
       final cfg = jsonDecode(ex.repeatConfig) as Map<String, dynamic>;
@@ -335,7 +325,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           photoPaths: Value(jsonEncode(_photoPaths)),
           phases: Value(phasesJson),
           color: Value(_colorHex),
-          sideEffects: Value(_sideEffects == null ? null : jsonEncode(_sideEffects)),
         ),
       );
       if (mounted) Navigator.of(context).pop(true);
@@ -371,8 +360,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
-            sideEffects: Value(_sideEffects == null ? null : jsonEncode(_sideEffects)),
-          ),
+            ),
         );
       } else {
         await medRepo.insert(
@@ -394,8 +382,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
-            sideEffects: Value(_sideEffects == null ? null : jsonEncode(_sideEffects)),
-          ),
+            ),
         );
       }
 
@@ -690,7 +677,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _nameController.text = m.name;
     if (m.form != null) _form = m.form!;
     if (m.foodRelation != null) _foodRelation = m.foodRelation!;
-    _sideEffects = m.sideEffects;
     final times = (m.scheduleTimes ?? const ['morning'])
         .map(_defaultTimeForSchedule)
         .toList();
@@ -734,9 +720,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
         DateTime(now.year, now.month, now.day).add(Duration(days: duration)),
       ),
       phases: Value(phasesJson),
-      sideEffects: Value(
-        m.sideEffects == null || m.sideEffects!.isEmpty ? null : jsonEncode(m.sideEffects),
-      ),
     );
   }
 

@@ -311,8 +311,6 @@
   "noMedsYetHint": "Tap + to add your first medication",
   "addMedicationAction": "Add medication",
   "errorGenericShort": "Error",
-  "sideEffectsSectionLabel": "POSSIBLE SIDE EFFECTS",
-  "sideEffectsAiDisclaimer": "Identified by AI during scanning — this information may be inaccurate. Always check the medication's instructions.",
   "stockUnitTabletsCapsules": "TABLETS / CAPSULES",
   "stockUnitSyrup": "SYRUP",
   "stockUnitDrops": "DROPS",
@@ -1104,7 +1102,7 @@
   "doctorConclusionLabel": "Doctor's conclusion",
   "noteSingularLabel": "Note",
   "doctorConclusionHint": "What the doctor said, recommendations, prescriptions…",
-  "apptNoteHint": "What to ask, what to bring, insurance number…",
+  "apptNoteHint": "What to ask, what to bring…",
   "saveVisitAction": "Save visit",
   "saveReminderAction": "Save reminder",
   "monthGenJan": "January",
@@ -1403,15 +1401,6 @@
   "doseCapsLabel": "DOSE",
   "courseDurationCapsLabel": "COURSE DURATION",
   "foodRelationCapsLabel": "RELATION TO FOOD",
-  "possibleSideEffectsPrefix": "⚡ Possible side effects: {list}. ",
-  "@possibleSideEffectsPrefix": {
-    "placeholders": {
-      "list": {
-        "type": "String"
-      }
-    }
-  },
-  "checkInstructionsShortLabel": "Check the medication's instructions.",
   "confirmedCheckLabel": "Confirmed ✓",
   "confirmAllCorrectAction": "Everything's correct, confirm",
   "somethingWentWrongTitle": "Something went wrong",
@@ -1483,15 +1472,6 @@
   "foodOptAfter": "After food",
   "foodOptNotImportant": "Doesn't matter",
   "refFoodAnyLabel": "Regardless of food",
-  "possibleSideEffectsLabel": "⚡ Possible side effects: {list}",
-  "@possibleSideEffectsLabel": {
-    "placeholders": {
-      "list": {
-        "type": "String"
-      }
-    }
-  },
-  "referenceInfoDisclaimer": "⚠️ For reference only, not guaranteed. Check the medication's instructions.",
   "nextShortAction": "Next",
   "backupScreenTitle": "Backup",
   "backupIntroBody": "Medications, schedule, med card (photos/PDFs), and all other data — choose where to keep your backup.",
@@ -1581,7 +1561,14 @@
   "familyFeatureAutonomousProfiles": "Independent profiles — up to 8 people",
   "familyFeatureSelfManaged": "Everyone manages their own profile",
   "selectFamilyAction": "Choose Family",
-  "billingTermsDisclaimer": "Payment is charged to your App Store or Google Play account. The subscription renews automatically for the same price unless cancelled at least 24 hours before the end of the period. You can manage your subscription and turn off auto-renewal in your App Store · Google Play account settings.",
+  "billingTermsDisclaimer": "Payment is charged to your {store} account. The subscription renews automatically for the same price unless cancelled at least 24 hours before the end of the period. You can manage your subscription and turn off auto-renewal in your {store} account settings.",
+  "@billingTermsDisclaimer": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "privacyPolicyLinkLabel": "Privacy Policy",
   "termsOfUseLinkLabel": "Terms of Use",
   "currentPlanLabel": "Current",
@@ -1843,6 +1830,7 @@
   "specialtyOther": "Other",
   "noDocumentsLabel": "No documents",
   "addPhotoOrPdfLabel": "Add photo or PDF",
+  "documentsPrivacyHint": "Stored only on your device (and in the cloud if backup is enabled) — the app never views or analyzes these files.",
   "labTestCbc": "Complete blood count",
   "labTestUrinalysis": "Urinalysis",
   "labTestBloodChemistry": "Blood chemistry panel",
@@ -1990,10 +1978,17 @@
   "checkAgainAction": "Check again",
   "loadingEllipsisLabel": "Loading...",
   "familyDisbandedReason": "Family payment couldn't be renewed in time, so the family group has been disbanded. Your local data hasn't gone anywhere.",
-  "manageSubscriptionExternallyHint": "Subscription management opened in the App Store/Google Play — finish cancelling there.",
+  "manageSubscriptionExternallyHint": "Subscription management opened in the {store} — finish cancelling there.",
+  "@manageSubscriptionExternallyHint": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "restorePurchasesAction": "Restore purchases",
   "restorePurchasesSuccessSnackbar": "Purchases restored",
-  "restorePurchasesNothingFoundSnackbar": "No active purchases found for this Apple ID/Google account",
+  "restorePurchasesNothingFoundSnackbar": "No active purchases found for this account",
   "todayScheduleForMedLabel": "Today's schedule",
   "intakeTaken": "Taken",
   "intakeSnoozed": "Postponed",

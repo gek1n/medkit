@@ -311,8 +311,6 @@
   "noMedsYetHint": "Нажмите +, чтобы добавить первое лекарство",
   "addMedicationAction": "Добавить лекарство",
   "errorGenericShort": "Ошибка",
-  "sideEffectsSectionLabel": "ВОЗМОЖНЫЕ ПОБОЧНЫЕ ЭФФЕКТЫ",
-  "sideEffectsAiDisclaimer": "Определено AI во время сканирования — эта информация может быть неточной. Обязательно сверьтесь с инструкцией к препарату.",
   "stockUnitTabletsCapsules": "ТАБЛЕТКИ / КАПСУЛЫ",
   "stockUnitSyrup": "СИРОП",
   "stockUnitDrops": "КАПЛИ",
@@ -1104,7 +1102,7 @@
   "doctorConclusionLabel": "Заключение врача",
   "noteSingularLabel": "Заметка",
   "doctorConclusionHint": "Что сказал врач, рекомендации, назначения…",
-  "apptNoteHint": "Что спросить, взять с собой, номер полиса…",
+  "apptNoteHint": "Что спросить, что взять с собой…",
   "saveVisitAction": "Сохранить визит",
   "saveReminderAction": "Сохранить напоминание",
   "monthGenJan": "января",
@@ -1403,15 +1401,6 @@
   "doseCapsLabel": "ДОЗА",
   "courseDurationCapsLabel": "ДЛИТЕЛЬНОСТЬ КУРСА",
   "foodRelationCapsLabel": "СВЯЗЬ С ЕДОЙ",
-  "possibleSideEffectsPrefix": "⚡ Возможные побочные эффекты: {list}. ",
-  "@possibleSideEffectsPrefix": {
-    "placeholders": {
-      "list": {
-        "type": "String"
-      }
-    }
-  },
-  "checkInstructionsShortLabel": "Сверьтесь с инструкцией к препарату.",
   "confirmedCheckLabel": "Подтверждено ✓",
   "confirmAllCorrectAction": "Всё верно, подтвердить",
   "somethingWentWrongTitle": "Что-то пошло не так",
@@ -1483,15 +1472,6 @@
   "foodOptAfter": "После еды",
   "foodOptNotImportant": "Не важно",
   "refFoodAnyLabel": "Независимо от еды",
-  "possibleSideEffectsLabel": "⚡ Возможные побочные эффекты: {list}",
-  "@possibleSideEffectsLabel": {
-    "placeholders": {
-      "list": {
-        "type": "String"
-      }
-    }
-  },
-  "referenceInfoDisclaimer": "⚠️ Справочно, без гарантий. Сверьтесь с инструкцией к препарату.",
   "nextShortAction": "Далее",
   "backupScreenTitle": "Резервная копия",
   "backupIntroBody": "Лекарства, расписание, медкарта (фото/PDF) и все остальные данные — выбирайте, где хранить резервную копию.",
@@ -1581,7 +1561,14 @@
   "familyFeatureAutonomousProfiles": "Автономные профили — до 8 человек",
   "familyFeatureSelfManaged": "Каждый управляет своим профилем сам",
   "selectFamilyAction": "Выбрать Family",
-  "billingTermsDisclaimer": "Оплата списывается с вашей учётной записи App Store или Google Play. Подписка автоматически продлевается на новый период по той же цене, если не отменить как минимум за 24 часа до окончания периода. Управлять подпиской и отменить автопродление можно в настройках учётной записи App Store · Google Play.",
+  "billingTermsDisclaimer": "Оплата списывается с вашей учётной записи {store}. Подписка автоматически продлевается на новый период по той же цене, если не отменить как минимум за 24 часа до окончания периода. Управлять подпиской и отменить автопродление можно в настройках учётной записи {store}.",
+  "@billingTermsDisclaimer": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "privacyPolicyLinkLabel": "Политика конфиденциальности",
   "termsOfUseLinkLabel": "Условия использования",
   "currentPlanLabel": "Текущий",
@@ -1843,6 +1830,7 @@
   "specialtyOther": "Другое",
   "noDocumentsLabel": "Нет документов",
   "addPhotoOrPdfLabel": "Добавить фото или PDF",
+  "documentsPrivacyHint": "Хранится только на устройстве (и в облаке, если включена резервная копия) — приложение не просматривает и не анализирует эти файлы.",
   "labTestCbc": "Общий анализ крови",
   "labTestUrinalysis": "Общий анализ мочи",
   "labTestBloodChemistry": "Биохимический анализ крови",
@@ -1990,10 +1978,17 @@
   "checkAgainAction": "Проверить снова",
   "loadingEllipsisLabel": "Загружаю...",
   "familyDisbandedReason": "Не удалось вовремя продлить оплату Family, поэтому семейная группа расформирована. Ваши локальные данные никуда не делись.",
-  "manageSubscriptionExternallyHint": "Управление подпиской открыто в App Store/Google Play — завершите отмену там.",
+  "manageSubscriptionExternallyHint": "Управление подпиской открыто в {store} — завершите отмену там.",
+  "@manageSubscriptionExternallyHint": {
+    "placeholders": {
+      "store": {
+        "type": "String"
+      }
+    }
+  },
   "restorePurchasesAction": "Восстановить покупки",
   "restorePurchasesSuccessSnackbar": "Покупки восстановлены",
-  "restorePurchasesNothingFoundSnackbar": "Активных покупок не найдено на этом Apple ID/Google-аккаунте",
+  "restorePurchasesNothingFoundSnackbar": "Активных покупок не найдено на этом аккаунте",
   "todayScheduleForMedLabel": "Расписание на сегодня",
   "intakeTaken": "Выполнено",
   "intakeSnoozed": "Перенесено",

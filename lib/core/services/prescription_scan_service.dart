@@ -9,8 +9,10 @@ class ScannedMedication {
   final String? doseUnit;
   final List<String>? scheduleTimes; // morning | afternoon | evening | night
   final int? durationDays;
-  final String? foodRelation; // before | after | any — довідкове, не гарантоване
-  final List<String>? sideEffects; // довідкове, не гарантоване
+  // Користувач обирає це САМ на екрані перегляду результатів сканування
+  // (food_relation_picker) — сервер більше не намагається вгадати це за
+  // назвою препарату (Apple App Review guideline 1.4.1).
+  final String? foodRelation; // before | after | any
 
   const ScannedMedication({
     required this.name,
@@ -20,7 +22,6 @@ class ScannedMedication {
     this.scheduleTimes,
     this.durationDays,
     this.foodRelation,
-    this.sideEffects,
   });
 
   factory ScannedMedication.fromJson(Map<String, dynamic> json) => ScannedMedication(
@@ -30,8 +31,6 @@ class ScannedMedication {
         doseUnit: json['doseUnit'] as String?,
         scheduleTimes: (json['scheduleTimes'] as List?)?.map((e) => e as String).toList(),
         durationDays: (json['durationDays'] as num?)?.toInt(),
-        foodRelation: json['foodRelation'] as String?,
-        sideEffects: (json['sideEffects'] as List?)?.map((e) => e as String).toList(),
       );
 }
 

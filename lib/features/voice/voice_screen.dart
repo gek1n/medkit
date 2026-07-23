@@ -7,7 +7,6 @@ import '../../core/providers/app_language_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/ai_consent_service.dart';
 import '../../core/services/ai_usage_service.dart';
-import '../../core/services/drug_info_service.dart';
 import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/nlu_service.dart';
 import '../../core/services/prescription_scan_service.dart';
@@ -53,7 +52,6 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
   NluResult? _result;
   String _errorMsg = '';
   int _foodRelation = 1; // 0=before 1=after 2=any
-  DrugReference? _drugReference;
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
@@ -173,22 +171,10 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
           _foodRelation = fr == 'before' ? 0 : fr == 'after' ? 1 : 2;
           _state = _VoiceState.result;
         });
-        if (result.drugName != null) _fetchDrugReference(result.drugName!);
       }
     } catch (e) {
       if (!mounted) return;
       _setError(context.l10n.analysisErrorWithMessage(e.toString()));
-    }
-  }
-
-  Future<void> _fetchDrugReference(String drugName) async {
-    try {
-      final items = await DrugInfoService().lookup([drugName]);
-      if (mounted && items.isNotEmpty && items.first.hasInfo) {
-        setState(() => _drugReference = items.first);
-      }
-    } catch (_) {
-      // Довідкова інформація не критична для основної команди — тихо ігноруємо.
     }
   }
 
@@ -205,7 +191,6 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
         _transcript = '';
         _result = null;
         _errorMsg = '';
-        _drugReference = null;
       });
 
   @override
@@ -242,7 +227,6 @@ class _VoiceScreenState extends ConsumerState<VoiceScreen>
                 _VoiceState.result => _ResultBody(
                     result: _result!,
                     foodRelation: _foodRelation,
-                    drugReference: _drugReference,
                     onFoodChanged: (v) =>
                         setState(() => _foodRelation = v),
                     onConfirm: () =>
@@ -704,7 +688,6 @@ class _AnalyzingBody extends StatelessWidget {
 class _ResultBody extends StatelessWidget {
   final NluResult result;
   final int foodRelation;
-  final DrugReference? drugReference;
   final ValueChanged<int> onFoodChanged;
   final VoidCallback onConfirm;
   final VoidCallback onRetry;
@@ -712,17 +695,10 @@ class _ResultBody extends StatelessWidget {
   const _ResultBody({
     required this.result,
     required this.foodRelation,
-    required this.drugReference,
     required this.onFoodChanged,
     required this.onConfirm,
     required this.onRetry,
   });
-
-  Map<String, String> _refFoodLabels(BuildContext context) => {
-        'before': context.l10n.foodOptBefore,
-        'after': context.l10n.foodOptAfter,
-        'any': context.l10n.refFoodAnyLabel,
-      };
 
   List<String> _foodOpts(BuildContext context) => [
         context.l10n.foodOptBefore,
@@ -931,43 +907,6 @@ class _ResultBody extends StatelessWidget {
                 ),
               );
             }),
-          ),
-        ],
-        if (drugReference != null) ...[
-          const SizedBox(height: AppDimensions.md),
-          Container(
-            padding: const EdgeInsets.all(AppDimensions.md),
-            decoration: BoxDecoration(
-              color: AppColors.warningLight,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              border: Border.all(color: const Color(0xFFFDE68A)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (drugReference!.foodRelation != null)
-                  Text(
-                    '🍽 ${_refFoodLabels(context)[drugReference!.foodRelation] ?? drugReference!.foodRelation}',
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: const Color(0xFF92400E)),
-                  ),
-                if (drugReference!.sideEffects?.isNotEmpty ?? false)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      context.l10n.possibleSideEffectsLabel(drugReference!.sideEffects!.join(', ')),
-                      style: AppTextStyles.bodySm
-                          .copyWith(color: const Color(0xFF92400E)),
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                Text(
-                  context.l10n.referenceInfoDisclaimer,
-                  style: AppTextStyles.caption
-                      .copyWith(color: const Color(0xFF92400E)),
-                ),
-              ],
-            ),
           ),
         ],
         const SizedBox(height: AppDimensions.xl),

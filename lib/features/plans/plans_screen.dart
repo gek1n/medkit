@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,6 +31,12 @@ class PlansScreen extends ConsumerStatefulWidget {
 class _PlansScreenState extends ConsumerState<PlansScreen> {
   bool _isYearly = false;
   bool _busy = false;
+
+  // Apple review guideline 2.3.10: сторінка тарифів не повинна згадувати
+  // сторонню платформу, нерелевантну користувачу поточної збірки — на iOS
+  // текст мусить говорити лише про App Store, на Android лише про Google
+  // Play, ніколи обидва одразу.
+  String get _storeName => Platform.isIOS ? 'App Store' : 'Google Play';
 
   // Реальні ціни зі стору (SubscriptionService.queryPrices) — порожньо, поки
   // не завантажились чи якщо продукти ще не створені в App Store
@@ -227,7 +234,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         ref.invalidate(realPlanProvider);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.manageSubscriptionExternallyHint)),
+          SnackBar(content: Text(context.l10n.manageSubscriptionExternallyHint(_storeName))),
         );
       }
     } catch (e) {
@@ -387,7 +394,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                           ),
                           const SizedBox(height: AppDimensions.xl),
                           Text(
-                            context.l10n.billingTermsDisclaimer,
+                            context.l10n.billingTermsDisclaimer(_storeName),
                             textAlign: TextAlign.center,
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.textMuted,
