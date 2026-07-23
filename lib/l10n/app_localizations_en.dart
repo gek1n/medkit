@@ -2600,7 +2600,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanDosageWarningPrefix =>
-      '⚠️ Dosage, schedule, and side-effect reference info are approximate. ';
+      '⚠️ Recognition of the name, dosage, and schedule may contain errors. ';
 
   @override
   String get alwaysCheckInstructionsLabel =>
@@ -3222,14 +3222,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get faqAiA1 =>
       'Recognition happens through Anthropic\'s Claude model — this is clearly stated in the consent request before you first use each feature. Free-form text descriptions of your wellbeing or symptoms are never sent to the cloud.';
-
-  @override
-  String get faqAiQ2 =>
-      'How accurate is the AI\'s reference information about medications?';
-
-  @override
-  String get faqAiA2 =>
-      'It\'s approximate information from the model\'s general knowledge, not a verified medical catalog. Always check with the medication\'s instructions or your doctor.';
 
   @override
   String get faqNotificationsQ1 => 'Why aren\'t reminders arriving?';
