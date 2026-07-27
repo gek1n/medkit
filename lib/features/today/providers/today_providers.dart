@@ -4,7 +4,7 @@ import '../../../data/repositories/members_repository.dart';
 import '../../../data/repositories/intakes_repository.dart';
 import '../../../data/repositories/activities_repository.dart';
 import '../../../data/repositories/medications_repository.dart';
-import '../../../data/repositories/doctor_appointments_repository.dart';
+import '../../../data/repositories/reminders_repository.dart';
 import '../../../data/repositories/wellbeing_repository.dart';
 import '../../../core/services/intake_generator.dart';
 import '../../../core/services/activity_log_generator.dart';
@@ -146,15 +146,15 @@ final tomorrowActivityLogsProvider =
 
 // Завтра: прийоми лікарів
 final tomorrowAppointmentsProvider =
-    FutureProvider.family<List<DoctorAppointment>, int>((ref, memberId) async {
+    FutureProvider.family<List<Reminder>, int>((ref, memberId) async {
   final tomorrow = DateTime.now().add(const Duration(days: 1));
-  return ref.read(doctorAppointmentsRepositoryProvider).watchByDate(memberId, tomorrow).first;
+  return ref.read(remindersRepositoryProvider).watchByDate(memberId, tomorrow).first;
 });
 
 // Прийоми лікаря на сьогодні
 final todayAppointmentsProvider =
-    StreamProvider.family<List<DoctorAppointment>, int>((ref, memberId) {
+    StreamProvider.family<List<Reminder>, int>((ref, memberId) {
   return ref
-      .watch(doctorAppointmentsRepositoryProvider)
+      .watch(remindersRepositoryProvider)
       .watchByDate(memberId, DateTime.now());
 });

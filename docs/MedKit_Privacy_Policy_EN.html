@@ -82,7 +82,7 @@
       <li><a href="#principle">Core principle: a blind server</a></li>
       <li><a href="#local">Data stored only on your device</a></li>
       <li><a href="#server">Data that passes through our server</a></li>
-      <li><a href="#ai">AI features and third-party providers</a></li>
+      <li><a href="#providers">Third-party providers</a></li>
       <li><a href="#backup">Backups (Google Drive / iCloud)</a></li>
       <li><a href="#sharing">Family sharing and dependent profiles</a></li>
       <li><a href="#retention">Data retention</a></li>
@@ -109,7 +109,8 @@
       <h3>Data you enter yourself (stored locally on your device)</h3>
       <ul>
         <li>Profile: name, date of birth (optional), family member profiles;</li>
-        <li><strong>Health data</strong> (special category data): medication names, dosages, schedules, allergies, chronic conditions, vaccinations, surgeries/hospitalizations, lab results, doctor appointments, wellbeing check-ins, photos and documents (prescriptions, discharge summaries, certificates).</li>
+        <li><strong>Medications:</strong> names, dosages, schedules;</li>
+        <li><strong>Reminders, wellbeing check-ins, and archive sections</strong> you create yourself — freeform titles, dates, notes, tags, and photos, entirely at your discretion. These fields are open-ended: the app doesn't offer medical categories (diagnosis, allergy, doctor specialty, etc.) and doesn't analyze or structure their contents. If you choose to enter health-related information there, that's your own choice, and we handle it with the same care: locally, encrypted.</li>
       </ul>
       <h3 style="margin-top:12px">Technical data (may pass through our server temporarily)</h3>
       <ul>
@@ -127,13 +128,12 @@
       <table>
         <tr><th>Purpose</th><th>Legal basis</th></tr>
         <tr><td>Storing and organizing health data in the app</td><td>Your explicit consent (Art. 9(2)(a) GDPR for special category data; Art. 6(1)(a) GDPR for other data)</td></tr>
-        <tr><td>Voice command recognition and prescription scanning via an AI provider</td><td>Separate explicit consent before each such feature — revocable at any time without affecting the rest of the app</td></tr>
         <tr><td>Sync between your own and family devices</td><td>Your consent to use the feature + performance of an action requested by you</td></tr>
         <tr><td>Rate limiting and server abuse protection</td><td>Legitimate interest (Art. 6(1)(f) GDPR) in infrastructure security</td></tr>
       </table>
     </div>
     <div class="card">
-      <p>You may withdraw consent at any time — for AI features via the toggle in settings, for the app as a whole by deleting your data and uninstalling. Withdrawal does not affect the lawfulness of processing carried out before withdrawal.</p>
+      <p>You may withdraw consent at any time by deleting your data and uninstalling the app. Withdrawal does not affect the lawfulness of processing carried out before withdrawal.</p>
     </div>
   </div>
 
@@ -144,7 +144,7 @@
       <p>Elly has no sign-up, no email/password, no social login, and no central user database. This is a deliberate architectural choice: if there are no accounts, there's no risk of a user-database breach.</p>
     </div>
     <div class="card">
-      <p>Where the app does need a server (syncing between your own devices, voice commands), the server only ever sees encrypted data and technical identifiers — the decryption key exists only on your devices. The server never sees, in readable form, your name, medication names, dosages, schedules, photos, or health status.</p>
+      <p>Where the app does need a server (syncing between your own devices), the server only ever sees encrypted data and technical identifiers — the decryption key exists only on your devices. The server never sees, in readable form, your name, medication names, dosages, schedules, photos, or health status.</p>
     </div>
   </div>
 
@@ -166,7 +166,6 @@
         <tr><th>Feature</th><th>What the server sees</th><th>Retention</th></tr>
         <tr><td>Device pairing</td><td>A hash of the pairing code + an encrypted data blob</td><td>Up to 30 minutes, or until first download, then deleted</td></tr>
         <tr><td>Cross-device sync (relay)</td><td>A push token + an encrypted payload it only forwards</td><td>Not stored — forwarded immediately via Firebase</td></tr>
-        <tr><td>Voice commands</td><td>The transcribed text of your command — forwarded to our AI provider</td><td>Not stored on our server after processing</td></tr>
       </table>
     </div>
     <div class="card">
@@ -174,23 +173,14 @@
     </div>
   </div>
 
-  <div class="section" id="ai">
-    <div class="section-header"><div class="section-icon">🤖</div><h2>7. AI features and third-party providers</h2></div>
-    <div class="card">
-      <h3>Voice commands and prescription scanning — Anthropic (Claude)</h3>
-      <p>If you use voice input or prescription/package scanning, the relevant text or photo is sent to our server, which forwards it to Anthropic, PBC's (USA) Claude model for recognition. Before first use of each of these features, the app explicitly asks for separate consent and names Anthropic as the provider. The photo is used only for recognition and is not stored anywhere afterward. Free-text descriptions of wellbeing or symptoms are never sent to the cloud.</p>
-      <p>Anthropic acts as our data processor and handles these requests under its own privacy policy and a data processing agreement with us.</p>
-    </div>
-    <div class="card">
-      <h3>No automated decisions without your involvement</h3>
-      <p>AI recognition results (medication name, dosage, reference information) are only proposed to you for review — the app never saves or applies them automatically without you reviewing and confirming the data yourself. This does not constitute automated decision-making with legal or similarly significant effects within the meaning of Art. 22 GDPR.</p>
-    </div>
+  <div class="section" id="providers">
+    <div class="section-header"><div class="section-icon">🔌</div><h2>7. Third-party providers</h2></div>
     <div class="card">
       <h3>Push notifications — Firebase Cloud Messaging (Google)</h3>
       <p>To deliver reminders, the app uses Firebase Cloud Messaging. Google receives only your device's push token and an encrypted payload it cannot read.</p>
     </div>
     <div class="warn">
-      <strong>International data transfers.</strong> Anthropic and Google process data on servers outside Ukraine/the EEA (including in the United States). Such transfers are protected by appropriate safeguards — Standard Contractual Clauses approved by the European Commission, or an equivalent mechanism provided for in our agreement with the provider.
+      <strong>International data transfers.</strong> Google processes data on servers outside Ukraine/the EEA (including in the United States). Such transfers are protected by appropriate safeguards — Standard Contractual Clauses approved by the European Commission, or an equivalent mechanism provided for in our agreement with the provider.
     </div>
   </div>
 
@@ -224,7 +214,6 @@
         <tr><td>Data in the app on your device</td><td>Until you delete it or uninstall the app</td></tr>
         <tr><td>Backups in your Drive/iCloud</td><td>Until you delete them yourself — outside our control</td></tr>
         <tr><td>Pairing blobs and relay payloads on our server</td><td>Up to 30 minutes, or until first download</td></tr>
-        <tr><td>Requests to our AI provider (voice, photo)</td><td>Not retained after the response is processed</td></tr>
         <tr><td>Push token</td><td>While the app is installed and notifications are enabled</td></tr>
       </table>
     </div>
@@ -238,7 +227,7 @@
         <li><strong>Access</strong> your data — view it directly in the app, or use "Data export" in your profile for a readable copy;</li>
         <li><strong>Rectification</strong> of inaccurate data — edit records directly;</li>
         <li><strong>Erasure ("right to be forgotten")</strong> — delete individual records, family member profiles, or the whole app;</li>
-        <li><strong>Restriction</strong> of, and <strong>objection</strong> to, processing — disable the relevant feature (e.g. AI recognition) in settings;</li>
+        <li><strong>Restriction</strong> of, and <strong>objection</strong> to, processing — disable the relevant feature in settings;</li>
         <li><strong>Data portability</strong> — export your data in a structured format via "Data export";</li>
         <li><strong>Withdraw consent</strong> at any time, without affecting the lawfulness of prior processing;</li>
         <li><strong>Lodge a complaint</strong> with a data protection supervisory authority — in Ukraine, the Ukrainian Parliament Commissioner for Human Rights; for EU residents, the supervisory authority of your country of residence.</li>

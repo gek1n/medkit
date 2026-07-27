@@ -43,12 +43,7 @@ class DataExportService {
       'activities': await dump(_db.activities, (r) => r.toJson()),
       'activitySlots': await dump(_db.activitySlots, (r) => r.toJson()),
       'activityLogs': await dump(_db.activityLogs, (r) => r.toJson()),
-      'doctorAppointments': await dump(_db.doctorAppointments, (r) => r.toJson()),
-      'labResults': await dump(_db.labResults, (r) => r.toJson()),
-      'allergies': await dump(_db.allergies, (r) => r.toJson()),
-      'chronicConditions': await dump(_db.chronicConditions, (r) => r.toJson()),
-      'vaccinations': await dump(_db.vaccinations, (r) => r.toJson()),
-      'surgeries': await dump(_db.surgeries, (r) => r.toJson()),
+      'reminders': await dump(_db.reminders, (r) => r.toJson()),
     };
   }
 

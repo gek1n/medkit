@@ -10,7 +10,7 @@ import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
-import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
@@ -42,8 +42,8 @@ final _scheduleActivitiesProvider =
 });
 
 final _scheduleAppointmentsProvider =
-    StreamProvider.family<List<DoctorAppointment>, int>((ref, memberId) {
-  return ref.watch(doctorAppointmentsRepositoryProvider).watchUpcoming(memberId);
+    StreamProvider.family<List<Reminder>, int>((ref, memberId) {
+  return ref.watch(remindersRepositoryProvider).watchUpcoming(memberId);
 });
 
 final _scheduleWellbeingScheduleProvider =
@@ -916,7 +916,7 @@ class _ActivityCard extends StatelessWidget {
 // ─── Appointment card ─────────────────────────────────────────────────────────
 
 class _AppointmentCard extends StatelessWidget {
-  final DoctorAppointment appointment;
+  final Reminder appointment;
   const _AppointmentCard({required this.appointment});
 
   @override

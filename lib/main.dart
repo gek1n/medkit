@@ -784,6 +784,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     unawaited(BackupReminderService.recordInstallIfNeeded());
     unawaited(BackupReminderService.maybeRemind());
     unawaited(NotificationService.logDiagnostics());
+    unawaited(NotificationService.cancelStalePendingVaccinationReminders());
     // "Розбуди" push від family_sync (relay/send) приходить як data-message —
     // поки застосунок відкритий, його треба явно підхопити тут; коли
     // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.

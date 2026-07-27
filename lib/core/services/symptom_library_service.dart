@@ -1,13 +1,8 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-
-/// Базовий список поширених симптомів (~50) + власні, додані користувачем.
-/// Ключі для перших 8 навмисно збережені такими самими, як були раніше —
-/// щоб уже збережені записи в WellbeingLogs.symptomsJson лишились
-/// читабельними (не переліковуємо старі ключі заднім числом).
+/// ЗАСТАРІЛЕ — раніше контрольований словник симптомів для вибору в
+/// самопочутті, замінений вільними тегами (TagsField). Лишається лише як
+/// довідник ключ→назва для одноразової міграції старих записів
+/// WellbeingLogs.symptomsJson у tagsJson (див. app_database.dart, from < 28).
 class SymptomLibraryService {
-  static const _customKey = 'wellbeing_custom_symptoms';
-
   static const List<(String key, String label)> common = [
     ('headache', 'головний біль'),
     ('nausea', 'нудота'),
@@ -64,25 +59,6 @@ class SymptomLibraryService {
   static final Map<String, String> _commonLabels = {
     for (final s in common) s.$1: s.$2,
   };
-
-  static Future<List<String>> getCustom() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_customKey);
-    if (raw == null) return [];
-    return (jsonDecode(raw) as List).cast<String>();
-  }
-
-  /// Додає власний симптом до збереженого списку (без дублів), щоб
-  /// пропонувати його наступного разу — не лише зараз, одноразово.
-  static Future<void> addCustom(String label) async {
-    final trimmed = label.trim();
-    if (trimmed.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    final existing = await getCustom();
-    if (existing.any((e) => e.toLowerCase() == trimmed.toLowerCase())) return;
-    existing.add(trimmed);
-    await prefs.setString(_customKey, jsonEncode(existing));
-  }
 
   /// Людяна назва за ключем — для стандартних симптомів мапа, для
   /// `custom_...` — сам текст після префіксу.

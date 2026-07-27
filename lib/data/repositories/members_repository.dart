@@ -69,12 +69,8 @@ class MembersRepository {
             .map((l) => l.id)
             .toList();
     final appointmentIds =
-        (await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(id))).get())
+        (await (_db.select(_db.reminders)..where((t) => t.memberId.equals(id))).get())
             .map((a) => a.id)
-            .toList();
-    final vaccinationIds =
-        (await (_db.select(_db.vaccinations)..where((t) => t.memberId.equals(id))).get())
-            .map((v) => v.id)
             .toList();
     final medIdsForNotify =
         (await (_db.select(_db.medications)..where((t) => t.memberId.equals(id))).get())
@@ -105,12 +101,7 @@ class MembersRepository {
       await (_db.delete(_db.activities)..where((t) => t.memberId.equals(id))).go();
 
       await (_db.delete(_db.intakes)..where((t) => t.memberId.equals(id))).go();
-      await (_db.delete(_db.doctorAppointments)..where((t) => t.memberId.equals(id))).go();
-      await (_db.delete(_db.labResults)..where((t) => t.memberId.equals(id))).go();
-      await (_db.delete(_db.allergies)..where((t) => t.memberId.equals(id))).go();
-      await (_db.delete(_db.chronicConditions)..where((t) => t.memberId.equals(id))).go();
-      await (_db.delete(_db.vaccinations)..where((t) => t.memberId.equals(id))).go();
-      await (_db.delete(_db.surgeries)..where((t) => t.memberId.equals(id))).go();
+      await (_db.delete(_db.reminders)..where((t) => t.memberId.equals(id))).go();
       await (_db.delete(_db.wellbeingLogs)..where((t) => t.memberId.equals(id))).go();
       await (_db.delete(_db.wellbeingSchedules)..where((t) => t.memberId.equals(id))).go();
 
@@ -125,9 +116,6 @@ class MembersRepository {
     }
     for (final a in appointmentIds) {
       await NotificationService.cancelAppointmentReminder(a);
-    }
-    for (final v in vaccinationIds) {
-      await NotificationService.cancelVaccinationReminder(v);
     }
     for (final m in medIdsForNotify) {
       await NotificationService.cancel(NotificationService.lowStockNotificationId(m));
@@ -146,12 +134,7 @@ class MembersRepository {
         await _db.delete(_db.activityLogs).go();
         await _db.delete(_db.activities).go();
         await _db.delete(_db.intakes).go();
-        await _db.delete(_db.doctorAppointments).go();
-        await _db.delete(_db.labResults).go();
-        await _db.delete(_db.allergies).go();
-        await _db.delete(_db.chronicConditions).go();
-        await _db.delete(_db.vaccinations).go();
-        await _db.delete(_db.surgeries).go();
+        await _db.delete(_db.reminders).go();
         await _db.delete(_db.wellbeingLogs).go();
         await _db.delete(_db.wellbeingSchedules).go();
         await _db.delete(_db.members).go();

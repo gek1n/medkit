@@ -1,6 +1,12 @@
 import 'package:drift/drift.dart';
 import 'members_table.dart';
 
+/// ЗАСТАРІЛЕ — фактична таблиця дропається для всіх користувачів у
+/// AppDatabase-міграції 30 (і одразу після createAll на нових пристроях).
+/// Клас лишається в схемі лише тому, що історичні кроки onUpgrade
+/// (from < 11, 12, 14) звертаються до generated-гетера `allergies` — без
+/// нього вони не скомпілюються. Ніде в продуктовому коді більше не
+/// використовується.
 class Allergies extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get memberId =>

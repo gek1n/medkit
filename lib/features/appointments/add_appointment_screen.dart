@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/reminder_tags_library_service.dart';
+import '../../core/services/reminder_title_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -13,29 +15,25 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
-import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../today/providers/today_providers.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
-import '../../shared/widgets/specialty_picker.dart';
+import '../../shared/widgets/more_details_accordion.dart';
+import '../../shared/widgets/reminder_title_field.dart';
+import '../../shared/widgets/tags_field.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
 
 class AddAppointmentScreen extends ConsumerStatefulWidget {
   final int memberId;
-  final DoctorAppointment? existing;
-  // Транзитний префіл із голосової команди (не з БД, на відміну від
-  // [existing]) — той самий підхід, що й voicePrefill в AddMedicationScreen.
-  // Дата/час не приходять — voice/parse на бекенді їх не розпізнає, тож
-  // лишаємо дефолтні (сьогодні), користувач підправить сам.
-  final String? voicePrefillDoctorType;
+  final Reminder? existing;
   const AddAppointmentScreen({
     super.key,
     required this.memberId,
     this.existing,
-    this.voicePrefillDoctorType,
   });
 
   @override
@@ -44,9 +42,10 @@ class AddAppointmentScreen extends ConsumerStatefulWidget {
 }
 
 class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
-  late final TextEditingController _doctorController;
+  late final TextEditingController _titleController;
   late final TextEditingController _locationController;
   late final TextEditingController _notesController;
+  List<String> _tags = [];
 
   late DateTime _date;
   late TimeOfDay _time;
@@ -73,14 +72,15 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   void initState() {
     super.initState();
     final ex = widget.existing;
-    _doctorController = TextEditingController(
-      text: ex?.doctorType ?? widget.voicePrefillDoctorType ?? '',
-    );
+    _titleController = TextEditingController(text: ex?.doctorType ?? '');
     _locationController = TextEditingController(text: ex?.location ?? '');
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _colorHex = ex?.color;
     if (ex != null) {
       _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
+      try {
+        _tags = List<String>.from(jsonDecode(ex.tags) as List);
+      } catch (_) {}
       _date = ex.scheduledAt;
       _time = TimeOfDay(
         hour: ex.scheduledAt.hour,
@@ -95,7 +95,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
 
   @override
   void dispose() {
-    _doctorController.dispose();
+    _titleController.dispose();
     _locationController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -125,7 +125,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     if (confirm != true || !mounted) return;
     await AttachmentCleanupService.deletePaths(widget.existing!.documentPaths);
     await ref
-        .read(doctorAppointmentsRepositoryProvider)
+        .read(remindersRepositoryProvider)
         .delete(widget.existing!.id);
     await NotificationService.cancelAppointmentReminder(widget.existing!.id);
     if (mounted) Navigator.pop(context);
@@ -133,8 +133,8 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
 
   Future<void> _pickDate() async {
     // Дозволяємо минулі дати — цей самий екран використовується і для
-    // запису майбутнього візиту з нагадуванням, і для внесення заднім
-    // числом того, що вже відбулось (walk-in візит, стара історія).
+    // майбутнього нагадування, і для внесення заднім числом того, що вже
+    // відбулось.
     final picked = await showMedcardDatePicker(
       context,
       initialDate: _date,
@@ -148,20 +148,12 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     if (picked != null) setState(() => _time = picked);
   }
 
-  Future<void> _pickSpecialty() async {
-    final picked = await showSpecialtyPicker(
-      context,
-      current: _doctorController.text.trim(),
-    );
-    if (picked != null) setState(() => _doctorController.text = picked);
-  }
-
   Future<void> _save() async {
-    final doctorType = _doctorController.text.trim();
-    if (doctorType.isEmpty) {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(context.l10n.enterDoctorTypeError)));
+      ).showSnackBar(SnackBar(content: Text(context.l10n.enterReminderTitleError)));
       return;
     }
     setState(() => _isSaving = true);
@@ -179,16 +171,21 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       final notesVal = _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim();
+      final tagsJson = jsonEncode(_tags);
+
+      await ReminderTitleLibraryService.add(title);
+      await ReminderTagsLibraryService.addAll(_tags);
 
       final int appointmentId;
       if (widget.existing != null) {
         appointmentId = widget.existing!.id;
         await ref
-            .read(doctorAppointmentsRepositoryProvider)
+            .read(remindersRepositoryProvider)
             .update(
-              DoctorAppointmentsCompanion(
+              RemindersCompanion(
                 id: Value(appointmentId),
-                doctorType: Value(doctorType),
+                doctorType: Value(title),
+                tags: Value(tagsJson),
                 scheduledAt: Value(scheduledAt),
                 location: Value(locationVal),
                 remindBeforeMin: Value(_remindBeforeMin),
@@ -199,11 +196,12 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
             );
       } else {
         appointmentId = await ref
-            .read(doctorAppointmentsRepositoryProvider)
+            .read(remindersRepositoryProvider)
             .insert(
-              DoctorAppointmentsCompanion.insert(
+              RemindersCompanion.insert(
                 memberId: widget.memberId,
-                doctorType: doctorType,
+                doctorType: title,
+                tags: Value(tagsJson),
                 scheduledAt: scheduledAt,
                 location: Value(locationVal),
                 remindBeforeMin: Value(_remindBeforeMin),
@@ -234,7 +232,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         await NotificationService.scheduleAppointmentReminder(
           appointmentId: appointmentId,
           memberName: memberName,
-          doctorType: doctorType,
+          doctorType: title,
           location: locationVal,
           scheduledAt: remindAt,
           remindBeforeMin: 0,
@@ -273,9 +271,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
           children: [
             MkFormHeader(
               title:
-                  (isEdit
-                      ? context.l10n.editSurgeryTitle
-                      : (_isPastVisit ? context.l10n.recordVisitTitle : context.l10n.newAppointmentTitle)) +
+                  (isEdit ? context.l10n.editSurgeryTitle : context.l10n.newAppointmentTitle) +
                   memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
@@ -289,23 +285,23 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Doctor type
-                    MkFieldLabel(context.l10n.fieldDoctorSpecialty),
+                    // Назва
+                    MkFieldLabel(context.l10n.reminderTitleFieldLabel),
                     const SizedBox(height: 6),
-                    MkTextField(
-                      controller: _doctorController,
-                      hint: context.l10n.chooseSpecialtyValue,
-                      readOnly: true,
-                      onTap: _pickSpecialty,
+                    ReminderTitleField(
+                      controller: _titleController,
+                      hint: context.l10n.reminderTitleHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Location
-                    MkFieldLabel(context.l10n.fieldWhere),
+                    // Теги
+                    MkFieldLabel(context.l10n.reminderTagsFieldLabel),
                     const SizedBox(height: 6),
-                    MkTextField(
-                      controller: _locationController,
-                      hint: context.l10n.locationHint,
+                    TagsField(
+                      tags: _tags,
+                      onChanged: (t) => setState(() => _tags = t),
+                      hint: context.l10n.reminderTagsHint,
+                      loadHistory: ReminderTagsLibraryService.getAll,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -334,7 +330,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Remind before — не потрібно для візиту, що вже минув
+                    // Remind before — не потрібно для нагадування, що вже минуло
                     if (!_isPastVisit) ...[
                       MkFieldLabel(context.l10n.remindBeforeLabel),
                       const SizedBox(height: 8),
@@ -380,29 +376,39 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       const SizedBox(height: AppDimensions.lg),
                     ],
 
-                    // Notes — до візиту це "що запитати", після — висновок лікаря
-                    MkFieldLabel(_isPastVisit ? context.l10n.doctorConclusionLabel : context.l10n.noteSingularLabel),
+                    // Нотатка
+                    MkFieldLabel(context.l10n.noteSingularLabel),
                     const SizedBox(height: 6),
                     MkTextField(
                       controller: _notesController,
                       maxLines: 3,
-                      hint: _isPastVisit
-                          ? context.l10n.doctorConclusionHint
-                          : context.l10n.apptNoteHint,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    DocumentsSection(
-                      paths: _documentPaths,
-                      onChanged: (paths) =>
-                          setState(() => _documentPaths = paths),
-                      label: context.l10n.documentsLabel,
+                      hint: context.l10n.reminderNoteHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
                     TaskColorPicker(
                       selectedHex: _colorHex,
                       onChanged: (hex) => setState(() => _colorHex = hex),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    MoreDetailsAccordion(
+                      initiallyExpanded: _locationController.text.isNotEmpty ||
+                          _documentPaths.isNotEmpty,
+                      children: [
+                        MkFieldLabel(context.l10n.fieldWhere),
+                        const SizedBox(height: 6),
+                        MkTextField(
+                          controller: _locationController,
+                          hint: context.l10n.locationHint,
+                        ),
+                        const SizedBox(height: 16),
+                        DocumentsSection(
+                          paths: _documentPaths,
+                          onChanged: (paths) => setState(() => _documentPaths = paths),
+                          label: context.l10n.reminderPhotoLabel,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 32),
 
@@ -411,9 +417,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       onPressed: _save,
                       label: isEdit
                           ? context.l10n.saveChangesAction
-                          : (_isPastVisit
-                                ? context.l10n.saveVisitAction
-                                : context.l10n.saveReminderAction),
+                          : context.l10n.saveReminderAction,
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -480,3 +484,4 @@ class _DateTimeBox extends StatelessWidget {
     );
   }
 }
+

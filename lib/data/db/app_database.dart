@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart' as sqlite3_open;
 import 'package:uuid/uuid.dart';
 
 import '../../core/services/app_logger.dart';
 import '../../core/services/db_encryption_service.dart';
+import '../../core/services/symptom_library_service.dart';
 import 'tables/members_table.dart';
 import 'tables/medications_table.dart';
 import 'tables/schedules_table.dart';
@@ -18,6 +20,7 @@ import 'tables/wellbeing_logs_table.dart';
 import 'tables/wellbeing_schedules_table.dart';
 import 'tables/activities_table.dart';
 import 'tables/doctor_appointments_table.dart';
+import 'tables/reminders_table.dart';
 import 'tables/lab_results_table.dart';
 import 'tables/allergies_table.dart';
 import 'tables/chronic_conditions_table.dart';
@@ -27,9 +30,26 @@ import 'tables/shared_channels_table.dart';
 import 'tables/family_peers_table.dart';
 import 'tables/family_grants_table.dart';
 import 'tables/ai_usage_table.dart';
+import 'tables/medcard_sections_table.dart';
+import 'tables/medcard_entries_table.dart';
 
 part 'app_database.g.dart';
 
+// LabResults/Allergies/ChronicConditions/Vaccinations/Surgeries: сутності
+// видалені з продукту (замінені довільними розділами архіву —
+// MedcardSections/MedcardEntries, міграція 29) і фізично дропаються для
+// всіх у міграції 30 нижче (та одразу після createAll на новому
+// пристрої). Класи лишаються в схемі й у списку тут ЛИШЕ тому, що
+// історичні кроки onUpgrade (from < 10..14) звертаються до їхніх
+// згенерованих гетерів (createTable(labResults) тощо) — прибрати їх
+// звідси означало б неможливість скомпілювати ці старі кроки, а вони
+// потрібні для будь-кого, хто оновлюється зі старої версії застосунку.
+//
+// DoctorAppointments/Reminders: те саме, але перейменування, не видалення —
+// клас "DoctorAppointments" лишається в схемі й у списку лише тому, що
+// історичні кроки onUpgrade (from < 9, 12, 13, 20, 27) звертаються до його
+// гетера; фізична таблиця перейменовується на "reminders" для всіх у
+// міграції 31 (m.renameTable), новий код усюди використовує лише [Reminders].
 @DriftDatabase(tables: [
   Members,
   Medications,
@@ -42,6 +62,7 @@ part 'app_database.g.dart';
   ActivitySlots,
   ActivityLogs,
   DoctorAppointments,
+  Reminders,
   SharedChannels,
   LabResults,
   Allergies,
@@ -55,16 +76,32 @@ part 'app_database.g.dart';
   SharedEntities,
   KnownFamilyMembers,
   AiUsage,
+  MedcardSections,
+  MedcardEntries,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 26;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) => m.createAll(),
+        onCreate: (m) async {
+          await m.createAll();
+          // Свіжий пристрій одразу отримує схему без застарілих таблиць
+          // медкартки — createAll створює все з tables: вище (включно з
+          // LabResults/Allergies/...), тож прибираємо їх тут же.
+          await m.deleteTable('lab_results');
+          await m.deleteTable('allergies');
+          await m.deleteTable('chronic_conditions');
+          await m.deleteTable('vaccinations');
+          await m.deleteTable('surgeries');
+          // Те саме для legacy-класу DoctorAppointments — createAll створює
+          // й порожню "doctor_appointments" (вона теж у tables: вище), а
+          // новий код скрізь працює лише з "reminders".
+          await m.deleteTable('doctor_appointments');
+        },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             // Guard against tables already containing this column
@@ -408,6 +445,231 @@ class AppDatabase extends _$AppDatabase {
             // (не потрапляє в резервну копію — див. ai_usage_table.dart) сюди.
             try {
               await m.createTable(aiUsage);
+            } catch (_) {}
+          }
+          if (from < 27) {
+            // Теги для нагадувань (колишні "Візити до лікарів", тепер
+            // довільні нагадування) — вільні мітки замість контрольованого
+            // словника напрямків лікаря.
+            try {
+              await m.addColumn(doctorAppointments, doctorAppointments.tags);
+            } catch (_) {}
+          }
+          if (from < 28) {
+            // Теги самопочуття — вільні мітки замість контрольованого
+            // словника симптомів. Старі записи переносимо: ключі симптомів
+            // (напр. "headache") перекладаємо в людяні назви одноразово,
+            // щоб історія лишилась читабельною, далі новий код пише лише в
+            // tagsJson.
+            try {
+              await m.addColumn(wellbeingLogs, wellbeingLogs.tagsJson);
+            } catch (_) {}
+            try {
+              final rows = await (select(wellbeingLogs)
+                    ..where((t) => t.symptomsJson.isNotValue('[]')))
+                  .get();
+              for (final r in rows) {
+                try {
+                  final keys = (jsonDecode(r.symptomsJson) as List).cast<String>();
+                  if (keys.isEmpty) continue;
+                  final labels = keys.map(SymptomLibraryService.labelFor).toList();
+                  await (update(wellbeingLogs)..where((t) => t.id.equals(r.id)))
+                      .write(WellbeingLogsCompanion(tagsJson: Value(jsonEncode(labels))));
+                } catch (_) {}
+              }
+            } catch (_) {}
+          }
+          if (from < 29) {
+            // Довільні розділи архіву (заміна фіксованих сутностей медкартки —
+            // алергії/хронічні захворювання/щеплення/операції/аналізи).
+            try {
+              await m.createTable(medcardSections);
+            } catch (_) {}
+            try {
+              await m.createTable(medcardEntries);
+            } catch (_) {}
+          }
+          if (from < 30) {
+            // Аналізи/алергії/хронічні захворювання/щеплення/операції —
+            // фіксовані медичні сутності повністю видалені (замінені
+            // довільними розділами архіву з міграції 29). Перш ніж дропнути
+            // самі таблиці — переносимо наявні записи в звичайний розділ
+            // архіву (по одному розділу на категорію на члена сім'ї, лише
+            // якщо в нього реально були записи), щоб апгрейд не з'їдав
+            // історію користувача мовчки. Один шлях коду для обох сценаріїв
+            // мовчання даних — і звичайне оновлення застосунку, і
+            // відновлення старого бекапу на новій версії — обидва йдуть
+            // через onUpgrade.
+            Future<int> ensureSection(int memberId, String name, String iconKey) {
+              return into(medcardSections).insert(MedcardSectionsCompanion.insert(
+                memberId: memberId,
+                name: name,
+                iconKey: Value(iconKey),
+              ));
+            }
+
+            try {
+              final rows = await select(labResults).get();
+              final byMember = <int, List<LabResult>>{};
+              for (final r in rows) {
+                (byMember[r.memberId] ??= []).add(r);
+              }
+              for (final e in byMember.entries) {
+                final sectionId = await ensureSection(e.key, 'Аналізи (архів)', 'document');
+                for (final r in e.value) {
+                  final title = (r.testName?.isNotEmpty ?? false)
+                      ? r.testName!
+                      : (r.specialty.isNotEmpty ? r.specialty : 'Аналіз');
+                  await into(medcardEntries).insert(MedcardEntriesCompanion.insert(
+                    sectionId: sectionId,
+                    memberId: e.key,
+                    title: title,
+                    recordDate: r.takenAt,
+                    notes: Value(r.notes),
+                    documentPaths: Value(r.documentPaths),
+                  ));
+                }
+              }
+            } catch (_) {}
+
+            try {
+              final rows = await select(allergies).get();
+              final byMember = <int, List<Allergy>>{};
+              for (final r in rows) {
+                (byMember[r.memberId] ??= []).add(r);
+              }
+              for (final e in byMember.entries) {
+                final sectionId = await ensureSection(e.key, 'Алергії (архів)', 'tag');
+                for (final r in e.value) {
+                  final notesParts = <String>[
+                    if (r.reaction?.isNotEmpty ?? false) 'Реакція: ${r.reaction}',
+                    if (r.severity.isNotEmpty) 'Тяжкість: ${r.severity}',
+                    if (r.notes?.isNotEmpty ?? false) r.notes!,
+                  ];
+                  await into(medcardEntries).insert(MedcardEntriesCompanion.insert(
+                    sectionId: sectionId,
+                    memberId: e.key,
+                    title: r.allergen,
+                    recordDate: r.createdAt,
+                    notes: Value(notesParts.isEmpty ? null : notesParts.join('\n')),
+                    documentPaths: Value(r.documentPaths),
+                  ));
+                }
+              }
+            } catch (_) {}
+
+            try {
+              final rows = await select(chronicConditions).get();
+              final byMember = <int, List<ChronicCondition>>{};
+              for (final r in rows) {
+                (byMember[r.memberId] ??= []).add(r);
+              }
+              for (final e in byMember.entries) {
+                final sectionId = await ensureSection(e.key, 'Хронічні захворювання (архів)', 'folder');
+                for (final r in e.value) {
+                  await into(medcardEntries).insert(MedcardEntriesCompanion.insert(
+                    sectionId: sectionId,
+                    memberId: e.key,
+                    title: r.name,
+                    recordDate: r.diagnosedAt ?? r.createdAt,
+                    notes: Value(r.notes),
+                    documentPaths: Value(r.documentPaths),
+                  ));
+                }
+              }
+            } catch (_) {}
+
+            final vaccinationIdsToCancel = <int>[];
+            try {
+              final rows = await select(vaccinations).get();
+              final byMember = <int, List<Vaccination>>{};
+              for (final r in rows) {
+                (byMember[r.memberId] ??= []).add(r);
+                vaccinationIdsToCancel.add(r.id);
+              }
+              for (final e in byMember.entries) {
+                final sectionId = await ensureSection(e.key, 'Щеплення (архів)', 'calendar');
+                for (final r in e.value) {
+                  final notesParts = <String>[
+                    if (r.nextDoseAt != null)
+                      'Наступна доза: ${r.nextDoseAt!.toIso8601String().split('T').first}',
+                    if (r.notes?.isNotEmpty ?? false) r.notes!,
+                  ];
+                  await into(medcardEntries).insert(MedcardEntriesCompanion.insert(
+                    sectionId: sectionId,
+                    memberId: e.key,
+                    title: r.name,
+                    recordDate: r.givenAt,
+                    notes: Value(notesParts.isEmpty ? null : notesParts.join('\n')),
+                    documentPaths: Value(r.documentPaths),
+                  ));
+                }
+              }
+            } catch (_) {}
+
+            try {
+              final rows = await select(surgeries).get();
+              final byMember = <int, List<Surgery>>{};
+              for (final r in rows) {
+                (byMember[r.memberId] ??= []).add(r);
+              }
+              for (final e in byMember.entries) {
+                final sectionId = await ensureSection(e.key, 'Операції (архів)', 'box');
+                for (final r in e.value) {
+                  await into(medcardEntries).insert(MedcardEntriesCompanion.insert(
+                    sectionId: sectionId,
+                    memberId: e.key,
+                    title: r.name,
+                    recordDate: r.performedAt,
+                    notes: Value(r.notes),
+                    documentPaths: Value(r.documentPaths),
+                  ));
+                }
+              }
+            } catch (_) {}
+
+            // Заплановані OS-нагадування про ревакцинацію міграція сама
+            // скасувати не може (тут лише SQL, немає доступу до плагіна
+            // сповіщень) — залишаємо id на одноразове прибирання при
+            // наступному старті застосунку, див.
+            // NotificationService.cancelVaccinationReminder + виклик у
+            // main.dart.
+            if (vaccinationIdsToCancel.isNotEmpty) {
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setStringList(
+                  'pending_cancel_vaccination_notification_ids',
+                  vaccinationIdsToCancel.map((id) => id.toString()).toList(),
+                );
+              } catch (_) {}
+            }
+
+            try {
+              await m.deleteTable('lab_results');
+            } catch (_) {}
+            try {
+              await m.deleteTable('allergies');
+            } catch (_) {}
+            try {
+              await m.deleteTable('chronic_conditions');
+            } catch (_) {}
+            try {
+              await m.deleteTable('vaccinations');
+            } catch (_) {}
+            try {
+              await m.deleteTable('surgeries');
+            } catch (_) {}
+          }
+          if (from < 31) {
+            // DoctorAppointments → Reminders: чисте перейменування (не
+            // видалення) — назва відповідала старій клінічній фічі "Візити
+            // до лікарів", хоча ще з міграції 27 сутність уже стала
+            // довільним нагадуванням (вільні теги замість словника
+            // напрямків лікаря). RENAME TABLE зберігає всі рядки й колонки
+            // як є — жодних даних не втрачається, лише фізична назва
+            // таблиці стає чесною.
+            try {
+              await m.renameTable(reminders, 'doctor_appointments');
             } catch (_) {}
           }
         },

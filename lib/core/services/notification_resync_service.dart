@@ -96,7 +96,7 @@ class NotificationResyncService {
 
   Future<void> _resyncAppointments() async {
     final settings = _ref.read(notificationSettingsProvider);
-    final pending = await (_db.select(_db.doctorAppointments)
+    final pending = await (_db.select(_db.reminders)
           ..where((t) => t.status.equals('pending')))
         .get();
     for (final appt in pending) {

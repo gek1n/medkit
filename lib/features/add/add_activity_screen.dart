@@ -30,15 +30,10 @@ String _formatDuration(BuildContext context, int totalMinutes) {
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
   final Activity? existing;
-  // Транзитний префіл із голосової команди (не з БД).
-  final String? voicePrefillName;
-  final List<String>? voicePrefillTimes; // morning | afternoon | evening | night
   const AddActivityScreen({
     super.key,
     required this.memberId,
     this.existing,
-    this.voicePrefillName,
-    this.voicePrefillTimes,
   });
 
   @override
@@ -69,18 +64,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     ('custom', Icons.add_rounded),
   ];
 
-  // Слова для зіставлення з вільною назвою активності з голосової команди
-  // (initState, без BuildContext) — те саме, що показується користувачу
-  // через _typeLabel, але як фіксовані рядки для порівняння, не для показу.
-  static const _typeMatchWords = {
-    'walk': 'Прогулянка',
-    'workout': 'Зарядка',
-    'gym': 'Тренування',
-    'yoga': 'Йога / ЛФК',
-    'cycling': 'Велосипед',
-    'custom': 'Своє',
-  };
-
   static String _typeLabel(BuildContext context, String id) {
     final l10n = context.l10n;
     return switch (id) {
@@ -110,9 +93,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   void initState() {
     super.initState();
     final ex = widget.existing;
-    _nameController = TextEditingController(
-      text: ex?.name ?? widget.voicePrefillName ?? '',
-    );
+    _nameController = TextEditingController(text: ex?.name ?? '');
     _youtubeController = TextEditingController(text: ex?.youtubeUrl ?? '');
     _colorHex = ex?.color;
     if (ex != null) {
@@ -125,39 +106,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       _loadSlots(ex.id);
     } else {
       _loaded = true;
-      if (widget.voicePrefillName != null) {
-        _type = _inferType(widget.voicePrefillName!);
-      }
-      if (widget.voicePrefillTimes != null &&
-          widget.voicePrefillTimes!.isNotEmpty) {
-        _slots = widget.voicePrefillTimes!
-            .map((s) => (time: _defaultTimeForSchedule(s), duration: null))
-            .toList();
-      }
     }
   }
-
-  // Голос дає лише вільну назву активності ("зарядка", "прогулянка") —
-  // намагаємось підібрати відповідний тип з фіксованого списку карток,
-  // щоб іконка/колір теж підхопились, а не лишались дефолтним "Своє".
-  String? _inferType(String name) {
-    final n = name.toLowerCase();
-    for (final t in _types) {
-      final word = _typeMatchWords[t.$1]!.toLowerCase();
-      if (n.contains(word) || word.contains(n)) {
-        return t.$1;
-      }
-    }
-    return null;
-  }
-
-  static TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
-    'morning' => const TimeOfDay(hour: 8, minute: 0),
-    'afternoon' => const TimeOfDay(hour: 13, minute: 0),
-    'evening' => const TimeOfDay(hour: 19, minute: 0),
-    'night' => const TimeOfDay(hour: 22, minute: 0),
-    _ => const TimeOfDay(hour: 8, minute: 30),
-  };
 
   Future<void> _loadSlots(int activityId) async {
     final slots = await ref

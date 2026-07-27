@@ -79,11 +79,6 @@ class FamilySyncService {
     await _assignMissingIntakeUuids(memberId);
     await _assignMissingSymptomUuids(memberId);
     await _assignMissingAppointmentUuids(memberId);
-    await _assignMissingLabResultUuids(memberId);
-    await _assignMissingAllergyUuids(memberId);
-    await _assignMissingChronicConditionUuids(memberId);
-    await _assignMissingVaccinationUuids(memberId);
-    await _assignMissingSurgeryUuids(memberId);
     await _assignMissingActivityUuids(memberId);
     await _assignMissingActivitySlotUuids(memberId);
     await _assignMissingActivityLogUuids(memberId);
@@ -129,53 +124,11 @@ class FamilySyncService {
     }
 
     final appointments =
-        await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(memberId))).get();
+        await (_db.select(_db.reminders)..where((t) => t.memberId.equals(memberId))).get();
     for (final a in appointments) {
       if (a.syncUuid != null) {
         await FamilySyncDeleteQueue.enqueue(
             channelId: channel.channelId, entityType: 'doctor_appointment', syncUuid: a.syncUuid!);
-      }
-    }
-
-    final labResults = await (_db.select(_db.labResults)..where((t) => t.memberId.equals(memberId))).get();
-    for (final l in labResults) {
-      if (l.syncUuid != null) {
-        await FamilySyncDeleteQueue.enqueue(
-            channelId: channel.channelId, entityType: 'lab_result', syncUuid: l.syncUuid!);
-      }
-    }
-
-    final allergyRows = await (_db.select(_db.allergies)..where((t) => t.memberId.equals(memberId))).get();
-    for (final a in allergyRows) {
-      if (a.syncUuid != null) {
-        await FamilySyncDeleteQueue.enqueue(
-            channelId: channel.channelId, entityType: 'allergy', syncUuid: a.syncUuid!);
-      }
-    }
-
-    final conditionRows =
-        await (_db.select(_db.chronicConditions)..where((t) => t.memberId.equals(memberId))).get();
-    for (final c in conditionRows) {
-      if (c.syncUuid != null) {
-        await FamilySyncDeleteQueue.enqueue(
-            channelId: channel.channelId, entityType: 'chronic_condition', syncUuid: c.syncUuid!);
-      }
-    }
-
-    final vaccinationRows =
-        await (_db.select(_db.vaccinations)..where((t) => t.memberId.equals(memberId))).get();
-    for (final v in vaccinationRows) {
-      if (v.syncUuid != null) {
-        await FamilySyncDeleteQueue.enqueue(
-            channelId: channel.channelId, entityType: 'vaccination', syncUuid: v.syncUuid!);
-      }
-    }
-
-    final surgeryRows = await (_db.select(_db.surgeries)..where((t) => t.memberId.equals(memberId))).get();
-    for (final s in surgeryRows) {
-      if (s.syncUuid != null) {
-        await FamilySyncDeleteQueue.enqueue(
-            channelId: channel.channelId, entityType: 'surgery', syncUuid: s.syncUuid!);
       }
     }
 
@@ -361,7 +314,7 @@ class FamilySyncService {
       }
     }
 
-    // Медкартка — усі плоскі, прив'язані напряму до memberId (без дочірніх
+    // Медкартка — плоскі, прив'язані напряму до memberId (без дочірніх
     // uuid, на відміну від schedule/intake/symptom), тому пушаться так само
     // просто, як і medication. Керується окремим прапорцем
     // FamilyVisibilityService.isMedcardSyncAllowed — на відміну від ліків і
@@ -373,46 +326,6 @@ class FamilySyncService {
         entities.add({
           'type': 'doctor_appointment',
           'uuid': a.syncUuid,
-          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-        });
-      }
-      for (final l in await _labResultsForPush(memberId, since)) {
-        final json = l.toJson()..remove('id')..remove('memberId');
-        entities.add({
-          'type': 'lab_result',
-          'uuid': l.syncUuid,
-          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-        });
-      }
-      for (final a in await _allergiesForPush(memberId, since)) {
-        final json = a.toJson()..remove('id')..remove('memberId');
-        entities.add({
-          'type': 'allergy',
-          'uuid': a.syncUuid,
-          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-        });
-      }
-      for (final c in await _chronicConditionsForPush(memberId, since)) {
-        final json = c.toJson()..remove('id')..remove('memberId');
-        entities.add({
-          'type': 'chronic_condition',
-          'uuid': c.syncUuid,
-          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-        });
-      }
-      for (final v in await _vaccinationsForPush(memberId, since)) {
-        final json = v.toJson()..remove('id')..remove('memberId');
-        entities.add({
-          'type': 'vaccination',
-          'uuid': v.syncUuid,
-          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
-        });
-      }
-      for (final s in await _surgeriesForPush(memberId, since)) {
-        final json = s.toJson()..remove('id')..remove('memberId');
-        entities.add({
-          'type': 'surgery',
-          'uuid': s.syncUuid,
           'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
         });
       }
@@ -647,109 +560,19 @@ class FamilySyncService {
   // ── Медкартка (плоскі сутності, memberId напряму) ────────────────────────
 
   Future<void> _assignMissingAppointmentUuids(int memberId) async {
-    final rows = await (_db.select(_db.doctorAppointments)
+    final rows = await (_db.select(_db.reminders)
           ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
         .get();
     for (final a in rows) {
-      await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(a.id))).write(
-        DoctorAppointmentsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      await (_db.update(_db.reminders)..where((t) => t.id.equals(a.id))).write(
+        RemindersCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
       );
     }
   }
 
-  Future<List<DoctorAppointment>> _appointmentsForPush(int memberId, DateTime? since) async {
+  Future<List<Reminder>> _appointmentsForPush(int memberId, DateTime? since) async {
     await _assignMissingAppointmentUuids(memberId);
-    final query = _db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(memberId));
-    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
-    return query.get();
-  }
-
-  Future<void> _assignMissingLabResultUuids(int memberId) async {
-    final rows = await (_db.select(_db.labResults)
-          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-        .get();
-    for (final l in rows) {
-      await (_db.update(_db.labResults)..where((t) => t.id.equals(l.id))).write(
-        LabResultsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
-      );
-    }
-  }
-
-  Future<List<LabResult>> _labResultsForPush(int memberId, DateTime? since) async {
-    await _assignMissingLabResultUuids(memberId);
-    final query = _db.select(_db.labResults)..where((t) => t.memberId.equals(memberId));
-    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
-    return query.get();
-  }
-
-  Future<void> _assignMissingAllergyUuids(int memberId) async {
-    final rows = await (_db.select(_db.allergies)
-          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-        .get();
-    for (final a in rows) {
-      await (_db.update(_db.allergies)..where((t) => t.id.equals(a.id))).write(
-        AllergiesCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
-      );
-    }
-  }
-
-  Future<List<Allergy>> _allergiesForPush(int memberId, DateTime? since) async {
-    await _assignMissingAllergyUuids(memberId);
-    final query = _db.select(_db.allergies)..where((t) => t.memberId.equals(memberId));
-    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
-    return query.get();
-  }
-
-  Future<void> _assignMissingChronicConditionUuids(int memberId) async {
-    final rows = await (_db.select(_db.chronicConditions)
-          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-        .get();
-    for (final c in rows) {
-      await (_db.update(_db.chronicConditions)..where((t) => t.id.equals(c.id))).write(
-        ChronicConditionsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
-      );
-    }
-  }
-
-  Future<List<ChronicCondition>> _chronicConditionsForPush(int memberId, DateTime? since) async {
-    await _assignMissingChronicConditionUuids(memberId);
-    final query = _db.select(_db.chronicConditions)..where((t) => t.memberId.equals(memberId));
-    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
-    return query.get();
-  }
-
-  Future<void> _assignMissingVaccinationUuids(int memberId) async {
-    final rows = await (_db.select(_db.vaccinations)
-          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-        .get();
-    for (final v in rows) {
-      await (_db.update(_db.vaccinations)..where((t) => t.id.equals(v.id))).write(
-        VaccinationsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
-      );
-    }
-  }
-
-  Future<List<Vaccination>> _vaccinationsForPush(int memberId, DateTime? since) async {
-    await _assignMissingVaccinationUuids(memberId);
-    final query = _db.select(_db.vaccinations)..where((t) => t.memberId.equals(memberId));
-    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
-    return query.get();
-  }
-
-  Future<void> _assignMissingSurgeryUuids(int memberId) async {
-    final rows = await (_db.select(_db.surgeries)
-          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-        .get();
-    for (final s in rows) {
-      await (_db.update(_db.surgeries)..where((t) => t.id.equals(s.id))).write(
-        SurgeriesCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
-      );
-    }
-  }
-
-  Future<List<Surgery>> _surgeriesForPush(int memberId, DateTime? since) async {
-    await _assignMissingSurgeryUuids(memberId);
-    final query = _db.select(_db.surgeries)..where((t) => t.memberId.equals(memberId));
+    final query = _db.select(_db.reminders)..where((t) => t.memberId.equals(memberId));
     if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
     return query.get();
   }
@@ -812,35 +635,9 @@ class FamilySyncService {
       }
 
       final appointments =
-          await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(channel.memberId))).get();
+          await (_db.select(_db.reminders)..where((t) => t.memberId.equals(channel.memberId))).get();
       for (final a in appointments) {
         addDocumentPaths(a.documentPaths);
-      }
-      final labResults =
-          await (_db.select(_db.labResults)..where((t) => t.memberId.equals(channel.memberId))).get();
-      for (final l in labResults) {
-        addDocumentPaths(l.documentPaths);
-      }
-      final surgeries =
-          await (_db.select(_db.surgeries)..where((t) => t.memberId.equals(channel.memberId))).get();
-      for (final s in surgeries) {
-        addDocumentPaths(s.documentPaths);
-      }
-      final allergyRows =
-          await (_db.select(_db.allergies)..where((t) => t.memberId.equals(channel.memberId))).get();
-      for (final a in allergyRows) {
-        addDocumentPaths(a.documentPaths);
-      }
-      final conditionRows = await (_db.select(_db.chronicConditions)
-            ..where((t) => t.memberId.equals(channel.memberId)))
-          .get();
-      for (final c in conditionRows) {
-        addDocumentPaths(c.documentPaths);
-      }
-      final vaccinationRows =
-          await (_db.select(_db.vaccinations)..where((t) => t.memberId.equals(channel.memberId))).get();
-      for (final v in vaccinationRows) {
-        addDocumentPaths(v.documentPaths);
       }
     }
 
@@ -905,8 +702,7 @@ class FamilySyncService {
       'medication', 'schedule', 'intake', 'symptom',
       'activity', 'activity_slot', 'activity_log',
       'wellbeing_log', 'wellbeing_schedule',
-      'doctor_appointment', 'lab_result', 'allergy', 'chronic_condition',
-      'vaccination', 'surgery',
+      'doctor_appointment',
     ];
     final byType = <String, List<FamilySyncEntity>>{for (final t in order) t: []};
     for (final e in result.entities) {
@@ -1120,102 +916,22 @@ class FamilySyncService {
         }
 
       case 'doctor_appointment':
-        final existing = await (_db.select(_db.doctorAppointments)
+        final existing = await (_db.select(_db.reminders)
               ..where((t) => t.syncUuid.equals(syncUuid)))
             .getSingleOrNull();
         json['id'] = existing?.id ?? 0;
         json['memberId'] = memberId;
-        final row = DoctorAppointment.fromJson(json);
+        final row = Reminder.fromJson(json);
         var companion = row.toCompanion(false);
         companion = existing != null
             ? companion.copyWith(id: Value(existing.id))
             : companion.copyWith(id: const Value.absent());
         if (existing != null) {
-          await _db.update(_db.doctorAppointments).replace(companion);
+          await _db.update(_db.reminders).replace(companion);
         } else {
-          await _db.into(_db.doctorAppointments).insert(companion);
+          await _db.into(_db.reminders).insert(companion);
         }
 
-      case 'lab_result':
-        final existing =
-            await (_db.select(_db.labResults)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
-        json['id'] = existing?.id ?? 0;
-        json['memberId'] = memberId;
-        final row = LabResult.fromJson(json);
-        var companion = row.toCompanion(false);
-        companion = existing != null
-            ? companion.copyWith(id: Value(existing.id))
-            : companion.copyWith(id: const Value.absent());
-        if (existing != null) {
-          await _db.update(_db.labResults).replace(companion);
-        } else {
-          await _db.into(_db.labResults).insert(companion);
-        }
-
-      case 'allergy':
-        final existing =
-            await (_db.select(_db.allergies)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
-        json['id'] = existing?.id ?? 0;
-        json['memberId'] = memberId;
-        final row = Allergy.fromJson(json);
-        var companion = row.toCompanion(false);
-        companion = existing != null
-            ? companion.copyWith(id: Value(existing.id))
-            : companion.copyWith(id: const Value.absent());
-        if (existing != null) {
-          await _db.update(_db.allergies).replace(companion);
-        } else {
-          await _db.into(_db.allergies).insert(companion);
-        }
-
-      case 'chronic_condition':
-        final existing = await (_db.select(_db.chronicConditions)
-              ..where((t) => t.syncUuid.equals(syncUuid)))
-            .getSingleOrNull();
-        json['id'] = existing?.id ?? 0;
-        json['memberId'] = memberId;
-        final row = ChronicCondition.fromJson(json);
-        var companion = row.toCompanion(false);
-        companion = existing != null
-            ? companion.copyWith(id: Value(existing.id))
-            : companion.copyWith(id: const Value.absent());
-        if (existing != null) {
-          await _db.update(_db.chronicConditions).replace(companion);
-        } else {
-          await _db.into(_db.chronicConditions).insert(companion);
-        }
-
-      case 'vaccination':
-        final existing = await (_db.select(_db.vaccinations)..where((t) => t.syncUuid.equals(syncUuid)))
-            .getSingleOrNull();
-        json['id'] = existing?.id ?? 0;
-        json['memberId'] = memberId;
-        final row = Vaccination.fromJson(json);
-        var companion = row.toCompanion(false);
-        companion = existing != null
-            ? companion.copyWith(id: Value(existing.id))
-            : companion.copyWith(id: const Value.absent());
-        if (existing != null) {
-          await _db.update(_db.vaccinations).replace(companion);
-        } else {
-          await _db.into(_db.vaccinations).insert(companion);
-        }
-
-      case 'surgery':
-        final existing =
-            await (_db.select(_db.surgeries)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
-        json['id'] = existing?.id ?? 0;
-        json['memberId'] = memberId;
-        final row = Surgery.fromJson(json);
-        var companion = row.toCompanion(false);
-        companion = existing != null
-            ? companion.copyWith(id: Value(existing.id))
-            : companion.copyWith(id: const Value.absent());
-        if (existing != null) {
-          await _db.update(_db.surgeries).replace(companion);
-        } else {
-          await _db.into(_db.surgeries).insert(companion);
-        }
     }
   }
 
@@ -1240,17 +956,7 @@ class FamilySyncService {
       case 'wellbeing_schedule':
         await (_db.delete(_db.wellbeingSchedules)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'doctor_appointment':
-        await (_db.delete(_db.doctorAppointments)..where((t) => t.syncUuid.equals(syncUuid))).go();
-      case 'lab_result':
-        await (_db.delete(_db.labResults)..where((t) => t.syncUuid.equals(syncUuid))).go();
-      case 'allergy':
-        await (_db.delete(_db.allergies)..where((t) => t.syncUuid.equals(syncUuid))).go();
-      case 'chronic_condition':
-        await (_db.delete(_db.chronicConditions)..where((t) => t.syncUuid.equals(syncUuid))).go();
-      case 'vaccination':
-        await (_db.delete(_db.vaccinations)..where((t) => t.syncUuid.equals(syncUuid))).go();
-      case 'surgery':
-        await (_db.delete(_db.surgeries)..where((t) => t.syncUuid.equals(syncUuid))).go();
+        await (_db.delete(_db.reminders)..where((t) => t.syncUuid.equals(syncUuid))).go();
     }
   }
 

@@ -19,7 +19,7 @@ import '../../core/utils/task_color.dart';
 import '../../core/utils/youtube_utils.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
-import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/food_relation_picker.dart';
@@ -54,14 +54,14 @@ class _DayItem {
 
   Intake? get intake => _data is Intake ? _data : null;
   ActivityLog? get activityLog => _data is ActivityLog ? _data : null;
-  DoctorAppointment? get appointment =>
-      _data is DoctorAppointment ? _data : null;
+  Reminder? get appointment =>
+      _data is Reminder ? _data : null;
 
   static _DayItem fromIntake(Intake i) =>
       _DayItem._(type: _ItemType.intake, scheduledAt: i.effectiveDue, data: i);
   static _DayItem fromActivity(ActivityLog l) =>
       _DayItem._(type: _ItemType.activity, scheduledAt: l.scheduledAt, data: l);
-  static _DayItem fromAppointment(DoctorAppointment a) => _DayItem._(
+  static _DayItem fromAppointment(Reminder a) => _DayItem._(
     type: _ItemType.appointment,
     scheduledAt: a.scheduledAt,
     data: a,
@@ -773,7 +773,7 @@ class _MissedSection extends StatelessWidget {
   final List<Intake> intakes;
   final List<ActivityLog> activityLogs;
   final List<DateTime> wellbeingSlots;
-  final List<DoctorAppointment> appointments;
+  final List<Reminder> appointments;
   final List<Medication> meds;
   final List<Activity> activities;
   final int memberId;
@@ -890,7 +890,7 @@ class _ActiveNowSection extends StatelessWidget {
   final List<Intake> intakes;
   final List<ActivityLog> activityLogs;
   final List<DateTime> wellbeingSlots;
-  final List<DoctorAppointment> appointments;
+  final List<Reminder> appointments;
   final List<Medication> meds;
   final List<Activity> activities;
   final int memberId;
@@ -2498,7 +2498,7 @@ class _ActiveWellbeingCard extends ConsumerWidget {
 // ─── Active Appointment Card ──────────────────────────────────────────────────
 
 class _ActiveAppointmentCard extends StatelessWidget {
-  final DoctorAppointment appointment;
+  final Reminder appointment;
   final WidgetRef ref;
   final bool missed;
 
@@ -2567,13 +2567,13 @@ class _ActiveAppointmentCard extends StatelessWidget {
           _ActionRow(
             doneColor: AppColors.primary,
             onDone: () => ref
-                .read(doctorAppointmentsRepositoryProvider)
+                .read(remindersRepositoryProvider)
                 .markAttended(appointment.id),
             onSkip: () => ref
-                .read(doctorAppointmentsRepositoryProvider)
+                .read(remindersRepositoryProvider)
                 .markSkipped(appointment.id),
             onSnooze: (min) => ref
-                .read(doctorAppointmentsRepositoryProvider)
+                .read(remindersRepositoryProvider)
                 .reschedule(
                   appointment.id,
                   _snoozeFrom(

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Мова застосунку — поки що керує лише мовою розпізнавання голосу
-/// (speech_to_text у voice_screen.dart/wellbeing_check_screen.dart/
-/// grounding_54321_screen.dart), бо повноцінного перекладу інтерфейсу ще
+/// (speech_to_text у wellbeing_check_screen.dart/grounding_54321_screen.dart
+/// для диктування коментарів), бо повноцінного перекладу інтерфейсу ще
 /// нема. Коли з'являться переклади під різні країни поширення — цей самий
 /// вибір стане й мовою UI, тому назва провайдера вже загальна ("мова
 /// застосунку"), а не "мова диктування".

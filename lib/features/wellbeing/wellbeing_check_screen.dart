@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import '../../core/providers/app_language_provider.dart';
+import '../../core/services/wellbeing_tag_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -13,7 +14,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
-import 'symptom_picker_sheet.dart';
+import '../../shared/widgets/tags_field.dart';
 import 'wellbeing_history_screen.dart';
 
 class WellbeingCheckScreen extends ConsumerStatefulWidget {
@@ -27,7 +28,7 @@ class WellbeingCheckScreen extends ConsumerStatefulWidget {
 
 class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
   int? _mood; // 1-5
-  final Set<String> _symptoms = {};
+  List<String> _tags = [];
   final _commentController = TextEditingController();
   bool _isSaving = false;
   bool _isListening = false;
@@ -58,13 +59,14 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
     }
     setState(() => _isSaving = true);
     try {
+      await WellbeingTagLibraryService.addAll(_tags);
       await ref
           .read(wellbeingRepositoryProvider)
           .insertLog(
             WellbeingLogsCompanion.insert(
               memberId: widget.memberId,
               mood: _mood!,
-              symptomsJson: Value(jsonEncode(_symptoms.toList())),
+              tagsJson: Value(jsonEncode(_tags)),
               comment: Value(
                 _commentController.text.trim().isEmpty
                     ? null
@@ -216,7 +218,7 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                     child: Divider(color: AppColors.border),
                   ),
 
-                  // ── Step 2: Symptoms ──
+                  // ── Step 2: Tags ──
                   SectionLabel(context.l10n.anySymptomsLabel),
                   const SizedBox(height: 4),
                   Text(
@@ -224,47 +226,11 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
                     style: AppTextStyles.bodySm,
                   ),
                   const SizedBox(height: 14),
-                  GestureDetector(
-                    onTap: _openSymptomPicker,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.medical_information_outlined,
-                              size: 18,
-                              color: _symptoms.isEmpty
-                                  ? AppColors.textMuted
-                                  : AppColors.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _symptoms.isEmpty
-                                  ? context.l10n.symptomsNotSelectedLabel
-                                  : _symptoms.map((k) => symptomLabelFor(context, k)).join(', '),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.bodyMd.copyWith(
-                                color: _symptoms.isEmpty
-                                    ? AppColors.textMuted
-                                    : AppColors.textMain,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.chevron_right_rounded,
-                              color: AppColors.textMuted),
-                        ],
-                      ),
-                    ),
+                  TagsField(
+                    tags: _tags,
+                    onChanged: (t) => setState(() => _tags = t),
+                    hint: context.l10n.reminderTagsHint,
+                    loadHistory: WellbeingTagLibraryService.getAll,
                   ),
 
                   const Padding(
@@ -334,24 +300,6 @@ class _WellbeingCheckScreenState extends ConsumerState<WellbeingCheckScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _openSymptomPicker() async {
-    final result = await showModalBottomSheet<Set<String>>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusXl)),
-      ),
-      builder: (_) => SymptomPickerSheet(initialSelected: _symptoms),
-    );
-    if (result != null) {
-      setState(() {
-        _symptoms
-          ..clear()
-          ..addAll(result);
-      });
-    }
   }
 
   String _formatDate(DateTime d) {
@@ -912,7 +860,7 @@ class _LogCard extends StatelessWidget {
     final hh = h.toString().padLeft(2, '0');
     final mm = log.loggedAt.minute.toString().padLeft(2, '0');
 
-    final symptoms = (jsonDecode(log.symptomsJson) as List).cast<String>();
+    final tags = (jsonDecode(log.tagsJson) as List).cast<String>();
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -953,26 +901,26 @@ class _LogCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (symptoms.isNotEmpty) ...[
+                if (tags.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: symptoms
+                    children: tags
                         .map(
-                          (s) => Container(
+                          (t) => Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
+                              color: AppColors.primaryLight,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              symptomLabelFor(context, s),
+                              t,
                               style: AppTextStyles.caption.copyWith(
-                                color: const Color(0xFF991B1B),
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

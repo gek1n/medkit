@@ -8,7 +8,6 @@ import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
-import 'symptom_picker_sheet.dart';
 import 'wellbeing_check_screen.dart';
 
 // ────────────────────────────── provider ──────────────────────────────
@@ -422,7 +421,7 @@ class _LogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final symptoms = _parseSymptoms(context, log.symptomsJson);
+    final tags = _parseTags(log.tagsJson);
     final emoji = _moodEmoji[log.mood.clamp(1, 5)];
 
     return Container(
@@ -458,13 +457,13 @@ class _LogCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (symptoms.isNotEmpty) ...[
+                if (tags.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: symptoms
-                        .map((s) => _SymptomChip(label: s))
+                    children: tags
+                        .map((t) => _TagChip(label: t))
                         .toList(),
                   ),
                 ],
@@ -487,21 +486,21 @@ class _LogCard extends StatelessWidget {
     );
   }
 
-  List<String> _parseSymptoms(BuildContext context, String json) {
+  List<String> _parseTags(String json) {
     try {
       final List<dynamic> keys = jsonDecode(json);
-      return keys.map((k) => symptomLabelFor(context, k as String)).toList();
+      return keys.cast<String>();
     } catch (_) {
       return [];
     }
   }
 }
 
-// ────────────────────────────── symptom chip ──────────────────────────────
+// ────────────────────────────── tag chip ──────────────────────────────
 
-class _SymptomChip extends StatelessWidget {
+class _TagChip extends StatelessWidget {
   final String label;
-  const _SymptomChip({required this.label});
+  const _TagChip({required this.label});
 
   @override
   Widget build(BuildContext context) {

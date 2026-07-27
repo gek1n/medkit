@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -391,33 +392,34 @@ class NotificationService {
   }
 
   // ── Щеплення ──────────────────────────────────────────────────────────
+  // Фіча видалена (Vaccinations-таблиця дропається в AppDatabase-міграції
+  // 30) — schedule-метод прибрано, нових нагадувань більше не ставиться.
+  // id/cancel лишаються лише для одноразового прибирання ЗАСТАРІЛИХ
+  // нагадувань, запланованих ДО цього оновлення — див.
+  // _cancelStaleVaccinationReminders у main.dart.
 
   static int vaccinationNotificationId(int vaccinationId) =>
       10000000 + vaccinationId;
 
-  /// Нагадування о 9:00 в день [nextDoseAt] — про наступну ревакцинацію.
-  /// Викликати лише коли nextDoseAt заповнено; минулі дати мовчки
-  /// ігноруються всередині [_zonedSchedule].
-  static Future<void> scheduleVaccinationReminder({
-    required int vaccinationId,
-    required String memberName,
-    required String name,
-    required DateTime nextDoseAt,
-    bool vibrationEnabled = true,
-  }) async {
-    final at = DateTime(nextDoseAt.year, nextDoseAt.month, nextDoseAt.day, 9);
-    final l10n = await _l10n();
-    await _zonedSchedule(
-      id: vaccinationNotificationId(vaccinationId),
-      title: '$memberName · ${l10n.notifVaccinationTitle}',
-      body: name,
-      at: at,
-      vibrationEnabled: vibrationEnabled,
-    );
-  }
-
   static Future<void> cancelVaccinationReminder(int vaccinationId) =>
       cancel(vaccinationNotificationId(vaccinationId));
+
+  static const _pendingCancelVaccinationIdsKey = 'pending_cancel_vaccination_notification_ids';
+
+  /// Викликати раз при старті застосунку (main.dart) — AppDatabase-міграція
+  /// 30 залишає тут id тих щеплень, чиї нагадування вже могли бути
+  /// заплановані до оновлення (сама міграція, суто SQL-контекст, не має
+  /// доступу до плагіна сповіщень, щоб скасувати їх напряму).
+  static Future<void> cancelStalePendingVaccinationReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_pendingCancelVaccinationIdsKey);
+    if (ids == null || ids.isEmpty) return;
+    for (final raw in ids) {
+      final id = int.tryParse(raw);
+      if (id != null) await cancelVaccinationReminder(id);
+    }
+    await prefs.remove(_pendingCancelVaccinationIdsKey);
+  }
 
   // ── Сімейна група (FamilyPeers): перевірка суб'єкта з notify-дозволом ──
   // Заплановано на +30 хв, скасовується щойно прилетить підтвердження —

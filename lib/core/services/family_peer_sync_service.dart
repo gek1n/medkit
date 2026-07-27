@@ -52,11 +52,6 @@ class FamilyPeerSyncService {
     'wellbeing_log',
     'wellbeing_schedule',
     'doctor_appointment',
-    'lab_result',
-    'allergy',
-    'chronic_condition',
-    'vaccination',
-    'surgery',
   ];
 
   // Той самий пріоритет, що й у family_sync_service.dart (пейринг 1:1):
@@ -323,52 +318,12 @@ class FamilyPeerSyncService {
     Future<void> flat(String table) async {
       switch (table) {
         case 'doctor_appointment':
-          final rows = await (_db.select(_db.doctorAppointments)
+          final rows = await (_db.select(_db.reminders)
                 ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
               .get();
           for (final r in rows) {
-            await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(r.id)))
-                .write(DoctorAppointmentsCompanion(syncUuid: Value(_uuid.v4())));
-          }
-        case 'lab_result':
-          final rows = await (_db.select(_db.labResults)
-                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-              .get();
-          for (final r in rows) {
-            await (_db.update(_db.labResults)..where((t) => t.id.equals(r.id)))
-                .write(LabResultsCompanion(syncUuid: Value(_uuid.v4())));
-          }
-        case 'allergy':
-          final rows = await (_db.select(_db.allergies)
-                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-              .get();
-          for (final r in rows) {
-            await (_db.update(_db.allergies)..where((t) => t.id.equals(r.id)))
-                .write(AllergiesCompanion(syncUuid: Value(_uuid.v4())));
-          }
-        case 'chronic_condition':
-          final rows = await (_db.select(_db.chronicConditions)
-                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-              .get();
-          for (final r in rows) {
-            await (_db.update(_db.chronicConditions)..where((t) => t.id.equals(r.id)))
-                .write(ChronicConditionsCompanion(syncUuid: Value(_uuid.v4())));
-          }
-        case 'vaccination':
-          final rows = await (_db.select(_db.vaccinations)
-                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-              .get();
-          for (final r in rows) {
-            await (_db.update(_db.vaccinations)..where((t) => t.id.equals(r.id)))
-                .write(VaccinationsCompanion(syncUuid: Value(_uuid.v4())));
-          }
-        case 'surgery':
-          final rows = await (_db.select(_db.surgeries)
-                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
-              .get();
-          for (final r in rows) {
-            await (_db.update(_db.surgeries)..where((t) => t.id.equals(r.id)))
-                .write(SurgeriesCompanion(syncUuid: Value(_uuid.v4())));
+            await (_db.update(_db.reminders)..where((t) => t.id.equals(r.id)))
+                .write(RemindersCompanion(syncUuid: Value(_uuid.v4())));
           }
       }
     }
@@ -381,9 +336,7 @@ class FamilyPeerSyncService {
     await activityLogs();
     await wellbeingLogs();
     await wellbeingSchedules();
-    for (final t in const [
-      'doctor_appointment', 'lab_result', 'allergy', 'chronic_condition', 'vaccination', 'surgery',
-    ]) {
+    for (final t in const ['doctor_appointment']) {
       await flat(t);
     }
   }
@@ -483,23 +436,7 @@ class FamilyPeerSyncService {
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
       case 'doctor_appointment':
         final rows =
-            await (_db.select(_db.doctorAppointments)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
-      case 'lab_result':
-        final rows = await (_db.select(_db.labResults)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
-      case 'allergy':
-        final rows = await (_db.select(_db.allergies)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
-      case 'chronic_condition':
-        final rows =
-            await (_db.select(_db.chronicConditions)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
-      case 'vaccination':
-        final rows = await (_db.select(_db.vaccinations)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
-      case 'surgery':
-        final rows = await (_db.select(_db.surgeries)..where((t) => t.memberId.equals(memberId))).get();
+            await (_db.select(_db.reminders)..where((t) => t.memberId.equals(memberId))).get();
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
     }
     return const [];
@@ -525,11 +462,6 @@ class FamilyPeerSyncService {
   static const Map<String, String> _notesFields = {
     'medication': 'instructions',
     'doctor_appointment': 'notes',
-    'lab_result': 'notes',
-    'allergy': 'notes',
-    'chronic_condition': 'notes',
-    'vaccination': 'notes',
-    'surgery': 'notes',
   };
 
   /// Викликає пір, коли редагує notes/instructions спільного запису.
@@ -619,47 +551,12 @@ class FamilyPeerSyncService {
         await (_db.update(_db.medications)..where((t) => t.id.equals(row.id))).write(
             MedicationsCompanion(instructions: Value(normalized), updatedAt: Value(DateTime.now())));
       case 'doctor_appointment':
-        final row = await (_db.select(_db.doctorAppointments)
+        final row = await (_db.select(_db.reminders)
               ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
             .getSingleOrNull();
         if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return;
-        await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(row.id))).write(
-            DoctorAppointmentsCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
-      case 'lab_result':
-        final row = await (_db.select(_db.labResults)
-              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
-            .getSingleOrNull();
-        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return;
-        await (_db.update(_db.labResults)..where((t) => t.id.equals(row.id)))
-            .write(LabResultsCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
-      case 'allergy':
-        final row = await (_db.select(_db.allergies)
-              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
-            .getSingleOrNull();
-        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return;
-        await (_db.update(_db.allergies)..where((t) => t.id.equals(row.id)))
-            .write(AllergiesCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
-      case 'chronic_condition':
-        final row = await (_db.select(_db.chronicConditions)
-              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
-            .getSingleOrNull();
-        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return;
-        await (_db.update(_db.chronicConditions)..where((t) => t.id.equals(row.id))).write(
-            ChronicConditionsCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
-      case 'vaccination':
-        final row = await (_db.select(_db.vaccinations)
-              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
-            .getSingleOrNull();
-        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return;
-        await (_db.update(_db.vaccinations)..where((t) => t.id.equals(row.id)))
-            .write(VaccinationsCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
-      case 'surgery':
-        final row = await (_db.select(_db.surgeries)
-              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
-            .getSingleOrNull();
-        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return;
-        await (_db.update(_db.surgeries)..where((t) => t.id.equals(row.id)))
-            .write(SurgeriesCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
+        await (_db.update(_db.reminders)..where((t) => t.id.equals(row.id))).write(
+            RemindersCompanion(notes: Value(normalized), updatedAt: Value(DateTime.now())));
     }
   }
 
@@ -842,23 +739,8 @@ class FamilyPeerSyncService {
       return FamilyVisibilityService.isAllowed(_db, subjectUuid, peerPersonUuid, FamilyPermission.view);
     }
 
-    for (final a in await _db.select(_db.doctorAppointments).get()) {
+    for (final a in await _db.select(_db.reminders).get()) {
       if (_documentPathsContain(a.documentPaths, photoPath) && await memberAllowed(a.memberId)) return true;
-    }
-    for (final l in await _db.select(_db.labResults).get()) {
-      if (_documentPathsContain(l.documentPaths, photoPath) && await memberAllowed(l.memberId)) return true;
-    }
-    for (final a in await _db.select(_db.allergies).get()) {
-      if (_documentPathsContain(a.documentPaths, photoPath) && await memberAllowed(a.memberId)) return true;
-    }
-    for (final c in await _db.select(_db.chronicConditions).get()) {
-      if (_documentPathsContain(c.documentPaths, photoPath) && await memberAllowed(c.memberId)) return true;
-    }
-    for (final v in await _db.select(_db.vaccinations).get()) {
-      if (_documentPathsContain(v.documentPaths, photoPath) && await memberAllowed(v.memberId)) return true;
-    }
-    for (final s in await _db.select(_db.surgeries).get()) {
-      if (_documentPathsContain(s.documentPaths, photoPath) && await memberAllowed(s.memberId)) return true;
     }
     return false;
   }

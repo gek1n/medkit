@@ -139,7 +139,7 @@ abstract class AppLocalizations {
   /// No description provided for @navMedCard.
   ///
   /// In uk, this message translates to:
-  /// **'Медкартка'**
+  /// **'Архів'**
   String get navMedCard;
 
   /// No description provided for @todayProgressTitle.
@@ -415,7 +415,7 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingCommentHint.
   ///
   /// In uk, this message translates to:
-  /// **'Оцініть настрій і, за потреби, опишіть симптоми'**
+  /// **'Оцініть настрій і, за бажанням, додайте нотатку'**
   String get wellbeingCommentHint;
 
   /// No description provided for @skipGenericAction.
@@ -682,114 +682,6 @@ abstract class AppLocalizations {
   /// **'Назва'**
   String get fieldName;
 
-  /// No description provided for @fieldDate.
-  ///
-  /// In uk, this message translates to:
-  /// **'Дата'**
-  String get fieldDate;
-
-  /// No description provided for @fieldNotes.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нотатки'**
-  String get fieldNotes;
-
-  /// No description provided for @surgeryTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Операція'**
-  String get surgeryTitle;
-
-  /// No description provided for @chronicConditionTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Хронічне захворювання'**
-  String get chronicConditionTitle;
-
-  /// No description provided for @labResultTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналіз'**
-  String get labResultTitle;
-
-  /// No description provided for @vaccinationTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Щеплення'**
-  String get vaccinationTitle;
-
-  /// No description provided for @allergyTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Алергія'**
-  String get allergyTitle;
-
-  /// No description provided for @fieldDiagnosis.
-  ///
-  /// In uk, this message translates to:
-  /// **'Діагноз'**
-  String get fieldDiagnosis;
-
-  /// No description provided for @fieldSpecialty.
-  ///
-  /// In uk, this message translates to:
-  /// **'Напрямок'**
-  String get fieldSpecialty;
-
-  /// No description provided for @fieldDiagnosisDate.
-  ///
-  /// In uk, this message translates to:
-  /// **'Дата діагнозу'**
-  String get fieldDiagnosisDate;
-
-  /// No description provided for @fieldDateGiven.
-  ///
-  /// In uk, this message translates to:
-  /// **'Дата введення'**
-  String get fieldDateGiven;
-
-  /// No description provided for @fieldNextDose.
-  ///
-  /// In uk, this message translates to:
-  /// **'Наступна ревакцинація'**
-  String get fieldNextDose;
-
-  /// No description provided for @fieldAllergen.
-  ///
-  /// In uk, this message translates to:
-  /// **'Алерген'**
-  String get fieldAllergen;
-
-  /// No description provided for @fieldSeverity.
-  ///
-  /// In uk, this message translates to:
-  /// **'Тяжкість'**
-  String get fieldSeverity;
-
-  /// No description provided for @fieldReaction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Реакція'**
-  String get fieldReaction;
-
-  /// No description provided for @severityMild.
-  ///
-  /// In uk, this message translates to:
-  /// **'Легка'**
-  String get severityMild;
-
-  /// No description provided for @severityModerate.
-  ///
-  /// In uk, this message translates to:
-  /// **'Середня'**
-  String get severityModerate;
-
-  /// No description provided for @severitySevere.
-  ///
-  /// In uk, this message translates to:
-  /// **'Тяжка'**
-  String get severitySevere;
-
   /// No description provided for @dayToday.
   ///
   /// In uk, this message translates to:
@@ -808,131 +700,17 @@ abstract class AppLocalizations {
   /// **'Вчора'**
   String get dayYesterday;
 
-  /// No description provided for @surgeriesSectionTitle.
+  /// No description provided for @allTagsFilter.
   ///
   /// In uk, this message translates to:
-  /// **'Операції та госпіталізації'**
-  String get surgeriesSectionTitle;
-
-  /// No description provided for @surgeriesEmptyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисніть \"+ Додати\" щоб додати перший запис'**
-  String get surgeriesEmptyHint;
-
-  /// No description provided for @chronicConditionsSectionTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Хронічні захворювання'**
-  String get chronicConditionsSectionTitle;
-
-  /// No description provided for @chronicConditionsEmptyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисніть \"+ Додати\" щоб додати перший діагноз'**
-  String get chronicConditionsEmptyHint;
-
-  /// No description provided for @allergiesTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Алергії'**
-  String get allergiesTitle;
-
-  /// No description provided for @allergiesEmptyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисніть \"+ Додати\" щоб додати першу алергію'**
-  String get allergiesEmptyHint;
-
-  /// No description provided for @vaccinationsTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Щеплення'**
-  String get vaccinationsTitle;
-
-  /// No description provided for @vaccinationsEmptyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисніть \"+ Додати\" щоб додати перше щеплення'**
-  String get vaccinationsEmptyHint;
-
-  /// No description provided for @vaccinationGivenOn.
-  ///
-  /// In uk, this message translates to:
-  /// **'Введено {date}'**
-  String vaccinationGivenOn(String date);
-
-  /// No description provided for @vaccinationOverdue.
-  ///
-  /// In uk, this message translates to:
-  /// **'Прострочено'**
-  String get vaccinationOverdue;
-
-  /// No description provided for @labResultsTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналізи'**
-  String get labResultsTitle;
-
-  /// No description provided for @allSpecialtiesFilter.
-  ///
-  /// In uk, this message translates to:
-  /// **'Усі напрямки'**
-  String get allSpecialtiesFilter;
-
-  /// No description provided for @allTestTypesFilter.
-  ///
-  /// In uk, this message translates to:
-  /// **'Усі типи аналізів'**
-  String get allTestTypesFilter;
-
-  /// No description provided for @labResultsEmptyFilteredTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Немає аналізів за цим фільтром'**
-  String get labResultsEmptyFilteredTitle;
-
-  /// No description provided for @labResultsEmptyNoneTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ще нічого не додано'**
-  String get labResultsEmptyNoneTitle;
-
-  /// No description provided for @labResultsEmptyFilteredHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Спробуйте змінити фільтри або скиньте їх'**
-  String get labResultsEmptyFilteredHint;
-
-  /// No description provided for @labResultsEmptyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисніть \"+ Додати\" щоб додати перший аналіз'**
-  String get labResultsEmptyHint;
+  /// **'Усі теги'**
+  String get allTagsFilter;
 
   /// No description provided for @medCardTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Медкартка'**
+  /// **'Архів'**
   String get medCardTitle;
-
-  /// No description provided for @medCardHistoryByDoctorTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Історія лікування за напрямками'**
-  String get medCardHistoryByDoctorTitle;
-
-  /// No description provided for @medCardHistoryByDoctorSubtitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Візити й аналізи одного лікаря — все в одному місці'**
-  String get medCardHistoryByDoctorSubtitle;
-
-  /// No description provided for @medCardLabResultsSubtitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Результати за напрямками'**
-  String get medCardLabResultsSubtitle;
 
   /// No description provided for @medCardArchiveTitle.
   ///
@@ -949,7 +727,7 @@ abstract class AppLocalizations {
   /// No description provided for @medCardAppointmentsTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Візити до лікарів'**
+  /// **'Нагадування'**
   String get medCardAppointmentsTitle;
 
   /// No description provided for @medCardAppointmentsSubtitle.
@@ -967,26 +745,140 @@ abstract class AppLocalizations {
   /// No description provided for @medCardWellbeingHistorySubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Настрій та симптоми за весь час'**
+  /// **'Настрій за весь час'**
   String get medCardWellbeingHistorySubtitle;
 
-  /// No description provided for @medCardAllergiesSubtitle.
+  /// No description provided for @customSectionsHeader.
   ///
   /// In uk, this message translates to:
-  /// **'Реакції на препарати й речовини'**
-  String get medCardAllergiesSubtitle;
+  /// **'Ваші розділи'**
+  String get customSectionsHeader;
 
-  /// No description provided for @medCardChronicConditionsSubtitle.
+  /// No description provided for @addSectionAction.
   ///
   /// In uk, this message translates to:
-  /// **'Діагнози, дата встановлення'**
-  String get medCardChronicConditionsSubtitle;
+  /// **'Додати розділ'**
+  String get addSectionAction;
 
-  /// No description provided for @medCardVaccinationsSubtitle.
+  /// No description provided for @newSectionTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Історія й наступні ревакцинації'**
-  String get medCardVaccinationsSubtitle;
+  /// **'Новий розділ'**
+  String get newSectionTitle;
+
+  /// No description provided for @editSectionTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Редагувати розділ'**
+  String get editSectionTitle;
+
+  /// No description provided for @sectionNameFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Назва'**
+  String get sectionNameFieldLabel;
+
+  /// No description provided for @sectionNameHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Напр. Домашні улюбленці, Документи…'**
+  String get sectionNameHint;
+
+  /// No description provided for @enterSectionNameError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Введіть назву'**
+  String get enterSectionNameError;
+
+  /// No description provided for @sectionIconFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Іконка'**
+  String get sectionIconFieldLabel;
+
+  /// No description provided for @chooseIconLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оберіть іконку'**
+  String get chooseIconLabel;
+
+  /// No description provided for @sectionCommentFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Короткий опис'**
+  String get sectionCommentFieldLabel;
+
+  /// No description provided for @sectionCommentHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'До 30 символів (необов\'язково)'**
+  String get sectionCommentHint;
+
+  /// No description provided for @deleteSectionConfirmTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Видалити розділ?'**
+  String get deleteSectionConfirmTitle;
+
+  /// No description provided for @deleteSectionConfirmBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розділ і всі записи в ньому буде видалено.'**
+  String get deleteSectionConfirmBody;
+
+  /// No description provided for @sectionEmptyHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Тут порожньо. Додайте перший запис через плюсик'**
+  String get sectionEmptyHint;
+
+  /// No description provided for @newEntryTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Новий запис'**
+  String get newEntryTitle;
+
+  /// No description provided for @editEntryTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Редагувати запис'**
+  String get editEntryTitle;
+
+  /// No description provided for @entryTitleFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Назва'**
+  String get entryTitleFieldLabel;
+
+  /// No description provided for @entryTitleHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Назва запису'**
+  String get entryTitleHint;
+
+  /// No description provided for @enterEntryTitleError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Введіть назву'**
+  String get enterEntryTitleError;
+
+  /// No description provided for @entryDateFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дата запису'**
+  String get entryDateFieldLabel;
+
+  /// No description provided for @entryNotesHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Довільні нотатки…'**
+  String get entryNotesHint;
+
+  /// No description provided for @deleteEntryConfirmBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Запис буде видалено.'**
+  String get deleteEntryConfirmBody;
 
   /// No description provided for @medicationArchiveEmptyHint.
   ///
@@ -1018,47 +910,17 @@ abstract class AppLocalizations {
   /// **'{start} — досі'**
   String medArchiveDateRangeOngoing(String start);
 
-  /// No description provided for @specialtyHistoryTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Історія за напрямком'**
-  String get specialtyHistoryTitle;
-
-  /// No description provided for @sectionUpcoming.
-  ///
-  /// In uk, this message translates to:
-  /// **'Заплановані'**
-  String get sectionUpcoming;
-
   /// No description provided for @sectionPast.
   ///
   /// In uk, this message translates to:
   /// **'Минулі'**
   String get sectionPast;
 
-  /// No description provided for @visitPrefix.
-  ///
-  /// In uk, this message translates to:
-  /// **'Візит · {type}'**
-  String visitPrefix(String type);
-
-  /// No description provided for @labPrefix.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналіз · {name}'**
-  String labPrefix(String name);
-
   /// No description provided for @emptyStateNoneYetTitle.
   ///
   /// In uk, this message translates to:
   /// **'Ще нічого не додано'**
   String get emptyStateNoneYetTitle;
-
-  /// No description provided for @specialtyHistoryEmptyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Візити й аналізи з\'являться тут'**
-  String get specialtyHistoryEmptyHint;
 
   /// No description provided for @actionCancel.
   ///
@@ -1078,29 +940,11 @@ abstract class AppLocalizations {
   /// **'Документи'**
   String get documentsLabel;
 
-  /// No description provided for @notSelectedValue.
-  ///
-  /// In uk, this message translates to:
-  /// **'Не обрано'**
-  String get notSelectedValue;
-
   /// No description provided for @notSpecifiedValue.
   ///
   /// In uk, this message translates to:
   /// **'Не вказано'**
   String get notSpecifiedValue;
-
-  /// No description provided for @deleteRecordBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Запис буде видалено.'**
-  String get deleteRecordBody;
-
-  /// No description provided for @deleteWithDocsBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Запис і всі прикріплені документи буде видалено.'**
-  String get deleteWithDocsBody;
 
   /// No description provided for @deleteSurgeryConfirmTitle.
   ///
@@ -1114,209 +958,11 @@ abstract class AppLocalizations {
   /// **'Редагувати запис'**
   String get editSurgeryTitle;
 
-  /// No description provided for @newSurgeryTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нова операція чи госпіталізація'**
-  String get newSurgeryTitle;
-
-  /// No description provided for @surgeryNameHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Апендектомія, госпіталізація…'**
-  String get surgeryNameHint;
-
-  /// No description provided for @enterSurgeryNameError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Введіть назву операції'**
-  String get enterSurgeryNameError;
-
-  /// No description provided for @surgeryNotesHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Лікарня, ускладнення, рекомендації…'**
-  String get surgeryNotesHint;
-
-  /// No description provided for @deleteConditionConfirmTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Видалити діагноз?'**
-  String get deleteConditionConfirmTitle;
-
-  /// No description provided for @editConditionTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Редагувати діагноз'**
-  String get editConditionTitle;
-
-  /// No description provided for @newConditionTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Новий діагноз'**
-  String get newConditionTitle;
-
-  /// No description provided for @conditionNameHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Астма, діабет, гіпертонія…'**
-  String get conditionNameHint;
-
-  /// No description provided for @enterConditionNameError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Введіть назву діагнозу'**
-  String get enterConditionNameError;
-
-  /// No description provided for @fieldDoctorSpecialty.
-  ///
-  /// In uk, this message translates to:
-  /// **'Напрямок лікаря'**
-  String get fieldDoctorSpecialty;
-
-  /// No description provided for @conditionNotesHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Схема лікування, дозування…'**
-  String get conditionNotesHint;
-
-  /// No description provided for @deleteAllergyConfirmTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Видалити алергію?'**
-  String get deleteAllergyConfirmTitle;
-
-  /// No description provided for @editAllergyTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Редагувати алергію'**
-  String get editAllergyTitle;
-
-  /// No description provided for @newAllergyTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нова алергія'**
-  String get newAllergyTitle;
-
-  /// No description provided for @allergenHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Пеніцилін, горіхи, пилок…'**
-  String get allergenHint;
-
-  /// No description provided for @enterAllergenError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Введіть назву алергену'**
-  String get enterAllergenError;
-
-  /// No description provided for @reactionHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Висип, набряк, задишка…'**
-  String get reactionHint;
-
-  /// No description provided for @allergyNotesHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Додаткові деталі…'**
-  String get allergyNotesHint;
-
-  /// No description provided for @deleteLabResultConfirmTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Видалити аналіз?'**
-  String get deleteLabResultConfirmTitle;
-
-  /// No description provided for @editLabResultTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Редагувати аналіз'**
-  String get editLabResultTitle;
-
-  /// No description provided for @newLabResultTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Новий аналіз'**
-  String get newLabResultTitle;
-
-  /// No description provided for @chooseSpecialtyValue.
-  ///
-  /// In uk, this message translates to:
-  /// **'Оберіть напрямок'**
-  String get chooseSpecialtyValue;
-
-  /// No description provided for @fieldTestName.
-  ///
-  /// In uk, this message translates to:
-  /// **'Назва аналізу'**
-  String get fieldTestName;
-
-  /// No description provided for @chooseTestNameValue.
-  ///
-  /// In uk, this message translates to:
-  /// **'Оберіть назву аналізу'**
-  String get chooseTestNameValue;
-
-  /// No description provided for @labResultNotesHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Результати, коментар лікаря…'**
-  String get labResultNotesHint;
-
-  /// No description provided for @deleteVaccinationConfirmTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Видалити щеплення?'**
-  String get deleteVaccinationConfirmTitle;
-
-  /// No description provided for @editVaccinationTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Редагувати щеплення'**
-  String get editVaccinationTitle;
-
-  /// No description provided for @newVaccinationTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нове щеплення'**
-  String get newVaccinationTitle;
-
-  /// No description provided for @vaccinationNameField.
-  ///
-  /// In uk, this message translates to:
-  /// **'Назва щеплення'**
-  String get vaccinationNameField;
-
-  /// No description provided for @vaccinationNameHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Правець, грип, COVID-19…'**
-  String get vaccinationNameHint;
-
-  /// No description provided for @enterVaccinationNameError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Введіть назву щеплення'**
-  String get enterVaccinationNameError;
-
   /// No description provided for @removeAction.
   ///
   /// In uk, this message translates to:
   /// **'Прибрати'**
   String get removeAction;
-
-  /// No description provided for @notScheduledValue.
-  ///
-  /// In uk, this message translates to:
-  /// **'Не заплановано'**
-  String get notScheduledValue;
-
-  /// No description provided for @vaccinationNotesHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Реакція, серія вакцини…'**
-  String get vaccinationNotesHint;
 
   /// No description provided for @medsTitle.
   ///
@@ -1738,48 +1384,6 @@ abstract class AppLocalizations {
   /// **'Зберегти та переглянути розклад →'**
   String get saveAndViewScheduleAction;
 
-  /// No description provided for @moreInEllyPlusLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Більше в Elly+'**
-  String get moreInEllyPlusLabel;
-
-  /// No description provided for @aiLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'AI'**
-  String get aiLabel;
-
-  /// No description provided for @scanPrescriptionTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнати рецепт за фото'**
-  String get scanPrescriptionTitle;
-
-  /// No description provided for @scanPrescriptionSubtitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Еллі внесе ліки у розклад'**
-  String get scanPrescriptionSubtitle;
-
-  /// No description provided for @scansRemainingLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'{remaining} сканувань залишилось для тарифу Elly Free'**
-  String scansRemainingLabel(int remaining);
-
-  /// No description provided for @orEnterManuallyLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'або введіть вручну'**
-  String get orEnterManuallyLabel;
-
-  /// No description provided for @bulkSavedSnackbar.
-  ///
-  /// In uk, this message translates to:
-  /// **'Додано {count} препаратів. Перевірте деталі в списку ліків.'**
-  String bulkSavedSnackbar(int count);
-
   /// No description provided for @phaseCardTitle.
   ///
   /// In uk, this message translates to:
@@ -2179,7 +1783,7 @@ abstract class AppLocalizations {
   /// No description provided for @joinConsentBody.
   ///
   /// In uk, this message translates to:
-  /// **'Ви приєднуєтесь як рівноправний учасник — ваш власний профіль (ім\'я й аватар) стане видимим \"{name}\". Це не скасовує і не змінює жодних ваших даних, уже внесених у застосунок. Ваша медкартка НІКОМУ автоматично не показується — які саме дані бачитимуть інші учасники, ви налаштуєте окремо, вже після приєднання.'**
+  /// **'Ви приєднуєтесь як рівноправний учасник — ваш власний профіль (ім\'я й аватар) стане видимим \"{name}\". Це не скасовує і не змінює жодних ваших даних, уже внесених у застосунок. Ваш архів НІКОМУ автоматично не показується — які саме дані бачитимуть інші учасники, ви налаштуєте окремо, вже після приєднання.'**
   String joinConsentBody(String name);
 
   /// No description provided for @joinConsentCheckbox.
@@ -2731,7 +2335,7 @@ abstract class AppLocalizations {
   /// No description provided for @antiStressPickerSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Обери, що допоможе прямо зараз'**
+  /// **'Короткі вправи на кілька хвилин'**
   String get antiStressPickerSubtitle;
 
   /// No description provided for @breathingExerciseTitle.
@@ -2743,7 +2347,7 @@ abstract class AppLocalizations {
   /// No description provided for @breathingExerciseSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Повільне дихання за 2 хвилини заспокоює нервову систему'**
+  /// **'Повільне дихання у своєму темпі — 2 хвилини'**
   String get breathingExerciseSubtitle;
 
   /// No description provided for @grounding54321Title.
@@ -2755,7 +2359,7 @@ abstract class AppLocalizations {
   /// No description provided for @grounding54321Subtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Техніка заземлення — повертає увагу в тут-і-зараз'**
+  /// **'Коротка вправа на 5 кроків із органами чуття'**
   String get grounding54321Subtitle;
 
   /// No description provided for @clearMindTitle.
@@ -2875,7 +2479,7 @@ abstract class AppLocalizations {
   /// No description provided for @medcardSyncDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Якщо вимкнено, алергії, хронічні захворювання, щеплення, операції, аналізи й візити цього профілю (разом із вкладеннями) не передаються на інші пристрої сім\'ї, підключені через пейринг. Ліки й розклад прийому синхронізуються незалежно від цього перемикача.'**
+  /// **'Якщо вимкнено, нагадування цього профілю (разом із вкладеннями) не передаються на інші пристрої сім\'ї, підключені через пейринг. Ліки й розклад прийому синхронізуються незалежно від цього перемикача.'**
   String get medcardSyncDescription;
 
   /// No description provided for @pendingConnectionLabel.
@@ -2908,30 +2512,6 @@ abstract class AppLocalizations {
   /// **'Не вдалося змінити — це не ваш профіль'**
   String get permissionDeniedNotYoursBody;
 
-  /// No description provided for @voiceConsentTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Голосові команди'**
-  String get voiceConsentTitle;
-
-  /// No description provided for @voiceConsentDescription.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнавання голосу через Anthropic (Claude) — додавання ліків, відмітки прийому та інші голосові команди.'**
-  String get voiceConsentDescription;
-
-  /// No description provided for @scanConsentTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сканування рецептів'**
-  String get scanConsentTitle;
-
-  /// No description provided for @scanConsentDescription.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнавання фото рецепта чи упаковки через Anthropic (Claude) — визначення назви, дозування, форми випуску.'**
-  String get scanConsentDescription;
-
   /// No description provided for @privacyLabel.
   ///
   /// In uk, this message translates to:
@@ -2949,18 +2529,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Політика конфіденційності'**
   String get privacyPolicyLabel;
-
-  /// No description provided for @aiConsentSectionLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Згоди на обробку даних AI-функціями'**
-  String get aiConsentSectionLabel;
-
-  /// No description provided for @consentRevokeNoteBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скасування згоди не видаляє вже оброблені дані — воно лише означає, що перед наступним використанням цієї функції застосунок знову запитає підтвердження.'**
-  String get consentRevokeNoteBody;
 
   /// No description provided for @dangerZoneLabel.
   ///
@@ -3015,24 +2583,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Переглянути повний текст'**
   String get viewFullTextAction;
-
-  /// No description provided for @consentGivenLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Надано {date}'**
-  String consentGivenLabel(String date);
-
-  /// No description provided for @consentNotGivenLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Згоду не надано'**
-  String get consentNotGivenLabel;
-
-  /// No description provided for @revokeConsentAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скасувати згоду'**
-  String get revokeConsentAction;
 
   /// No description provided for @groundStep5Title.
   ///
@@ -3121,7 +2671,7 @@ abstract class AppLocalizations {
   /// No description provided for @groundingCompletedTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Ти повернувся(-лась) у тут-і-зараз'**
+  /// **'Вправу завершено'**
   String get groundingCompletedTitle;
 
   /// No description provided for @groundingCompletedSubtitle.
@@ -3205,7 +2755,7 @@ abstract class AppLocalizations {
   /// No description provided for @voiceLanguageDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Керує мовою інтерфейсу та розпізнавання голосу (голосове управління, запис самопочуття). Поки доступні українська, англійська та російська — інші мови з\'являться після перекладів.'**
+  /// **'Керує мовою інтерфейсу та диктування коментарів. Поки доступні українська, англійська та російська — інші мови з\'являться після перекладів.'**
   String get voiceLanguageDescription;
 
   /// No description provided for @fontSizeLabel.
@@ -3301,7 +2851,7 @@ abstract class AppLocalizations {
   /// No description provided for @appointmentsHistoryTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Візити до лікарів'**
+  /// **'Нагадування'**
   String get appointmentsHistoryTitle;
 
   /// No description provided for @sectionFuture.
@@ -3331,13 +2881,13 @@ abstract class AppLocalizations {
   /// No description provided for @noAppointmentsForSpecialty.
   ///
   /// In uk, this message translates to:
-  /// **'Немає візитів за цим напрямком'**
+  /// **'Немає нагадувань з цим тегом'**
   String get noAppointmentsForSpecialty;
 
   /// No description provided for @tryDifferentSpecialtyHint.
   ///
   /// In uk, this message translates to:
-  /// **'Спробуйте обрати інший напрямок або скиньте фільтр'**
+  /// **'Спробуйте обрати інший тег або скиньте фільтр'**
   String get tryDifferentSpecialtyHint;
 
   /// No description provided for @tapToAddFirstHint.
@@ -3445,25 +2995,13 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAppointmentBody.
   ///
   /// In uk, this message translates to:
-  /// **'Запис до лікаря буде видалено.'**
+  /// **'Нагадування буде видалено.'**
   String get deleteAppointmentBody;
-
-  /// No description provided for @enterDoctorTypeError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Введіть тип лікаря'**
-  String get enterDoctorTypeError;
-
-  /// No description provided for @recordVisitTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Записати візит'**
-  String get recordVisitTitle;
 
   /// No description provided for @newAppointmentTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Запис до лікаря'**
+  /// **'Нове нагадування'**
   String get newAppointmentTitle;
 
   /// No description provided for @fieldWhere.
@@ -3502,41 +3040,77 @@ abstract class AppLocalizations {
   /// **'Нагадати заздалегідь'**
   String get remindBeforeLabel;
 
-  /// No description provided for @doctorConclusionLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Висновок лікаря'**
-  String get doctorConclusionLabel;
-
   /// No description provided for @noteSingularLabel.
   ///
   /// In uk, this message translates to:
   /// **'Нотатка'**
   String get noteSingularLabel;
 
-  /// No description provided for @doctorConclusionHint.
+  /// No description provided for @reminderNoteHint.
   ///
   /// In uk, this message translates to:
-  /// **'Що сказав лікар, рекомендації, призначення…'**
-  String get doctorConclusionHint;
-
-  /// No description provided for @apptNoteHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Що запитати, взяти з собою…'**
-  String get apptNoteHint;
-
-  /// No description provided for @saveVisitAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Зберегти візит'**
-  String get saveVisitAction;
+  /// **'Додаткові деталі…'**
+  String get reminderNoteHint;
 
   /// No description provided for @saveReminderAction.
   ///
   /// In uk, this message translates to:
   /// **'Зберегти нагадування'**
   String get saveReminderAction;
+
+  /// No description provided for @reminderTitleFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Назва'**
+  String get reminderTitleFieldLabel;
+
+  /// No description provided for @reminderTitleHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Напр. Стоматолог, Оплатити страховку…'**
+  String get reminderTitleHint;
+
+  /// No description provided for @enterReminderTitleError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Введіть назву'**
+  String get enterReminderTitleError;
+
+  /// No description provided for @reminderTagsFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Теги'**
+  String get reminderTagsFieldLabel;
+
+  /// No description provided for @reminderTagsHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Теги через кому (необов\'язково)'**
+  String get reminderTagsHint;
+
+  /// No description provided for @reminderTagsPickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оберіть теги'**
+  String get reminderTagsPickerTitle;
+
+  /// No description provided for @addNewTagHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Новий тег'**
+  String get addNewTagHint;
+
+  /// No description provided for @noTagsYetLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поки немає жодного тега'**
+  String get noTagsYetLabel;
+
+  /// No description provided for @reminderPhotoLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Фото'**
+  String get reminderPhotoLabel;
 
   /// No description provided for @monthGenJan.
   ///
@@ -3609,30 +3183,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'грудня'**
   String get monthGenDec;
-
-  /// No description provided for @symptomsTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Симптоми'**
-  String get symptomsTitle;
-
-  /// No description provided for @symptomSearchHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Пошук або нова назва…'**
-  String get symptomSearchHint;
-
-  /// No description provided for @symptomListEmptyLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Список порожній'**
-  String get symptomListEmptyLabel;
-
-  /// No description provided for @addCustomSymptomLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Додати «{query}»'**
-  String addCustomSymptomLabel(String query);
 
   /// No description provided for @historyLabel.
   ///
@@ -3847,13 +3397,13 @@ abstract class AppLocalizations {
   /// No description provided for @sendDiaryToDoctorLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Відправити щоденник лікарю'**
+  /// **'Поділитися підсумком'**
   String get sendDiaryToDoctorLabel;
 
   /// No description provided for @diarySummaryHint.
   ///
   /// In uk, this message translates to:
-  /// **'Зрізи + симптоми + прийоми за місяць'**
+  /// **'Зрізи самопочуття та прийоми за місяць'**
   String get diarySummaryHint;
 
   /// No description provided for @moodBadLabel.
@@ -3919,20 +3469,14 @@ abstract class AppLocalizations {
   /// No description provided for @anySymptomsLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Є симптоми?'**
+  /// **'Теги'**
   String get anySymptomsLabel;
 
   /// No description provided for @chooseFromListOrAddLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Оберіть зі списку поширених або додайте своє'**
+  /// **'Додайте власні теги (необов\'язково)'**
   String get chooseFromListOrAddLabel;
-
-  /// No description provided for @symptomsNotSelectedLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Симптоми не обрано'**
-  String get symptomsNotSelectedLabel;
 
   /// No description provided for @commentLabel.
   ///
@@ -4011,306 +3555,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Готуємось… зачекайте секунду'**
   String get preparingMicLabel;
-
-  /// No description provided for @symptomHeadache.
-  ///
-  /// In uk, this message translates to:
-  /// **'головний біль'**
-  String get symptomHeadache;
-
-  /// No description provided for @symptomNausea.
-  ///
-  /// In uk, this message translates to:
-  /// **'нудота'**
-  String get symptomNausea;
-
-  /// No description provided for @symptomDizziness.
-  ///
-  /// In uk, this message translates to:
-  /// **'запаморочення'**
-  String get symptomDizziness;
-
-  /// No description provided for @symptomWeakness.
-  ///
-  /// In uk, this message translates to:
-  /// **'слабість'**
-  String get symptomWeakness;
-
-  /// No description provided for @symptomShortnessOfBreath.
-  ///
-  /// In uk, this message translates to:
-  /// **'задишка'**
-  String get symptomShortnessOfBreath;
-
-  /// No description provided for @symptomRash.
-  ///
-  /// In uk, this message translates to:
-  /// **'висип'**
-  String get symptomRash;
-
-  /// No description provided for @symptomPain.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль'**
-  String get symptomPain;
-
-  /// No description provided for @symptomFever.
-  ///
-  /// In uk, this message translates to:
-  /// **'температура'**
-  String get symptomFever;
-
-  /// No description provided for @symptomCough.
-  ///
-  /// In uk, this message translates to:
-  /// **'кашель'**
-  String get symptomCough;
-
-  /// No description provided for @symptomSoreThroat.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль у горлі'**
-  String get symptomSoreThroat;
-
-  /// No description provided for @symptomRunnyNose.
-  ///
-  /// In uk, this message translates to:
-  /// **'нежить'**
-  String get symptomRunnyNose;
-
-  /// No description provided for @symptomStuffyNose.
-  ///
-  /// In uk, this message translates to:
-  /// **'закладеність носа'**
-  String get symptomStuffyNose;
-
-  /// No description provided for @symptomSneezing.
-  ///
-  /// In uk, this message translates to:
-  /// **'чхання'**
-  String get symptomSneezing;
-
-  /// No description provided for @symptomVomiting.
-  ///
-  /// In uk, this message translates to:
-  /// **'блювота'**
-  String get symptomVomiting;
-
-  /// No description provided for @symptomDiarrhea.
-  ///
-  /// In uk, this message translates to:
-  /// **'діарея'**
-  String get symptomDiarrhea;
-
-  /// No description provided for @symptomConstipation.
-  ///
-  /// In uk, this message translates to:
-  /// **'запор'**
-  String get symptomConstipation;
-
-  /// No description provided for @symptomBloating.
-  ///
-  /// In uk, this message translates to:
-  /// **'здуття живота'**
-  String get symptomBloating;
-
-  /// No description provided for @symptomHeartburn.
-  ///
-  /// In uk, this message translates to:
-  /// **'печія'**
-  String get symptomHeartburn;
-
-  /// No description provided for @symptomStomachPain.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль у животі'**
-  String get symptomStomachPain;
-
-  /// No description provided for @symptomLossOfAppetite.
-  ///
-  /// In uk, this message translates to:
-  /// **'втрата апетиту'**
-  String get symptomLossOfAppetite;
-
-  /// No description provided for @symptomIncreasedAppetite.
-  ///
-  /// In uk, this message translates to:
-  /// **'підвищений апетит'**
-  String get symptomIncreasedAppetite;
-
-  /// No description provided for @symptomInsomnia.
-  ///
-  /// In uk, this message translates to:
-  /// **'безсоння'**
-  String get symptomInsomnia;
-
-  /// No description provided for @symptomDrowsiness.
-  ///
-  /// In uk, this message translates to:
-  /// **'сонливість'**
-  String get symptomDrowsiness;
-
-  /// No description provided for @symptomFatigue.
-  ///
-  /// In uk, this message translates to:
-  /// **'втома'**
-  String get symptomFatigue;
-
-  /// No description provided for @symptomChestPain.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль у грудях'**
-  String get symptomChestPain;
-
-  /// No description provided for @symptomPalpitations.
-  ///
-  /// In uk, this message translates to:
-  /// **'прискорене серцебиття'**
-  String get symptomPalpitations;
-
-  /// No description provided for @symptomHighBloodPressure.
-  ///
-  /// In uk, this message translates to:
-  /// **'підвищений тиск'**
-  String get symptomHighBloodPressure;
-
-  /// No description provided for @symptomLowBloodPressure.
-  ///
-  /// In uk, this message translates to:
-  /// **'знижений тиск'**
-  String get symptomLowBloodPressure;
-
-  /// No description provided for @symptomBackPain.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль у спині'**
-  String get symptomBackPain;
-
-  /// No description provided for @symptomJointPain.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль у суглобах'**
-  String get symptomJointPain;
-
-  /// No description provided for @symptomMusclePain.
-  ///
-  /// In uk, this message translates to:
-  /// **'біль у м\'язах'**
-  String get symptomMusclePain;
-
-  /// No description provided for @symptomCramps.
-  ///
-  /// In uk, this message translates to:
-  /// **'судоми'**
-  String get symptomCramps;
-
-  /// No description provided for @symptomSwelling.
-  ///
-  /// In uk, this message translates to:
-  /// **'набряки'**
-  String get symptomSwelling;
-
-  /// No description provided for @symptomItching.
-  ///
-  /// In uk, this message translates to:
-  /// **'свербіж'**
-  String get symptomItching;
-
-  /// No description provided for @symptomDrySkin.
-  ///
-  /// In uk, this message translates to:
-  /// **'сухість шкіри'**
-  String get symptomDrySkin;
-
-  /// No description provided for @symptomBruising.
-  ///
-  /// In uk, this message translates to:
-  /// **'синці'**
-  String get symptomBruising;
-
-  /// No description provided for @symptomDryMouth.
-  ///
-  /// In uk, this message translates to:
-  /// **'сухість у роті'**
-  String get symptomDryMouth;
-
-  /// No description provided for @symptomExcessiveSweating.
-  ///
-  /// In uk, this message translates to:
-  /// **'підвищена пітливість'**
-  String get symptomExcessiveSweating;
-
-  /// No description provided for @symptomChills.
-  ///
-  /// In uk, this message translates to:
-  /// **'озноб'**
-  String get symptomChills;
-
-  /// No description provided for @symptomBlurredVision.
-  ///
-  /// In uk, this message translates to:
-  /// **'розмитий зір'**
-  String get symptomBlurredVision;
-
-  /// No description provided for @symptomRingingInEars.
-  ///
-  /// In uk, this message translates to:
-  /// **'дзвін у вухах'**
-  String get symptomRingingInEars;
-
-  /// No description provided for @symptomNumbness.
-  ///
-  /// In uk, this message translates to:
-  /// **'оніміння'**
-  String get symptomNumbness;
-
-  /// No description provided for @symptomTremor.
-  ///
-  /// In uk, this message translates to:
-  /// **'тремтіння'**
-  String get symptomTremor;
-
-  /// No description provided for @symptomMemoryIssues.
-  ///
-  /// In uk, this message translates to:
-  /// **'проблеми з пам\'яттю'**
-  String get symptomMemoryIssues;
-
-  /// No description provided for @symptomConcentrationIssues.
-  ///
-  /// In uk, this message translates to:
-  /// **'проблеми з концентрацією'**
-  String get symptomConcentrationIssues;
-
-  /// No description provided for @symptomAnxiety.
-  ///
-  /// In uk, this message translates to:
-  /// **'тривожність'**
-  String get symptomAnxiety;
-
-  /// No description provided for @symptomIrritability.
-  ///
-  /// In uk, this message translates to:
-  /// **'дратівливість'**
-  String get symptomIrritability;
-
-  /// No description provided for @symptomMoodSwings.
-  ///
-  /// In uk, this message translates to:
-  /// **'перепади настрою'**
-  String get symptomMoodSwings;
-
-  /// No description provided for @symptomWeightLoss.
-  ///
-  /// In uk, this message translates to:
-  /// **'втрата ваги'**
-  String get symptomWeightLoss;
-
-  /// No description provided for @symptomWeightGain.
-  ///
-  /// In uk, this message translates to:
-  /// **'набір ваги'**
-  String get symptomWeightGain;
 
   /// No description provided for @restoreErrorBody.
   ///
@@ -4585,7 +3829,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanOrEnterManuallyHint.
   ///
   /// In uk, this message translates to:
-  /// **'Скануйте фото рецепта або введіть вручну'**
+  /// **'Додайте ліки, які приймаєте зараз'**
   String get scanOrEnterManuallyHint;
 
   /// No description provided for @addMedsShortAction.
@@ -4678,396 +3922,6 @@ abstract class AppLocalizations {
   /// **'Майже готово →'**
   String get almostDoneAction;
 
-  /// No description provided for @scanNoResultsError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Не вдалося розпізнати ліки на фото. Спробуйте зробити чіткіше фото.'**
-  String get scanNoResultsError;
-
-  /// No description provided for @scanErrorWithMessage.
-  ///
-  /// In uk, this message translates to:
-  /// **'Помилка сканування: {error}'**
-  String scanErrorWithMessage(String error);
-
-  /// No description provided for @scanPrescriptionScreenTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сканувати рецепт'**
-  String get scanPrescriptionScreenTitle;
-
-  /// No description provided for @beforeYouStartTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Перш ніж почати'**
-  String get beforeYouStartTitle;
-
-  /// No description provided for @scanConsentDisclaimerBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Щоб розпізнати ліки, фото рецепта чи упаковки надсилається сервісу Anthropic (Claude). Фото використовується лише для розпізнавання і ніде не зберігається після відповіді.'**
-  String get scanConsentDisclaimerBody;
-
-  /// No description provided for @scanDosageWarningPrefix.
-  ///
-  /// In uk, this message translates to:
-  /// **'⚠️ Розпізнавання назви, дозування та розкладу може містити помилки. '**
-  String get scanDosageWarningPrefix;
-
-  /// No description provided for @alwaysCheckInstructionsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Завжди звіряйте з інструкцією до препарату.'**
-  String get alwaysCheckInstructionsLabel;
-
-  /// No description provided for @understoodAgreeAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Зрозуміло, погоджуюсь'**
-  String get understoodAgreeAction;
-
-  /// No description provided for @takePhotoInstructionsBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сфотографуйте рецепт або упаковку. Можна додати кілька фото, якщо ліків декілька.'**
-  String get takePhotoInstructionsBody;
-
-  /// No description provided for @cameraLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Камера'**
-  String get cameraLabel;
-
-  /// No description provided for @galleryLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Галерея'**
-  String get galleryLabel;
-
-  /// No description provided for @scanAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сканувати'**
-  String get scanAction;
-
-  /// No description provided for @scanRecognizedCountLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнано {count}. Перевірте перед додаванням:'**
-  String scanRecognizedCountLabel(int count);
-
-  /// No description provided for @expandAndConfirmHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розгорніть препарат, перевірте дані і поставте галочку, щоб підтвердити додавання.'**
-  String get expandAndConfirmHint;
-
-  /// No description provided for @chooseMedsAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Оберіть препарати'**
-  String get chooseMedsAction;
-
-  /// No description provided for @addSelectedCountAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Додати обрані ({count})'**
-  String addSelectedCountAction(int count);
-
-  /// No description provided for @scheduleTimeMorning.
-  ///
-  /// In uk, this message translates to:
-  /// **'Вранці'**
-  String get scheduleTimeMorning;
-
-  /// No description provided for @scheduleTimeAfternoon.
-  ///
-  /// In uk, this message translates to:
-  /// **'Вдень'**
-  String get scheduleTimeAfternoon;
-
-  /// No description provided for @scheduleTimeEvening.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ввечері'**
-  String get scheduleTimeEvening;
-
-  /// No description provided for @scheduleTimeNight.
-  ///
-  /// In uk, this message translates to:
-  /// **'Вночі'**
-  String get scheduleTimeNight;
-
-  /// No description provided for @unnamedMedLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Без назви'**
-  String get unnamedMedLabel;
-
-  /// No description provided for @medNameCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'НАЗВА'**
-  String get medNameCapsLabel;
-
-  /// No description provided for @releaseFormCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ФОРМА ВИПУСКУ'**
-  String get releaseFormCapsLabel;
-
-  /// No description provided for @doseCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ДОЗА'**
-  String get doseCapsLabel;
-
-  /// No description provided for @courseDurationCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ТРИВАЛІСТЬ КУРСУ'**
-  String get courseDurationCapsLabel;
-
-  /// No description provided for @foodRelationCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ЗВ\'ЯЗОК З ЇЖЕЮ'**
-  String get foodRelationCapsLabel;
-
-  /// No description provided for @confirmedCheckLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Підтверджено ✓'**
-  String get confirmedCheckLabel;
-
-  /// No description provided for @confirmAllCorrectAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Все вірно, підтвердити'**
-  String get confirmAllCorrectAction;
-
-  /// No description provided for @somethingWentWrongTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Щось пішло не так'**
-  String get somethingWentWrongTitle;
-
-  /// No description provided for @sttErrorLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'STT помилка: {error}'**
-  String sttErrorLabel(String error);
-
-  /// No description provided for @speechNotAvailableError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнавання мови недоступне на цьому пристрої'**
-  String get speechNotAvailableError;
-
-  /// No description provided for @nothingHeardError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нічого не почуто. Спробуй ще раз.'**
-  String get nothingHeardError;
-
-  /// No description provided for @analysisErrorWithMessage.
-  ///
-  /// In uk, this message translates to:
-  /// **'Помилка аналізу: {error}'**
-  String analysisErrorWithMessage(String error);
-
-  /// No description provided for @commandNotRecognizedError.
-  ///
-  /// In uk, this message translates to:
-  /// **'Не вдалося розпізнати команду'**
-  String get commandNotRecognizedError;
-
-  /// No description provided for @voiceControlTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Голосове управління'**
-  String get voiceControlTitle;
-
-  /// No description provided for @voiceConsentDisclaimerBody.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнавання голосу відбувається на пристрої. Але щоб зрозуміти команду, текст твоєї фрази надсилається сервісу Anthropic (Claude). Ця функція розпізнає лише 3 команди: додати ліки, додати активність або запис до лікаря — вільний опис самопочуття чи симптомів сюди ніколи не відправляється, для цього є окреме поле в щоденнику самопочуття, яке лишається тільки на пристрої.'**
-  String get voiceConsentDisclaimerBody;
-
-  /// No description provided for @voiceExampleMedQuote.
-  ///
-  /// In uk, this message translates to:
-  /// **'\"Додай Еналаприл 10 мг вранці та ввечері\"'**
-  String get voiceExampleMedQuote;
-
-  /// No description provided for @voiceExampleMedDesc.
-  ///
-  /// In uk, this message translates to:
-  /// **'Відкриє форму ліків із заповненими полями. Розпізнає не всі препарати — перевірте поля перед збереженням.'**
-  String get voiceExampleMedDesc;
-
-  /// No description provided for @voiceExampleActivityQuote.
-  ///
-  /// In uk, this message translates to:
-  /// **'\"Додай зарядку двічі на день вранці і ввечері\"'**
-  String get voiceExampleActivityQuote;
-
-  /// No description provided for @voiceExampleActivityDesc.
-  ///
-  /// In uk, this message translates to:
-  /// **'Відкриє форму активності із заповненими полями'**
-  String get voiceExampleActivityDesc;
-
-  /// No description provided for @voiceExampleApptQuote.
-  ///
-  /// In uk, this message translates to:
-  /// **'\"Запис до кардіолога у пʼятницю о 10\"'**
-  String get voiceExampleApptQuote;
-
-  /// No description provided for @voiceExampleApptDesc.
-  ///
-  /// In uk, this message translates to:
-  /// **'Відкриє форму запису до лікаря'**
-  String get voiceExampleApptDesc;
-
-  /// No description provided for @whatToDoTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Що хочеш зробити?'**
-  String get whatToDoTitle;
-
-  /// No description provided for @tapAndSayCommandHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисни і скажи команду\nабо почни говорити'**
-  String get tapAndSayCommandHint;
-
-  /// No description provided for @dictateLanguageHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Диктуйте мовою {language}. Змінити можна в Профіль → Мова.'**
-  String dictateLanguageHint(String language);
-
-  /// No description provided for @commandExamplesCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ПРИКЛАДИ КОМАНД'**
-  String get commandExamplesCapsLabel;
-
-  /// No description provided for @experimentalFeatureNotice.
-  ///
-  /// In uk, this message translates to:
-  /// **'Це експериментальна функція — розпізнавання може заповнити дані неточно, завжди перевіряйте форму перед збереженням.'**
-  String get experimentalFeatureNotice;
-
-  /// No description provided for @holdAndSpeakAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Утримуй і говори'**
-  String get holdAndSpeakAction;
-
-  /// No description provided for @listeningEllipsisLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Слухаю...'**
-  String get listeningEllipsisLabel;
-
-  /// No description provided for @preparingEllipsisLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Готуємось...'**
-  String get preparingEllipsisLabel;
-
-  /// No description provided for @tapMicToStopHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Натисни на мікрофон щоб зупинити'**
-  String get tapMicToStopHint;
-
-  /// No description provided for @waitBeforeSpeakingHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Зачекайте секунду перед тим, як говорити'**
-  String get waitBeforeSpeakingHint;
-
-  /// No description provided for @quotedTextLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'\"{text}\"'**
-  String quotedTextLabel(String text);
-
-  /// No description provided for @analyzingCommandLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналізую команду...'**
-  String get analyzingCommandLabel;
-
-  /// No description provided for @actionCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ДІЯ'**
-  String get actionCapsLabel;
-
-  /// No description provided for @drugCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ПРЕПАРАТ'**
-  String get drugCapsLabel;
-
-  /// No description provided for @activityCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'АКТИВНІСТЬ'**
-  String get activityCapsLabel;
-
-  /// No description provided for @scheduleCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'РОЗКЛАД'**
-  String get scheduleCapsLabel;
-
-  /// No description provided for @doctorCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ЛІКАР'**
-  String get doctorCapsLabel;
-
-  /// No description provided for @addActivityActionLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Додати активність'**
-  String get addActivityActionLabel;
-
-  /// No description provided for @unknownCommandLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Невідома команда'**
-  String get unknownCommandLabel;
-
-  /// No description provided for @youSaidCapsLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'ТИ СКАЗАВ'**
-  String get youSaidCapsLabel;
-
-  /// No description provided for @iUnderstoodLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Я зрозумів так:'**
-  String get iUnderstoodLabel;
-
-  /// No description provided for @clarifyOneMoreLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Уточни ще одне'**
-  String get clarifyOneMoreLabel;
-
-  /// No description provided for @foodRelationClarifyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ти не сказав, до чи після їжі. Вибери нижче або пропусти'**
-  String get foodRelationClarifyHint;
-
   /// No description provided for @foodOptBefore.
   ///
   /// In uk, this message translates to:
@@ -5080,23 +3934,11 @@ abstract class AppLocalizations {
   /// **'Після їжі'**
   String get foodOptAfter;
 
-  /// No description provided for @foodOptNotImportant.
-  ///
-  /// In uk, this message translates to:
-  /// **'Не важливо'**
-  String get foodOptNotImportant;
-
   /// No description provided for @refFoodAnyLabel.
   ///
   /// In uk, this message translates to:
   /// **'Незалежно від їжі'**
   String get refFoodAnyLabel;
-
-  /// No description provided for @nextShortAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Далі'**
-  String get nextShortAction;
 
   /// No description provided for @backupScreenTitle.
   ///
@@ -5107,7 +3949,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupIntroBody.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки, розклад, медкартка (фото/PDF) і всі інші дані — обирайте, де зберігати резервну копію.'**
+  /// **'Ліки, розклад, архів (фото) і всі інші дані — обирайте, де зберігати резервну копію.'**
   String get backupIntroBody;
 
   /// No description provided for @backupModeLocalTitle.
@@ -5374,18 +4216,6 @@ abstract class AppLocalizations {
   /// **'Необмежено ліків і медкарток'**
   String get freeFeatureUnlimitedMeds;
 
-  /// No description provided for @freeFeatureScanLimit.
-  ///
-  /// In uk, this message translates to:
-  /// **'3 сканування фото рецепта'**
-  String get freeFeatureScanLimit;
-
-  /// No description provided for @freeFeatureVoiceLimit.
-  ///
-  /// In uk, this message translates to:
-  /// **'5 голосових команд'**
-  String get freeFeatureVoiceLimit;
-
   /// No description provided for @freeFeatureLocalBackup.
   ///
   /// In uk, this message translates to:
@@ -5403,18 +4233,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Все з безкоштовного'**
   String get plusFeatureAllFree;
-
-  /// No description provided for @plusFeatureUnlimitedScans.
-  ///
-  /// In uk, this message translates to:
-  /// **'Необмежені сканування фото'**
-  String get plusFeatureUnlimitedScans;
-
-  /// No description provided for @plusFeatureUnlimitedVoice.
-  ///
-  /// In uk, this message translates to:
-  /// **'Необмежені голосові команди'**
-  String get plusFeatureUnlimitedVoice;
 
   /// No description provided for @plusFeatureServerSync.
   ///
@@ -5635,7 +4453,7 @@ abstract class AppLocalizations {
   /// No description provided for @addTypeMedsSub.
   ///
   /// In uk, this message translates to:
-  /// **'Розклад, дозування, AI-скан рецепта'**
+  /// **'Розклад, дозування, повторення'**
   String get addTypeMedsSub;
 
   /// No description provided for @addTypeActivitySub.
@@ -5644,23 +4462,17 @@ abstract class AppLocalizations {
   /// **'Прогулянка, зарядка, вправи, ЛФК'**
   String get addTypeActivitySub;
 
-  /// No description provided for @addTypeWellbeingSub.
-  ///
-  /// In uk, this message translates to:
-  /// **'Зробити зріз — настрій, симптоми, коментар'**
-  String get addTypeWellbeingSub;
-
   /// No description provided for @addTypeAppointmentSub.
   ///
   /// In uk, this message translates to:
-  /// **'Обрати спеціаліста, час та отримати нагадування'**
+  /// **'Дата, час і нагадування про будь-яку подію'**
   String get addTypeAppointmentSub;
 
-  /// No description provided for @voiceCommandLabel.
+  /// No description provided for @addTypeWellbeingSub.
   ///
   /// In uk, this message translates to:
-  /// **'Голосова команда'**
-  String get voiceCommandLabel;
+  /// **'Зробити зріз — настрій, теги, коментар'**
+  String get addTypeWellbeingSub;
 
   /// No description provided for @faqGroupPrivacyTitle.
   ///
@@ -5757,24 +4569,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Налаштовується в Профіль → Видимість для сім\'ї — окремо для кожного профілю.'**
   String get faqFamilyA3;
-
-  /// No description provided for @faqGroupAiTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'AI-функції'**
-  String get faqGroupAiTitle;
-
-  /// No description provided for @faqAiQ1.
-  ///
-  /// In uk, this message translates to:
-  /// **'Куди йдуть дані при голосовому вводі чи скані рецепта?'**
-  String get faqAiQ1;
-
-  /// No description provided for @faqAiA1.
-  ///
-  /// In uk, this message translates to:
-  /// **'Розпізнавання відбувається через модель Claude від Anthropic — це явно вказується в запиті згоди перед першим використанням кожної функції. Вільний текстовий опис самопочуття чи симптомів у хмару ніколи не надсилається.'**
-  String get faqAiA1;
 
   /// No description provided for @faqNotificationsQ1.
   ///
@@ -6328,203 +5122,11 @@ abstract class AppLocalizations {
   /// **'Оберіть профіль'**
   String get chooseProfileLabel;
 
-  /// No description provided for @otherSpecialtyDialogTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Інший напрямок'**
-  String get otherSpecialtyDialogTitle;
-
-  /// No description provided for @otherSpecialtyHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Напр. Гомеопат'**
-  String get otherSpecialtyHint;
-
   /// No description provided for @chooseAction.
   ///
   /// In uk, this message translates to:
   /// **'Обрати'**
   String get chooseAction;
-
-  /// No description provided for @doctorSpecialtyPickerTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Напрямок лікаря'**
-  String get doctorSpecialtyPickerTitle;
-
-  /// No description provided for @specialtySearchHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Пошук…'**
-  String get specialtySearchHint;
-
-  /// No description provided for @specialtyTherapist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Терапевт'**
-  String get specialtyTherapist;
-
-  /// No description provided for @specialtyPediatrician.
-  ///
-  /// In uk, this message translates to:
-  /// **'Педіатр'**
-  String get specialtyPediatrician;
-
-  /// No description provided for @specialtyFamilyDoctor.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сімейний лікар'**
-  String get specialtyFamilyDoctor;
-
-  /// No description provided for @specialtyCardiologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Кардіолог'**
-  String get specialtyCardiologist;
-
-  /// No description provided for @specialtyNeurologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Невролог'**
-  String get specialtyNeurologist;
-
-  /// No description provided for @specialtyEndocrinologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ендокринолог'**
-  String get specialtyEndocrinologist;
-
-  /// No description provided for @specialtyGastroenterologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Гастроентеролог'**
-  String get specialtyGastroenterologist;
-
-  /// No description provided for @specialtyDermatologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Дерматолог'**
-  String get specialtyDermatologist;
-
-  /// No description provided for @specialtyOphthalmologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Офтальмолог'**
-  String get specialtyOphthalmologist;
-
-  /// No description provided for @specialtyEnt.
-  ///
-  /// In uk, this message translates to:
-  /// **'ЛОР (Отоларинголог)'**
-  String get specialtyEnt;
-
-  /// No description provided for @specialtyDentist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Стоматолог'**
-  String get specialtyDentist;
-
-  /// No description provided for @specialtyGynecologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Гінеколог'**
-  String get specialtyGynecologist;
-
-  /// No description provided for @specialtyUrologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Уролог'**
-  String get specialtyUrologist;
-
-  /// No description provided for @specialtySurgeon.
-  ///
-  /// In uk, this message translates to:
-  /// **'Хірург'**
-  String get specialtySurgeon;
-
-  /// No description provided for @specialtyOrthopedist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ортопед'**
-  String get specialtyOrthopedist;
-
-  /// No description provided for @specialtyTraumatologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Травматолог'**
-  String get specialtyTraumatologist;
-
-  /// No description provided for @specialtyAllergist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Алерголог'**
-  String get specialtyAllergist;
-
-  /// No description provided for @specialtyImmunologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Імунолог'**
-  String get specialtyImmunologist;
-
-  /// No description provided for @specialtyPsychiatrist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Психіатр'**
-  String get specialtyPsychiatrist;
-
-  /// No description provided for @specialtyPsychotherapist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Психотерапевт'**
-  String get specialtyPsychotherapist;
-
-  /// No description provided for @specialtyUltrasoundDiagnostics.
-  ///
-  /// In uk, this message translates to:
-  /// **'УЗД-діагностика'**
-  String get specialtyUltrasoundDiagnostics;
-
-  /// No description provided for @specialtyOncologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Онколог'**
-  String get specialtyOncologist;
-
-  /// No description provided for @specialtyRheumatologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ревматолог'**
-  String get specialtyRheumatologist;
-
-  /// No description provided for @specialtyPulmonologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Пульмонолог'**
-  String get specialtyPulmonologist;
-
-  /// No description provided for @specialtyNephrologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нефролог'**
-  String get specialtyNephrologist;
-
-  /// No description provided for @specialtyPhlebologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Флеболог'**
-  String get specialtyPhlebologist;
-
-  /// No description provided for @specialtyMammologist.
-  ///
-  /// In uk, this message translates to:
-  /// **'Мамолог'**
-  String get specialtyMammologist;
-
-  /// No description provided for @specialtyOther.
-  ///
-  /// In uk, this message translates to:
-  /// **'Інше'**
-  String get specialtyOther;
 
   /// No description provided for @noDocumentsLabel.
   ///
@@ -6543,306 +5145,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Зберігається лише на пристрої (і в хмарі, якщо ввімкнено резервну копію) — застосунок не переглядає й не аналізує ці файли.'**
   String get documentsPrivacyHint;
-
-  /// No description provided for @labTestCbc.
-  ///
-  /// In uk, this message translates to:
-  /// **'Загальний аналіз крові'**
-  String get labTestCbc;
-
-  /// No description provided for @labTestUrinalysis.
-  ///
-  /// In uk, this message translates to:
-  /// **'Загальний аналіз сечі'**
-  String get labTestUrinalysis;
-
-  /// No description provided for @labTestBloodChemistry.
-  ///
-  /// In uk, this message translates to:
-  /// **'Біохімічний аналіз крові'**
-  String get labTestBloodChemistry;
-
-  /// No description provided for @labTestBloodGlucose.
-  ///
-  /// In uk, this message translates to:
-  /// **'Глюкоза крові'**
-  String get labTestBloodGlucose;
-
-  /// No description provided for @labTestLipidProfile.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ліпідний профіль (холестерин)'**
-  String get labTestLipidProfile;
-
-  /// No description provided for @labTestTsh.
-  ///
-  /// In uk, this message translates to:
-  /// **'Гормони щитоподібної залози (ТТГ)'**
-  String get labTestTsh;
-
-  /// No description provided for @labTestFreeT3.
-  ///
-  /// In uk, this message translates to:
-  /// **'Т3 вільний'**
-  String get labTestFreeT3;
-
-  /// No description provided for @labTestFreeT4.
-  ///
-  /// In uk, this message translates to:
-  /// **'Т4 вільний'**
-  String get labTestFreeT4;
-
-  /// No description provided for @labTestLiverEnzymes.
-  ///
-  /// In uk, this message translates to:
-  /// **'Печінкові проби (АЛТ, АСТ)'**
-  String get labTestLiverEnzymes;
-
-  /// No description provided for @labTestBilirubin.
-  ///
-  /// In uk, this message translates to:
-  /// **'Білірубін'**
-  String get labTestBilirubin;
-
-  /// No description provided for @labTestCreatinine.
-  ///
-  /// In uk, this message translates to:
-  /// **'Креатинін'**
-  String get labTestCreatinine;
-
-  /// No description provided for @labTestUrea.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сечовина'**
-  String get labTestUrea;
-
-  /// No description provided for @labTestUricAcid.
-  ///
-  /// In uk, this message translates to:
-  /// **'Сечова кислота'**
-  String get labTestUricAcid;
-
-  /// No description provided for @labTestSerumIron.
-  ///
-  /// In uk, this message translates to:
-  /// **'Залізо сироватки'**
-  String get labTestSerumIron;
-
-  /// No description provided for @labTestFerritin.
-  ///
-  /// In uk, this message translates to:
-  /// **'Феритин'**
-  String get labTestFerritin;
-
-  /// No description provided for @labTestVitaminD.
-  ///
-  /// In uk, this message translates to:
-  /// **'Вітамін D'**
-  String get labTestVitaminD;
-
-  /// No description provided for @labTestVitaminB12.
-  ///
-  /// In uk, this message translates to:
-  /// **'Вітамін B12'**
-  String get labTestVitaminB12;
-
-  /// No description provided for @labTestFolicAcid.
-  ///
-  /// In uk, this message translates to:
-  /// **'Фолієва кислота'**
-  String get labTestFolicAcid;
-
-  /// No description provided for @labTestCoagulogram.
-  ///
-  /// In uk, this message translates to:
-  /// **'Коагулограма'**
-  String get labTestCoagulogram;
-
-  /// No description provided for @labTestBloodType.
-  ///
-  /// In uk, this message translates to:
-  /// **'Група крові та резус-фактор'**
-  String get labTestBloodType;
-
-  /// No description provided for @labTestCrp.
-  ///
-  /// In uk, this message translates to:
-  /// **'С-реактивний білок (СРБ)'**
-  String get labTestCrp;
-
-  /// No description provided for @labTestEsr.
-  ///
-  /// In uk, this message translates to:
-  /// **'Швидкість осідання еритроцитів (ШОЕ)'**
-  String get labTestEsr;
-
-  /// No description provided for @labTestEstrogenProgesterone.
-  ///
-  /// In uk, this message translates to:
-  /// **'Естроген, прогестерон'**
-  String get labTestEstrogenProgesterone;
-
-  /// No description provided for @labTestTestosterone.
-  ///
-  /// In uk, this message translates to:
-  /// **'Тестостерон'**
-  String get labTestTestosterone;
-
-  /// No description provided for @labTestProlactin.
-  ///
-  /// In uk, this message translates to:
-  /// **'Пролактин'**
-  String get labTestProlactin;
-
-  /// No description provided for @labTestInsulin.
-  ///
-  /// In uk, this message translates to:
-  /// **'Інсулін'**
-  String get labTestInsulin;
-
-  /// No description provided for @labTestHba1c.
-  ///
-  /// In uk, this message translates to:
-  /// **'Глікований гемоглобін (HbA1c)'**
-  String get labTestHba1c;
-
-  /// No description provided for @labTestPcr.
-  ///
-  /// In uk, this message translates to:
-  /// **'ПЛР-тест'**
-  String get labTestPcr;
-
-  /// No description provided for @labTestAllergens.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналіз на алергени'**
-  String get labTestAllergens;
-
-  /// No description provided for @labTestCoprogram.
-  ///
-  /// In uk, this message translates to:
-  /// **'Копрограма'**
-  String get labTestCoprogram;
-
-  /// No description provided for @labTestOccultBlood.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналіз калу на приховану кров'**
-  String get labTestOccultBlood;
-
-  /// No description provided for @labTestFloraSwab.
-  ///
-  /// In uk, this message translates to:
-  /// **'Мазок на флору'**
-  String get labTestFloraSwab;
-
-  /// No description provided for @labTestUrineCulture.
-  ///
-  /// In uk, this message translates to:
-  /// **'Посів сечі на стерильність'**
-  String get labTestUrineCulture;
-
-  /// No description provided for @labTestHepatitis.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналіз на гепатити (B, C)'**
-  String get labTestHepatitis;
-
-  /// No description provided for @labTestHiv.
-  ///
-  /// In uk, this message translates to:
-  /// **'ВІЛ-тест'**
-  String get labTestHiv;
-
-  /// No description provided for @labTestSyphilis.
-  ///
-  /// In uk, this message translates to:
-  /// **'RW (сифіліс)'**
-  String get labTestSyphilis;
-
-  /// No description provided for @labTestCalcium.
-  ///
-  /// In uk, this message translates to:
-  /// **'Кальцій'**
-  String get labTestCalcium;
-
-  /// No description provided for @labTestMagnesium.
-  ///
-  /// In uk, this message translates to:
-  /// **'Магній'**
-  String get labTestMagnesium;
-
-  /// No description provided for @labTestElectrolytesKNaCl.
-  ///
-  /// In uk, this message translates to:
-  /// **'Калій, натрій, хлор'**
-  String get labTestElectrolytesKNaCl;
-
-  /// No description provided for @labTestAmylase.
-  ///
-  /// In uk, this message translates to:
-  /// **'Амілаза'**
-  String get labTestAmylase;
-
-  /// No description provided for @labTestLipase.
-  ///
-  /// In uk, this message translates to:
-  /// **'Ліпаза'**
-  String get labTestLipase;
-
-  /// No description provided for @labTestPsa.
-  ///
-  /// In uk, this message translates to:
-  /// **'ПСА (простатоспецифічний антиген)'**
-  String get labTestPsa;
-
-  /// No description provided for @labTestTumorMarkers.
-  ///
-  /// In uk, this message translates to:
-  /// **'Онкомаркери (СА-125)'**
-  String get labTestTumorMarkers;
-
-  /// No description provided for @labTestParasites.
-  ///
-  /// In uk, this message translates to:
-  /// **'Аналіз на паразитів (яйця гельмінтів)'**
-  String get labTestParasites;
-
-  /// No description provided for @labTestCortisol.
-  ///
-  /// In uk, this message translates to:
-  /// **'Кортизол'**
-  String get labTestCortisol;
-
-  /// No description provided for @labTestImmunogram.
-  ///
-  /// In uk, this message translates to:
-  /// **'Імунограма'**
-  String get labTestImmunogram;
-
-  /// No description provided for @labTestSpermogram.
-  ///
-  /// In uk, this message translates to:
-  /// **'Спермограма'**
-  String get labTestSpermogram;
-
-  /// No description provided for @labTestBloodElectrolytes.
-  ///
-  /// In uk, this message translates to:
-  /// **'Електроліти крові'**
-  String get labTestBloodElectrolytes;
-
-  /// No description provided for @labTestTotalProtein.
-  ///
-  /// In uk, this message translates to:
-  /// **'Загальний білок'**
-  String get labTestTotalProtein;
-
-  /// No description provided for @labTestDDimer.
-  ///
-  /// In uk, this message translates to:
-  /// **'Д-димер'**
-  String get labTestDDimer;
 
   /// No description provided for @notifChannelName.
   ///
@@ -6907,13 +5209,13 @@ abstract class AppLocalizations {
   /// No description provided for @notifAppointmentTitle.
   ///
   /// In uk, this message translates to:
-  /// **'🩺 Прийом лікаря'**
+  /// **'🔔 Нагадування'**
   String get notifAppointmentTitle;
 
   /// No description provided for @notifAppointmentNoResponseTitle.
   ///
   /// In uk, this message translates to:
-  /// **'🔔 Не забудьте про прийом лікаря'**
+  /// **'🔔 Не забудьте про нагадування'**
   String get notifAppointmentNoResponseTitle;
 
   /// No description provided for @notifWellbeingTitle.
@@ -6927,12 +5229,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Як ви себе почуваєте?'**
   String get notifWellbeingBody;
-
-  /// No description provided for @notifVaccinationTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'💉 Час ревакцинації'**
-  String get notifVaccinationTitle;
 
   /// No description provided for @notifPeerCheckTitle.
   ///
@@ -6955,7 +5251,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifPeerAppointmentCheckBody.
   ///
   /// In uk, this message translates to:
-  /// **'Чи відбувся прийом (\"{doctorType}\") о {timeStr}? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.'**
+  /// **'Чи відбулось нагадування (\"{doctorType}\") о {timeStr}? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.'**
   String notifPeerAppointmentCheckBody(String doctorType, String timeStr);
 
   /// No description provided for @notifPeerWellbeingCheckBody.
