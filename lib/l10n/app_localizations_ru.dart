@@ -214,7 +214,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get categoryWellbeing => 'Самочувствие';
 
   @override
-  String get categoryDoctors => 'Врачи';
+  String get categoryDoctors => 'Напоминания';
 
   @override
   String get scheduleTitle => 'Расписание';
@@ -229,7 +229,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noActiveMeds => 'Нет активных лекарств';
 
   @override
-  String get sectionAppointments => 'Приёмы врачей';
+  String get sectionAppointments => 'Напоминания';
 
   @override
   String get noScheduledAppointments => 'Нет запланированных приёмов';
@@ -379,7 +379,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sectionNameFieldLabel => 'Название';
 
   @override
-  String get sectionNameHint => 'Напр. Домашние питомцы, Документы…';
+  String get sectionNameHint => 'Укажите название раздела для заметок';
 
   @override
   String get enterSectionNameError => 'Введите название';
@@ -1688,7 +1688,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fieldWhere => 'Где';
 
   @override
-  String get locationHint => 'Клиника, адрес или онлайн';
+  String get locationHint => 'Укажите адрес или название';
 
   @override
   String get fieldDateTime => 'Дата и время';
@@ -1715,7 +1715,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reminderTitleFieldLabel => 'Название';
 
   @override
-  String get reminderTitleHint => 'Напр. Стоматолог, Оплатить страховку…';
+  String get reminderTitleHint => 'Укажите, о чём напомнить';
 
   @override
   String get enterReminderTitleError => 'Введите название';
@@ -1724,7 +1724,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reminderTagsFieldLabel => 'Теги';
 
   @override
-  String get reminderTagsHint => 'Теги через запятую (необязательно)';
+  String get reminderTagsHint => 'Теги для структурирования, через запятую';
 
   @override
   String get reminderTagsPickerTitle => 'Выберите теги';

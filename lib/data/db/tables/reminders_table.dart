@@ -26,6 +26,11 @@ class Reminders extends Table {
   // json: ["path1","path2"] — фото/PDF виписок, направлень тощо
   TextColumn get color => text().nullable()();
   // hex "#RRGGBB" — кастомний колір картки, null = дефолтний колір типу
+  TextColumn get iconKey => text().withDefault(const Constant('calendar'))();
+  // ключ з нейтрального набору medcard_icons.dart — користувач обирає при
+  // додаванні; на екрані Сьогодні все одно завжди показується ілюстрація
+  // Elly, а не ця іконка (див. today_screen.dart), тут вона використовується
+  // в Розкладі/деталях.
   TextColumn get status =>
       text().withDefault(const Constant('pending'))();
   // pending/attended/skipped — на відміну від Intake/ActivityLog, з'явилось

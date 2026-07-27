@@ -214,7 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryWellbeing => 'Wellbeing';
 
   @override
-  String get categoryDoctors => 'Doctors';
+  String get categoryDoctors => 'Reminders';
 
   @override
   String get scheduleTitle => 'Schedule';
@@ -229,7 +229,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noActiveMeds => 'No active medications';
 
   @override
-  String get sectionAppointments => 'Doctor appointments';
+  String get sectionAppointments => 'Reminders';
 
   @override
   String get noScheduledAppointments => 'No scheduled appointments';
@@ -378,7 +378,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sectionNameFieldLabel => 'Name';
 
   @override
-  String get sectionNameHint => 'E.g. Pets, Documents…';
+  String get sectionNameHint => 'Enter a name for this notes section';
 
   @override
   String get enterSectionNameError => 'Enter a name';
@@ -1678,7 +1678,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fieldWhere => 'Where';
 
   @override
-  String get locationHint => 'Clinic, address, or online';
+  String get locationHint => 'Enter an address or name';
 
   @override
   String get fieldDateTime => 'Date & time';
@@ -1705,7 +1705,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderTitleFieldLabel => 'Title';
 
   @override
-  String get reminderTitleHint => 'E.g. Dentist, Pay insurance…';
+  String get reminderTitleHint => 'What\'s this reminder about?';
 
   @override
   String get enterReminderTitleError => 'Enter a title';
@@ -1714,7 +1714,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderTagsFieldLabel => 'Tags';
 
   @override
-  String get reminderTagsHint => 'Tags, comma-separated (optional)';
+  String get reminderTagsHint =>
+      'Tags to keep things organized, comma-separated';
 
   @override
   String get reminderTagsPickerTitle => 'Choose tags';
