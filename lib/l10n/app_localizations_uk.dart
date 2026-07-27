@@ -2305,7 +2305,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get choosePlanTitle => 'Обери план';
 
   @override
-  String get choosePlanSubtitle => 'Турбота про здоров\'я всієї сім\'ї';
+  String get choosePlanSubtitle => 'Турбота про родину';
 
   @override
   String get monthToggleLabel => 'Місяць';
@@ -2346,7 +2346,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get freeFeatureAllSections => 'Всі розділи без обмежень';
 
   @override
-  String get freeFeatureUnlimitedMeds => 'Необмежено ліків і медкарток';
+  String get freeFeatureUnlimitedMeds => 'Необмежено нагадувань';
 
   @override
   String get freeFeatureLocalBackup => 'Локально + копія в Google Drive/iCloud';
@@ -2358,11 +2358,8 @@ class AppLocalizationsUk extends AppLocalizations {
   String get plusFeatureAllFree => 'Все з безкоштовного';
 
   @override
-  String get plusFeatureServerSync => 'Синхронізація з сервером (зашифровано)';
-
-  @override
   String get plusFeatureUnlimitedProfiles =>
-      'Необмежена кількість локальних профілів';
+      'Необмежена кількість профілів родини — керуєте тільки ви';
 
   @override
   String get selectPlusAction => 'Обрати Plus';

@@ -2297,7 +2297,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get choosePlanTitle => 'Choose your plan';
 
   @override
-  String get choosePlanSubtitle => 'Health care for your whole family';
+  String get choosePlanSubtitle => 'Care for your family';
 
   @override
   String get monthToggleLabel => 'Month';
@@ -2338,7 +2338,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get freeFeatureAllSections => 'All sections, no limits';
 
   @override
-  String get freeFeatureUnlimitedMeds => 'Unlimited medications and med cards';
+  String get freeFeatureUnlimitedMeds => 'Unlimited reminders';
 
   @override
   String get freeFeatureLocalBackup => 'Local + backup to Google Drive/iCloud';
@@ -2350,10 +2350,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plusFeatureAllFree => 'Everything in Free';
 
   @override
-  String get plusFeatureServerSync => 'Server sync (encrypted)';
-
-  @override
-  String get plusFeatureUnlimitedProfiles => 'Unlimited local profiles';
+  String get plusFeatureUnlimitedProfiles =>
+      'Unlimited family profiles — you\'re the only one in control';
 
   @override
   String get selectPlusAction => 'Choose Plus';
