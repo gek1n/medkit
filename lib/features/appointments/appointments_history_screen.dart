@@ -1,24 +1,34 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/reminder_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
-import '../../data/repositories/doctor_appointments_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/section_label.dart';
-import '../../shared/widgets/specialty_picker.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
+
+List<String> _parseTags(String raw) {
+  try {
+    return List<String>.from(jsonDecode(raw) as List);
+  } catch (_) {
+    return const [];
+  }
+}
 
 // ────────────────────────────── provider ──────────────────────────────
 
 final _allAppointmentsProvider =
-    StreamProvider<List<DoctorAppointment>>((ref) {
-  return ref.watch(doctorAppointmentsRepositoryProvider).watchAll();
+    StreamProvider<List<Reminder>>((ref) {
+  return ref.watch(remindersRepositoryProvider).watchAll();
 });
 
 // ────────────────────────────── screen ──────────────────────────────
@@ -38,11 +48,20 @@ class AppointmentsHistoryScreen extends ConsumerStatefulWidget {
 
 class _AppointmentsHistoryScreenState
     extends ConsumerState<AppointmentsHistoryScreen> {
-  String? _specialty;
+  String? _tag;
 
-  Future<void> _pickSpecialty() async {
-    final picked = await showSpecialtyPicker(context, current: _specialty);
-    if (picked != null) setState(() => _specialty = picked);
+  Future<void> _pickTag() async {
+    final history = await ReminderTagsLibraryService.getAll();
+    if (!mounted) return;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _TagFilterSheet(tags: history, current: _tag),
+    );
+    if (picked != null) setState(() => _tag = picked);
   }
 
   @override
@@ -71,10 +90,10 @@ class _AppointmentsHistoryScreenState
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: _SpecialtyFilterChip(
-                  specialty: _specialty,
-                  onTap: _pickSpecialty,
-                  onClear: () => setState(() => _specialty = null),
+                child: _TagFilterChip(
+                  tag: _tag,
+                  onTap: _pickTag,
+                  onClear: () => setState(() => _tag = null),
                 ),
               ),
             ),
@@ -90,9 +109,9 @@ class _AppointmentsHistoryScreenState
                   final members = membersAsync.valueOrNull ?? [];
                   final apts = allApts
                       .where((a) => widget.memberId == null || a.memberId == widget.memberId)
-                      .where((a) => _specialty == null || a.doctorType == _specialty)
+                      .where((a) => _tag == null || _parseTags(a.tags).contains(_tag))
                       .toList();
-                  final hasFilter = _specialty != null;
+                  final hasFilter = _tag != null;
                   return _AppointmentsList(
                       apts: apts, members: members, filtered: hasFilter);
                 },
@@ -128,21 +147,21 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ────────────────────────────── specialty filter chip ─────────────────────
+// ────────────────────────────── tag filter chip ─────────────────────
 
-class _SpecialtyFilterChip extends StatelessWidget {
-  final String? specialty;
+class _TagFilterChip extends StatelessWidget {
+  final String? tag;
   final VoidCallback onTap;
   final VoidCallback onClear;
-  const _SpecialtyFilterChip({
-    required this.specialty,
+  const _TagFilterChip({
+    required this.tag,
     required this.onTap,
     required this.onClear,
   });
 
   @override
   Widget build(BuildContext context) {
-    final active = specialty != null;
+    final active = tag != null;
     return InkWell(
       borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
       onTap: onTap,
@@ -163,7 +182,7 @@ class _SpecialtyFilterChip extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             Text(
-              specialty ?? context.l10n.allSpecialtiesFilter,
+              tag ?? context.l10n.allTagsFilter,
               style: AppTextStyles.labelMd.copyWith(
                 color: active ? AppColors.primary : AppColors.textSub,
               ),
@@ -182,10 +201,69 @@ class _SpecialtyFilterChip extends StatelessWidget {
   }
 }
 
+// ────────────────────────────── tag filter sheet ─────────────────────
+
+class _TagFilterSheet extends StatelessWidget {
+  final List<String> tags;
+  final String? current;
+  const _TagFilterSheet({required this.tags, required this.current});
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      heightFactor: 0.6,
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(context.l10n.reminderTagsPickerTitle, style: AppTextStyles.h3),
+            ),
+            Expanded(
+              child: tags.isEmpty
+                  ? Center(
+                      child: Text(
+                        context.l10n.noTagsYetLabel,
+                        style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      itemCount: tags.length,
+                      itemBuilder: (context, index) {
+                        final t = tags[index];
+                        final selected = t == current;
+                        return ListTile(
+                          title: Text(t, style: AppTextStyles.bodyLg),
+                          trailing: selected
+                              ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                              : null,
+                          onTap: () => Navigator.pop(context, t),
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ────────────────────────────── list ──────────────────────────────
 
 class _AppointmentsList extends StatelessWidget {
-  final List<DoctorAppointment> apts;
+  final List<Reminder> apts;
   final List<Member> members;
   final bool filtered;
 
@@ -250,7 +328,7 @@ class _AppointmentsList extends StatelessWidget {
 // ────────────────────────────── appointment card ──────────────────────────────
 
 class _AppointmentCard extends StatelessWidget {
-  final DoctorAppointment apt;
+  final Reminder apt;
   final List<Member> members;
   final bool isNext;
   final bool isPast;

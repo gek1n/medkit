@@ -605,6 +605,18 @@ treating it as a code bug:
   (every 15-30s in observed logs) for channels that return "no state yet" and never
   seems to give up or surface the problem to the user — flagged, not yet
   investigated/fixed.
+- **Cross-device sync (`SyncService`/`AccountService`, own-account sync — separate
+  from family pairing/`FamilySyncService`) is suspected to not actually work
+  end-to-end right now.** The user flagged this from real-world experience (2026-07),
+  not from a specific investigated bug — nobody has traced *why* yet. Its UI entry
+  point was removed earlier in the project (the plumbing still runs automatically
+  whenever `SyncMode != local`, e.g. tied to a paid plan's `serverSync: true`, but
+  there's no way for a user to see status/errors or manually retry). Before trusting
+  or building on top of this path, actually verify it round-trips on two real/test
+  devices rather than assuming the code being present means it works. Also note:
+  `MedcardSections`/`MedcardEntries` (custom archive sections) were never wired into
+  either `SyncService` or `FamilyPeerSyncService`/`FamilySyncService` at all — flagged
+  separately, no ticket yet.
 - **iOS SQLCipher "file is not a database" (SQLite code 26) key-mismatch — long
   investigation, structural fix landed but not yet device-verified.** Root-caused
   through several rounds to real bugs in `flutter_secure_storage` itself (orphaned

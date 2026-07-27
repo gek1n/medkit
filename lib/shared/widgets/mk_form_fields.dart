@@ -29,6 +29,7 @@ class MkTextField extends StatelessWidget {
   final VoidCallback? onTap;
   final int maxLines;
   final TextInputType? keyboardType;
+  final int? maxLength;
 
   const MkTextField({
     super.key,
@@ -38,6 +39,7 @@ class MkTextField extends StatelessWidget {
     this.onTap,
     this.maxLines = 1,
     this.keyboardType,
+    this.maxLength,
   });
 
   @override
@@ -53,6 +55,7 @@ class MkTextField extends StatelessWidget {
         readOnly: readOnly,
         onTap: onTap,
         maxLines: maxLines,
+        maxLength: maxLength,
         keyboardType: keyboardType,
         decoration: InputDecoration(
           hintText: hint,
@@ -62,6 +65,7 @@ class MkTextField extends StatelessWidget {
           suffixIcon: readOnly
               ? const Icon(Icons.expand_more_rounded, color: AppColors.textMuted)
               : null,
+          counterText: maxLength != null ? null : '',
         ),
         style: AppTextStyles.bodyMd,
       ),

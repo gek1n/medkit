@@ -5,26 +5,26 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/notification_service.dart';
 
-class DoctorAppointmentsRepository {
+class RemindersRepository {
   final AppDatabase _db;
   final Ref _ref;
-  DoctorAppointmentsRepository(this._db, this._ref);
+  RemindersRepository(this._db, this._ref);
 
-  Stream<List<DoctorAppointment>> watchAll() =>
-      (_db.select(_db.doctorAppointments)
+  Stream<List<Reminder>> watchAll() =>
+      (_db.select(_db.reminders)
             ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
           .watch();
 
-  Stream<List<DoctorAppointment>> watchByMember(int memberId) {
-    return (_db.select(_db.doctorAppointments)
+  Stream<List<Reminder>> watchByMember(int memberId) {
+    return (_db.select(_db.reminders)
           ..where((t) => t.memberId.equals(memberId))
           ..orderBy([(t) => OrderingTerm.desc(t.scheduledAt)]))
         .watch();
   }
 
-  Stream<List<DoctorAppointment>> watchUpcoming(int memberId) {
+  Stream<List<Reminder>> watchUpcoming(int memberId) {
     final now = DateTime.now();
-    return (_db.select(_db.doctorAppointments)
+    return (_db.select(_db.reminders)
           ..where((t) =>
               t.memberId.equals(memberId) &
               t.scheduledAt.isBiggerOrEqualValue(now))
@@ -32,10 +32,10 @@ class DoctorAppointmentsRepository {
         .watch();
   }
 
-  Stream<List<DoctorAppointment>> watchByDate(int memberId, DateTime date) {
+  Stream<List<Reminder>> watchByDate(int memberId, DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
-    return (_db.select(_db.doctorAppointments)
+    return (_db.select(_db.reminders)
           ..where((t) =>
               t.memberId.equals(memberId) &
               t.scheduledAt.isBiggerOrEqualValue(start) &
@@ -44,24 +44,24 @@ class DoctorAppointmentsRepository {
         .watch();
   }
 
-  Future<int> insert(DoctorAppointmentsCompanion appointment) =>
-      _db.into(_db.doctorAppointments).insert(appointment);
+  Future<int> insert(RemindersCompanion appointment) =>
+      _db.into(_db.reminders).insert(appointment);
 
   // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
   // екрани редагування передають лише змінені поля без memberId.
-  Future<bool> update(DoctorAppointmentsCompanion appointment) async {
-    final rows = await (_db.update(_db.doctorAppointments)
+  Future<bool> update(RemindersCompanion appointment) async {
+    final rows = await (_db.update(_db.reminders)
           ..where((t) => t.id.equals(appointment.id.value)))
         .write(appointment);
     return rows > 0;
   }
 
   Future<int> delete(int id) =>
-      (_db.delete(_db.doctorAppointments)..where((t) => t.id.equals(id))).go();
+      (_db.delete(_db.reminders)..where((t) => t.id.equals(id))).go();
 
   Future<void> markAttended(int id) async {
-    await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
-        .write(DoctorAppointmentsCompanion(
+    await (_db.update(_db.reminders)..where((t) => t.id.equals(id)))
+        .write(RemindersCompanion(
       status: const Value('attended'),
       updatedAt: Value(DateTime.now()),
     ));
@@ -69,8 +69,8 @@ class DoctorAppointmentsRepository {
   }
 
   Future<void> markSkipped(int id) async {
-    await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
-        .write(DoctorAppointmentsCompanion(
+    await (_db.update(_db.reminders)..where((t) => t.id.equals(id)))
+        .write(RemindersCompanion(
       status: const Value('skipped'),
       updatedAt: Value(DateTime.now()),
     ));
@@ -78,14 +78,14 @@ class DoctorAppointmentsRepository {
   }
 
   Future<void> reschedule(int id, DateTime newTime) async {
-    await (_db.update(_db.doctorAppointments)..where((t) => t.id.equals(id)))
-        .write(DoctorAppointmentsCompanion(
+    await (_db.update(_db.reminders)..where((t) => t.id.equals(id)))
+        .write(RemindersCompanion(
       scheduledAt: Value(newTime),
       updatedAt: Value(DateTime.now()),
     ));
     await NotificationService.cancelAppointmentReminder(id);
 
-    final appt = await (_db.select(_db.doctorAppointments)
+    final appt = await (_db.select(_db.reminders)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
     if (appt == null) return;
@@ -112,7 +112,7 @@ class DoctorAppointmentsRepository {
   }
 }
 
-final doctorAppointmentsRepositoryProvider =
-    Provider<DoctorAppointmentsRepository>((ref) {
-  return DoctorAppointmentsRepository(ref.watch(databaseProvider), ref);
+final remindersRepositoryProvider =
+    Provider<RemindersRepository>((ref) {
+  return RemindersRepository(ref.watch(databaseProvider), ref);
 });

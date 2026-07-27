@@ -27,7 +27,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navProfile => 'Профиль';
 
   @override
-  String get navMedCard => 'Медкарта';
+  String get navMedCard => 'Архив';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -178,7 +178,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get wellbeingCommentHint =>
-      'Оцените настроение и, если нужно, опишите симптомы';
+      'Оцените настроение и, при желании, добавьте заметку';
 
   @override
   String get skipGenericAction => 'Пропустить';
@@ -331,60 +331,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get fieldName => 'Название';
 
   @override
-  String get fieldDate => 'Дата';
-
-  @override
-  String get fieldNotes => 'Заметки';
-
-  @override
-  String get surgeryTitle => 'Операция';
-
-  @override
-  String get chronicConditionTitle => 'Хроническое заболевание';
-
-  @override
-  String get labResultTitle => 'Анализ';
-
-  @override
-  String get vaccinationTitle => 'Прививка';
-
-  @override
-  String get allergyTitle => 'Аллергия';
-
-  @override
-  String get fieldDiagnosis => 'Диагноз';
-
-  @override
-  String get fieldSpecialty => 'Направление';
-
-  @override
-  String get fieldDiagnosisDate => 'Дата диагноза';
-
-  @override
-  String get fieldDateGiven => 'Дата введения';
-
-  @override
-  String get fieldNextDose => 'Следующая ревакцинация';
-
-  @override
-  String get fieldAllergen => 'Аллерген';
-
-  @override
-  String get fieldSeverity => 'Тяжесть';
-
-  @override
-  String get fieldReaction => 'Реакция';
-
-  @override
-  String get severityMild => 'Лёгкая';
-
-  @override
-  String get severityModerate => 'Средняя';
-
-  @override
-  String get severitySevere => 'Тяжёлая';
-
-  @override
   String get dayToday => 'Сегодня';
 
   @override
@@ -394,76 +340,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get dayYesterday => 'Вчера';
 
   @override
-  String get surgeriesSectionTitle => 'Операции и госпитализации';
+  String get allTagsFilter => 'Все теги';
 
   @override
-  String get surgeriesEmptyHint =>
-      'Нажмите \"+ Добавить\" чтобы добавить первую запись';
-
-  @override
-  String get chronicConditionsSectionTitle => 'Хронические заболевания';
-
-  @override
-  String get chronicConditionsEmptyHint =>
-      'Нажмите \"+ Добавить\" чтобы добавить первый диагноз';
-
-  @override
-  String get allergiesTitle => 'Аллергии';
-
-  @override
-  String get allergiesEmptyHint =>
-      'Нажмите \"+ Добавить\" чтобы добавить первую аллергию';
-
-  @override
-  String get vaccinationsTitle => 'Прививки';
-
-  @override
-  String get vaccinationsEmptyHint =>
-      'Нажмите \"+ Добавить\" чтобы добавить первую прививку';
-
-  @override
-  String vaccinationGivenOn(String date) {
-    return 'Введено $date';
-  }
-
-  @override
-  String get vaccinationOverdue => 'Просрочено';
-
-  @override
-  String get labResultsTitle => 'Анализы';
-
-  @override
-  String get allSpecialtiesFilter => 'Все направления';
-
-  @override
-  String get allTestTypesFilter => 'Все типы анализов';
-
-  @override
-  String get labResultsEmptyFilteredTitle => 'Нет анализов по этому фильтру';
-
-  @override
-  String get labResultsEmptyNoneTitle => 'Пока ничего не добавлено';
-
-  @override
-  String get labResultsEmptyFilteredHint =>
-      'Попробуйте изменить фильтры или сбросить их';
-
-  @override
-  String get labResultsEmptyHint =>
-      'Нажмите \"+ Добавить\" чтобы добавить первый анализ';
-
-  @override
-  String get medCardTitle => 'Медкарта';
-
-  @override
-  String get medCardHistoryByDoctorTitle => 'История лечения по направлениям';
-
-  @override
-  String get medCardHistoryByDoctorSubtitle =>
-      'Визиты и анализы одного врача — всё в одном месте';
-
-  @override
-  String get medCardLabResultsSubtitle => 'Результаты по направлениям';
+  String get medCardTitle => 'Архив';
 
   @override
   String get medCardArchiveTitle => 'Архив лекарств';
@@ -472,7 +352,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get medCardArchiveSubtitle => 'Все препараты и статус лечения';
 
   @override
-  String get medCardAppointmentsTitle => 'Визиты к врачам';
+  String get medCardAppointmentsTitle => 'Напоминания';
 
   @override
   String get medCardAppointmentsSubtitle => 'Записи выбранного профиля';
@@ -481,17 +361,75 @@ class AppLocalizationsRu extends AppLocalizations {
   String get medCardWellbeingHistoryTitle => 'История самочувствия';
 
   @override
-  String get medCardWellbeingHistorySubtitle =>
-      'Настроение и симптомы за всё время';
+  String get medCardWellbeingHistorySubtitle => 'Настроение за всё время';
 
   @override
-  String get medCardAllergiesSubtitle => 'Реакции на препараты и вещества';
+  String get customSectionsHeader => 'Ваши разделы';
 
   @override
-  String get medCardChronicConditionsSubtitle => 'Диагнозы, дата установления';
+  String get addSectionAction => 'Добавить раздел';
 
   @override
-  String get medCardVaccinationsSubtitle => 'История и ближайшие ревакцинации';
+  String get newSectionTitle => 'Новый раздел';
+
+  @override
+  String get editSectionTitle => 'Редактировать раздел';
+
+  @override
+  String get sectionNameFieldLabel => 'Название';
+
+  @override
+  String get sectionNameHint => 'Напр. Домашние питомцы, Документы…';
+
+  @override
+  String get enterSectionNameError => 'Введите название';
+
+  @override
+  String get sectionIconFieldLabel => 'Иконка';
+
+  @override
+  String get chooseIconLabel => 'Выберите иконку';
+
+  @override
+  String get sectionCommentFieldLabel => 'Короткое описание';
+
+  @override
+  String get sectionCommentHint => 'До 30 символов (необязательно)';
+
+  @override
+  String get deleteSectionConfirmTitle => 'Удалить раздел?';
+
+  @override
+  String get deleteSectionConfirmBody =>
+      'Раздел и все записи в нём будут удалены.';
+
+  @override
+  String get sectionEmptyHint =>
+      'Здесь пусто. Добавьте первую запись через плюсик';
+
+  @override
+  String get newEntryTitle => 'Новая запись';
+
+  @override
+  String get editEntryTitle => 'Редактировать запись';
+
+  @override
+  String get entryTitleFieldLabel => 'Название';
+
+  @override
+  String get entryTitleHint => 'Название записи';
+
+  @override
+  String get enterEntryTitleError => 'Введите название';
+
+  @override
+  String get entryDateFieldLabel => 'Дата записи';
+
+  @override
+  String get entryNotesHint => 'Произвольные заметки…';
+
+  @override
+  String get deleteEntryConfirmBody => 'Запись будет удалена.';
 
   @override
   String get medicationArchiveEmptyHint =>
@@ -512,29 +450,10 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get specialtyHistoryTitle => 'История по направлению';
-
-  @override
-  String get sectionUpcoming => 'Запланированные';
-
-  @override
   String get sectionPast => 'Прошедшие';
 
   @override
-  String visitPrefix(String type) {
-    return 'Визит · $type';
-  }
-
-  @override
-  String labPrefix(String name) {
-    return 'Анализ · $name';
-  }
-
-  @override
   String get emptyStateNoneYetTitle => 'Пока ничего не добавлено';
-
-  @override
-  String get specialtyHistoryEmptyHint => 'Визиты и анализы появятся здесь';
 
   @override
   String get actionCancel => 'Отмена';
@@ -546,17 +465,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get documentsLabel => 'Документы';
 
   @override
-  String get notSelectedValue => 'Не выбрано';
-
-  @override
   String get notSpecifiedValue => 'Не указано';
-
-  @override
-  String get deleteRecordBody => 'Запись будет удалена.';
-
-  @override
-  String get deleteWithDocsBody =>
-      'Запись и все прикреплённые документы будут удалены.';
 
   @override
   String get deleteSurgeryConfirmTitle => 'Удалить запись?';
@@ -565,106 +474,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editSurgeryTitle => 'Редактировать запись';
 
   @override
-  String get newSurgeryTitle => 'Новая операция или госпитализация';
-
-  @override
-  String get surgeryNameHint => 'Аппендэктомия, госпитализация…';
-
-  @override
-  String get enterSurgeryNameError => 'Введите название операции';
-
-  @override
-  String get surgeryNotesHint => 'Больница, осложнения, рекомендации…';
-
-  @override
-  String get deleteConditionConfirmTitle => 'Удалить диагноз?';
-
-  @override
-  String get editConditionTitle => 'Редактировать диагноз';
-
-  @override
-  String get newConditionTitle => 'Новый диагноз';
-
-  @override
-  String get conditionNameHint => 'Астма, диабет, гипертония…';
-
-  @override
-  String get enterConditionNameError => 'Введите название диагноза';
-
-  @override
-  String get fieldDoctorSpecialty => 'Направление врача';
-
-  @override
-  String get conditionNotesHint => 'Схема лечения, дозировка…';
-
-  @override
-  String get deleteAllergyConfirmTitle => 'Удалить аллергию?';
-
-  @override
-  String get editAllergyTitle => 'Редактировать аллергию';
-
-  @override
-  String get newAllergyTitle => 'Новая аллергия';
-
-  @override
-  String get allergenHint => 'Пенициллин, орехи, пыльца…';
-
-  @override
-  String get enterAllergenError => 'Введите название аллергена';
-
-  @override
-  String get reactionHint => 'Сыпь, отёк, одышка…';
-
-  @override
-  String get allergyNotesHint => 'Дополнительные детали…';
-
-  @override
-  String get deleteLabResultConfirmTitle => 'Удалить анализ?';
-
-  @override
-  String get editLabResultTitle => 'Редактировать анализ';
-
-  @override
-  String get newLabResultTitle => 'Новый анализ';
-
-  @override
-  String get chooseSpecialtyValue => 'Выберите направление';
-
-  @override
-  String get fieldTestName => 'Название анализа';
-
-  @override
-  String get chooseTestNameValue => 'Выберите название анализа';
-
-  @override
-  String get labResultNotesHint => 'Результаты, комментарий врача…';
-
-  @override
-  String get deleteVaccinationConfirmTitle => 'Удалить прививку?';
-
-  @override
-  String get editVaccinationTitle => 'Редактировать прививку';
-
-  @override
-  String get newVaccinationTitle => 'Новая прививка';
-
-  @override
-  String get vaccinationNameField => 'Название прививки';
-
-  @override
-  String get vaccinationNameHint => 'Столбняк, грипп, COVID-19…';
-
-  @override
-  String get enterVaccinationNameError => 'Введите название прививки';
-
-  @override
   String get removeAction => 'Убрать';
-
-  @override
-  String get notScheduledValue => 'Не запланировано';
-
-  @override
-  String get vaccinationNotesHint => 'Реакция, серия вакцины…';
 
   @override
   String get medsTitle => 'Лекарства';
@@ -922,31 +732,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get saveAndViewScheduleAction => 'Сохранить и посмотреть расписание →';
 
   @override
-  String get moreInEllyPlusLabel => 'Больше в Elly+';
-
-  @override
-  String get aiLabel => 'AI';
-
-  @override
-  String get scanPrescriptionTitle => 'Распознать рецепт по фото';
-
-  @override
-  String get scanPrescriptionSubtitle => 'Элли внесёт лекарства в расписание';
-
-  @override
-  String scansRemainingLabel(int remaining) {
-    return '$remaining сканирований осталось для тарифа Elly Free';
-  }
-
-  @override
-  String get orEnterManuallyLabel => 'или введите вручную';
-
-  @override
-  String bulkSavedSnackbar(int count) {
-    return 'Добавлено $count препаратов. Проверьте детали в списке лекарств.';
-  }
-
-  @override
   String phaseCardTitle(int number) {
     return 'Фаза $number';
   }
@@ -1169,7 +954,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String joinConsentBody(String name) {
-    return 'Вы присоединяетесь как равноправный участник — ваш собственный профиль (имя и аватар) станет видимым \"$name\". Это не отменяет и не изменяет никакие ваши данные, уже внесённые в приложение. Ваша медкарта НИКОМУ автоматически не показывается — какие именно данные будут видеть другие участники, вы настроите отдельно, уже после присоединения.';
+    return 'Вы присоединяетесь как равноправный участник — ваш собственный профиль (имя и аватар) станет видимым \"$name\". Это не отменяет и не изменяет никакие ваши данные, уже внесённые в приложение. Ваш архив НИКОМУ автоматически не показывается — какие именно данные будут видеть другие участники, вы настроите отдельно, уже после присоединения.';
   }
 
   @override
@@ -1528,21 +1313,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get antiStressLabel => 'Антистресс-упражнения';
 
   @override
-  String get antiStressPickerSubtitle => 'Выбери, что поможет прямо сейчас';
+  String get antiStressPickerSubtitle =>
+      'Короткие упражнения на несколько минут';
 
   @override
   String get breathingExerciseTitle => 'Дышим вместе';
 
   @override
   String get breathingExerciseSubtitle =>
-      'Медленное дыхание за 2 минуты успокаивает нервную систему';
+      'Медленное дыхание в своём темпе — 2 минуты';
 
   @override
   String get grounding54321Title => '5-4-3-2-1';
 
   @override
   String get grounding54321Subtitle =>
-      'Техника заземления — возвращает внимание в здесь-и-сейчас';
+      'Короткое упражнение на 5 шагов с органами чувств';
 
   @override
   String get clearMindTitle => 'Ясный ум';
@@ -1617,7 +1403,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get medcardSyncDescription =>
-      'Если выключено, аллергии, хронические заболевания, прививки, операции, анализы и визиты этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Лекарства и расписание приёма синхронизируются независимо от этого переключателя.';
+      'Если выключено, напоминания этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Лекарства и расписание приёма синхронизируются независимо от этого переключателя.';
 
   @override
   String get pendingConnectionLabel => 'Ожидаем соединения';
@@ -1636,20 +1422,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось изменить — это не ваш профиль';
 
   @override
-  String get voiceConsentTitle => 'Голосовые команды';
-
-  @override
-  String get voiceConsentDescription =>
-      'Распознавание голоса через Anthropic (Claude) — добавление лекарств, отметки приёма и другие голосовые команды.';
-
-  @override
-  String get scanConsentTitle => 'Сканирование рецептов';
-
-  @override
-  String get scanConsentDescription =>
-      'Распознавание фото рецепта или упаковки через Anthropic (Claude) — определение названия, дозировки, формы выпуска.';
-
-  @override
   String get privacyLabel => 'Конфиденциальность';
 
   @override
@@ -1657,14 +1429,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get privacyPolicyLabel => 'Политика конфиденциальности';
-
-  @override
-  String get aiConsentSectionLabel =>
-      'Согласия на обработку данных AI-функциями';
-
-  @override
-  String get consentRevokeNoteBody =>
-      'Отзыв согласия не удаляет уже обработанные данные — он лишь означает, что перед следующим использованием этой функции приложение снова запросит подтверждение.';
 
   @override
   String get dangerZoneLabel => 'Опасная зона';
@@ -1699,17 +1463,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get viewFullTextAction => 'Посмотреть полный текст';
-
-  @override
-  String consentGivenLabel(String date) {
-    return 'Предоставлено $date';
-  }
-
-  @override
-  String get consentNotGivenLabel => 'Согласие не предоставлено';
-
-  @override
-  String get revokeConsentAction => 'Отозвать согласие';
 
   @override
   String get groundStep5Title => '5 вещей, которые ты видишь';
@@ -1759,7 +1512,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get groundingSkipStepAction => 'Пропустить этот шаг';
 
   @override
-  String get groundingCompletedTitle => 'Ты вернулся(-лась) в здесь-и-сейчас';
+  String get groundingCompletedTitle => 'Упражнение завершено';
 
   @override
   String get groundingCompletedSubtitle =>
@@ -1804,7 +1557,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get voiceLanguageDescription =>
-      'Управляет языком интерфейса и распознавания голоса (голосовое управление, запись самочувствия). Пока доступны украинский, английский и русский — другие языки появятся после переводов.';
+      'Управляет языком интерфейса и надиктовки комментариев. Пока доступны украинский, английский и русский — другие языки появятся после переводов.';
 
   @override
   String get fontSizeLabel => 'Размер шрифта';
@@ -1853,7 +1606,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get saveAction => 'Сохранить';
 
   @override
-  String get appointmentsHistoryTitle => 'Визиты к врачам';
+  String get appointmentsHistoryTitle => 'Напоминания';
 
   @override
   String get sectionFuture => 'Будущие';
@@ -1868,11 +1621,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noRecordsYetTitle => 'Записей ещё нет';
 
   @override
-  String get noAppointmentsForSpecialty => 'Нет визитов по этому направлению';
+  String get noAppointmentsForSpecialty => 'Нет напоминаний с этим тегом';
 
   @override
   String get tryDifferentSpecialtyHint =>
-      'Попробуйте выбрать другое направление или сбросить фильтр';
+      'Попробуйте выбрать другой тег или сбросить фильтр';
 
   @override
   String get tapToAddFirstHint => 'Нажмите \"+ Добавить\" чтобы создать первый';
@@ -1926,16 +1679,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get remindBefore2Days => 'За 2 дня';
 
   @override
-  String get deleteAppointmentBody => 'Запись к врачу будет удалена.';
+  String get deleteAppointmentBody => 'Напоминание будет удалено.';
 
   @override
-  String get enterDoctorTypeError => 'Введите тип врача';
-
-  @override
-  String get recordVisitTitle => 'Записать визит';
-
-  @override
-  String get newAppointmentTitle => 'Запись к врачу';
+  String get newAppointmentTitle => 'Новое напоминание';
 
   @override
   String get fieldWhere => 'Где';
@@ -1956,23 +1703,40 @@ class AppLocalizationsRu extends AppLocalizations {
   String get remindBeforeLabel => 'Напомнить заранее';
 
   @override
-  String get doctorConclusionLabel => 'Заключение врача';
-
-  @override
   String get noteSingularLabel => 'Заметка';
 
   @override
-  String get doctorConclusionHint =>
-      'Что сказал врач, рекомендации, назначения…';
-
-  @override
-  String get apptNoteHint => 'Что спросить, что взять с собой…';
-
-  @override
-  String get saveVisitAction => 'Сохранить визит';
+  String get reminderNoteHint => 'Дополнительные детали…';
 
   @override
   String get saveReminderAction => 'Сохранить напоминание';
+
+  @override
+  String get reminderTitleFieldLabel => 'Название';
+
+  @override
+  String get reminderTitleHint => 'Напр. Стоматолог, Оплатить страховку…';
+
+  @override
+  String get enterReminderTitleError => 'Введите название';
+
+  @override
+  String get reminderTagsFieldLabel => 'Теги';
+
+  @override
+  String get reminderTagsHint => 'Теги через запятую (необязательно)';
+
+  @override
+  String get reminderTagsPickerTitle => 'Выберите теги';
+
+  @override
+  String get addNewTagHint => 'Новый тег';
+
+  @override
+  String get noTagsYetLabel => 'Пока нет ни одного тега';
+
+  @override
+  String get reminderPhotoLabel => 'Фото';
 
   @override
   String get monthGenJan => 'января';
@@ -2009,20 +1773,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get monthGenDec => 'декабря';
-
-  @override
-  String get symptomsTitle => 'Симптомы';
-
-  @override
-  String get symptomSearchHint => 'Поиск или новое название…';
-
-  @override
-  String get symptomListEmptyLabel => 'Список пуст';
-
-  @override
-  String addCustomSymptomLabel(String query) {
-    return 'Добавить «$query»';
-  }
 
   @override
   String get historyLabel => 'История';
@@ -2147,10 +1897,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get comingSoonEllipsis => 'Скоро...';
 
   @override
-  String get sendDiaryToDoctorLabel => 'Отправить дневник врачу';
+  String get sendDiaryToDoctorLabel => 'Поделиться итогом';
 
   @override
-  String get diarySummaryHint => 'Чек-ины + симптомы + приёмы за месяц';
+  String get diarySummaryHint => 'Чек-ины самочувствия и приёмы за месяц';
 
   @override
   String get moodBadLabel => 'Плохо';
@@ -2183,14 +1933,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get howAreYouFeelingLabel => 'Как вы себя чувствуете?';
 
   @override
-  String get anySymptomsLabel => 'Есть симптомы?';
+  String get anySymptomsLabel => 'Теги';
 
   @override
-  String get chooseFromListOrAddLabel =>
-      'Выберите из списка распространённых или добавьте своё';
-
-  @override
-  String get symptomsNotSelectedLabel => 'Симптомы не выбраны';
+  String get chooseFromListOrAddLabel => 'Добавьте свои теги (необязательно)';
 
   @override
   String get commentLabel => 'Комментарий';
@@ -2230,156 +1976,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get preparingMicLabel => 'Готовимся… подождите секунду';
-
-  @override
-  String get symptomHeadache => 'головная боль';
-
-  @override
-  String get symptomNausea => 'тошнота';
-
-  @override
-  String get symptomDizziness => 'головокружение';
-
-  @override
-  String get symptomWeakness => 'слабость';
-
-  @override
-  String get symptomShortnessOfBreath => 'одышка';
-
-  @override
-  String get symptomRash => 'сыпь';
-
-  @override
-  String get symptomPain => 'боль';
-
-  @override
-  String get symptomFever => 'температура';
-
-  @override
-  String get symptomCough => 'кашель';
-
-  @override
-  String get symptomSoreThroat => 'боль в горле';
-
-  @override
-  String get symptomRunnyNose => 'насморк';
-
-  @override
-  String get symptomStuffyNose => 'заложенность носа';
-
-  @override
-  String get symptomSneezing => 'чихание';
-
-  @override
-  String get symptomVomiting => 'рвота';
-
-  @override
-  String get symptomDiarrhea => 'диарея';
-
-  @override
-  String get symptomConstipation => 'запор';
-
-  @override
-  String get symptomBloating => 'вздутие живота';
-
-  @override
-  String get symptomHeartburn => 'изжога';
-
-  @override
-  String get symptomStomachPain => 'боль в животе';
-
-  @override
-  String get symptomLossOfAppetite => 'потеря аппетита';
-
-  @override
-  String get symptomIncreasedAppetite => 'повышенный аппетит';
-
-  @override
-  String get symptomInsomnia => 'бессонница';
-
-  @override
-  String get symptomDrowsiness => 'сонливость';
-
-  @override
-  String get symptomFatigue => 'усталость';
-
-  @override
-  String get symptomChestPain => 'боль в груди';
-
-  @override
-  String get symptomPalpitations => 'учащённое сердцебиение';
-
-  @override
-  String get symptomHighBloodPressure => 'повышенное давление';
-
-  @override
-  String get symptomLowBloodPressure => 'пониженное давление';
-
-  @override
-  String get symptomBackPain => 'боль в спине';
-
-  @override
-  String get symptomJointPain => 'боль в суставах';
-
-  @override
-  String get symptomMusclePain => 'боль в мышцах';
-
-  @override
-  String get symptomCramps => 'судороги';
-
-  @override
-  String get symptomSwelling => 'отёки';
-
-  @override
-  String get symptomItching => 'зуд';
-
-  @override
-  String get symptomDrySkin => 'сухость кожи';
-
-  @override
-  String get symptomBruising => 'синяки';
-
-  @override
-  String get symptomDryMouth => 'сухость во рту';
-
-  @override
-  String get symptomExcessiveSweating => 'повышенная потливость';
-
-  @override
-  String get symptomChills => 'озноб';
-
-  @override
-  String get symptomBlurredVision => 'нечёткое зрение';
-
-  @override
-  String get symptomRingingInEars => 'звон в ушах';
-
-  @override
-  String get symptomNumbness => 'онемение';
-
-  @override
-  String get symptomTremor => 'тремор';
-
-  @override
-  String get symptomMemoryIssues => 'проблемы с памятью';
-
-  @override
-  String get symptomConcentrationIssues => 'проблемы с концентрацией';
-
-  @override
-  String get symptomAnxiety => 'тревожность';
-
-  @override
-  String get symptomIrritability => 'раздражительность';
-
-  @override
-  String get symptomMoodSwings => 'перепады настроения';
-
-  @override
-  String get symptomWeightLoss => 'потеря веса';
-
-  @override
-  String get symptomWeightGain => 'набор веса';
 
   @override
   String get restoreErrorBody =>
@@ -2537,7 +2133,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get scanOrEnterManuallyHint =>
-      'Сканируйте фото рецепта или введите вручную';
+      'Добавьте лекарства, которые принимаете сейчас';
 
   @override
   String get addMedsShortAction => 'Добавить лекарства';
@@ -2589,251 +2185,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get almostDoneAction => 'Почти готово →';
 
   @override
-  String get scanNoResultsError =>
-      'Не удалось распознать лекарство на фото. Попробуйте сделать более чёткое фото.';
-
-  @override
-  String scanErrorWithMessage(String error) {
-    return 'Ошибка сканирования: $error';
-  }
-
-  @override
-  String get scanPrescriptionScreenTitle => 'Сканировать рецепт';
-
-  @override
-  String get beforeYouStartTitle => 'Прежде чем начать';
-
-  @override
-  String get scanConsentDisclaimerBody =>
-      'Чтобы распознать лекарство, фото рецепта или упаковки отправляется сервису Anthropic (Claude). Фото используется только для распознавания и нигде не сохраняется после ответа.';
-
-  @override
-  String get scanDosageWarningPrefix =>
-      '⚠️ Распознавание названия, дозировки и расписания может содержать ошибки. ';
-
-  @override
-  String get alwaysCheckInstructionsLabel =>
-      'Всегда сверяйтесь с инструкцией к препарату.';
-
-  @override
-  String get understoodAgreeAction => 'Понятно, соглашаюсь';
-
-  @override
-  String get takePhotoInstructionsBody =>
-      'Сфотографируйте рецепт или упаковку. Можно добавить несколько фото, если лекарств несколько.';
-
-  @override
-  String get cameraLabel => 'Камера';
-
-  @override
-  String get galleryLabel => 'Галерея';
-
-  @override
-  String get scanAction => 'Сканировать';
-
-  @override
-  String scanRecognizedCountLabel(int count) {
-    return 'Распознано $count. Проверьте перед добавлением:';
-  }
-
-  @override
-  String get expandAndConfirmHint =>
-      'Разверните препарат, проверьте данные и поставьте галочку, чтобы подтвердить добавление.';
-
-  @override
-  String get chooseMedsAction => 'Выберите препараты';
-
-  @override
-  String addSelectedCountAction(int count) {
-    return 'Добавить выбранные ($count)';
-  }
-
-  @override
-  String get scheduleTimeMorning => 'Утром';
-
-  @override
-  String get scheduleTimeAfternoon => 'Днём';
-
-  @override
-  String get scheduleTimeEvening => 'Вечером';
-
-  @override
-  String get scheduleTimeNight => 'Ночью';
-
-  @override
-  String get unnamedMedLabel => 'Без названия';
-
-  @override
-  String get medNameCapsLabel => 'НАЗВАНИЕ';
-
-  @override
-  String get releaseFormCapsLabel => 'ФОРМА ВЫПУСКА';
-
-  @override
-  String get doseCapsLabel => 'ДОЗА';
-
-  @override
-  String get courseDurationCapsLabel => 'ДЛИТЕЛЬНОСТЬ КУРСА';
-
-  @override
-  String get foodRelationCapsLabel => 'СВЯЗЬ С ЕДОЙ';
-
-  @override
-  String get confirmedCheckLabel => 'Подтверждено ✓';
-
-  @override
-  String get confirmAllCorrectAction => 'Всё верно, подтвердить';
-
-  @override
-  String get somethingWentWrongTitle => 'Что-то пошло не так';
-
-  @override
-  String sttErrorLabel(String error) {
-    return 'Ошибка STT: $error';
-  }
-
-  @override
-  String get speechNotAvailableError =>
-      'Распознавание речи недоступно на этом устройстве';
-
-  @override
-  String get nothingHeardError => 'Ничего не услышано. Попробуй ещё раз.';
-
-  @override
-  String analysisErrorWithMessage(String error) {
-    return 'Ошибка анализа: $error';
-  }
-
-  @override
-  String get commandNotRecognizedError => 'Не удалось распознать команду';
-
-  @override
-  String get voiceControlTitle => 'Голосовое управление';
-
-  @override
-  String get voiceConsentDisclaimerBody =>
-      'Распознавание голоса происходит на устройстве. Но чтобы понять команду, текст твоей фразы отправляется сервису Anthropic (Claude). Эта функция распознаёт только 3 команды: добавить лекарство, добавить активность или запись к врачу — свободное описание самочувствия или симптомов сюда никогда не отправляется, для этого есть отдельное поле в дневнике самочувствия, которое остаётся только на устройстве.';
-
-  @override
-  String get voiceExampleMedQuote =>
-      '\"Добавь Эналаприл 10 мг утром и вечером\"';
-
-  @override
-  String get voiceExampleMedDesc =>
-      'Откроет форму лекарства с заполненными полями. Распознаёт не все препараты — проверьте поля перед сохранением.';
-
-  @override
-  String get voiceExampleActivityQuote =>
-      '\"Добавь зарядку дважды в день утром и вечером\"';
-
-  @override
-  String get voiceExampleActivityDesc =>
-      'Откроет форму активности с заполненными полями';
-
-  @override
-  String get voiceExampleApptQuote => '\"Запись к кардиологу в пятницу в 10\"';
-
-  @override
-  String get voiceExampleApptDesc => 'Откроет форму записи к врачу';
-
-  @override
-  String get whatToDoTitle => 'Что хочешь сделать?';
-
-  @override
-  String get tapAndSayCommandHint =>
-      'Нажми и скажи команду\nили начни говорить';
-
-  @override
-  String dictateLanguageHint(String language) {
-    return 'Диктуйте на языке $language. Изменить можно в Профиль → Язык.';
-  }
-
-  @override
-  String get commandExamplesCapsLabel => 'ПРИМЕРЫ КОМАНД';
-
-  @override
-  String get experimentalFeatureNotice =>
-      'Это экспериментальная функция — распознавание может заполнить данные неточно, всегда проверяйте форму перед сохранением.';
-
-  @override
-  String get holdAndSpeakAction => 'Удерживай и говори';
-
-  @override
-  String get listeningEllipsisLabel => 'Слушаю...';
-
-  @override
-  String get preparingEllipsisLabel => 'Готовимся...';
-
-  @override
-  String get tapMicToStopHint => 'Нажми на микрофон, чтобы остановить';
-
-  @override
-  String get waitBeforeSpeakingHint =>
-      'Подождите секунду перед тем, как говорить';
-
-  @override
-  String quotedTextLabel(String text) {
-    return '\"$text\"';
-  }
-
-  @override
-  String get analyzingCommandLabel => 'Анализирую команду...';
-
-  @override
-  String get actionCapsLabel => 'ДЕЙСТВИЕ';
-
-  @override
-  String get drugCapsLabel => 'ПРЕПАРАТ';
-
-  @override
-  String get activityCapsLabel => 'АКТИВНОСТЬ';
-
-  @override
-  String get scheduleCapsLabel => 'РАСПИСАНИЕ';
-
-  @override
-  String get doctorCapsLabel => 'ВРАЧ';
-
-  @override
-  String get addActivityActionLabel => 'Добавить активность';
-
-  @override
-  String get unknownCommandLabel => 'Неизвестная команда';
-
-  @override
-  String get youSaidCapsLabel => 'ТЫ СКАЗАЛ';
-
-  @override
-  String get iUnderstoodLabel => 'Я понял так:';
-
-  @override
-  String get clarifyOneMoreLabel => 'Уточни ещё кое-что';
-
-  @override
-  String get foodRelationClarifyHint =>
-      'Ты не сказал, до или после еды. Выбери ниже или пропусти';
-
-  @override
   String get foodOptBefore => 'До еды';
 
   @override
   String get foodOptAfter => 'После еды';
 
   @override
-  String get foodOptNotImportant => 'Не важно';
-
-  @override
   String get refFoodAnyLabel => 'Независимо от еды';
-
-  @override
-  String get nextShortAction => 'Далее';
 
   @override
   String get backupScreenTitle => 'Резервная копия';
 
   @override
   String get backupIntroBody =>
-      'Лекарства, расписание, медкарта (фото/PDF) и все остальные данные — выбирайте, где хранить резервную копию.';
+      'Лекарства, расписание, архив (фото) и все остальные данные — выбирайте, где хранить резервную копию.';
 
   @override
   String get backupModeLocalTitle => 'Только на устройстве';
@@ -2987,12 +2352,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get freeFeatureUnlimitedMeds => 'Неограниченно лекарств и медкарт';
 
   @override
-  String get freeFeatureScanLimit => '3 сканирования фото рецепта';
-
-  @override
-  String get freeFeatureVoiceLimit => '5 голосовых команд';
-
-  @override
   String get freeFeatureLocalBackup => 'Локально + копия в Google Drive/iCloud';
 
   @override
@@ -3000,12 +2359,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get plusFeatureAllFree => 'Всё из бесплатного';
-
-  @override
-  String get plusFeatureUnlimitedScans => 'Неограниченные сканирования фото';
-
-  @override
-  String get plusFeatureUnlimitedVoice => 'Неограниченные голосовые команды';
 
   @override
   String get plusFeatureServerSync => 'Синхронизация с сервером (зашифровано)';
@@ -3154,21 +2507,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addTypeSheetSubtitle => 'Выберите тип — форма подстроится';
 
   @override
-  String get addTypeMedsSub => 'Расписание, дозировка, AI-скан рецепта';
+  String get addTypeMedsSub => 'Расписание, дозировка, повторение';
 
   @override
   String get addTypeActivitySub => 'Прогулка, зарядка, упражнения, ЛФК';
 
   @override
+  String get addTypeAppointmentSub => 'Дата, время и напоминание о чём угодно';
+
+  @override
   String get addTypeWellbeingSub =>
-      'Сделать чек-ин — настроение, симптомы, комментарий';
-
-  @override
-  String get addTypeAppointmentSub =>
-      'Выбрать специалиста, время и получить напоминание';
-
-  @override
-  String get voiceCommandLabel => 'Голосовая команда';
+      'Сделать чек-ин — настроение, теги, комментарий';
 
   @override
   String get faqGroupPrivacyTitle => 'Приватность и данные';
@@ -3226,17 +2575,6 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get faqFamilyA3 =>
       'Настраивается в Профиль → Видимость для семьи — отдельно для каждого профиля.';
-
-  @override
-  String get faqGroupAiTitle => 'AI-функции';
-
-  @override
-  String get faqAiQ1 =>
-      'Куда идут данные при голосовом вводе или скане рецепта?';
-
-  @override
-  String get faqAiA1 =>
-      'Распознавание происходит через модель Claude от Anthropic — это явно указывается в запросе согласия перед первым использованием каждой функции. Свободное текстовое описание самочувствия или симптомов в облако никогда не отправляется.';
 
   @override
   String get faqNotificationsQ1 => 'Почему не приходят напоминания?';
@@ -3544,103 +2882,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chooseProfileLabel => 'Выберите профиль';
 
   @override
-  String get otherSpecialtyDialogTitle => 'Другое направление';
-
-  @override
-  String get otherSpecialtyHint => 'Напр. Гомеопат';
-
-  @override
   String get chooseAction => 'Выбрать';
-
-  @override
-  String get doctorSpecialtyPickerTitle => 'Направление врача';
-
-  @override
-  String get specialtySearchHint => 'Поиск…';
-
-  @override
-  String get specialtyTherapist => 'Терапевт';
-
-  @override
-  String get specialtyPediatrician => 'Педиатр';
-
-  @override
-  String get specialtyFamilyDoctor => 'Семейный врач';
-
-  @override
-  String get specialtyCardiologist => 'Кардиолог';
-
-  @override
-  String get specialtyNeurologist => 'Невролог';
-
-  @override
-  String get specialtyEndocrinologist => 'Эндокринолог';
-
-  @override
-  String get specialtyGastroenterologist => 'Гастроэнтеролог';
-
-  @override
-  String get specialtyDermatologist => 'Дерматолог';
-
-  @override
-  String get specialtyOphthalmologist => 'Офтальмолог';
-
-  @override
-  String get specialtyEnt => 'ЛОР (Отоларинголог)';
-
-  @override
-  String get specialtyDentist => 'Стоматолог';
-
-  @override
-  String get specialtyGynecologist => 'Гинеколог';
-
-  @override
-  String get specialtyUrologist => 'Уролог';
-
-  @override
-  String get specialtySurgeon => 'Хирург';
-
-  @override
-  String get specialtyOrthopedist => 'Ортопед';
-
-  @override
-  String get specialtyTraumatologist => 'Травматолог';
-
-  @override
-  String get specialtyAllergist => 'Аллерголог';
-
-  @override
-  String get specialtyImmunologist => 'Иммунолог';
-
-  @override
-  String get specialtyPsychiatrist => 'Психиатр';
-
-  @override
-  String get specialtyPsychotherapist => 'Психотерапевт';
-
-  @override
-  String get specialtyUltrasoundDiagnostics => 'УЗИ-диагностика';
-
-  @override
-  String get specialtyOncologist => 'Онколог';
-
-  @override
-  String get specialtyRheumatologist => 'Ревматолог';
-
-  @override
-  String get specialtyPulmonologist => 'Пульмонолог';
-
-  @override
-  String get specialtyNephrologist => 'Нефролог';
-
-  @override
-  String get specialtyPhlebologist => 'Флеболог';
-
-  @override
-  String get specialtyMammologist => 'Маммолог';
-
-  @override
-  String get specialtyOther => 'Другое';
 
   @override
   String get noDocumentsLabel => 'Нет документов';
@@ -3651,156 +2893,6 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get documentsPrivacyHint =>
       'Хранится только на устройстве (и в облаке, если включена резервная копия) — приложение не просматривает и не анализирует эти файлы.';
-
-  @override
-  String get labTestCbc => 'Общий анализ крови';
-
-  @override
-  String get labTestUrinalysis => 'Общий анализ мочи';
-
-  @override
-  String get labTestBloodChemistry => 'Биохимический анализ крови';
-
-  @override
-  String get labTestBloodGlucose => 'Глюкоза крови';
-
-  @override
-  String get labTestLipidProfile => 'Липидный профиль (холестерин)';
-
-  @override
-  String get labTestTsh => 'Гормоны щитовидной железы (ТТГ)';
-
-  @override
-  String get labTestFreeT3 => 'Т3 свободный';
-
-  @override
-  String get labTestFreeT4 => 'Т4 свободный';
-
-  @override
-  String get labTestLiverEnzymes => 'Печёночные пробы (АЛТ, АСТ)';
-
-  @override
-  String get labTestBilirubin => 'Билирубин';
-
-  @override
-  String get labTestCreatinine => 'Креатинин';
-
-  @override
-  String get labTestUrea => 'Мочевина';
-
-  @override
-  String get labTestUricAcid => 'Мочевая кислота';
-
-  @override
-  String get labTestSerumIron => 'Железо сыворотки';
-
-  @override
-  String get labTestFerritin => 'Ферритин';
-
-  @override
-  String get labTestVitaminD => 'Витамин D';
-
-  @override
-  String get labTestVitaminB12 => 'Витамин B12';
-
-  @override
-  String get labTestFolicAcid => 'Фолиевая кислота';
-
-  @override
-  String get labTestCoagulogram => 'Коагулограмма';
-
-  @override
-  String get labTestBloodType => 'Группа крови и резус-фактор';
-
-  @override
-  String get labTestCrp => 'С-реактивный белок (СРБ)';
-
-  @override
-  String get labTestEsr => 'Скорость оседания эритроцитов (СОЭ)';
-
-  @override
-  String get labTestEstrogenProgesterone => 'Эстроген, прогестерон';
-
-  @override
-  String get labTestTestosterone => 'Тестостерон';
-
-  @override
-  String get labTestProlactin => 'Пролактин';
-
-  @override
-  String get labTestInsulin => 'Инсулин';
-
-  @override
-  String get labTestHba1c => 'Гликированный гемоглобин (HbA1c)';
-
-  @override
-  String get labTestPcr => 'ПЦР-тест';
-
-  @override
-  String get labTestAllergens => 'Анализ на аллергены';
-
-  @override
-  String get labTestCoprogram => 'Копрограмма';
-
-  @override
-  String get labTestOccultBlood => 'Анализ кала на скрытую кровь';
-
-  @override
-  String get labTestFloraSwab => 'Мазок на флору';
-
-  @override
-  String get labTestUrineCulture => 'Посев мочи на стерильность';
-
-  @override
-  String get labTestHepatitis => 'Анализ на гепатиты (B, C)';
-
-  @override
-  String get labTestHiv => 'ВИЧ-тест';
-
-  @override
-  String get labTestSyphilis => 'RW (сифилис)';
-
-  @override
-  String get labTestCalcium => 'Кальций';
-
-  @override
-  String get labTestMagnesium => 'Магний';
-
-  @override
-  String get labTestElectrolytesKNaCl => 'Калий, натрий, хлор';
-
-  @override
-  String get labTestAmylase => 'Амилаза';
-
-  @override
-  String get labTestLipase => 'Липаза';
-
-  @override
-  String get labTestPsa => 'ПСА (простатспецифический антиген)';
-
-  @override
-  String get labTestTumorMarkers => 'Онкомаркеры (СА-125)';
-
-  @override
-  String get labTestParasites => 'Анализ на паразитов (яйца гельминтов)';
-
-  @override
-  String get labTestCortisol => 'Кортизол';
-
-  @override
-  String get labTestImmunogram => 'Иммунограмма';
-
-  @override
-  String get labTestSpermogram => 'Спермограмма';
-
-  @override
-  String get labTestBloodElectrolytes => 'Электролиты крови';
-
-  @override
-  String get labTestTotalProtein => 'Общий белок';
-
-  @override
-  String get labTestDDimer => 'Д-димер';
 
   @override
   String get notifChannelName => 'Напоминания Elly';
@@ -3837,20 +2929,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notifActivityNoResponseTitle => '🔔 Вы ещё не отметили активность';
 
   @override
-  String get notifAppointmentTitle => '🩺 Приём врача';
+  String get notifAppointmentTitle => '🔔 Напоминание';
 
   @override
   String get notifAppointmentNoResponseTitle =>
-      '🔔 Не забудьте про приём врача';
+      '🔔 Не забудьте про напоминание';
 
   @override
   String get notifWellbeingTitle => '💜 Чек-ин самочувствия';
 
   @override
   String get notifWellbeingBody => 'Как вы себя чувствуете?';
-
-  @override
-  String get notifVaccinationTitle => '💉 Время ревакцинации';
 
   @override
   String notifPeerCheckTitle(String subjectName) {
@@ -3869,7 +2958,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String notifPeerAppointmentCheckBody(String doctorType, String timeStr) {
-    return 'Состоялся ли приём (\"$doctorType\") в $timeStr? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.';
+    return 'Состоялось ли напоминание (\"$doctorType\") в $timeStr? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.';
   }
 
   @override

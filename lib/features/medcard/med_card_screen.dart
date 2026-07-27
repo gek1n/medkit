@@ -5,19 +5,23 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/medcard_icons.dart';
+import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/medcard_sections_repository.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
 import '../today/providers/today_providers.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
-import 'allergies_screen.dart';
-import 'chronic_conditions_screen.dart';
-import 'lab_results_screen.dart';
+import 'add_medcard_section_screen.dart';
+import 'medcard_section_screen.dart';
 import 'medication_archive_screen.dart';
-import 'specialty_history_screen.dart';
-import 'surgeries_screen.dart';
-import 'vaccinations_screen.dart';
+
+final _medcardSectionsProvider =
+    StreamProvider.family<List<MedcardSection>, int>((ref, memberId) {
+  return ref.watch(medcardSectionsRepositoryProvider).watchByMember(memberId);
+});
 
 class MedCardScreen extends ConsumerStatefulWidget {
   const MedCardScreen({super.key});
@@ -32,7 +36,7 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
   @override
   Widget build(BuildContext context) {
     // Якщо десь у застосунку активовано перегляд "від імені" іншого члена
-    // сім'ї — Медкартка теж підхоплює цей вибір (доки користувач сам не
+    // сім'ї — Архів теж підхоплює цей вибір (доки користувач сам не
     // перемкне когось локально через пілюлю), той самий патерн, що й у
     // Розкладі.
     ref.listen<int?>(activeMemberIdProvider, (prev, next) {
@@ -57,15 +61,6 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
               (m) => m.id == (_selectedMemberId ?? defaultMember.id),
               orElse: () => defaultMember,
             );
-            // ⚠️ FamilyVisibilityService/FamilyGrants навмисно НЕ застосовується
-            // тут — currentMemberProvider/allMembersProvider завжди читають
-            // лише ЛОКАЛЬНУ таблицю Members (owner + dependent-профілі, якими
-            // керує власник цього пристрою напряму); незалежні автономні
-            // учасники в цій таблиці ніколи не з'являються (живуть виключно
-            // як FamilyPeers, див. members_table.dart). Той гейт вимагав явний
-            // грант видимості, якого для dependent-профілю просто нізвідки
-            // взятися — тож медкартка будь-якого локального dependent
-            // назавжди показувала б "Медкартка прихована".
             final showBanner = shouldShowSwitchBanner(activeId, selected.role);
             return _MedCardBody(
               memberId: selected.id,
@@ -82,7 +77,7 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
   }
 }
 
-class _MedCardBody extends StatelessWidget {
+class _MedCardBody extends ConsumerWidget {
   final int memberId;
   final String memberName;
   final bool showSwitchBanner;
@@ -99,7 +94,9 @@ class _MedCardBody extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sectionsAsync = ref.watch(_medcardSectionsProvider(memberId));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -132,33 +129,6 @@ class _MedCardBody extends StatelessWidget {
               48,
             ),
             children: [
-              // Головний розділ — виділений окремо стилем картки й
-              // відступом, щоб не губився серед решти однакових плиток.
-              _MedCardHighlightTile(
-                icon: Icons.timeline_rounded,
-                title: context.l10n.medCardHistoryByDoctorTitle,
-                subtitle: context.l10n.medCardHistoryByDoctorSubtitle,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SpecialtyHistoryScreen(memberId: memberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.lg),
-              _MedCardTile(
-                icon: Icons.biotech_rounded,
-                iconColor: AppColors.info,
-                title: context.l10n.labResultsTitle,
-                subtitle: context.l10n.medCardLabResultsSubtitle,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LabResultsScreen(memberId: memberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
                 icon: Icons.medication_liquid_rounded,
                 iconColor: AppColors.primary,
@@ -197,55 +167,68 @@ class _MedCardBody extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: AppDimensions.sm),
-              _MedCardTile(
-                icon: Icons.warning_amber_rounded,
-                iconColor: AppColors.danger,
-                title: context.l10n.allergiesTitle,
-                subtitle: context.l10n.medCardAllergiesSubtitle,
+
+              // ── Довільні розділи, створені користувачем ──
+              sectionsAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+                data: (sections) {
+                  if (sections.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    children: [
+                      const SizedBox(height: AppDimensions.lg),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          context.l10n.customSectionsHeader,
+                          style: AppTextStyles.labelSm.copyWith(color: AppColors.textMuted),
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.sm),
+                      ...sections.map((s) => Padding(
+                            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                            child: _MedCardTile(
+                              icon: medcardIconFor(s.iconKey),
+                              iconColor: colorFromHex(s.color) ?? AppColors.primary,
+                              title: s.name,
+                              subtitle: s.comment,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MedcardSectionScreen(section: s),
+                                ),
+                              ),
+                            ),
+                          )),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: AppDimensions.lg),
+              GestureDetector(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => AllergiesScreen(memberId: memberId),
+                    builder: (_) => AddMedcardSectionScreen(memberId: memberId),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-              _MedCardTile(
-                icon: Icons.favorite_rounded,
-                iconColor: AppColors.danger,
-                title: context.l10n.chronicConditionsSectionTitle,
-                subtitle: context.l10n.medCardChronicConditionsSubtitle,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChronicConditionsScreen(memberId: memberId),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                    border: Border.all(color: AppColors.border, width: 1.5),
                   ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-              _MedCardTile(
-                icon: Icons.vaccines_rounded,
-                iconColor: AppColors.warning,
-                title: context.l10n.vaccinationsTitle,
-                subtitle: context.l10n.medCardVaccinationsSubtitle,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => VaccinationsScreen(memberId: memberId),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-              _MedCardTile(
-                icon: Icons.local_hospital_rounded,
-                iconColor: AppColors.warning,
-                title: context.l10n.surgeriesSectionTitle,
-                subtitle: null,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => SurgeriesScreen(memberId: memberId),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_rounded, size: 18, color: AppColors.textMuted),
+                      const SizedBox(width: 6),
+                      Text(
+                        context.l10n.addSectionAction,
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.textMuted),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -253,67 +236,6 @@ class _MedCardBody extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Той самий розділ, що й [_MedCardTile], але виділений кольором/рамкою —
-/// для головного, найважливішого пункту медкартки (Історія лікування).
-class _MedCardHighlightTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _MedCardHighlightTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppDimensions.md),
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(color: AppColors.primary, width: 1.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              ),
-              child: Icon(icon, size: 22, color: Colors.white),
-            ),
-            const SizedBox(width: AppDimensions.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: AppTextStyles.labelLg.copyWith(color: AppColors.primaryDark)),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.primaryDark),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -36,7 +36,7 @@ abstract final class AttachmentCleanupService {
       await deletePaths(m.photoPaths);
     }
     final appointments =
-        await (db.select(db.doctorAppointments)..where((t) => t.memberId.equals(memberId))).get();
+        await (db.select(db.reminders)..where((t) => t.memberId.equals(memberId))).get();
     for (final a in appointments) {
       await deletePaths(a.documentPaths);
     }

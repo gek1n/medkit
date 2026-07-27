@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/services/ai_consent_service.dart';
 import '../../core/services/app_lock_service.dart';
 import '../../core/services/family_sync_service.dart';
 import '../../core/services/privacy_consent_service.dart';
@@ -15,31 +14,6 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../legal/privacy_policy_screen.dart';
 import '../today/providers/today_providers.dart';
 
-class _ConsentInfo {
-  final String kind;
-  final IconData icon;
-  final String title;
-  final String description;
-  const _ConsentInfo(this.kind, this.icon, this.title, this.description);
-}
-
-const _consentKinds = ['voice', 'scan'];
-
-List<_ConsentInfo> _consentsFor(BuildContext context) => [
-      _ConsentInfo(
-        'voice',
-        Icons.mic_rounded,
-        context.l10n.voiceConsentTitle,
-        context.l10n.voiceConsentDescription,
-      ),
-      _ConsentInfo(
-        'scan',
-        Icons.document_scanner_rounded,
-        context.l10n.scanConsentTitle,
-        context.l10n.scanConsentDescription,
-      ),
-    ];
-
 class PrivacyScreen extends ConsumerStatefulWidget {
   const PrivacyScreen({super.key});
 
@@ -48,7 +22,6 @@ class PrivacyScreen extends ConsumerStatefulWidget {
 }
 
 class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
-  final Map<String, DateTime?> _dates = {};
   DateTime? _policyAcceptedAt;
   String? _policyAcceptedVersion;
   bool _appLockEnabled = false;
@@ -61,9 +34,6 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   }
 
   Future<void> _load() async {
-    for (final kind in _consentKinds) {
-      _dates[kind] = await AiConsentService.consentDate(kind);
-    }
     _policyAcceptedAt = await PrivacyConsentService.acceptedAt();
     _policyAcceptedVersion = await PrivacyConsentService.acceptedVersion();
     _appLockEnabled = await AppLockService.isEnabled();
@@ -73,11 +43,6 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   Future<void> _toggleAppLock(bool value) async {
     setState(() => _appLockEnabled = value);
     await AppLockService.setEnabled(value);
-  }
-
-  Future<void> _revoke(String kind) async {
-    await AiConsentService.revokeConsent(kind);
-    if (mounted) setState(() => _dates[kind] = null);
   }
 
   Future<void> _confirmDeleteProfile(Member member) async {
@@ -172,25 +137,6 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                         _PolicyConsentTile(
                           acceptedAt: _policyAcceptedAt,
                           acceptedVersion: _policyAcceptedVersion,
-                        ),
-                        const SizedBox(height: AppDimensions.xl),
-                        Text(context.l10n.aiConsentSectionLabel,
-                            style: AppTextStyles.bodyMd.copyWith(
-                                fontSize: 15, fontWeight: FontWeight.w800)),
-                        const SizedBox(height: AppDimensions.md),
-                        for (final c in _consentsFor(context)) ...[
-                          _ConsentTile(
-                            info: c,
-                            date: _dates[c.kind],
-                            onRevoke: () => _revoke(c.kind),
-                          ),
-                          const SizedBox(height: AppDimensions.md),
-                        ],
-                        const SizedBox(height: AppDimensions.sm),
-                        Text(
-                          context.l10n.consentRevokeNoteBody,
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: AppColors.textMuted),
                         ),
                         if (member != null) ...[
                           const SizedBox(height: AppDimensions.xl),
@@ -404,91 +350,3 @@ class _PolicyConsentTile extends StatelessWidget {
   }
 }
 
-class _ConsentTile extends StatelessWidget {
-  final _ConsentInfo info;
-  final DateTime? date;
-  final VoidCallback onRevoke;
-
-  const _ConsentTile({
-    required this.info,
-    required this.date,
-    required this.onRevoke,
-  });
-
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-
-  @override
-  Widget build(BuildContext context) {
-    final given = date != null;
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: (given ? AppColors.primary : AppColors.textMuted)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-                child: Center(
-                  child: Icon(info.icon,
-                      size: 20,
-                      color:
-                          given ? AppColors.primary : AppColors.textMuted),
-                ),
-              ),
-              const SizedBox(width: AppDimensions.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(info.title, style: AppTextStyles.labelLg),
-                    const SizedBox(height: 2),
-                    Text(
-                      given
-                          ? context.l10n.consentGivenLabel(_formatDate(date!))
-                          : context.l10n.consentNotGivenLabel,
-                      style: AppTextStyles.bodySm.copyWith(
-                          color: given
-                              ? AppColors.primary
-                              : AppColors.textMuted),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.sm),
-          Text(info.description,
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub)),
-          if (given) ...[
-            const SizedBox(height: AppDimensions.sm),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onRevoke,
-                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: Text(context.l10n.revokeConsentAction),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}

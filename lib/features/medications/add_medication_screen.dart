@@ -6,12 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../core/providers/plan_provider.dart';
-import '../../core/services/ai_usage_service.dart';
 import '../../core/services/camera_permission_service.dart';
-import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/photo_service.dart';
-import '../../core/services/prescription_scan_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -26,29 +22,16 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
-import '../plans/plans_screen.dart';
-import '../scan/prescription_scan_screen.dart';
 import '../today/providers/today_providers.dart';
-
-TimeOfDay _defaultTimeForSchedule(String s) => switch (s) {
-  'morning' => const TimeOfDay(hour: 8, minute: 0),
-  'afternoon' => const TimeOfDay(hour: 13, minute: 0),
-  'evening' => const TimeOfDay(hour: 19, minute: 0),
-  'night' => const TimeOfDay(hour: 22, minute: 0),
-  _ => const TimeOfDay(hour: 8, minute: 0),
-};
 
 class AddMedicationScreen extends ConsumerStatefulWidget {
   final int? memberId;
   final Medication? existing;
-  // Транзитний префіл із голосової команди (не з БД, на відміну від
-  // [existing]) — та ж модель, що й для скану рецепта.
-  final ScannedMedication? voicePrefill;
   // Онбординг: власного профілю ще не існує в БД на момент показу цього
   // екрана (створюється лише в кінці онбордингу, інакше _RootRouter
   // перемкнув би застосунок на головний екран до завершення решти кроків).
-  // Коли задано — стандартний флоу створення (форма + скан) лишається без
-  // змін, але замість запису в БД компаньйон (з фіктивним memberId, який
+  // Коли задано — стандартний флоу створення (форма) лишається без змін,
+  // але замість запису в БД компаньйон (з фіктивним memberId, який
   // викликач підмінить на реальний) повертається сюди, а екран одразу
   // закривається з результатом true.
   final void Function(MedicationsCompanion draft)? onDraftCreated;
@@ -56,7 +39,6 @@ class AddMedicationScreen extends ConsumerStatefulWidget {
     super.key,
     this.memberId,
     this.existing,
-    this.voicePrefill,
     this.onDraftCreated,
   }) : assert(
          memberId != null || onDraftCreated != null,
@@ -128,52 +110,17 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
   bool _isSaving = false;
 
-  // null = ще завантажується; true/false — чи лишились безкоштовні спроби
-  // скану (завжди true для платних планів).
-  bool? _canScan;
-
-  // null = необмежено (платний план) — тоді лічильник у банері не показуємо.
-  int? _scansRemaining;
-
-  Future<void> _refreshScanAvailability() async {
-    final plan = ref.read(planProvider);
-    if (plan.isPaid) {
-      if (mounted) {
-        setState(() {
-          _canScan = true;
-          _scansRemaining = null;
-        });
-      }
-      return;
-    }
-    final used = await ref.read(aiUsageServiceProvider).getPhotoScansUsed();
-    final remaining = (AiUsageService.photoScanLimit - used).clamp(0, AiUsageService.photoScanLimit);
-    if (remaining == 0) unawaited(MarketingTopicsService.markHitScanLimit());
-    if (mounted) {
-      setState(() {
-        _canScan = remaining > 0;
-        _scansRemaining = remaining;
-      });
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _refreshScanAvailability();
     final ex = widget.existing;
     if (ex == null) {
-      final prefill = widget.voicePrefill;
-      if (prefill != null) {
-        _applyPrefill(prefill);
-      } else {
-        _phases = [
-          _MedPhase(
-            times: [const TimeOfDay(hour: 6, minute: 0)],
-            durationDays: 7,
-          ),
-        ];
-      }
+      _phases = [
+        _MedPhase(
+          times: [const TimeOfDay(hour: 6, minute: 0)],
+          durationDays: 7,
+        ),
+      ];
       return;
     }
 
@@ -469,18 +416,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (!isEdit) ...[
-                      // Scan CTA
-                      GestureDetector(
-                        onTap: _isSaving ? null : _openScan,
-                        child: _ScanCta(
-                          locked: _canScan == false,
-                          remaining: _scansRemaining,
-                        ),
-                      ),
-                      const _OrDivider(),
-                    ],
-
                     // Name
                     _FormLabel(context.l10n.fieldName),
                     const SizedBox(height: 6),
@@ -644,124 +579,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     }
   }
 
-  Future<void> _openScan() async {
-    if (_canScan == false) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PlansScreen()),
-      );
-      return;
-    }
-
-    final results = await Navigator.push<List<ScannedMedication>>(
-      context,
-      MaterialPageRoute(builder: (_) => const PrescriptionScanScreen()),
-    );
-    if (results == null || results.isEmpty || !mounted) return;
-
-    if (!ref.read(planProvider).isPaid) {
-      await ref.read(aiUsageServiceProvider).recordPhotoScan();
-      await _refreshScanAvailability();
-    }
-
-    // Екран сканування вже дав користувачу перевірити й відредагувати кожен
-    // препарат окремо (акордеон з чекбоксом-згодою) — тут лише зберігаємо
-    // те, що підтверджено, без додаткового кроку "прев'ю у формі".
-    await _bulkSaveScanned(results);
-  }
-
-  // Спільна логіка заповнення форми — викликається і з initState (голосовий
-  // префіл, без setState — ще до першого build), і з _prefillFrom (скан
-  // рецепта на вже змонтованому екрані, обгорнуто в setState там).
-  void _applyPrefill(ScannedMedication m) {
-    _nameController.text = m.name;
-    if (m.form != null) _form = m.form!;
-    if (m.foodRelation != null) _foodRelation = m.foodRelation!;
-    final times = (m.scheduleTimes ?? const ['morning'])
-        .map(_defaultTimeForSchedule)
-        .toList();
-    _phases = [
-      _MedPhase(
-        times: times,
-        durationDays: m.durationDays ?? 7,
-        doseAmount: m.doseAmount ?? 1.0,
-      ),
-    ];
-  }
-
-  MedicationsCompanion _companionFromScanned(ScannedMedication m, DateTime now) {
-    final times = (m.scheduleTimes ?? const ['morning'])
-        .map(
-          (s) =>
-              '${_defaultTimeForSchedule(s).hour.toString().padLeft(2, '0')}:${_defaultTimeForSchedule(s).minute.toString().padLeft(2, '0')}',
-        )
-        .toList();
-    final duration = m.durationDays ?? 7;
-    final form = m.form ?? 'tablet';
-    final phasesJson = jsonEncode([
-      {
-        'times': times,
-        'durationDays': duration,
-        'doseAmount': m.doseAmount ?? 1.0,
-      },
-    ]);
-
-    return MedicationsCompanion.insert(
-      memberId: widget.memberId ?? 0,
-      name: m.name,
-      form: Value(form),
-      doseAmount: m.doseAmount ?? 1.0,
-      doseUnit: Value(m.doseUnit ?? _unitForForm(form)),
-      foodRelation: Value(m.foodRelation ?? 'unspecified'),
-      repeatType: const Value('daily'),
-      repeatConfig: const Value('{}'),
-      startDate: now,
-      endDate: Value(
-        DateTime(now.year, now.month, now.day).add(Duration(days: duration)),
-      ),
-      phases: Value(phasesJson),
-    );
-  }
-
-  Future<void> _bulkSaveScanned(List<ScannedMedication> meds) async {
-    final now = DateTime.now();
-
-    if (widget.onDraftCreated != null) {
-      for (final m in meds) {
-        widget.onDraftCreated!(_companionFromScanned(m, now));
-      }
-      if (mounted) Navigator.of(context).pop(true);
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    try {
-      final medRepo = ref.read(medicationsRepositoryProvider);
-      for (final m in meds) {
-        await medRepo.insert(_companionFromScanned(m, now));
-      }
-
-      ref.invalidate(generateTodayIntakesProvider);
-      ref.invalidate(tomorrowIntakesProvider);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.bulkSavedSnackbar(meds.length)),
-          ),
-        );
-        Navigator.of(context).pop(true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorGeneric(e.toString()))),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
 }
 
 // ─── Sub-widgets ──────────────────────────────────────────────────────────────
@@ -803,146 +620,6 @@ class _BackHeader extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScanCta extends StatelessWidget {
-  final bool locked;
-  // null = платний план (необмежено, лічильник не показуємо).
-  final int? remaining;
-  const _ScanCta({this.locked = false, this.remaining});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.hardEdge,
-      constraints: const BoxConstraints(minHeight: 110),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF4C9A6A), Color(0xFF3B7A56)],
-        ),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -8,
-            bottom: -6,
-            child: Image.asset(
-              'assets/illustrations/elly-telling.png',
-              height: 116,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 96, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: locked
-                        ? [
-                            const Icon(
-                              Icons.lock_rounded,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              context.l10n.moreInEllyPlusLabel,
-                              style: AppTextStyles.bodySm.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ]
-                        : [
-                            const Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              context.l10n.aiLabel,
-                              style: AppTextStyles.bodySm.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  context.l10n.scanPrescriptionTitle,
-                  style: AppTextStyles.labelLg.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  context.l10n.scanPrescriptionSubtitle,
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                if (remaining != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    context.l10n.scansRemainingLabel(remaining!),
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          const Expanded(child: Divider(color: AppColors.border)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              context.l10n.orEnterManuallyLabel,
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-            ),
-          ),
-          const Expanded(child: Divider(color: AppColors.border)),
         ],
       ),
     );

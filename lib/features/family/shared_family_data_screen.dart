@@ -17,11 +17,6 @@ import '../../data/repositories/family_peers_repository.dart';
 const _notesFieldByType = {
   'medication': 'instructions',
   'doctor_appointment': 'notes',
-  'lab_result': 'notes',
-  'allergy': 'notes',
-  'chronic_condition': 'notes',
-  'vaccination': 'notes',
-  'surgery': 'notes',
 };
 
 String _entityTypeLabel(BuildContext context, String type) {
@@ -29,11 +24,6 @@ String _entityTypeLabel(BuildContext context, String type) {
   return switch (type) {
     'medication' => l10n.categoryMeds,
     'doctor_appointment' => l10n.doctorVisitLabel,
-    'lab_result' => l10n.labResultTitle,
-    'allergy' => l10n.allergyTitle,
-    'chronic_condition' => l10n.chronicConditionTitle,
-    'vaccination' => l10n.vaccinationTitle,
-    'surgery' => l10n.surgeryTitle,
     'activity' => l10n.defaultActivityName,
     'wellbeing_schedule' => l10n.wellbeingTitle,
     _ => type,
@@ -43,11 +33,6 @@ String _entityTypeLabel(BuildContext context, String type) {
 const _entityTypeIcons = {
   'medication': Icons.medication_rounded,
   'doctor_appointment': Icons.calendar_month_rounded,
-  'lab_result': Icons.biotech_rounded,
-  'allergy': Icons.warning_amber_rounded,
-  'chronic_condition': Icons.favorite_rounded,
-  'vaccination': Icons.vaccines_rounded,
-  'surgery': Icons.local_hospital_rounded,
   'activity': Icons.directions_walk_rounded,
   'wellbeing_schedule': Icons.favorite_border_rounded,
 };

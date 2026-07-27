@@ -29,9 +29,9 @@ import 'file_encryption_service.dart';
 /// `_nativeDbKeyEnvelopeKey` нижче).
 ///
 /// Додатково (з `_backedUpPrefsKeys`) пакує explicit allowlist рядкових
-/// значень із SharedPreferences — власноруч додані елементи "спільний
-/// список + свої варіанти" (напр. `SymptomLibraryService`,
-/// `LabTestLibraryService`), які інакше губляться при відновленні бекапу:
+/// значень із SharedPreferences — історія тегів/назв, які користувач сам
+/// вводив (напр. `ReminderTagsLibraryService`, `WellbeingTagLibraryService`),
+/// які інакше губляться при відновленні бекапу:
 /// старі записи в БД, де такий варіант уже використаний, лишаються
 /// читабельними (БД відновлюється окремо, через zip), але сам варіант
 /// зникає зі списку вибору для НОВИХ записів, бо SharedPreferences не
@@ -66,8 +66,10 @@ class BackupCryptoService {
   // Додавайте сюди кожен новий `_customKey` за тим самим патерном
   // ("спільний список + свої варіанти, збережені в SharedPreferences").
   static const _backedUpPrefsKeys = {
-    'wellbeing_custom_symptoms', // SymptomLibraryService
-    'lab_test_custom_names', // LabTestLibraryService
+    'reminder_title_history', // ReminderTitleLibraryService
+    'reminder_tags_history', // ReminderTagsLibraryService
+    'wellbeing_tags_history', // WellbeingTagLibraryService
+    'medcard_entry_tags_history', // MedcardEntryTagLibraryService
   };
   static const _prefsKeyPrefix = 'prefs:';
 

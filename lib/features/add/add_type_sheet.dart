@@ -10,7 +10,6 @@ import '../medications/add_medication_screen.dart';
 import '../plans/elly_denied_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import 'add_activity_screen.dart';
-import '../voice/voice_screen.dart';
 
 void showAddTypeSheet(BuildContext context, {int? memberId}) {
   final container = ProviderScope.containerOf(context);
@@ -123,6 +122,24 @@ class _AddTypeSheet extends ConsumerWidget {
           const SizedBox(height: 10),
 
           _TypeCard(
+            icon: Icons.notifications_active_rounded,
+            title: context.l10n.appointmentsHistoryTitle,
+            sub: context.l10n.addTypeAppointmentSub,
+            onTap: () {
+              Navigator.pop(context);
+              if (memberId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          AddAppointmentScreen(memberId: memberId)),
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 10),
+
+          _TypeCard(
             icon: Icons.favorite_rounded,
             title: context.l10n.wellbeingTitle,
             sub: context.l10n.addTypeWellbeingSub,
@@ -137,56 +154,6 @@ class _AddTypeSheet extends ConsumerWidget {
                 );
               }
             },
-          ),
-          const SizedBox(height: 10),
-
-          _TypeCard(
-            icon: Icons.medical_services_rounded,
-            title: context.l10n.newAppointmentTitle,
-            sub: context.l10n.addTypeAppointmentSub,
-            onTap: () {
-              Navigator.pop(context);
-              if (memberId != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          AddAppointmentScreen(memberId: memberId)),
-                );
-              }
-            },
-          ),
-          const SizedBox(height: 14),
-          GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const VoiceScreen()),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.primaryLighter),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.mic_rounded,
-                      size: 18, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    context.l10n.voiceCommandLabel,
-                    style: AppTextStyles.labelMd
-                        .copyWith(color: AppColors.primary),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),

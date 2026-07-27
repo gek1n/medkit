@@ -9,7 +9,12 @@ class WellbeingLogs extends Table {
   // 1-5: 😢😕😐🙂😄
   TextColumn get symptomsJson =>
       text().withDefault(const Constant('[]'))();
-  // json: ["nausea","headache"] — name_key з symptoms
+  // ЗАСТАРІЛЕ — контрольований словник симптомів, замінений на вільні теги
+  // (tagsJson). Лишається в схемі лише заради даних, збережених до міграції
+  // 28; нові записи сюди більше не пишуться.
+  TextColumn get tagsJson => text().withDefault(const Constant('[]'))();
+  // json: ["втома","стрес"] — довільні мітки, які користувач вводить сам;
+  // окрема історія від тегів нагадувань (ReminderTagsLibraryService)
   TextColumn get comment => text().nullable()();
   TextColumn get voiceNotePath => text().nullable()();
   BoolColumn get skipped => boolean().withDefault(const Constant(false))();

@@ -1,13 +1,7 @@
 import 'package:drift/drift.dart';
 import 'members_table.dart';
 
-/// ЗАСТАРІЛЕ — перейменовано на [Reminders] (reminders_table.dart), сам клас
-/// і фізична таблиця перейменовуються для всіх у AppDatabase-міграції 31
-/// (`m.renameTable`). Лишається в схемі лише тому, що історичні кроки
-/// onUpgrade (from < 9, 12, 13, 20, 27) звертаються до generated-гетера
-/// `doctorAppointments` — без нього вони не скомпілюються. Ніде в
-/// продуктовому коді більше не використовується.
-class DoctorAppointments extends Table {
+class Reminders extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get memberId =>
       integer().references(Members, #id, onDelete: KeyAction.cascade)();

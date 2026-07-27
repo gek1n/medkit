@@ -27,7 +27,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navProfile => 'Profile';
 
   @override
-  String get navMedCard => 'Med Card';
+  String get navMedCard => 'Archive';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -178,7 +178,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wellbeingCommentHint =>
-      'Rate your mood and, if needed, describe any symptoms';
+      'Rate your mood and, if you\'d like, add a note';
 
   @override
   String get skipGenericAction => 'Skip';
@@ -329,60 +329,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fieldName => 'Name';
 
   @override
-  String get fieldDate => 'Date';
-
-  @override
-  String get fieldNotes => 'Notes';
-
-  @override
-  String get surgeryTitle => 'Surgery';
-
-  @override
-  String get chronicConditionTitle => 'Chronic condition';
-
-  @override
-  String get labResultTitle => 'Lab result';
-
-  @override
-  String get vaccinationTitle => 'Vaccination';
-
-  @override
-  String get allergyTitle => 'Allergy';
-
-  @override
-  String get fieldDiagnosis => 'Diagnosis';
-
-  @override
-  String get fieldSpecialty => 'Specialty';
-
-  @override
-  String get fieldDiagnosisDate => 'Diagnosis date';
-
-  @override
-  String get fieldDateGiven => 'Date given';
-
-  @override
-  String get fieldNextDose => 'Next booster';
-
-  @override
-  String get fieldAllergen => 'Allergen';
-
-  @override
-  String get fieldSeverity => 'Severity';
-
-  @override
-  String get fieldReaction => 'Reaction';
-
-  @override
-  String get severityMild => 'Mild';
-
-  @override
-  String get severityModerate => 'Moderate';
-
-  @override
-  String get severitySevere => 'Severe';
-
-  @override
   String get dayToday => 'Today';
 
   @override
@@ -392,74 +338,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dayYesterday => 'Yesterday';
 
   @override
-  String get surgeriesSectionTitle => 'Surgeries & hospitalizations';
+  String get allTagsFilter => 'All tags';
 
   @override
-  String get surgeriesEmptyHint => 'Tap \"+ Add\" to add your first record';
-
-  @override
-  String get chronicConditionsSectionTitle => 'Chronic conditions';
-
-  @override
-  String get chronicConditionsEmptyHint =>
-      'Tap \"+ Add\" to add your first diagnosis';
-
-  @override
-  String get allergiesTitle => 'Allergies';
-
-  @override
-  String get allergiesEmptyHint => 'Tap \"+ Add\" to add your first allergy';
-
-  @override
-  String get vaccinationsTitle => 'Vaccinations';
-
-  @override
-  String get vaccinationsEmptyHint =>
-      'Tap \"+ Add\" to add your first vaccination';
-
-  @override
-  String vaccinationGivenOn(String date) {
-    return 'Given on $date';
-  }
-
-  @override
-  String get vaccinationOverdue => 'Overdue';
-
-  @override
-  String get labResultsTitle => 'Lab results';
-
-  @override
-  String get allSpecialtiesFilter => 'All specialties';
-
-  @override
-  String get allTestTypesFilter => 'All test types';
-
-  @override
-  String get labResultsEmptyFilteredTitle => 'No lab results match this filter';
-
-  @override
-  String get labResultsEmptyNoneTitle => 'Nothing added yet';
-
-  @override
-  String get labResultsEmptyFilteredHint =>
-      'Try changing the filters or reset them';
-
-  @override
-  String get labResultsEmptyHint =>
-      'Tap \"+ Add\" to add your first lab result';
-
-  @override
-  String get medCardTitle => 'Med Card';
-
-  @override
-  String get medCardHistoryByDoctorTitle => 'Treatment history by specialty';
-
-  @override
-  String get medCardHistoryByDoctorSubtitle =>
-      'One doctor\'s visits and lab results, all in one place';
-
-  @override
-  String get medCardLabResultsSubtitle => 'Results by specialty';
+  String get medCardTitle => 'Archive';
 
   @override
   String get medCardArchiveTitle => 'Medication archive';
@@ -469,7 +351,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'All medications and their treatment status';
 
   @override
-  String get medCardAppointmentsTitle => 'Doctor visits';
+  String get medCardAppointmentsTitle => 'Reminders';
 
   @override
   String get medCardAppointmentsSubtitle => 'Records for the selected profile';
@@ -478,18 +360,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medCardWellbeingHistoryTitle => 'Wellbeing history';
 
   @override
-  String get medCardWellbeingHistorySubtitle => 'Mood and symptoms over time';
+  String get medCardWellbeingHistorySubtitle => 'Mood over time';
 
   @override
-  String get medCardAllergiesSubtitle =>
-      'Reactions to medications and substances';
+  String get customSectionsHeader => 'Your sections';
 
   @override
-  String get medCardChronicConditionsSubtitle =>
-      'Diagnoses and dates identified';
+  String get addSectionAction => 'Add section';
 
   @override
-  String get medCardVaccinationsSubtitle => 'History and upcoming boosters';
+  String get newSectionTitle => 'New section';
+
+  @override
+  String get editSectionTitle => 'Edit section';
+
+  @override
+  String get sectionNameFieldLabel => 'Name';
+
+  @override
+  String get sectionNameHint => 'E.g. Pets, Documents…';
+
+  @override
+  String get enterSectionNameError => 'Enter a name';
+
+  @override
+  String get sectionIconFieldLabel => 'Icon';
+
+  @override
+  String get chooseIconLabel => 'Choose an icon';
+
+  @override
+  String get sectionCommentFieldLabel => 'Short description';
+
+  @override
+  String get sectionCommentHint => 'Up to 30 characters (optional)';
+
+  @override
+  String get deleteSectionConfirmTitle => 'Delete this section?';
+
+  @override
+  String get deleteSectionConfirmBody =>
+      'The section and all its entries will be deleted.';
+
+  @override
+  String get sectionEmptyHint =>
+      'Nothing here yet. Add your first entry with the plus button';
+
+  @override
+  String get newEntryTitle => 'New entry';
+
+  @override
+  String get editEntryTitle => 'Edit entry';
+
+  @override
+  String get entryTitleFieldLabel => 'Title';
+
+  @override
+  String get entryTitleHint => 'Entry title';
+
+  @override
+  String get enterEntryTitleError => 'Enter a title';
+
+  @override
+  String get entryDateFieldLabel => 'Entry date';
+
+  @override
+  String get entryNotesHint => 'Freeform notes…';
+
+  @override
+  String get deleteEntryConfirmBody => 'This entry will be deleted.';
 
   @override
   String get medicationArchiveEmptyHint =>
@@ -510,30 +449,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get specialtyHistoryTitle => 'History by specialty';
-
-  @override
-  String get sectionUpcoming => 'Upcoming';
-
-  @override
   String get sectionPast => 'Past';
 
   @override
-  String visitPrefix(String type) {
-    return 'Visit · $type';
-  }
-
-  @override
-  String labPrefix(String name) {
-    return 'Lab result · $name';
-  }
-
-  @override
   String get emptyStateNoneYetTitle => 'Nothing added yet';
-
-  @override
-  String get specialtyHistoryEmptyHint =>
-      'Visits and lab results will appear here';
 
   @override
   String get actionCancel => 'Cancel';
@@ -545,17 +464,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentsLabel => 'Documents';
 
   @override
-  String get notSelectedValue => 'Not selected';
-
-  @override
   String get notSpecifiedValue => 'Not specified';
-
-  @override
-  String get deleteRecordBody => 'This record will be deleted.';
-
-  @override
-  String get deleteWithDocsBody =>
-      'This record and all attached documents will be deleted.';
 
   @override
   String get deleteSurgeryConfirmTitle => 'Delete this record?';
@@ -564,106 +473,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editSurgeryTitle => 'Edit record';
 
   @override
-  String get newSurgeryTitle => 'New surgery or hospitalization';
-
-  @override
-  String get surgeryNameHint => 'Appendectomy, hospitalization…';
-
-  @override
-  String get enterSurgeryNameError => 'Enter a name for the surgery';
-
-  @override
-  String get surgeryNotesHint => 'Hospital, complications, recommendations…';
-
-  @override
-  String get deleteConditionConfirmTitle => 'Delete this diagnosis?';
-
-  @override
-  String get editConditionTitle => 'Edit diagnosis';
-
-  @override
-  String get newConditionTitle => 'New diagnosis';
-
-  @override
-  String get conditionNameHint => 'Asthma, diabetes, hypertension…';
-
-  @override
-  String get enterConditionNameError => 'Enter a name for the diagnosis';
-
-  @override
-  String get fieldDoctorSpecialty => 'Doctor\'s specialty';
-
-  @override
-  String get conditionNotesHint => 'Treatment plan, dosage…';
-
-  @override
-  String get deleteAllergyConfirmTitle => 'Delete this allergy?';
-
-  @override
-  String get editAllergyTitle => 'Edit allergy';
-
-  @override
-  String get newAllergyTitle => 'New allergy';
-
-  @override
-  String get allergenHint => 'Penicillin, nuts, pollen…';
-
-  @override
-  String get enterAllergenError => 'Enter the name of the allergen';
-
-  @override
-  String get reactionHint => 'Rash, swelling, shortness of breath…';
-
-  @override
-  String get allergyNotesHint => 'Additional details…';
-
-  @override
-  String get deleteLabResultConfirmTitle => 'Delete this lab result?';
-
-  @override
-  String get editLabResultTitle => 'Edit lab result';
-
-  @override
-  String get newLabResultTitle => 'New lab result';
-
-  @override
-  String get chooseSpecialtyValue => 'Choose a specialty';
-
-  @override
-  String get fieldTestName => 'Test name';
-
-  @override
-  String get chooseTestNameValue => 'Choose a test name';
-
-  @override
-  String get labResultNotesHint => 'Results, doctor\'s comment…';
-
-  @override
-  String get deleteVaccinationConfirmTitle => 'Delete this vaccination?';
-
-  @override
-  String get editVaccinationTitle => 'Edit vaccination';
-
-  @override
-  String get newVaccinationTitle => 'New vaccination';
-
-  @override
-  String get vaccinationNameField => 'Vaccination name';
-
-  @override
-  String get vaccinationNameHint => 'Tetanus, flu, COVID-19…';
-
-  @override
-  String get enterVaccinationNameError => 'Enter the vaccination name';
-
-  @override
   String get removeAction => 'Remove';
-
-  @override
-  String get notScheduledValue => 'Not scheduled';
-
-  @override
-  String get vaccinationNotesHint => 'Reaction, vaccine batch…';
 
   @override
   String get medsTitle => 'Medications';
@@ -919,32 +729,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveAndViewScheduleAction => 'Save and view schedule →';
 
   @override
-  String get moreInEllyPlusLabel => 'More in Elly+';
-
-  @override
-  String get aiLabel => 'AI';
-
-  @override
-  String get scanPrescriptionTitle => 'Scan a prescription photo';
-
-  @override
-  String get scanPrescriptionSubtitle =>
-      'Elly will add the medication to your schedule';
-
-  @override
-  String scansRemainingLabel(int remaining) {
-    return '$remaining scans left on the Elly Free plan';
-  }
-
-  @override
-  String get orEnterManuallyLabel => 'or enter manually';
-
-  @override
-  String bulkSavedSnackbar(int count) {
-    return 'Added $count medications. Check the details in your medication list.';
-  }
-
-  @override
   String phaseCardTitle(int number) {
     return 'Phase $number';
   }
@@ -1166,7 +950,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String joinConsentBody(String name) {
-    return 'You\'re joining as an equal member — your own profile (name and avatar) will become visible to \"$name\". This doesn\'t cancel or change any of your data already entered in the app. Your med card is NEVER automatically shown to anyone — you\'ll decide exactly what other members can see after joining.';
+    return 'You\'re joining as an equal member — your own profile (name and avatar) will become visible to \"$name\". This doesn\'t cancel or change any of your data already entered in the app. Your archive is NEVER automatically shown to anyone — you\'ll decide exactly what other members can see after joining.';
   }
 
   @override
@@ -1521,21 +1305,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get antiStressLabel => 'Anti-stress exercises';
 
   @override
-  String get antiStressPickerSubtitle => 'Choose what will help right now';
+  String get antiStressPickerSubtitle => 'Short exercises, a few minutes each';
 
   @override
   String get breathingExerciseTitle => 'Let\'s breathe together';
 
   @override
   String get breathingExerciseSubtitle =>
-      'Slow breathing for 2 minutes calms the nervous system';
+      'Slow breathing at your own pace — 2 minutes';
 
   @override
   String get grounding54321Title => '5-4-3-2-1';
 
   @override
   String get grounding54321Subtitle =>
-      'A grounding technique that brings your attention back to the here and now';
+      'A short 5-step exercise using your senses';
 
   @override
   String get clearMindTitle => 'Clear mind';
@@ -1609,7 +1393,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get medcardSyncDescription =>
-      'If disabled, this profile\'s allergies, chronic conditions, vaccinations, surgeries, lab results, and visits (along with attachments) won\'t be shared with other family devices connected via pairing. Medications and dosing schedule sync regardless of this toggle.';
+      'If disabled, this profile\'s reminders (along with attachments) won\'t be shared with other family devices connected via pairing. Medications and dosing schedule sync regardless of this toggle.';
 
   @override
   String get pendingConnectionLabel => 'Waiting for connection';
@@ -1629,20 +1413,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t change it — this isn\'t your profile';
 
   @override
-  String get voiceConsentTitle => 'Voice commands';
-
-  @override
-  String get voiceConsentDescription =>
-      'Voice recognition via Anthropic (Claude) — for adding medications, marking doses taken, and other voice commands.';
-
-  @override
-  String get scanConsentTitle => 'Prescription scanning';
-
-  @override
-  String get scanConsentDescription =>
-      'Photo recognition of prescriptions or packaging via Anthropic (Claude) — to identify the name, dosage, and form.';
-
-  @override
   String get privacyLabel => 'Privacy';
 
   @override
@@ -1650,13 +1420,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyPolicyLabel => 'Privacy Policy';
-
-  @override
-  String get aiConsentSectionLabel => 'Consent for AI data processing';
-
-  @override
-  String get consentRevokeNoteBody =>
-      'Revoking consent doesn\'t delete data already processed — it just means the app will ask for confirmation again before the next time this feature is used.';
 
   @override
   String get dangerZoneLabel => 'Danger zone';
@@ -1691,17 +1454,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewFullTextAction => 'View full text';
-
-  @override
-  String consentGivenLabel(String date) {
-    return 'Given on $date';
-  }
-
-  @override
-  String get consentNotGivenLabel => 'Consent not given';
-
-  @override
-  String get revokeConsentAction => 'Revoke consent';
 
   @override
   String get groundStep5Title => '5 things you can see';
@@ -1750,7 +1502,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groundingSkipStepAction => 'Skip this step';
 
   @override
-  String get groundingCompletedTitle => 'You\'re back in the here and now';
+  String get groundingCompletedTitle => 'Exercise complete';
 
   @override
   String get groundingCompletedSubtitle =>
@@ -1795,7 +1547,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceLanguageDescription =>
-      'Controls the interface and voice-recognition language (voice commands, wellbeing check-in dictation). Ukrainian, English, and Russian are available for now — more languages will follow as translations are added.';
+      'Controls the interface and comment-dictation language. Ukrainian, English, and Russian are available for now — more languages will follow as translations are added.';
 
   @override
   String get fontSizeLabel => 'Font size';
@@ -1844,7 +1596,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveAction => 'Save';
 
   @override
-  String get appointmentsHistoryTitle => 'Doctor visits';
+  String get appointmentsHistoryTitle => 'Reminders';
 
   @override
   String get sectionFuture => 'Upcoming';
@@ -1859,11 +1611,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRecordsYetTitle => 'No records yet';
 
   @override
-  String get noAppointmentsForSpecialty => 'No visits for this specialty';
+  String get noAppointmentsForSpecialty => 'No reminders with this tag';
 
   @override
   String get tryDifferentSpecialtyHint =>
-      'Try choosing a different specialty or reset the filter';
+      'Try choosing a different tag or reset the filter';
 
   @override
   String get tapToAddFirstHint => 'Tap \"+ Add\" to create your first one';
@@ -1917,17 +1669,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remindBefore2Days => '2 days before';
 
   @override
-  String get deleteAppointmentBody =>
-      'This doctor appointment will be deleted.';
+  String get deleteAppointmentBody => 'This reminder will be deleted.';
 
   @override
-  String get enterDoctorTypeError => 'Enter the doctor\'s specialty';
-
-  @override
-  String get recordVisitTitle => 'Record a visit';
-
-  @override
-  String get newAppointmentTitle => 'Doctor appointment';
+  String get newAppointmentTitle => 'New reminder';
 
   @override
   String get fieldWhere => 'Where';
@@ -1948,23 +1693,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remindBeforeLabel => 'Remind me ahead of time';
 
   @override
-  String get doctorConclusionLabel => 'Doctor\'s conclusion';
-
-  @override
   String get noteSingularLabel => 'Note';
 
   @override
-  String get doctorConclusionHint =>
-      'What the doctor said, recommendations, prescriptions…';
-
-  @override
-  String get apptNoteHint => 'What to ask, what to bring…';
-
-  @override
-  String get saveVisitAction => 'Save visit';
+  String get reminderNoteHint => 'Additional details…';
 
   @override
   String get saveReminderAction => 'Save reminder';
+
+  @override
+  String get reminderTitleFieldLabel => 'Title';
+
+  @override
+  String get reminderTitleHint => 'E.g. Dentist, Pay insurance…';
+
+  @override
+  String get enterReminderTitleError => 'Enter a title';
+
+  @override
+  String get reminderTagsFieldLabel => 'Tags';
+
+  @override
+  String get reminderTagsHint => 'Tags, comma-separated (optional)';
+
+  @override
+  String get reminderTagsPickerTitle => 'Choose tags';
+
+  @override
+  String get addNewTagHint => 'New tag';
+
+  @override
+  String get noTagsYetLabel => 'No tags yet';
+
+  @override
+  String get reminderPhotoLabel => 'Photo';
 
   @override
   String get monthGenJan => 'January';
@@ -2001,20 +1763,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get monthGenDec => 'December';
-
-  @override
-  String get symptomsTitle => 'Symptoms';
-
-  @override
-  String get symptomSearchHint => 'Search or type a new name…';
-
-  @override
-  String get symptomListEmptyLabel => 'The list is empty';
-
-  @override
-  String addCustomSymptomLabel(String query) {
-    return 'Add \"$query\"';
-  }
 
   @override
   String get historyLabel => 'History';
@@ -2137,10 +1885,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get comingSoonEllipsis => 'Coming soon...';
 
   @override
-  String get sendDiaryToDoctorLabel => 'Send diary to doctor';
+  String get sendDiaryToDoctorLabel => 'Share summary';
 
   @override
-  String get diarySummaryHint => 'Check-ins + symptoms + doses for the month';
+  String get diarySummaryHint => 'Wellbeing check-ins and doses for the month';
 
   @override
   String get moodBadLabel => 'Bad';
@@ -2174,14 +1922,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get howAreYouFeelingLabel => 'How are you feeling?';
 
   @override
-  String get anySymptomsLabel => 'Any symptoms?';
+  String get anySymptomsLabel => 'Tags';
 
   @override
-  String get chooseFromListOrAddLabel =>
-      'Choose from common symptoms or add your own';
-
-  @override
-  String get symptomsNotSelectedLabel => 'No symptoms selected';
+  String get chooseFromListOrAddLabel => 'Add your own tags (optional)';
 
   @override
   String get commentLabel => 'Comment';
@@ -2222,156 +1966,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get preparingMicLabel => 'Getting ready… one second';
-
-  @override
-  String get symptomHeadache => 'headache';
-
-  @override
-  String get symptomNausea => 'nausea';
-
-  @override
-  String get symptomDizziness => 'dizziness';
-
-  @override
-  String get symptomWeakness => 'weakness';
-
-  @override
-  String get symptomShortnessOfBreath => 'shortness of breath';
-
-  @override
-  String get symptomRash => 'rash';
-
-  @override
-  String get symptomPain => 'pain';
-
-  @override
-  String get symptomFever => 'fever';
-
-  @override
-  String get symptomCough => 'cough';
-
-  @override
-  String get symptomSoreThroat => 'sore throat';
-
-  @override
-  String get symptomRunnyNose => 'runny nose';
-
-  @override
-  String get symptomStuffyNose => 'stuffy nose';
-
-  @override
-  String get symptomSneezing => 'sneezing';
-
-  @override
-  String get symptomVomiting => 'vomiting';
-
-  @override
-  String get symptomDiarrhea => 'diarrhea';
-
-  @override
-  String get symptomConstipation => 'constipation';
-
-  @override
-  String get symptomBloating => 'bloating';
-
-  @override
-  String get symptomHeartburn => 'heartburn';
-
-  @override
-  String get symptomStomachPain => 'stomach pain';
-
-  @override
-  String get symptomLossOfAppetite => 'loss of appetite';
-
-  @override
-  String get symptomIncreasedAppetite => 'increased appetite';
-
-  @override
-  String get symptomInsomnia => 'insomnia';
-
-  @override
-  String get symptomDrowsiness => 'drowsiness';
-
-  @override
-  String get symptomFatigue => 'fatigue';
-
-  @override
-  String get symptomChestPain => 'chest pain';
-
-  @override
-  String get symptomPalpitations => 'heart palpitations';
-
-  @override
-  String get symptomHighBloodPressure => 'high blood pressure';
-
-  @override
-  String get symptomLowBloodPressure => 'low blood pressure';
-
-  @override
-  String get symptomBackPain => 'back pain';
-
-  @override
-  String get symptomJointPain => 'joint pain';
-
-  @override
-  String get symptomMusclePain => 'muscle pain';
-
-  @override
-  String get symptomCramps => 'cramps';
-
-  @override
-  String get symptomSwelling => 'swelling';
-
-  @override
-  String get symptomItching => 'itching';
-
-  @override
-  String get symptomDrySkin => 'dry skin';
-
-  @override
-  String get symptomBruising => 'bruising';
-
-  @override
-  String get symptomDryMouth => 'dry mouth';
-
-  @override
-  String get symptomExcessiveSweating => 'excessive sweating';
-
-  @override
-  String get symptomChills => 'chills';
-
-  @override
-  String get symptomBlurredVision => 'blurred vision';
-
-  @override
-  String get symptomRingingInEars => 'ringing in ears';
-
-  @override
-  String get symptomNumbness => 'numbness';
-
-  @override
-  String get symptomTremor => 'tremor';
-
-  @override
-  String get symptomMemoryIssues => 'memory issues';
-
-  @override
-  String get symptomConcentrationIssues => 'concentration issues';
-
-  @override
-  String get symptomAnxiety => 'anxiety';
-
-  @override
-  String get symptomIrritability => 'irritability';
-
-  @override
-  String get symptomMoodSwings => 'mood swings';
-
-  @override
-  String get symptomWeightLoss => 'weight loss';
-
-  @override
-  String get symptomWeightGain => 'weight gain';
 
   @override
   String get restoreErrorBody =>
@@ -2528,7 +2122,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanOrEnterManuallyHint =>
-      'Scan a prescription photo or enter it manually';
+      'Add the medications you\'re currently taking';
 
   @override
   String get addMedsShortAction => 'Add medications';
@@ -2580,250 +2174,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get almostDoneAction => 'Almost done →';
 
   @override
-  String get scanNoResultsError =>
-      'Couldn\'t recognize any medication in the photo. Try taking a clearer picture.';
-
-  @override
-  String scanErrorWithMessage(String error) {
-    return 'Scan error: $error';
-  }
-
-  @override
-  String get scanPrescriptionScreenTitle => 'Scan prescription';
-
-  @override
-  String get beforeYouStartTitle => 'Before you start';
-
-  @override
-  String get scanConsentDisclaimerBody =>
-      'To recognize medications, the prescription or package photo is sent to Anthropic\'s Claude service. The photo is used only for recognition and isn\'t stored anywhere after the response.';
-
-  @override
-  String get scanDosageWarningPrefix =>
-      '⚠️ Recognition of the name, dosage, and schedule may contain errors. ';
-
-  @override
-  String get alwaysCheckInstructionsLabel =>
-      'Always check the medication\'s instructions.';
-
-  @override
-  String get understoodAgreeAction => 'Understood, I agree';
-
-  @override
-  String get takePhotoInstructionsBody =>
-      'Take a photo of the prescription or package. You can add several photos if there are multiple medications.';
-
-  @override
-  String get cameraLabel => 'Camera';
-
-  @override
-  String get galleryLabel => 'Gallery';
-
-  @override
-  String get scanAction => 'Scan';
-
-  @override
-  String scanRecognizedCountLabel(int count) {
-    return 'Recognized $count. Review before adding:';
-  }
-
-  @override
-  String get expandAndConfirmHint =>
-      'Expand a medication, check the details, and check the box to confirm adding it.';
-
-  @override
-  String get chooseMedsAction => 'Choose medications';
-
-  @override
-  String addSelectedCountAction(int count) {
-    return 'Add selected ($count)';
-  }
-
-  @override
-  String get scheduleTimeMorning => 'Morning';
-
-  @override
-  String get scheduleTimeAfternoon => 'Afternoon';
-
-  @override
-  String get scheduleTimeEvening => 'Evening';
-
-  @override
-  String get scheduleTimeNight => 'Night';
-
-  @override
-  String get unnamedMedLabel => 'Unnamed';
-
-  @override
-  String get medNameCapsLabel => 'NAME';
-
-  @override
-  String get releaseFormCapsLabel => 'FORM';
-
-  @override
-  String get doseCapsLabel => 'DOSE';
-
-  @override
-  String get courseDurationCapsLabel => 'COURSE DURATION';
-
-  @override
-  String get foodRelationCapsLabel => 'RELATION TO FOOD';
-
-  @override
-  String get confirmedCheckLabel => 'Confirmed ✓';
-
-  @override
-  String get confirmAllCorrectAction => 'Everything\'s correct, confirm';
-
-  @override
-  String get somethingWentWrongTitle => 'Something went wrong';
-
-  @override
-  String sttErrorLabel(String error) {
-    return 'Speech recognition error: $error';
-  }
-
-  @override
-  String get speechNotAvailableError =>
-      'Speech recognition isn\'t available on this device';
-
-  @override
-  String get nothingHeardError => 'Didn\'t hear anything. Try again.';
-
-  @override
-  String analysisErrorWithMessage(String error) {
-    return 'Analysis error: $error';
-  }
-
-  @override
-  String get commandNotRecognizedError => 'Couldn\'t recognize the command';
-
-  @override
-  String get voiceControlTitle => 'Voice control';
-
-  @override
-  String get voiceConsentDisclaimerBody =>
-      'Voice recognition happens on your device. But to understand the command, the text of your phrase is sent to Anthropic\'s Claude service. This feature recognizes only 3 commands: add a medication, add an activity, or add a doctor appointment — free-form descriptions of your wellbeing or symptoms are never sent this way; there\'s a separate field in the wellbeing diary for that, which stays on the device only.';
-
-  @override
-  String get voiceExampleMedQuote =>
-      '\"Add Enalapril 10 mg in the morning and evening\"';
-
-  @override
-  String get voiceExampleMedDesc =>
-      'Opens the medication form with the fields filled in. Not every medication is recognized — check the fields before saving.';
-
-  @override
-  String get voiceExampleActivityQuote =>
-      '\"Add exercise twice a day, morning and evening\"';
-
-  @override
-  String get voiceExampleActivityDesc =>
-      'Opens the activity form with the fields filled in';
-
-  @override
-  String get voiceExampleApptQuote =>
-      '\"Appointment with the cardiologist on Friday at 10\"';
-
-  @override
-  String get voiceExampleApptDesc => 'Opens the doctor appointment form';
-
-  @override
-  String get whatToDoTitle => 'What would you like to do?';
-
-  @override
-  String get tapAndSayCommandHint => 'Tap and say a command\nor start speaking';
-
-  @override
-  String dictateLanguageHint(String language) {
-    return 'Dictate in $language. You can change this in Profile → Language.';
-  }
-
-  @override
-  String get commandExamplesCapsLabel => 'EXAMPLE COMMANDS';
-
-  @override
-  String get experimentalFeatureNotice =>
-      'This is an experimental feature — recognition may fill in data inaccurately, always check the form before saving.';
-
-  @override
-  String get holdAndSpeakAction => 'Hold and speak';
-
-  @override
-  String get listeningEllipsisLabel => 'Listening...';
-
-  @override
-  String get preparingEllipsisLabel => 'Getting ready...';
-
-  @override
-  String get tapMicToStopHint => 'Tap the microphone to stop';
-
-  @override
-  String get waitBeforeSpeakingHint => 'Wait a second before speaking';
-
-  @override
-  String quotedTextLabel(String text) {
-    return '\"$text\"';
-  }
-
-  @override
-  String get analyzingCommandLabel => 'Analyzing command...';
-
-  @override
-  String get actionCapsLabel => 'ACTION';
-
-  @override
-  String get drugCapsLabel => 'MEDICATION';
-
-  @override
-  String get activityCapsLabel => 'ACTIVITY';
-
-  @override
-  String get scheduleCapsLabel => 'SCHEDULE';
-
-  @override
-  String get doctorCapsLabel => 'DOCTOR';
-
-  @override
-  String get addActivityActionLabel => 'Add activity';
-
-  @override
-  String get unknownCommandLabel => 'Unknown command';
-
-  @override
-  String get youSaidCapsLabel => 'YOU SAID';
-
-  @override
-  String get iUnderstoodLabel => 'Here\'s what I understood:';
-
-  @override
-  String get clarifyOneMoreLabel => 'One more thing to clarify';
-
-  @override
-  String get foodRelationClarifyHint =>
-      'You didn\'t say whether it\'s before or after food. Choose below or skip';
-
-  @override
   String get foodOptBefore => 'Before food';
 
   @override
   String get foodOptAfter => 'After food';
 
   @override
-  String get foodOptNotImportant => 'Doesn\'t matter';
-
-  @override
   String get refFoodAnyLabel => 'Regardless of food';
-
-  @override
-  String get nextShortAction => 'Next';
 
   @override
   String get backupScreenTitle => 'Backup';
 
   @override
   String get backupIntroBody =>
-      'Medications, schedule, med card (photos/PDFs), and all other data — choose where to keep your backup.';
+      'Medications, schedule, archive (photos), and all other data — choose where to keep your backup.';
 
   @override
   String get backupModeLocalTitle => 'Device only';
@@ -2976,12 +2340,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get freeFeatureUnlimitedMeds => 'Unlimited medications and med cards';
 
   @override
-  String get freeFeatureScanLimit => '3 prescription photo scans';
-
-  @override
-  String get freeFeatureVoiceLimit => '5 voice commands';
-
-  @override
   String get freeFeatureLocalBackup => 'Local + backup to Google Drive/iCloud';
 
   @override
@@ -2989,12 +2347,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plusFeatureAllFree => 'Everything in Free';
-
-  @override
-  String get plusFeatureUnlimitedScans => 'Unlimited photo scans';
-
-  @override
-  String get plusFeatureUnlimitedVoice => 'Unlimited voice commands';
 
   @override
   String get plusFeatureServerSync => 'Server sync (encrypted)';
@@ -3138,20 +2490,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addTypeSheetSubtitle => 'Choose a type — the form will adjust';
 
   @override
-  String get addTypeMedsSub => 'Schedule, dosage, AI prescription scan';
+  String get addTypeMedsSub => 'Schedule, dosage, repeats';
 
   @override
   String get addTypeActivitySub => 'Walk, exercise, workout, physical therapy';
 
   @override
-  String get addTypeWellbeingSub => 'Log a check-in — mood, symptoms, comment';
+  String get addTypeAppointmentSub => 'Date, time, and a reminder for anything';
 
   @override
-  String get addTypeAppointmentSub =>
-      'Choose a specialist, time, and get reminders';
-
-  @override
-  String get voiceCommandLabel => 'Voice command';
+  String get addTypeWellbeingSub => 'Log a check-in — mood, tags, comment';
 
   @override
   String get faqGroupPrivacyTitle => 'Privacy & data';
@@ -3211,17 +2559,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get faqFamilyA3 =>
       'This is configured in Profile → Family visibility — separately for each profile.';
-
-  @override
-  String get faqGroupAiTitle => 'AI features';
-
-  @override
-  String get faqAiQ1 =>
-      'Where does the data go when I use voice input or scan a prescription?';
-
-  @override
-  String get faqAiA1 =>
-      'Recognition happens through Anthropic\'s Claude model — this is clearly stated in the consent request before you first use each feature. Free-form text descriptions of your wellbeing or symptoms are never sent to the cloud.';
 
   @override
   String get faqNotificationsQ1 => 'Why aren\'t reminders arriving?';
@@ -3529,103 +2866,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseProfileLabel => 'Choose a profile';
 
   @override
-  String get otherSpecialtyDialogTitle => 'Other specialty';
-
-  @override
-  String get otherSpecialtyHint => 'E.g. Homeopath';
-
-  @override
   String get chooseAction => 'Choose';
-
-  @override
-  String get doctorSpecialtyPickerTitle => 'Doctor\'s specialty';
-
-  @override
-  String get specialtySearchHint => 'Search…';
-
-  @override
-  String get specialtyTherapist => 'Therapist';
-
-  @override
-  String get specialtyPediatrician => 'Pediatrician';
-
-  @override
-  String get specialtyFamilyDoctor => 'Family doctor';
-
-  @override
-  String get specialtyCardiologist => 'Cardiologist';
-
-  @override
-  String get specialtyNeurologist => 'Neurologist';
-
-  @override
-  String get specialtyEndocrinologist => 'Endocrinologist';
-
-  @override
-  String get specialtyGastroenterologist => 'Gastroenterologist';
-
-  @override
-  String get specialtyDermatologist => 'Dermatologist';
-
-  @override
-  String get specialtyOphthalmologist => 'Ophthalmologist';
-
-  @override
-  String get specialtyEnt => 'ENT (Otolaryngologist)';
-
-  @override
-  String get specialtyDentist => 'Dentist';
-
-  @override
-  String get specialtyGynecologist => 'Gynecologist';
-
-  @override
-  String get specialtyUrologist => 'Urologist';
-
-  @override
-  String get specialtySurgeon => 'Surgeon';
-
-  @override
-  String get specialtyOrthopedist => 'Orthopedist';
-
-  @override
-  String get specialtyTraumatologist => 'Traumatologist';
-
-  @override
-  String get specialtyAllergist => 'Allergist';
-
-  @override
-  String get specialtyImmunologist => 'Immunologist';
-
-  @override
-  String get specialtyPsychiatrist => 'Psychiatrist';
-
-  @override
-  String get specialtyPsychotherapist => 'Psychotherapist';
-
-  @override
-  String get specialtyUltrasoundDiagnostics => 'Ultrasound diagnostics';
-
-  @override
-  String get specialtyOncologist => 'Oncologist';
-
-  @override
-  String get specialtyRheumatologist => 'Rheumatologist';
-
-  @override
-  String get specialtyPulmonologist => 'Pulmonologist';
-
-  @override
-  String get specialtyNephrologist => 'Nephrologist';
-
-  @override
-  String get specialtyPhlebologist => 'Phlebologist';
-
-  @override
-  String get specialtyMammologist => 'Mammologist';
-
-  @override
-  String get specialtyOther => 'Other';
 
   @override
   String get noDocumentsLabel => 'No documents';
@@ -3636,156 +2877,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get documentsPrivacyHint =>
       'Stored only on your device (and in the cloud if backup is enabled) — the app never views or analyzes these files.';
-
-  @override
-  String get labTestCbc => 'Complete blood count';
-
-  @override
-  String get labTestUrinalysis => 'Urinalysis';
-
-  @override
-  String get labTestBloodChemistry => 'Blood chemistry panel';
-
-  @override
-  String get labTestBloodGlucose => 'Blood glucose';
-
-  @override
-  String get labTestLipidProfile => 'Lipid profile (cholesterol)';
-
-  @override
-  String get labTestTsh => 'Thyroid hormones (TSH)';
-
-  @override
-  String get labTestFreeT3 => 'Free T3';
-
-  @override
-  String get labTestFreeT4 => 'Free T4';
-
-  @override
-  String get labTestLiverEnzymes => 'Liver enzymes (ALT, AST)';
-
-  @override
-  String get labTestBilirubin => 'Bilirubin';
-
-  @override
-  String get labTestCreatinine => 'Creatinine';
-
-  @override
-  String get labTestUrea => 'Urea';
-
-  @override
-  String get labTestUricAcid => 'Uric acid';
-
-  @override
-  String get labTestSerumIron => 'Serum iron';
-
-  @override
-  String get labTestFerritin => 'Ferritin';
-
-  @override
-  String get labTestVitaminD => 'Vitamin D';
-
-  @override
-  String get labTestVitaminB12 => 'Vitamin B12';
-
-  @override
-  String get labTestFolicAcid => 'Folic acid';
-
-  @override
-  String get labTestCoagulogram => 'Coagulogram';
-
-  @override
-  String get labTestBloodType => 'Blood type & Rh factor';
-
-  @override
-  String get labTestCrp => 'C-reactive protein (CRP)';
-
-  @override
-  String get labTestEsr => 'Erythrocyte sedimentation rate (ESR)';
-
-  @override
-  String get labTestEstrogenProgesterone => 'Estrogen, progesterone';
-
-  @override
-  String get labTestTestosterone => 'Testosterone';
-
-  @override
-  String get labTestProlactin => 'Prolactin';
-
-  @override
-  String get labTestInsulin => 'Insulin';
-
-  @override
-  String get labTestHba1c => 'Glycated hemoglobin (HbA1c)';
-
-  @override
-  String get labTestPcr => 'PCR test';
-
-  @override
-  String get labTestAllergens => 'Allergen panel';
-
-  @override
-  String get labTestCoprogram => 'Stool analysis (coprogram)';
-
-  @override
-  String get labTestOccultBlood => 'Fecal occult blood test';
-
-  @override
-  String get labTestFloraSwab => 'Vaginal flora swab';
-
-  @override
-  String get labTestUrineCulture => 'Urine culture';
-
-  @override
-  String get labTestHepatitis => 'Hepatitis panel (B, C)';
-
-  @override
-  String get labTestHiv => 'HIV test';
-
-  @override
-  String get labTestSyphilis => 'RPR/VDRL (syphilis)';
-
-  @override
-  String get labTestCalcium => 'Calcium';
-
-  @override
-  String get labTestMagnesium => 'Magnesium';
-
-  @override
-  String get labTestElectrolytesKNaCl => 'Potassium, sodium, chloride';
-
-  @override
-  String get labTestAmylase => 'Amylase';
-
-  @override
-  String get labTestLipase => 'Lipase';
-
-  @override
-  String get labTestPsa => 'PSA (prostate-specific antigen)';
-
-  @override
-  String get labTestTumorMarkers => 'Tumor markers (CA-125)';
-
-  @override
-  String get labTestParasites => 'Parasite test (ova & parasites)';
-
-  @override
-  String get labTestCortisol => 'Cortisol';
-
-  @override
-  String get labTestImmunogram => 'Immunogram';
-
-  @override
-  String get labTestSpermogram => 'Semen analysis';
-
-  @override
-  String get labTestBloodElectrolytes => 'Blood electrolytes';
-
-  @override
-  String get labTestTotalProtein => 'Total protein';
-
-  @override
-  String get labTestDDimer => 'D-dimer';
 
   @override
   String get notifChannelName => 'Elly reminders';
@@ -3824,20 +2915,17 @@ class AppLocalizationsEn extends AppLocalizations {
       '🔔 You haven\'t marked this activity yet';
 
   @override
-  String get notifAppointmentTitle => '🩺 Doctor\'s appointment';
+  String get notifAppointmentTitle => '🔔 Reminder';
 
   @override
   String get notifAppointmentNoResponseTitle =>
-      '🔔 Don\'t forget your doctor\'s appointment';
+      '🔔 Don\'t forget your reminder';
 
   @override
   String get notifWellbeingTitle => '💜 Wellbeing check-in';
 
   @override
   String get notifWellbeingBody => 'How are you feeling?';
-
-  @override
-  String get notifVaccinationTitle => '💉 Time for a booster';
 
   @override
   String notifPeerCheckTitle(String subjectName) {
@@ -3856,7 +2944,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String notifPeerAppointmentCheckBody(String doctorType, String timeStr) {
-    return 'Did the appointment (\"$doctorType\") at $timeStr happen? Open the app and wait for sync to see the current status.';
+    return 'Did the reminder (\"$doctorType\") at $timeStr happen? Open the app and wait for sync to see the current status.';
   }
 
   @override

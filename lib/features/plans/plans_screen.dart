@@ -333,8 +333,6 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             features: [
                               context.l10n.freeFeatureAllSections,
                               context.l10n.freeFeatureUnlimitedMeds,
-                              context.l10n.freeFeatureScanLimit,
-                              context.l10n.freeFeatureVoiceLimit,
                               context.l10n.freeFeatureLocalBackup,
                             ],
                             isCurrent: currentPlan == AppPlan.free,
@@ -355,8 +353,6 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                                 'assets/illustrations/elly-hospital.png',
                             features: [
                               context.l10n.plusFeatureAllFree,
-                              context.l10n.plusFeatureUnlimitedScans,
-                              context.l10n.plusFeatureUnlimitedVoice,
                               context.l10n.plusFeatureServerSync,
                               context.l10n.plusFeatureUnlimitedProfiles,
                             ],
