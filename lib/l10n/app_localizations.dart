@@ -487,7 +487,7 @@ abstract class AppLocalizations {
   /// No description provided for @categoryDoctors.
   ///
   /// In uk, this message translates to:
-  /// **'Лікарі'**
+  /// **'Нагадування'**
   String get categoryDoctors;
 
   /// No description provided for @scheduleTitle.
@@ -517,7 +517,7 @@ abstract class AppLocalizations {
   /// No description provided for @sectionAppointments.
   ///
   /// In uk, this message translates to:
-  /// **'Прийоми лікарів'**
+  /// **'Нагадування'**
   String get sectionAppointments;
 
   /// No description provided for @noScheduledAppointments.
@@ -781,7 +781,7 @@ abstract class AppLocalizations {
   /// No description provided for @sectionNameHint.
   ///
   /// In uk, this message translates to:
-  /// **'Напр. Домашні улюбленці, Документи…'**
+  /// **'Вкажіть назву розділу для нотаток'**
   String get sectionNameHint;
 
   /// No description provided for @enterSectionNameError.
@@ -3013,7 +3013,7 @@ abstract class AppLocalizations {
   /// No description provided for @locationHint.
   ///
   /// In uk, this message translates to:
-  /// **'Клініка, адреса або онлайн'**
+  /// **'Вкажіть адресу або назву'**
   String get locationHint;
 
   /// No description provided for @fieldDateTime.
@@ -3067,7 +3067,7 @@ abstract class AppLocalizations {
   /// No description provided for @reminderTitleHint.
   ///
   /// In uk, this message translates to:
-  /// **'Напр. Стоматолог, Оплатити страховку…'**
+  /// **'Вкажіть, про що нагадати'**
   String get reminderTitleHint;
 
   /// No description provided for @enterReminderTitleError.
@@ -3085,7 +3085,7 @@ abstract class AppLocalizations {
   /// No description provided for @reminderTagsHint.
   ///
   /// In uk, this message translates to:
-  /// **'Теги через кому (необов\'язково)'**
+  /// **'Теги для структурування, через кому'**
   String get reminderTagsHint;
 
   /// No description provided for @reminderTagsPickerTitle.

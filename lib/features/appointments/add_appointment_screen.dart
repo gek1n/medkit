@@ -12,12 +12,15 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
+import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../today/providers/today_providers.dart';
 import '../../shared/widgets/documents_section.dart';
+import '../../shared/widgets/medcard_icon_picker.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
 import '../../shared/widgets/more_details_accordion.dart';
@@ -51,6 +54,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   late TimeOfDay _time;
   int _remindBeforeMin = 1440;
   String? _colorHex;
+  late String _iconKey;
   List<String> _documentPaths = [];
   bool _isSaving = false;
 
@@ -76,6 +80,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     _locationController = TextEditingController(text: ex?.location ?? '');
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _colorHex = ex?.color;
+    _iconKey = ex?.iconKey ?? 'calendar';
     if (ex != null) {
       _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
       try {
@@ -148,6 +153,11 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     if (picked != null) setState(() => _time = picked);
   }
 
+  Future<void> _pickIcon() async {
+    final picked = await showMedcardIconPicker(context, current: _iconKey);
+    if (picked != null) setState(() => _iconKey = picked);
+  }
+
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -192,6 +202,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                 notes: Value(notesVal),
                 documentPaths: Value(jsonEncode(_documentPaths)),
                 color: Value(_colorHex),
+                iconKey: Value(_iconKey),
               ),
             );
       } else {
@@ -208,6 +219,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                 notes: Value(notesVal),
                 documentPaths: Value(jsonEncode(_documentPaths)),
                 color: Value(_colorHex),
+                iconKey: Value(_iconKey),
               ),
             );
       }
@@ -396,6 +408,26 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       initiallyExpanded: _locationController.text.isNotEmpty ||
                           _documentPaths.isNotEmpty,
                       children: [
+                        MkFieldLabel(context.l10n.sectionIconFieldLabel),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: _pickIcon,
+                          child: Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: (colorFromHex(_colorHex) ?? AppColors.primary)
+                                  .withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Icon(
+                              medcardIconFor(_iconKey),
+                              color: colorFromHex(_colorHex) ?? AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         MkFieldLabel(context.l10n.fieldWhere),
                         const SizedBox(height: 6),
                         MkTextField(

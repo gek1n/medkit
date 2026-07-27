@@ -15,6 +15,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../core/utils/youtube_utils.dart';
 import '../../data/db/app_database.dart';
@@ -1160,7 +1161,20 @@ class _ScheduleCard extends StatelessWidget {
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, size: 20, color: color),
+                    // Нагадування (item.type == appointment) — замість
+                    // довільної обраної іконки тут завжди дружня ілюстрація
+                    // Ellу, щоб картка на Сьогодні лишалась впізнаваною й
+                    // "неклінічною" незалежно від того, яку іконку користувач
+                    // обрав при створенні (та іконка видна в Розкладі/деталях).
+                    child: item.type == _ItemType.appointment
+                        ? Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Image.asset(
+                              'assets/illustrations/elly-calendar.png',
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                        : Icon(icon, size: 20, color: color),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1302,7 +1316,7 @@ class _ScheduleCard extends StatelessWidget {
       );
     case _ItemType.appointment:
       return (
-        Icons.medical_services_rounded,
+        medcardIconFor(item.appointment!.iconKey),
         item.appointment!.doctorType,
         item.appointment!.location,
       );
@@ -1527,7 +1541,7 @@ class _ScheduleRow extends StatelessWidget {
         return (_actIcon(a?.type), a?.name ?? context.l10n.defaultActivityName, null);
       case _ItemType.appointment:
         return (
-          Icons.medical_services_rounded,
+          medcardIconFor(item.appointment!.iconKey),
           item.appointment!.doctorType,
           item.appointment!.location,
         );

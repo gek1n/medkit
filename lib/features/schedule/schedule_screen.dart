@@ -7,6 +7,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
@@ -61,7 +62,7 @@ extension on _ScheduleCategory {
         _ScheduleCategory.meds => Icons.medication_rounded,
         _ScheduleCategory.activities => Icons.directions_walk_rounded,
         _ScheduleCategory.wellbeing => Icons.favorite_rounded,
-        _ScheduleCategory.appointments => Icons.medical_services_rounded,
+        _ScheduleCategory.appointments => Icons.notifications_rounded,
       };
 
   String label(BuildContext context) => switch (this) {
@@ -311,7 +312,7 @@ class _ScheduleBody extends ConsumerWidget {
                 if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.appointments) ...[
                   _SectionHeader(
-                    icon: Icons.medical_services_rounded,
+                    icon: Icons.notifications_rounded,
                     title: context.l10n.sectionAppointments,
                   ),
                   const SizedBox(height: AppDimensions.md),
@@ -503,7 +504,7 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (appointments.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.medical_services_rounded, title: context.l10n.sectionAppointments),
+                        _SectionHeader(icon: Icons.notifications_rounded, title: context.l10n.sectionAppointments),
                         const SizedBox(height: AppDimensions.md),
                         ...appointments.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -929,7 +930,7 @@ class _AppointmentCard extends StatelessWidget {
         appointment.location != null && appointment.location!.isNotEmpty;
     return _TaskCardShell(
       color: color,
-      icon: Icons.medical_services_rounded,
+      icon: medcardIconFor(appointment.iconKey),
       title: appointment.doctorType,
       subtitle: hasLocation ? appointment.location! : context.l10n.noLocation,
       trailing: Column(

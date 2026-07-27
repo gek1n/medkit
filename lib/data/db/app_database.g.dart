@@ -7414,6 +7414,18 @@ class $RemindersTable extends Reminders
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _iconKeyMeta = const VerificationMeta(
+    'iconKey',
+  );
+  @override
+  late final GeneratedColumn<String> iconKey = GeneratedColumn<String>(
+    'icon_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('calendar'),
+  );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -7473,6 +7485,7 @@ class $RemindersTable extends Reminders
     pdfPath,
     documentPaths,
     color,
+    iconKey,
     status,
     createdAt,
     updatedAt,
@@ -7568,6 +7581,12 @@ class $RemindersTable extends Reminders
         color.isAcceptableOrUnknown(data['color']!, _colorMeta),
       );
     }
+    if (data.containsKey('icon_key')) {
+      context.handle(
+        _iconKeyMeta,
+        iconKey.isAcceptableOrUnknown(data['icon_key']!, _iconKeyMeta),
+      );
+    }
     if (data.containsKey('status')) {
       context.handle(
         _statusMeta,
@@ -7645,6 +7664,10 @@ class $RemindersTable extends Reminders
         DriftSqlType.string,
         data['${effectivePrefix}color'],
       ),
+      iconKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_key'],
+      )!,
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
@@ -7682,6 +7705,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   final String? pdfPath;
   final String documentPaths;
   final String? color;
+  final String iconKey;
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -7698,6 +7722,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     this.pdfPath,
     required this.documentPaths,
     this.color,
+    required this.iconKey,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -7725,6 +7750,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     if (!nullToAbsent || color != null) {
       map['color'] = Variable<String>(color);
     }
+    map['icon_key'] = Variable<String>(iconKey);
     map['status'] = Variable<String>(status);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -7755,6 +7781,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       color: color == null && nullToAbsent
           ? const Value.absent()
           : Value(color),
+      iconKey: Value(iconKey),
       status: Value(status),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -7781,6 +7808,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       pdfPath: serializer.fromJson<String?>(json['pdfPath']),
       documentPaths: serializer.fromJson<String>(json['documentPaths']),
       color: serializer.fromJson<String?>(json['color']),
+      iconKey: serializer.fromJson<String>(json['iconKey']),
       status: serializer.fromJson<String>(json['status']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -7802,6 +7830,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       'pdfPath': serializer.toJson<String?>(pdfPath),
       'documentPaths': serializer.toJson<String>(documentPaths),
       'color': serializer.toJson<String?>(color),
+      'iconKey': serializer.toJson<String>(iconKey),
       'status': serializer.toJson<String>(status),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -7821,6 +7850,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     Value<String?> pdfPath = const Value.absent(),
     String? documentPaths,
     Value<String?> color = const Value.absent(),
+    String? iconKey,
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -7837,6 +7867,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     pdfPath: pdfPath.present ? pdfPath.value : this.pdfPath,
     documentPaths: documentPaths ?? this.documentPaths,
     color: color.present ? color.value : this.color,
+    iconKey: iconKey ?? this.iconKey,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -7863,6 +7894,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ? data.documentPaths.value
           : this.documentPaths,
       color: data.color.present ? data.color.value : this.color,
+      iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -7884,6 +7916,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ..write('pdfPath: $pdfPath, ')
           ..write('documentPaths: $documentPaths, ')
           ..write('color: $color, ')
+          ..write('iconKey: $iconKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -7905,6 +7938,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     pdfPath,
     documentPaths,
     color,
+    iconKey,
     status,
     createdAt,
     updatedAt,
@@ -7925,6 +7959,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           other.pdfPath == this.pdfPath &&
           other.documentPaths == this.documentPaths &&
           other.color == this.color &&
+          other.iconKey == this.iconKey &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -7943,6 +7978,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<String?> pdfPath;
   final Value<String> documentPaths;
   final Value<String?> color;
+  final Value<String> iconKey;
   final Value<String> status;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -7959,6 +7995,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.pdfPath = const Value.absent(),
     this.documentPaths = const Value.absent(),
     this.color = const Value.absent(),
+    this.iconKey = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -7976,6 +8013,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.pdfPath = const Value.absent(),
     this.documentPaths = const Value.absent(),
     this.color = const Value.absent(),
+    this.iconKey = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -7995,6 +8033,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Expression<String>? pdfPath,
     Expression<String>? documentPaths,
     Expression<String>? color,
+    Expression<String>? iconKey,
     Expression<String>? status,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -8012,6 +8051,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       if (pdfPath != null) 'pdf_path': pdfPath,
       if (documentPaths != null) 'document_paths': documentPaths,
       if (color != null) 'color': color,
+      if (iconKey != null) 'icon_key': iconKey,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -8031,6 +8071,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Value<String?>? pdfPath,
     Value<String>? documentPaths,
     Value<String?>? color,
+    Value<String>? iconKey,
     Value<String>? status,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -8048,6 +8089,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       pdfPath: pdfPath ?? this.pdfPath,
       documentPaths: documentPaths ?? this.documentPaths,
       color: color ?? this.color,
+      iconKey: iconKey ?? this.iconKey,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -8091,6 +8133,9 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     if (color.present) {
       map['color'] = Variable<String>(color.value);
     }
+    if (iconKey.present) {
+      map['icon_key'] = Variable<String>(iconKey.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
@@ -8120,6 +8165,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
           ..write('pdfPath: $pdfPath, ')
           ..write('documentPaths: $documentPaths, ')
           ..write('color: $color, ')
+          ..write('iconKey: $iconKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')

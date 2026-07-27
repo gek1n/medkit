@@ -83,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -670,6 +670,14 @@ class AppDatabase extends _$AppDatabase {
             // таблиці стає чесною.
             try {
               await m.renameTable(reminders, 'doctor_appointments');
+            } catch (_) {}
+          }
+          if (from < 32) {
+            // Користувач сам обирає іконку нагадування (нейтральний набір
+            // medcard_icons.dart) при додаванні — раніше картка завжди мала
+            // жорстко зашитий медичний значок.
+            try {
+              await m.addColumn(reminders, reminders.iconKey);
             } catch (_) {}
           }
         },
