@@ -353,7 +353,6 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                                 'assets/illustrations/elly-hospital.png',
                             features: [
                               context.l10n.plusFeatureAllFree,
-                              context.l10n.plusFeatureServerSync,
                               context.l10n.plusFeatureUnlimitedProfiles,
                             ],
                             isCurrent: currentPlan == AppPlan.plus,

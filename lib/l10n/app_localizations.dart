@@ -4141,7 +4141,7 @@ abstract class AppLocalizations {
   /// No description provided for @choosePlanSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Турбота про здоров\'я всієї сім\'ї'**
+  /// **'Турбота про родину'**
   String get choosePlanSubtitle;
 
   /// No description provided for @monthToggleLabel.
@@ -4213,7 +4213,7 @@ abstract class AppLocalizations {
   /// No description provided for @freeFeatureUnlimitedMeds.
   ///
   /// In uk, this message translates to:
-  /// **'Необмежено ліків і медкарток'**
+  /// **'Необмежено нагадувань'**
   String get freeFeatureUnlimitedMeds;
 
   /// No description provided for @freeFeatureLocalBackup.
@@ -4234,16 +4234,10 @@ abstract class AppLocalizations {
   /// **'Все з безкоштовного'**
   String get plusFeatureAllFree;
 
-  /// No description provided for @plusFeatureServerSync.
-  ///
-  /// In uk, this message translates to:
-  /// **'Синхронізація з сервером (зашифровано)'**
-  String get plusFeatureServerSync;
-
   /// No description provided for @plusFeatureUnlimitedProfiles.
   ///
   /// In uk, this message translates to:
-  /// **'Необмежена кількість локальних профілів'**
+  /// **'Необмежена кількість профілів родини — керуєте тільки ви'**
   String get plusFeatureUnlimitedProfiles;
 
   /// No description provided for @selectPlusAction.
