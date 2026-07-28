@@ -67,7 +67,9 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
           ? null
           : _commentController.text.trim();
       final ex = widget.existing;
+      final int sectionId;
       if (ex != null) {
+        sectionId = ex.id;
         await ref.read(medcardSectionsRepositoryProvider).update(
               MedcardSectionsCompanion(
                 id: Value(ex.id),
@@ -79,7 +81,7 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
               ),
             );
       } else {
-        await ref.read(medcardSectionsRepositoryProvider).insert(
+        sectionId = await ref.read(medcardSectionsRepositoryProvider).insert(
               MedcardSectionsCompanion.insert(
                 memberId: widget.memberId,
                 name: name,
@@ -89,7 +91,10 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
               ),
             );
       }
-      if (mounted) Navigator.pop(context, true);
+      // Повертаємо id (не просто true) — щоб пікер Простору (SpacePicker),
+      // якщо саме він відкрив цей екран для створення нового розділу,
+      // міг одразу підставити щойно створений розділ як вибраний.
+      if (mounted) Navigator.pop(context, sectionId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

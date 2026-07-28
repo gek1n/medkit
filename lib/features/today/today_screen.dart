@@ -26,7 +26,7 @@ import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
-import '../add/add_type_sheet.dart';
+import '../add/add_task_screen.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
@@ -128,7 +128,7 @@ class _TodayContent extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bg,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showAddTypeSheet(context, memberId: member.id),
+        onPressed: () => openAddTaskScreen(context, memberId: member.id),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
@@ -1161,12 +1161,17 @@ class _ScheduleCard extends StatelessWidget {
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    // Нагадування (item.type == appointment) — замість
-                    // довільної обраної іконки тут завжди дружня ілюстрація
-                    // Ellу, щоб картка на Сьогодні лишалась впізнаваною й
-                    // "неклінічною" незалежно від того, яку іконку користувач
-                    // обрав при створенні (та іконка видна в Розкладі/деталях).
-                    child: item.type == _ItemType.appointment
+                    // Нагадування (item.type == appointment), а також
+                    // Прості завдання/Рутинні справи (Activity зі службовим
+                    // type simple_task/routine) — замість довільної обраної
+                    // іконки тут завжди дружня ілюстрація Ellу, щоб картка на
+                    // Сьогодні лишалась впізнаваною й "неклінічною" незалежно
+                    // від того, яку іконку користувач обрав при створенні (та
+                    // іконка видна в Розкладі/деталях).
+                    child: item.type == _ItemType.appointment ||
+                            (item.type == _ItemType.activity &&
+                                (_resolvedActivity?.type == 'simple_task' ||
+                                    _resolvedActivity?.type == 'routine'))
                         ? Padding(
                             padding: const EdgeInsets.all(6),
                             child: Image.asset(

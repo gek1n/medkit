@@ -241,6 +241,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get noActiveActivities => 'Немає активних занять';
 
   @override
+  String get noSimpleTasksHint => 'Немає простих завдань';
+
+  @override
+  String get noRoutineTasksHint => 'Немає рутинних справ';
+
+  @override
   String get sectionWellbeing => 'Самопочуття';
 
   @override
@@ -406,6 +412,18 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get sectionEmptyHint =>
       'Тут порожньо. Додайте перший запис через плюсик';
+
+  @override
+  String get spaceFieldLabel => 'Простір';
+
+  @override
+  String get spacePickerTitle => 'Оберіть простір';
+
+  @override
+  String get noSpaceOption => 'Без простору';
+
+  @override
+  String get createNewSpaceAction => 'Створити новий розділ';
 
   @override
   String get newEntryTitle => 'Новий запис';
@@ -2512,6 +2530,30 @@ class AppLocalizationsUk extends AppLocalizations {
   String get addTypeWellbeingSub => 'Зробити зріз — настрій, теги, коментар';
 
   @override
+  String get taskTypeSport => 'Спорт';
+
+  @override
+  String get taskTypeSportSub => 'Прогулянка, тренування, вправи';
+
+  @override
+  String get taskTypeMeeting => 'Зустрічі';
+
+  @override
+  String get taskTypeMeetingSub => 'Дата, час і нагадування про будь-яку подію';
+
+  @override
+  String get taskTypeSimple => 'Прості завдання';
+
+  @override
+  String get taskTypeSimpleSub => 'Одноразове чи просте нагадування';
+
+  @override
+  String get taskTypeRoutine => 'Рутинні справи';
+
+  @override
+  String get taskTypeRoutineSub => 'Щоденні справи по дому';
+
+  @override
   String get faqGroupPrivacyTitle => 'Приватність і дані';
 
   @override
@@ -2695,6 +2737,19 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get deleteActivityConfirmBody =>
       'Активність буде вилучена з розкладу.';
+
+  @override
+  String get disableWellbeingConfirmTitle => 'Вимкнути збір самопочуття?';
+
+  @override
+  String get disableWellbeingConfirmBody =>
+      'Нагадування зникнуть з Розкладу і Сьогодні. Налаштування збережуться — можна ввімкнути знову пізніше.';
+
+  @override
+  String get applyAction => 'Готово';
+
+  @override
+  String get noDaysSelectedHint => 'Дні не обрані';
 
   @override
   String get chooseActivityTypeError => 'Оберіть тип активності';

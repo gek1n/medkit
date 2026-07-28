@@ -23,9 +23,9 @@ class AppBottomNav extends StatelessWidget {
           height: 60,
           child: Row(
             children: [
-              _NavItem(icon: Icons.folder_rounded, label: l10n.navMedCard, index: 2, current: currentIndex, onTap: onTap),
+              _NavItem(icon: Icons.folder_rounded, label: l10n.navMedCard, index: 0, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.calendar_month_rounded, label: l10n.navMeds, index: 1, current: currentIndex, onTap: onTap),
-              _NavItem(icon: Icons.wb_sunny_rounded, label: l10n.navToday, index: 0, current: currentIndex, onTap: onTap),
+              _NavItem(icon: Icons.wb_sunny_rounded, label: l10n.navToday, index: 2, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.people_alt_rounded, label: l10n.navFamily, index: 3, current: currentIndex, onTap: onTap),
               _NavItem(icon: Icons.person_rounded, label: l10n.navProfile, index: 4, current: currentIndex, onTap: onTap),
             ],

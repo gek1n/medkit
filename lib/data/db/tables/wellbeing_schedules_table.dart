@@ -1,10 +1,15 @@
 import 'package:drift/drift.dart';
+import 'medcard_sections_table.dart';
 import 'members_table.dart';
 
 class WellbeingSchedules extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get memberId =>
       integer().references(Members, #id, onDelete: KeyAction.cascade)();
+  IntColumn get sectionId => integer()
+      .nullable()
+      .references(MedcardSections, #id, onDelete: KeyAction.setNull)();
+  // Необов'язковий Простір — див. коментар у medications_table.dart.
   IntColumn get timesPerDay =>
       integer().withDefault(const Constant(2))();
   // 1/2/3
