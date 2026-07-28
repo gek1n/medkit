@@ -42,9 +42,12 @@ final _scheduleActivitiesProvider =
   return ref.watch(activitiesRepositoryProvider).watchByMember(memberId);
 });
 
+// Всі нагадування учасника — не лише "майбутні" за scheduledAt, бо для
+// щоденних/щотижневих/щорічних (repeatType != 'none') це поле лише "якір",
+// не реальна наступна дата спрацювання (та обчислюється нативно ОС).
 final _scheduleAppointmentsProvider =
     StreamProvider.family<List<Reminder>, int>((ref, memberId) {
-  return ref.watch(remindersRepositoryProvider).watchUpcoming(memberId);
+  return ref.watch(remindersRepositoryProvider).watchByMember(memberId);
 });
 
 final _scheduleWellbeingScheduleProvider =
@@ -54,31 +57,19 @@ final _scheduleWellbeingScheduleProvider =
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-// 6 типізованих категорій (той самий порядок, що й у пікері створення
-// завдання) + "Всі". Спорт/Прості завдання/Рутинні справи — усі це записи
-// Activities, розрізняються за службовим (прихованим від юзера) полем type.
-enum _ScheduleCategory { all, meds, sport, meetings, simple, routine, wellbeing }
+// 4 типізовані категорії (той самий порядок, що й у пікері створення
+// завдання) + "Всі". Нагадування — об'єднана форма (заміна Зустрічі/Спорт/
+// Прості завдання), завжди з таблиці Reminders. Рутинні справи — окремо,
+// це Activities зі службовим (прихованим від юзера) type == 'routine'.
+enum _ScheduleCategory { all, meds, reminders, routine, wellbeing }
 
-// Службові значення Activities.type, якими позначаються Прості
-// завдання/Рутинні справи, коли їх створюють через відповідні пункти
-// пікера — не показуються юзеру, лише для розпізнавання картки/категорії.
-const _kActivityTypeSport = 'general_sport';
-const _kActivityTypeSimple = 'simple_task';
 const _kActivityTypeRoutine = 'routine';
-
-_ScheduleCategory _activityCategory(Activity a) => switch (a.type) {
-      _kActivityTypeSimple => _ScheduleCategory.simple,
-      _kActivityTypeRoutine => _ScheduleCategory.routine,
-      _ => _ScheduleCategory.sport,
-    };
 
 extension on _ScheduleCategory {
   IconData get icon => switch (this) {
         _ScheduleCategory.all => Icons.grid_view_rounded,
         _ScheduleCategory.meds => Icons.medication_rounded,
-        _ScheduleCategory.sport => Icons.directions_walk_rounded,
-        _ScheduleCategory.meetings => Icons.notifications_rounded,
-        _ScheduleCategory.simple => Icons.checklist_rounded,
+        _ScheduleCategory.reminders => Icons.notifications_rounded,
         _ScheduleCategory.routine => Icons.home_repair_service_rounded,
         _ScheduleCategory.wellbeing => Icons.favorite_rounded,
       };
@@ -86,9 +77,7 @@ extension on _ScheduleCategory {
   String label(BuildContext context) => switch (this) {
         _ScheduleCategory.all => context.l10n.categoryAll,
         _ScheduleCategory.meds => context.l10n.categoryMeds,
-        _ScheduleCategory.sport => context.l10n.taskTypeSport,
-        _ScheduleCategory.meetings => context.l10n.taskTypeMeeting,
-        _ScheduleCategory.simple => context.l10n.taskTypeSimple,
+        _ScheduleCategory.reminders => context.l10n.reminderCategoryTitle,
         _ScheduleCategory.routine => context.l10n.taskTypeRoutine,
         _ScheduleCategory.wellbeing => context.l10n.categoryWellbeing,
       };
@@ -337,74 +326,10 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.sport) ...[
-                  _SectionHeader(
-                    icon: Icons.directions_walk_rounded,
-                    title: context.l10n.taskTypeSport,
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddActivityScreen(
-                          memberId: selectedMemberId,
-                          hideTypePicker: true,
-                          forcedType: _kActivityTypeSport,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.md),
-                  activitiesAsync.when(
-                    loading: () => const _SectionLoading(),
-                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
-                    data: (activities) {
-                      final sport = activities
-                          .where((a) => _activityCategory(a) == _ScheduleCategory.sport)
-                          .toList();
-                      if (sport.isEmpty) {
-                        return _EmptySection(
-                          hint: context.l10n.noActiveActivities,
-                          onAdd: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddActivityScreen(
-                                memberId: selectedMemberId,
-                                hideTypePicker: true,
-                                forcedType: _kActivityTypeSport,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return Column(
-                        children: sport
-                            .map((a) => Padding(
-                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => AddActivityScreen(
-                                          memberId: selectedMemberId,
-                                          existing: a,
-                                          hideTypePicker: true,
-                                        ),
-                                      ),
-                                    ),
-                                    child: _ActivityCard(activity: a),
-                                  ),
-                                ))
-                            .toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppDimensions.xl),
-                ],
-
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.meetings) ...[
+                    category == _ScheduleCategory.reminders) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
-                    title: context.l10n.taskTypeMeeting,
+                    title: context.l10n.reminderCategoryTitle,
                     onAdd: () => Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -455,73 +380,6 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.simple) ...[
-                  _SectionHeader(
-                    icon: Icons.checklist_rounded,
-                    title: context.l10n.taskTypeSimple,
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddActivityScreen(
-                          memberId: selectedMemberId,
-                          hideTypePicker: true,
-                          forcedType: _kActivityTypeSimple,
-                          compactMode: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.md),
-                  activitiesAsync.when(
-                    loading: () => const _SectionLoading(),
-                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
-                    data: (activities) {
-                      final simple = activities
-                          .where((a) => _activityCategory(a) == _ScheduleCategory.simple)
-                          .toList();
-                      if (simple.isEmpty) {
-                        return _EmptySection(
-                          hint: context.l10n.noSimpleTasksHint,
-                          onAdd: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddActivityScreen(
-                                memberId: selectedMemberId,
-                                hideTypePicker: true,
-                                forcedType: _kActivityTypeSimple,
-                                compactMode: true,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return Column(
-                        children: simple
-                            .map((a) => Padding(
-                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                                  child: GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => AddActivityScreen(
-                                          memberId: selectedMemberId,
-                                          existing: a,
-                                          hideTypePicker: true,
-                                          compactMode: true,
-                                        ),
-                                      ),
-                                    ),
-                                    child: _ActivityCard(activity: a),
-                                  ),
-                                ))
-                            .toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppDimensions.xl),
-                ],
-
-                if (category == _ScheduleCategory.all ||
                     category == _ScheduleCategory.routine) ...[
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
@@ -544,7 +402,7 @@ class _ScheduleBody extends ConsumerWidget {
                     error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (activities) {
                       final routine = activities
-                          .where((a) => _activityCategory(a) == _ScheduleCategory.routine)
+                          .where((a) => a.type == _kActivityTypeRoutine)
                           .toList();
                       if (routine.isEmpty) {
                         return _EmptySection(
@@ -688,8 +546,7 @@ class _ScheduleBody extends ConsumerWidget {
                                       memberId: selectedMemberId,
                                       existing: a,
                                       hideTypePicker: true,
-                                      compactMode:
-                                          _activityCategory(a) != _ScheduleCategory.sport,
+                                      compactMode: true,
                                     ),
                                   ),
                                 ),
@@ -1103,7 +960,6 @@ class _ActivityCard extends StatelessWidget {
         'workout' => Icons.fitness_center_rounded,
         'yoga' => Icons.self_improvement_rounded,
         'cycling' => Icons.directions_bike_rounded,
-        _kActivityTypeSimple => Icons.checklist_rounded,
         _kActivityTypeRoutine => Icons.home_repair_service_rounded,
         _ => Icons.bolt_rounded,
       };
@@ -1135,6 +991,19 @@ class _AppointmentCard extends StatelessWidget {
   final Reminder appointment;
   const _AppointmentCard({required this.appointment});
 
+  static String _dayLabel(BuildContext context, int weekday) {
+    final l10n = context.l10n;
+    return switch (weekday) {
+      1 => l10n.dayMon,
+      2 => l10n.dayTue,
+      3 => l10n.dayWed,
+      4 => l10n.dayThu,
+      5 => l10n.dayFri,
+      6 => l10n.daySat,
+      _ => l10n.daySun,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = colorFromHex(appointment.color) ?? AppColors.primary;
@@ -1143,6 +1012,40 @@ class _AppointmentCard extends StatelessWidget {
     final mm = appointment.scheduledAt.minute.toString().padLeft(2, '0');
     final hasLocation =
         appointment.location != null && appointment.location!.isNotEmpty;
+
+    // scheduledAt — лише "якір" для daily/weekly/yearly (реальний час(и)
+    // спрацювання беруться нативно ОС), тож для них показуємо тип повтору
+    // замість дати, а для yearly — день+місяць (без року).
+    Widget trailingContent;
+    switch (appointment.repeatType) {
+      case 'daily':
+        trailingContent = Text(context.l10n.repeatDaily,
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub));
+        break;
+      case 'weekly':
+        var weekdayLabels = '—';
+        try {
+          final cfg =
+              jsonDecode(appointment.repeatConfig) as Map<String, dynamic>;
+          final days = List<int>.from(cfg['days'] as List);
+          weekdayLabels =
+              days.map((d) => _dayLabel(context, d)).join(', ');
+        } catch (_) {}
+        trailingContent = Text(weekdayLabels,
+            textAlign: TextAlign.end,
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub));
+        break;
+      case 'yearly':
+        final dfmt =
+            DateFormat('d MMM', Localizations.localeOf(context).languageCode);
+        trailingContent = Text(dfmt.format(appointment.scheduledAt),
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub));
+        break;
+      default:
+        trailingContent = Text(fmt.format(appointment.scheduledAt),
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub));
+    }
+
     return _TaskCardShell(
       color: color,
       icon: medcardIconFor(appointment.iconKey),
@@ -1152,11 +1055,12 @@ class _AppointmentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(fmt.format(appointment.scheduledAt),
-              style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub)),
-          Text('$hh:$mm',
-              style: AppTextStyles.bodySm
-                  .copyWith(color: AppColors.textMuted, fontSize: 10)),
+          trailingContent,
+          if (appointment.repeatType == 'none' ||
+              appointment.repeatType == 'yearly')
+            Text('$hh:$mm',
+                style: AppTextStyles.bodySm
+                    .copyWith(color: AppColors.textMuted, fontSize: 10)),
         ],
       ),
     );

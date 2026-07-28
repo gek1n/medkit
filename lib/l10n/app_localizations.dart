@@ -3037,7 +3037,7 @@ abstract class AppLocalizations {
   /// No description provided for @newAppointmentTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Нова зустріч'**
+  /// **'Нове нагадування'**
   String get newAppointmentTitle;
 
   /// No description provided for @fieldWhere.
@@ -3111,6 +3111,60 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Введіть назву'**
   String get enterReminderTitleError;
+
+  /// No description provided for @reminderRepeatSectionLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Коли нагадати'**
+  String get reminderRepeatSectionLabel;
+
+  /// No description provided for @reminderRepeatOnceLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Одноразово'**
+  String get reminderRepeatOnceLabel;
+
+  /// No description provided for @reminderRepeatDailyLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Щодня'**
+  String get reminderRepeatDailyLabel;
+
+  /// No description provided for @reminderRepeatWeeklyLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Певні дні тижня'**
+  String get reminderRepeatWeeklyLabel;
+
+  /// No description provided for @reminderRepeatYearlyLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Щороку'**
+  String get reminderRepeatYearlyLabel;
+
+  /// No description provided for @reminderYearlyDateFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дата (без року)'**
+  String get reminderYearlyDateFieldLabel;
+
+  /// No description provided for @addAnotherTimeAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додати ще один час'**
+  String get addAnotherTimeAction;
+
+  /// No description provided for @addAtLeastOneTimeError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додайте хоча б один час'**
+  String get addAtLeastOneTimeError;
+
+  /// No description provided for @chooseAtLeastOneDayError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оберіть хоча б один день тижня'**
+  String get chooseAtLeastOneDayError;
 
   /// No description provided for @reminderTagsFieldLabel.
   ///
@@ -3249,6 +3303,18 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Зріз {index}'**
   String wellbeingSlotNumberLabel(int index);
+
+  /// No description provided for @reminderTimesFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'ЧАС НАГАДУВАННЯ'**
+  String get reminderTimesFieldLabel;
+
+  /// No description provided for @timeSlotNumberLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Час {index}'**
+  String timeSlotNumberLabel(int index);
 
   /// No description provided for @timesCountShort.
   ///
@@ -4551,6 +4617,30 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Щоденні справи по дому'**
   String get taskTypeRoutineSub;
+
+  /// No description provided for @reminderCategoryTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нагадування'**
+  String get reminderCategoryTitle;
+
+  /// No description provided for @reminderCategorySub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Подія чи справа з датою — разова або повторювана'**
+  String get reminderCategorySub;
+
+  /// No description provided for @noteCategoryTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нотатка'**
+  String get noteCategoryTitle;
+
+  /// No description provided for @noteCategorySub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Просто запис — без нагадувань'**
+  String get noteCategorySub;
 
   /// No description provided for @faqGroupPrivacyTitle.
   ///

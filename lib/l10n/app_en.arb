@@ -979,7 +979,7 @@
   "remindBefore1Day": "1 day before",
   "remindBefore2Days": "2 days before",
   "deleteAppointmentBody": "This reminder will be deleted.",
-  "newAppointmentTitle": "New meeting",
+  "newAppointmentTitle": "New reminder",
   "fieldWhere": "Where",
   "locationHint": "Enter an address or name",
   "fieldDateTime": "Date & time",
@@ -992,6 +992,15 @@
   "reminderTitleFieldLabel": "Title",
   "reminderTitleHint": "What's this reminder about?",
   "enterReminderTitleError": "Enter a title",
+  "reminderRepeatSectionLabel": "When to remind",
+  "reminderRepeatOnceLabel": "Once",
+  "reminderRepeatDailyLabel": "Daily",
+  "reminderRepeatWeeklyLabel": "Specific weekdays",
+  "reminderRepeatYearlyLabel": "Yearly",
+  "reminderYearlyDateFieldLabel": "Date (year ignored)",
+  "addAnotherTimeAction": "Add another time",
+  "addAtLeastOneTimeError": "Add at least one time",
+  "chooseAtLeastOneDayError": "Choose at least one weekday",
   "reminderTagsFieldLabel": "Tags",
   "reminderTagsHint": "Tags to keep things organized, comma-separated",
   "reminderTagsPickerTitle": "Choose tags",
@@ -1016,6 +1025,15 @@
   "collectionTimeLabel": "CHECK-IN TIME",
   "wellbeingSlotNumberLabel": "Check-in {index}",
   "@wellbeingSlotNumberLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "reminderTimesFieldLabel": "REMINDER TIME",
+  "timeSlotNumberLabel": "Time {index}",
+  "@timeSlotNumberLabel": {
     "placeholders": {
       "index": {
         "type": "int"
@@ -1346,6 +1364,10 @@
   "taskTypeSimpleSub": "A one-off or simple reminder",
   "taskTypeRoutine": "Routine chores",
   "taskTypeRoutineSub": "Everyday household tasks",
+  "reminderCategoryTitle": "Reminder",
+  "reminderCategorySub": "An event or task with a date — once or repeating",
+  "noteCategoryTitle": "Note",
+  "noteCategorySub": "Just a record — no reminders",
   "addTypeAppointmentSub": "Date, time, and a reminder for anything",
   "faqGroupPrivacyTitle": "Privacy & data",
   "faqPrivacyQ1": "Who can see my data?",

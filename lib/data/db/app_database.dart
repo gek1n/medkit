@@ -63,6 +63,7 @@ part 'app_database.g.dart';
   ActivityLogs,
   DoctorAppointments,
   Reminders,
+  ReminderSlots,
   SharedChannels,
   LabResults,
   Allergies,
@@ -83,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 33;
+  int get schemaVersion => 34;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -697,6 +698,22 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.addColumn(wellbeingSchedules, wellbeingSchedules.sectionId);
+            } catch (_) {}
+          }
+          if (from < 34) {
+            // Об'єднана форма "Нагадування" (замінила окремі Зустрічі/
+            // Спорт/Прості завдання) — розва подія (none), щоденний/
+            // щотижневий повтор (час(и) у новій ReminderSlots) або щорічний
+            // (наприклад дні народження, повтор нативний через
+            // matchDateTimeComponents.dateAndTime — див. NotificationService).
+            try {
+              await m.addColumn(reminders, reminders.repeatType);
+            } catch (_) {}
+            try {
+              await m.addColumn(reminders, reminders.repeatConfig);
+            } catch (_) {}
+            try {
+              await m.createTable(reminderSlots);
             } catch (_) {}
           }
         },

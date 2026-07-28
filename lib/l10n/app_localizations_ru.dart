@@ -1701,7 +1701,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deleteAppointmentBody => 'Напоминание будет удалено.';
 
   @override
-  String get newAppointmentTitle => 'Новая встреча';
+  String get newAppointmentTitle => 'Новое напоминание';
 
   @override
   String get fieldWhere => 'Где';
@@ -1738,6 +1738,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get enterReminderTitleError => 'Введите название';
+
+  @override
+  String get reminderRepeatSectionLabel => 'Когда напомнить';
+
+  @override
+  String get reminderRepeatOnceLabel => 'Разово';
+
+  @override
+  String get reminderRepeatDailyLabel => 'Ежедневно';
+
+  @override
+  String get reminderRepeatWeeklyLabel => 'Определённые дни недели';
+
+  @override
+  String get reminderRepeatYearlyLabel => 'Ежегодно';
+
+  @override
+  String get reminderYearlyDateFieldLabel => 'Дата (год не важен)';
+
+  @override
+  String get addAnotherTimeAction => 'Добавить ещё одно время';
+
+  @override
+  String get addAtLeastOneTimeError => 'Добавьте хотя бы одно время';
+
+  @override
+  String get chooseAtLeastOneDayError => 'Выберите хотя бы один день недели';
 
   @override
   String get reminderTagsFieldLabel => 'Теги';
@@ -1809,6 +1836,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String wellbeingSlotNumberLabel(int index) {
     return 'Чек-ин $index';
+  }
+
+  @override
+  String get reminderTimesFieldLabel => 'ВРЕМЯ НАПОМИНАНИЯ';
+
+  @override
+  String timeSlotNumberLabel(int index) {
+    return 'Время $index';
   }
 
   @override
@@ -2558,6 +2593,19 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get taskTypeRoutineSub => 'Ежедневные дела по дому';
+
+  @override
+  String get reminderCategoryTitle => 'Напоминание';
+
+  @override
+  String get reminderCategorySub =>
+      'Событие или дело с датой — разово или с повтором';
+
+  @override
+  String get noteCategoryTitle => 'Заметка';
+
+  @override
+  String get noteCategorySub => 'Просто запись — без напоминаний';
 
   @override
   String get faqGroupPrivacyTitle => 'Приватность и данные';

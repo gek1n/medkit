@@ -1691,7 +1691,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAppointmentBody => 'This reminder will be deleted.';
 
   @override
-  String get newAppointmentTitle => 'New meeting';
+  String get newAppointmentTitle => 'New reminder';
 
   @override
   String get fieldWhere => 'Where';
@@ -1728,6 +1728,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enterReminderTitleError => 'Enter a title';
+
+  @override
+  String get reminderRepeatSectionLabel => 'When to remind';
+
+  @override
+  String get reminderRepeatOnceLabel => 'Once';
+
+  @override
+  String get reminderRepeatDailyLabel => 'Daily';
+
+  @override
+  String get reminderRepeatWeeklyLabel => 'Specific weekdays';
+
+  @override
+  String get reminderRepeatYearlyLabel => 'Yearly';
+
+  @override
+  String get reminderYearlyDateFieldLabel => 'Date (year ignored)';
+
+  @override
+  String get addAnotherTimeAction => 'Add another time';
+
+  @override
+  String get addAtLeastOneTimeError => 'Add at least one time';
+
+  @override
+  String get chooseAtLeastOneDayError => 'Choose at least one weekday';
 
   @override
   String get reminderTagsFieldLabel => 'Tags';
@@ -1800,6 +1827,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String wellbeingSlotNumberLabel(int index) {
     return 'Check-in $index';
+  }
+
+  @override
+  String get reminderTimesFieldLabel => 'REMINDER TIME';
+
+  @override
+  String timeSlotNumberLabel(int index) {
+    return 'Time $index';
   }
 
   @override
@@ -2542,6 +2577,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get taskTypeRoutineSub => 'Everyday household tasks';
+
+  @override
+  String get reminderCategoryTitle => 'Reminder';
+
+  @override
+  String get reminderCategorySub =>
+      'An event or task with a date — once or repeating';
+
+  @override
+  String get noteCategoryTitle => 'Note';
+
+  @override
+  String get noteCategorySub => 'Just a record — no reminders';
 
   @override
   String get faqGroupPrivacyTitle => 'Privacy & data';
