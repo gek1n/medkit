@@ -400,6 +400,7 @@
   "saveChangesAction": "Зберегти зміни",
   "saveAndContinueAction": "Зберегти і продовжити →",
   "saveAndViewScheduleAction": "Зберегти та переглянути розклад →",
+  "medicalDisclaimerText": "Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.",
   "phaseCardTitle": "Фаза {number}",
   "@phaseCardTitle": {
     "placeholders": {

@@ -1420,6 +1420,12 @@ abstract class AppLocalizations {
   /// **'Зберегти та переглянути розклад →'**
   String get saveAndViewScheduleAction;
 
+  /// No description provided for @medicalDisclaimerText.
+  ///
+  /// In uk, this message translates to:
+  /// **'Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.'**
+  String get medicalDisclaimerText;
+
   /// No description provided for @phaseCardTitle.
   ///
   /// In uk, this message translates to:

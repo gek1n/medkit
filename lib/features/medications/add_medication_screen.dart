@@ -586,7 +586,28 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+
+                    // Медичний дисклеймер — навмисно прямо перед кнопкою
+                    // збереження (не лише в Умовах використання), щоб
+                    // користувач бачив його саме в момент прийняття рішення
+                    // про ліки.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline_rounded,
+                            size: 14, color: AppColors.textMuted),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            context.l10n.medicalDisclaimerText,
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.textMuted),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
                     // Save
                     SizedBox(

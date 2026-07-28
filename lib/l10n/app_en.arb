@@ -400,6 +400,7 @@
   "saveChangesAction": "Save changes",
   "saveAndContinueAction": "Save and continue →",
   "saveAndViewScheduleAction": "Save and view schedule →",
+  "medicalDisclaimerText": "Elly is a reminder and organization tool, not medical advice. Always consult a doctor for diagnosis, prescriptions, or treatment changes.",
   "phaseCardTitle": "Phase {number}",
   "@phaseCardTitle": {
     "placeholders": {

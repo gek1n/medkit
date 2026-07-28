@@ -751,6 +751,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get saveAndViewScheduleAction => 'Сохранить и посмотреть расписание →';
 
   @override
+  String get medicalDisclaimerText =>
+      'Elly — инструмент для напоминаний и организации, не медицинская консультация. Для постановки диагноза, назначения или изменения лечения всегда обращайтесь к врачу.';
+
+  @override
   String phaseCardTitle(int number) {
     return 'Фаза $number';
   }

@@ -748,6 +748,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveAndViewScheduleAction => 'Save and view schedule →';
 
   @override
+  String get medicalDisclaimerText =>
+      'Elly is a reminder and organization tool, not medical advice. Always consult a doctor for diagnosis, prescriptions, or treatment changes.';
+
+  @override
   String phaseCardTitle(int number) {
     return 'Phase $number';
   }
