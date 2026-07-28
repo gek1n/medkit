@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/med_form_icons.dart';
+import 'asset_icon.dart';
 
 /// Спільний список форм випуску ліків — раніше жив приватно лише в
 /// `add_medication_screen.dart`, винесено сюди, щоб той самий вибір форми
@@ -80,11 +81,7 @@ class FormChips extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      medFormIcon(f),
-                      size: 16,
-                      color: selected == f ? Colors.white : AppColors.textMain,
-                    ),
+                    AssetIcon(medFormIconAsset(f), size: 18),
                     const SizedBox(width: 6),
                     Text(
                       labels[f]!,

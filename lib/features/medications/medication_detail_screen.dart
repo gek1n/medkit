@@ -13,6 +13,7 @@ import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/affiliate_buy_button.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
@@ -959,7 +960,7 @@ class _MedPhotoBlock extends StatelessWidget {
           ],
         ),
         child: Center(
-          child: Icon(medFormIcon(med.form), size: 28, color: accent),
+          child: AssetIcon(medFormIconAsset(med.form), size: 34),
         ),
       );
     }

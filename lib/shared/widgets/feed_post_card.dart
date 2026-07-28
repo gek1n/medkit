@@ -22,6 +22,9 @@ class FeedPostCard extends StatelessWidget {
   final List<String> tags;
   final List<String> photoPaths;
   final VoidCallback onTap;
+  // Кастомний віджет замість [icon] (напр. повнокольорова MedcardIcon) —
+  // коли задано, [icon] ігнорується.
+  final Widget? iconWidget;
 
   const FeedPostCard({
     super.key,
@@ -34,6 +37,7 @@ class FeedPostCard extends StatelessWidget {
     this.tags = const [],
     this.photoPaths = const [],
     required this.onTap,
+    this.iconWidget,
   });
 
   @override
@@ -105,12 +109,13 @@ class FeedPostCard extends StatelessWidget {
                     Container(
                       width: 40,
                       height: 40,
+                      alignment: Alignment.center,
                       margin: const EdgeInsets.only(right: AppDimensions.md),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                       ),
-                      child: Icon(icon, size: 20, color: color),
+                      child: iconWidget ?? Icon(icon, size: 20, color: color),
                     ),
                   Expanded(
                     child: Column(

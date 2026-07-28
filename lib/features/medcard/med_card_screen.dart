@@ -174,6 +174,14 @@ class _MedCardBody extends ConsumerWidget {
                 error: (_, _) => const SizedBox.shrink(),
                 data: (sections) {
                   if (sections.isEmpty) return const SizedBox.shrink();
+                  // Автостворений розділ "Нотатки" (isDefaultNotes) завжди
+                  // вгорі — незалежно від того, коли саме його лениво
+                  // створили відносно інших розділів (watchByMember сортує
+                  // за createdAt).
+                  final pinned = [...sections]..sort((a, b) {
+                      if (a.isDefaultNotes == b.isDefaultNotes) return 0;
+                      return a.isDefaultNotes ? -1 : 1;
+                    });
                   return Column(
                     children: [
                       const SizedBox(height: AppDimensions.lg),
@@ -185,10 +193,11 @@ class _MedCardBody extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: AppDimensions.sm),
-                      ...sections.map((s) => Padding(
+                      ...pinned.map((s) => Padding(
                             padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                             child: _MedCardTile(
-                              icon: medcardIconFor(s.iconKey),
+                              icon: Icons.folder_rounded,
+                              iconWidget: MedcardIcon(s.iconKey, size: 24),
                               iconColor: colorFromHex(s.color) ?? AppColors.primary,
                               title: s.name,
                               subtitle: s.comment,
@@ -246,6 +255,7 @@ class _MedCardTile extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
+  final Widget? iconWidget;
 
   const _MedCardTile({
     required this.icon,
@@ -253,6 +263,7 @@ class _MedCardTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.iconWidget,
   });
 
   @override
@@ -275,11 +286,12 @@ class _MedCardTile extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                 ),
-                child: Icon(icon, size: 20, color: iconColor),
+                child: iconWidget ?? Icon(icon, size: 20, color: iconColor),
               ),
               const SizedBox(width: AppDimensions.md),
               Expanded(

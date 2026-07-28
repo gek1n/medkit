@@ -431,6 +431,46 @@ class NotificationService {
     }
   }
 
+  // Плагін не має нативного matchDateTimeComponents для "щомісяця" (лише
+  // time/dayOfWeekAndTime/dateAndTime) — тож замість одного "вічного"
+  // повтору плануємо наперед [monthsAhead] окремих одноразових сповіщень
+  // (варіанти 0..monthsAhead-1), з клемпінгом дня для коротших місяців
+  // (напр. 31 у лютому → останній день лютого). Через рік, якщо запис не
+  // пересворено чи не перепланований через resync, нові сповіщення
+  // перестануть з'являтись — прийнятний компроміс у межах архітектури без
+  // фонового генератора (як і решта Нагадування).
+  static Future<void> scheduleMonthlyReminder({
+    required int reminderId,
+    required String memberName,
+    required String title,
+    String? location,
+    required int dayOfMonth,
+    required int hour,
+    required int minute,
+    bool vibrationEnabled = true,
+    int monthsAhead = 12,
+  }) async {
+    final l10n = await _l10n();
+    final body =
+        (location != null && location.isNotEmpty) ? '$title · $location' : title;
+    final now = DateTime.now();
+    for (var i = 0; i < monthsAhead; i++) {
+      final targetMonth = DateTime(now.year, now.month + i, 1);
+      final daysInMonth = DateTime(targetMonth.year, targetMonth.month + 1, 0).day;
+      final clampedDay = dayOfMonth > daysInMonth ? daysInMonth : dayOfMonth;
+      final at =
+          DateTime(targetMonth.year, targetMonth.month, clampedDay, hour, minute);
+      if (at.isBefore(now)) continue;
+      await _zonedSchedule(
+        id: recurringReminderNotificationId(reminderId, i),
+        title: '$memberName · ${l10n.notifAppointmentTitle}',
+        body: body,
+        at: at,
+        vibrationEnabled: vibrationEnabled,
+      );
+    }
+  }
+
   // Дні тижня (1=Пн..7=Нд, як DateTime.weekday) × слоти — кожна пара
   // отримує власний ідентифікатор сповіщення, що повторюється щотижня.
   static Future<void> scheduleWeeklyReminderSlots({

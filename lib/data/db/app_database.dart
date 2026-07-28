@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 34;
+  int get schemaVersion => 35;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -714,6 +714,13 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.createTable(reminderSlots);
+            } catch (_) {}
+          }
+          if (from < 35) {
+            // Нотатка без явно обраного Простору — падає в автостворений
+            // розділ "Нотатки" (isDefaultNotes) замість блокування створення.
+            try {
+              await m.addColumn(medcardSections, medcardSections.isDefaultNotes);
             } catch (_) {}
           }
         },

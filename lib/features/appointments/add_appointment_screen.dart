@@ -19,6 +19,7 @@ import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../today/providers/today_providers.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
@@ -56,13 +57,14 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   late final TextEditingController _notesController;
   List<String> _tags = [];
 
-  // 'none' | 'daily' | 'weekly' | 'yearly'
+  // 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
   String _repeatType = 'none';
   late DateTime _date; // 'none'/'yearly' — рік ігнорується для 'yearly'
-  late TimeOfDay _time; // 'none'/'yearly'
-  int _remindBeforeMin = 1440;
+  late TimeOfDay _time; // 'none'/'yearly'/'monthly'
+  int _remindBeforeMin = 0;
   List<_Slot> _slots = [const TimeOfDay(hour: 8, minute: 0)]; // 'daily'/'weekly'
   Set<int> _weekdays = {1, 2, 3, 4, 5}; // 'weekly'
+  int _dayOfMonth = DateTime.now().day; // 'monthly'
 
   String? _colorHex;
   late String _iconKey;
@@ -80,10 +82,24 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   List<(int, String)> _remindOptions(BuildContext context) {
     final l10n = context.l10n;
     return [
+      (0, l10n.remindBeforeAtTime),
+      (10, l10n.remindBefore10Min),
+      (30, l10n.remindBefore30Min),
       (60, l10n.remindBefore1Hour),
       (1440, l10n.remindBefore1Day),
       (2880, l10n.remindBefore2Days),
     ];
+  }
+
+  String _repeatTypeLabel(BuildContext context, String type) {
+    final l10n = context.l10n;
+    return switch (type) {
+      'daily' => l10n.reminderRepeatDailyLabel,
+      'weekly' => l10n.reminderRepeatWeeklyLabel,
+      'monthly' => l10n.reminderRepeatMonthlyLabel,
+      'yearly' => l10n.reminderRepeatYearlyLabel,
+      _ => l10n.reminderRepeatOnceLabel,
+    };
   }
 
   static String _dayLabel(BuildContext context, int weekday) {
@@ -126,6 +142,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
           final cfg = jsonDecode(ex.repeatConfig) as Map<String, dynamic>;
           _weekdays = Set<int>.from(cfg['days'] as List);
         } catch (_) {}
+      }
+      if (_repeatType == 'monthly') {
+        _dayOfMonth = ex.scheduledAt.day;
       }
       if (_repeatType == 'daily' || _repeatType == 'weekly') {
         _loadSlots(ex.id);
@@ -236,13 +255,21 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     }
     setState(() => _isSaving = true);
     try {
-      final scheduledAt = DateTime(
-        _date.year,
-        _date.month,
-        _date.day,
-        _time.hour,
-        _time.minute,
-      );
+      // Для 'monthly' місяць у scheduledAt фіксуємо як січень (завжди 31
+      // день) — інакше DateTime() мовчки "перекидає" день у наступний
+      // місяць, якщо поточний _date.month коротший за обраний _dayOfMonth
+      // (напр. 31 у лютому), спотворюючи сам якір. Реальний місяць для
+      // 'monthly' не має значення — важливий лише .day (див.
+      // RemindersRepository.watchActiveOnDate/scheduleMonthlyReminder).
+      final scheduledAt = _repeatType == 'monthly'
+          ? DateTime(_date.year, 1, _dayOfMonth, _time.hour, _time.minute)
+          : DateTime(
+              _date.year,
+              _date.month,
+              _date.day,
+              _time.hour,
+              _time.minute,
+            );
       final locationVal = _locationController.text.trim().isEmpty
           ? null
           : _locationController.text.trim();
@@ -344,15 +371,50 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
           }
           break;
         case 'yearly':
-          await NotificationService.scheduleYearlyReminder(
-            reminderId: reminderId,
-            memberName: memberName,
-            title: title,
-            location: locationVal,
-            date: scheduledAt,
-            remindBeforeMin: _remindBeforeMin,
-            vibrationEnabled: settings.vibrationEnabled,
-          );
+          {
+            // Як і в 'none' — remindBeforeMin та тихі години/глобальний
+            // тумблер застосовуємо ТУТ (через settings.adjust), а не
+            // передаємо сирі значення в NotificationService: інакше щорічне
+            // нагадування планувалось би навіть при вимкнених push/профілі
+            // й ігнорувало тихі години.
+            final rawReminderAt =
+                scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
+            final remindAt =
+                settings.adjust(rawReminderAt, memberId: widget.memberId);
+            if (remindAt != null) {
+              await NotificationService.scheduleYearlyReminder(
+                reminderId: reminderId,
+                memberName: memberName,
+                title: title,
+                location: locationVal,
+                date: remindAt,
+                remindBeforeMin: 0,
+                vibrationEnabled: settings.vibrationEnabled,
+              );
+            }
+          }
+          break;
+        case 'monthly':
+          {
+            // Так само, як 'yearly': remindBeforeMin + settings.adjust ТУТ,
+            // до передачі в NotificationService.
+            final rawReminderAt =
+                scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
+            final remindAt =
+                settings.adjust(rawReminderAt, memberId: widget.memberId);
+            if (remindAt != null) {
+              await NotificationService.scheduleMonthlyReminder(
+                reminderId: reminderId,
+                memberName: memberName,
+                title: title,
+                location: locationVal,
+                dayOfMonth: remindAt.day,
+                hour: remindAt.hour,
+                minute: remindAt.minute,
+                vibrationEnabled: settings.vibrationEnabled,
+              );
+            }
+          }
           break;
         case 'daily':
           {
@@ -454,41 +516,86 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Коли нагадати — визначає решту полів розкладу нижче
+                    // Коли нагадати — визначає решту полів розкладу нижче.
+                    // Попап-пікер (замість Wrap-чіпів): поле показує обраний
+                    // варіант і відкриває шторку зі списком по тапу.
                     MkFieldLabel(context.l10n.reminderRepeatSectionLabel),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ('none', context.l10n.reminderRepeatOnceLabel),
-                        ('daily', context.l10n.reminderRepeatDailyLabel),
-                        ('weekly', context.l10n.reminderRepeatWeeklyLabel),
-                        ('yearly', context.l10n.reminderRepeatYearlyLabel),
-                      ].map((opt) {
-                        final sel = _repeatType == opt.$1;
-                        return GestureDetector(
-                          onTap: () => setState(() => _repeatType = opt.$1),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: sel ? AppColors.primaryLight : AppColors.surface,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: sel ? AppColors.primary : AppColors.border,
-                                width: sel ? 2 : 1.5,
+                    GestureDetector(
+                      onTap: () => showFieldSheet(
+                        context,
+                        title: context.l10n.reminderRepeatSectionLabel,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ('none', context.l10n.reminderRepeatOnceLabel,
+                                'repeat_none'),
+                            ('daily', context.l10n.reminderRepeatDailyLabel,
+                                'repeat_daily'),
+                            (
+                              'weekly',
+                              context.l10n.reminderRepeatWeeklyLabel,
+                              'repeat_weekly'
+                            ),
+                            (
+                              'monthly',
+                              context.l10n.reminderRepeatMonthlyLabel,
+                              'repeat_monthly'
+                            ),
+                            ('yearly', context.l10n.reminderRepeatYearlyLabel,
+                                'repeat_yearly'),
+                          ].map((opt) {
+                            final sel = _repeatType == opt.$1;
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: AssetIcon(opt.$3, size: 26),
+                              title: Text(
+                                opt.$2,
+                                style: AppTextStyles.bodyMd.copyWith(
+                                  color: sel
+                                      ? AppColors.primary
+                                      : AppColors.textMain,
+                                  fontWeight:
+                                      sel ? FontWeight.w700 : FontWeight.w400,
+                                ),
+                              ),
+                              trailing: sel
+                                  ? const Icon(Icons.check_rounded,
+                                      color: AppColors.primary)
+                                  : null,
+                              onTap: () {
+                                setState(() => _repeatType = opt.$1);
+                                Navigator.pop(context);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 13),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.repeat_rounded,
+                                size: 18, color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _repeatTypeLabel(context, _repeatType),
+                                style: AppTextStyles.bodyMd
+                                    .copyWith(fontWeight: FontWeight.w600),
                               ),
                             ),
-                            child: Text(
-                              opt.$2,
-                              style: AppTextStyles.labelMd.copyWith(
-                                color: sel ? AppColors.primary : AppColors.textMain,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                            const Icon(Icons.expand_more_rounded,
+                                size: 18, color: AppColors.textMuted),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -518,6 +625,56 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                    ],
+
+                    if (_repeatType == 'monthly') ...[
+                      MkFieldLabel(context.l10n.reminderMonthlyDayFieldLabel),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: List.generate(31, (i) {
+                          final day = i + 1;
+                          final sel = _dayOfMonth == day;
+                          return GestureDetector(
+                            onTap: () => setState(() => _dayOfMonth = day),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color:
+                                    sel ? AppColors.primary : AppColors.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: sel
+                                      ? AppColors.primary
+                                      : AppColors.border,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '$day',
+                                  style: AppTextStyles.labelSm.copyWith(
+                                    color: sel
+                                        ? Colors.white
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                      MkFieldLabel(context.l10n.timeCapsLabel),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: _pickTime,
+                        child: _DateTimeBox(
+                            label: context.l10n.timeCapsLabel, value: '$hh:$mm'),
                       ),
                       const SizedBox(height: AppDimensions.lg),
                     ],
@@ -663,10 +820,12 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                             if (mounted) setState(() {});
                           },
                         ),
-                        // Remind before — лише для разового/щорічного (для
-                        // щоденного/тижневого нагадування час слоту й Є
+                        // Remind before — для разового/місячного/щорічного
+                        // (для щоденного/тижневого нагадування час слоту й Є
                         // моментом нагадування, "заздалегідь" тут не має сенсу.
-                        if (_repeatType == 'none' || _repeatType == 'yearly')
+                        if (_repeatType == 'none' ||
+                            _repeatType == 'monthly' ||
+                            _repeatType == 'yearly')
                           if (!_isPastVisit)
                             FieldChip(
                               icon: Icons.notifications_outlined,
@@ -774,7 +933,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                           ),
                         ),
                         FieldChip(
-                          icon: medcardIconFor(_iconKey),
+                          icon: Icons.palette_outlined,
                           label: context.l10n.taskColorPickerLabel,
                           value: _colorHex,
                           forceLabel: true,
@@ -811,6 +970,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                                     child: Container(
                                       width: 52,
                                       height: 52,
+                                      alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         color: (colorFromHex(_colorHex) ??
                                                 AppColors.primary)
@@ -820,11 +980,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                                         ),
                                         border: Border.all(color: AppColors.border),
                                       ),
-                                      child: Icon(
-                                        medcardIconFor(_iconKey),
-                                        color: colorFromHex(_colorHex) ??
-                                            AppColors.primary,
-                                      ),
+                                      child: MedcardIcon(_iconKey, size: 26),
                                     ),
                                   ),
                                 ],

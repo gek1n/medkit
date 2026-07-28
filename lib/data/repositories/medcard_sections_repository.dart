@@ -32,6 +32,28 @@ class MedcardSectionsRepository {
 
   Future<int> delete(int id) =>
       (_db.delete(_db.medcardSections)..where((t) => t.id.equals(id))).go();
+
+  // Нотатка без явно обраного Простору падає сюди — рівно один автостворений
+  // розділ на профіль (лениво, при першій потребі), а не блокує створення.
+  // [defaultName] локалізується викликачем (тут нема доступу до l10n).
+  Future<int> getOrCreateDefaultNotesSection(
+    int memberId,
+    String defaultName,
+  ) async {
+    final existing = await (_db.select(_db.medcardSections)
+          ..where((t) =>
+              t.memberId.equals(memberId) & t.isDefaultNotes.equals(true)))
+        .getSingleOrNull();
+    if (existing != null) return existing.id;
+    return _db.into(_db.medcardSections).insert(
+          MedcardSectionsCompanion.insert(
+            memberId: memberId,
+            name: defaultName,
+            iconKey: const Value('document'),
+            isDefaultNotes: const Value(true),
+          ),
+        );
+  }
 }
 
 final medcardSectionsRepositoryProvider =

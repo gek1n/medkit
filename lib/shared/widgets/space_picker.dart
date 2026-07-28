@@ -12,10 +12,18 @@ import '../../data/repositories/medcard_sections_repository.dart';
 import '../../features/medcard/add_medcard_section_screen.dart';
 import 'field_sheet.dart';
 
+// Сентинел "явно обрано Без простору" — відрізняється від null (шторку
+// просто закрили свайпом/тапом поза нею, без жодного вибору). Для більшості
+// викликачів (ліки/активності/нагадування/самопочуття) різниця не важлива —
+// SpaceField/SpaceChip мапують обидва в null. Але для нотаток (де sectionId
+// не може лишитись порожнім) відмінність критична — див. add_task_screen.dart.
+const int noSpaceSelectedSentinel = 0;
+
 /// Пікер Простору — той самий розділ архіву (MedcardSections), тепер
 /// використовується не лише для нотаток, а й для будь-якого завдання
-/// (ліки/активності/нагадування/самопочуття). Повертає обраний id, null
-/// (без простору) або залишає без змін, якщо закрито без вибору.
+/// (ліки/активності/нагадування/самопочуття). Повертає обраний id,
+/// [noSpaceSelectedSentinel] (явно "без простору") або null, якщо закрито
+/// без вибору.
 Future<int?> showSpacePicker(
   BuildContext context, {
   required int memberId,
@@ -71,7 +79,7 @@ class _SpacePickerSheet extends ConsumerWidget {
             Text(context.l10n.spacePickerTitle, style: AppTextStyles.h3),
             const SizedBox(height: 16),
             GestureDetector(
-              onTap: () => Navigator.pop(context, null),
+              onTap: () => Navigator.pop(context, noSpaceSelectedSentinel),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 margin: const EdgeInsets.only(bottom: 8),
@@ -120,11 +128,12 @@ class _SpacePickerSheet extends ConsumerWidget {
                           Container(
                             width: 32,
                             height: 32,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                             ),
-                            child: Icon(medcardIconFor(s.iconKey), size: 17, color: color),
+                            child: MedcardIcon(s.iconKey, size: 20),
                           ),
                           const SizedBox(width: 10),
                           Expanded(child: Text(s.name, style: AppTextStyles.bodyMd)),
@@ -192,7 +201,8 @@ class SpaceField extends ConsumerWidget {
     return GestureDetector(
       onTap: () async {
         final picked = await showSpacePicker(context, memberId: memberId, current: sectionId);
-        onChanged(picked);
+        if (picked == null) return; // закрито без вибору — лишаємо як є
+        onChanged(picked == noSpaceSelectedSentinel ? null : picked);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -204,11 +214,7 @@ class SpaceField extends ConsumerWidget {
         child: Row(
           children: [
             if (current != null) ...[
-              Icon(
-                medcardIconFor(current.iconKey),
-                size: 16,
-                color: colorFromHex(current.color) ?? AppColors.primary,
-              ),
+              MedcardIcon(current.iconKey, size: 18),
               const SizedBox(width: 8),
             ],
             Expanded(
@@ -245,12 +251,14 @@ class SpaceChip extends ConsumerWidget {
     final current = sectionsAsync.valueOrNull?.where((s) => s.id == sectionId).firstOrNull;
 
     return FieldChip(
-      icon: current != null ? medcardIconFor(current.iconKey) : Icons.folder_outlined,
+      icon: Icons.folder_outlined,
+      iconWidget: current != null ? MedcardIcon(current.iconKey, size: 15) : null,
       label: context.l10n.spaceFieldLabel,
       value: current?.name,
       onTap: () async {
         final picked = await showSpacePicker(context, memberId: memberId, current: sectionId);
-        onChanged(picked);
+        if (picked == null) return;
+        onChanged(picked == noSpaceSelectedSentinel ? null : picked);
       },
     );
   }

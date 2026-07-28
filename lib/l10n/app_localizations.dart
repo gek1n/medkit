@@ -2914,6 +2914,12 @@ abstract class AppLocalizations {
   /// **'Записів ще немає'**
   String get noRecordsYetTitle;
 
+  /// No description provided for @remindersArchiveEmptyHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Тут зберігатимуться всі створені нагадування. Натисніть «+», щоб додати перше'**
+  String get remindersArchiveEmptyHint;
+
   /// No description provided for @noAppointmentsForSpecialty.
   ///
   /// In uk, this message translates to:
@@ -3009,6 +3015,24 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'ГРУ'**
   String get monthAbbrDec;
+
+  /// No description provided for @remindBeforeAtTime.
+  ///
+  /// In uk, this message translates to:
+  /// **'У вказаний час'**
+  String get remindBeforeAtTime;
+
+  /// No description provided for @remindBefore10Min.
+  ///
+  /// In uk, this message translates to:
+  /// **'За 10 хвилин'**
+  String get remindBefore10Min;
+
+  /// No description provided for @remindBefore30Min.
+  ///
+  /// In uk, this message translates to:
+  /// **'За 30 хвилин'**
+  String get remindBefore30Min;
 
   /// No description provided for @remindBefore1Hour.
   ///
@@ -3121,7 +3145,7 @@ abstract class AppLocalizations {
   /// No description provided for @reminderRepeatOnceLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Одноразово'**
+  /// **'Не повторювати'**
   String get reminderRepeatOnceLabel;
 
   /// No description provided for @reminderRepeatDailyLabel.
@@ -3136,6 +3160,12 @@ abstract class AppLocalizations {
   /// **'Певні дні тижня'**
   String get reminderRepeatWeeklyLabel;
 
+  /// No description provided for @reminderRepeatMonthlyLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Щомісяця'**
+  String get reminderRepeatMonthlyLabel;
+
   /// No description provided for @reminderRepeatYearlyLabel.
   ///
   /// In uk, this message translates to:
@@ -3147,6 +3177,24 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Дата (без року)'**
   String get reminderYearlyDateFieldLabel;
+
+  /// No description provided for @reminderMonthlyDayFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'День місяця'**
+  String get reminderMonthlyDayFieldLabel;
+
+  /// No description provided for @dayOfMonthCapsLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'ДЕНЬ'**
+  String get dayOfMonthCapsLabel;
+
+  /// No description provided for @defaultNotesSectionName.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нотатки'**
+  String get defaultNotesSectionName;
 
   /// No description provided for @addAnotherTimeAction.
   ///
@@ -3487,7 +3535,7 @@ abstract class AppLocalizations {
   /// No description provided for @noWellbeingLogsHint.
   ///
   /// In uk, this message translates to:
-  /// **'Натисніть \"+ Зріз\" щоб додати перший'**
+  /// **'Тут зберігатиметься історія самопочуття. Натисніть «+ Зріз», щоб додати перший запис'**
   String get noWellbeingLogsHint;
 
   /// No description provided for @comingSoonEllipsis.

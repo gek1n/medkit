@@ -51,10 +51,10 @@ class _MedcardIconPickerSheet extends StatelessWidget {
               crossAxisCount: 5,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              children: medcardIcons.entries.map((e) {
-                final selected = e.key == current;
+              children: medcardIconKeys.map((key) {
+                final selected = key == current;
                 return GestureDetector(
-                  onTap: () => Navigator.pop(context, e.key),
+                  onTap: () => Navigator.pop(context, key),
                   child: Container(
                     decoration: BoxDecoration(
                       color: selected ? AppColors.primaryLight : AppColors.surface,
@@ -64,11 +64,8 @@ class _MedcardIconPickerSheet extends StatelessWidget {
                         width: selected ? 2 : 1,
                       ),
                     ),
-                    child: Icon(
-                      e.value,
-                      color: selected ? AppColors.primary : AppColors.textSub,
-                      size: 22,
-                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: MedcardIcon(key, size: 24),
                   ),
                 );
               }).toList(),

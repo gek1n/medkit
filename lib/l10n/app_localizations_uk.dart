@@ -1638,6 +1638,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String get noRecordsYetTitle => 'Записів ще немає';
 
   @override
+  String get remindersArchiveEmptyHint =>
+      'Тут зберігатимуться всі створені нагадування. Натисніть «+», щоб додати перше';
+
+  @override
   String get noAppointmentsForSpecialty => 'Немає нагадувань з цим тегом';
 
   @override
@@ -1685,6 +1689,15 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get monthAbbrDec => 'ГРУ';
+
+  @override
+  String get remindBeforeAtTime => 'У вказаний час';
+
+  @override
+  String get remindBefore10Min => 'За 10 хвилин';
+
+  @override
+  String get remindBefore30Min => 'За 30 хвилин';
 
   @override
   String get remindBefore1Hour => 'За 1 годину';
@@ -1741,7 +1754,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get reminderRepeatSectionLabel => 'Коли нагадати';
 
   @override
-  String get reminderRepeatOnceLabel => 'Одноразово';
+  String get reminderRepeatOnceLabel => 'Не повторювати';
 
   @override
   String get reminderRepeatDailyLabel => 'Щодня';
@@ -1750,10 +1763,22 @@ class AppLocalizationsUk extends AppLocalizations {
   String get reminderRepeatWeeklyLabel => 'Певні дні тижня';
 
   @override
+  String get reminderRepeatMonthlyLabel => 'Щомісяця';
+
+  @override
   String get reminderRepeatYearlyLabel => 'Щороку';
 
   @override
   String get reminderYearlyDateFieldLabel => 'Дата (без року)';
+
+  @override
+  String get reminderMonthlyDayFieldLabel => 'День місяця';
+
+  @override
+  String get dayOfMonthCapsLabel => 'ДЕНЬ';
+
+  @override
+  String get defaultNotesSectionName => 'Нотатки';
 
   @override
   String get addAnotherTimeAction => 'Додати ще один час';
@@ -1942,7 +1967,8 @@ class AppLocalizationsUk extends AppLocalizations {
   String get noWellbeingLogsTitle => 'Зрізів ще немає';
 
   @override
-  String get noWellbeingLogsHint => 'Натисніть \"+ Зріз\" щоб додати перший';
+  String get noWellbeingLogsHint =>
+      'Тут зберігатиметься історія самопочуття. Натисніть «+ Зріз», щоб додати перший запис';
 
   @override
   String get comingSoonEllipsis => 'Скоро...';

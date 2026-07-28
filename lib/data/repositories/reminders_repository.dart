@@ -23,6 +23,20 @@ class RemindersRepository {
         .watch();
   }
 
+  // Для Розкладу — на відміну від watchByMember (використовує й Архів, де
+  // потрібна повна історія включно з виконаними/скасованими), тут лише
+  // "живі" нагадування. Для daily/weekly/monthly/yearly status завжди
+  // лишається 'pending' (нема стану "сьогоднішнього" виконання — див.
+  // watchActiveOnDate), тож повторювані нагадування це не ховає, доки серія
+  // не видалена цілком.
+  Stream<List<Reminder>> watchActiveByMember(int memberId) {
+    return (_db.select(_db.reminders)
+          ..where((t) =>
+              t.memberId.equals(memberId) & t.status.equals('pending'))
+          ..orderBy([(t) => OrderingTerm.desc(t.scheduledAt)]))
+        .watch();
+  }
+
   Stream<List<Reminder>> watchUpcoming(int memberId) {
     final now = DateTime.now();
     return (_db.select(_db.reminders)
@@ -95,6 +109,22 @@ class RemindersRepository {
                 r.scheduledAt.day != date.day) {
               continue;
             }
+            result.add(r.copyWith(
+              scheduledAt: DateTime(date.year, date.month, date.day,
+                  r.scheduledAt.hour, r.scheduledAt.minute),
+            ));
+            break;
+          case 'monthly':
+            // scheduledAt.month завжди зафіксовано на січні (форма зберігає
+            // якір саме так — див. AddAppointmentScreen), тож тут важливий
+            // лише .day; для коротших місяців (напр. 31 у лютому) день
+            // клемпиться до останнього дня місяця — так само, як і в
+            // NotificationService.scheduleMonthlyReminder.
+            final daysInTargetMonth = DateTime(date.year, date.month + 1, 0).day;
+            final targetDay = r.scheduledAt.day > daysInTargetMonth
+                ? daysInTargetMonth
+                : r.scheduledAt.day;
+            if (date.day != targetDay) continue;
             result.add(r.copyWith(
               scheduledAt: DateTime(date.year, date.month, date.day,
                   r.scheduledAt.hour, r.scheduledAt.minute),

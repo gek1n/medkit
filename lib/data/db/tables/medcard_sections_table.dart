@@ -20,4 +20,9 @@ class MedcardSections extends Table {
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   TextColumn get syncUuid => text().nullable().unique()();
   // для family_sync — див. коментар у medications_table.dart
+  // Автостворений розділ для нотаток без явно обраного Простору — рівно
+  // один на профіль, лазиво створюється при першому такому виборі (див.
+  // MedcardSectionsRepository.getOrCreateDefaultNotesSection). Пінується
+  // вгорі списку "Ваші розділи" на med_card_screen.dart.
+  BoolColumn get isDefaultNotes => boolean().withDefault(const Constant(false))();
 }

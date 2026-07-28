@@ -3,35 +3,56 @@ import 'package:flutter/material.dart';
 /// Нейтральний набір іконок для довільних розділів архіву — навмисно без
 /// жодної медичної символіки (хрестів, таблеток, шприців тощо), щоб розділ
 /// міг бути чим завгодно: колекцією, побутовими нотатками, збереженими
-/// документами. Зберігається як рядковий ключ (не codePoint напряму) —
-/// стійкіше до tree-shaking шрифту іконок при релізній збірці.
-const Map<String, IconData> medcardIcons = {
-  'folder': Icons.folder_rounded,
-  'star': Icons.star_rounded,
-  'home': Icons.home_rounded,
-  'car': Icons.directions_car_rounded,
-  'pet': Icons.pets_rounded,
-  'book': Icons.menu_book_rounded,
-  'gift': Icons.card_giftcard_rounded,
-  'briefcase': Icons.work_rounded,
-  'tools': Icons.build_rounded,
-  'plant': Icons.eco_rounded,
-  'music': Icons.music_note_rounded,
-  'camera': Icons.photo_camera_rounded,
-  'travel': Icons.flight_rounded,
-  'food': Icons.restaurant_rounded,
-  'shopping': Icons.shopping_bag_rounded,
-  'sport': Icons.sports_basketball_rounded,
-  'kids': Icons.child_friendly_rounded,
-  'finance': Icons.savings_rounded,
-  'document': Icons.description_rounded,
-  'calendar': Icons.event_rounded,
-  'idea': Icons.lightbulb_rounded,
-  'heart': Icons.favorite_rounded,
-  'tag': Icons.sell_rounded,
-  'box': Icons.inventory_2_rounded,
-};
+/// документами. Зберігається як рядковий ключ — стійкіше до перейменувань,
+/// ніж прямий codePoint/шлях.
+///
+/// Раніше тут був набір Material IconData, що тонувався в колір розділу.
+/// Тепер кожен ключ має власну повнокольорову ілюстрацію в стилі Еллі
+/// (assets/icons/`key`.png) — колір розділу передається через фон-підложку
+/// навколо іконки (у місцях використання), а не через тонування самої
+/// картинки.
+const List<String> medcardIconKeys = [
+  'folder',
+  'star',
+  'home',
+  'car',
+  'pet',
+  'book',
+  'gift',
+  'briefcase',
+  'tools',
+  'plant',
+  'music',
+  'camera',
+  'travel',
+  'food',
+  'shopping',
+  'sport',
+  'kids',
+  'finance',
+  'document',
+  'calendar',
+  'idea',
+  'heart',
+  'tag',
+  'box',
+];
 
 const String defaultMedcardIconKey = 'folder';
 
-IconData medcardIconFor(String key) => medcardIcons[key] ?? medcardIcons[defaultMedcardIconKey]!;
+String medcardIconAssetFor(String key) =>
+    'assets/icons/${medcardIconKeys.contains(key) ? key : defaultMedcardIconKey}.png';
+
+/// Готовий віджет-іконка розділу — повнокольорове зображення без
+/// додаткового тонування (колір розділу відображається фоном навколо, не
+/// самою картинкою).
+class MedcardIcon extends StatelessWidget {
+  final String iconKey;
+  final double size;
+  const MedcardIcon(this.iconKey, {super.key, this.size = 20});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(medcardIconAssetFor(iconKey), width: size, height: size, fit: BoxFit.contain);
+  }
+}

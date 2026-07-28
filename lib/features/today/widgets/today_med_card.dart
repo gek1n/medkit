@@ -8,6 +8,7 @@ import '../../../core/utils/med_form_icons.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/repositories/intakes_repository.dart';
 import '../../../data/repositories/medications_repository.dart';
+import '../../../shared/widgets/asset_icon.dart';
 import '../../../shared/widgets/mk_card.dart';
 
 class TodayMedCard extends StatelessWidget {
@@ -80,10 +81,9 @@ class _MedCardContent extends StatelessWidget {
                   isDone ? Border.all(color: AppColors.borderLight) : null,
             ),
             child: Center(
-              child: Icon(
-                medFormIcon(med.form),
-                size: 22,
-                color: isDone ? AppColors.textMuted : AppColors.primary,
+              child: Opacity(
+                opacity: isDone ? 0.5 : 1.0,
+                child: AssetIcon(medFormIconAsset(med.form), size: 26),
               ),
             ),
           ),
