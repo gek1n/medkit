@@ -9,6 +9,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/form_chips.dart';
@@ -154,11 +155,12 @@ class _ArchiveCard extends StatelessWidget {
             Container(
               width: 40,
               height: 40,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.bgPage,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
-              child: Icon(medFormIcon(med.form), size: 20, color: AppColors.textSub),
+              child: AssetIcon(medFormIconAsset(med.form), size: 24),
             ),
             const SizedBox(width: AppDimensions.md),
             Expanded(

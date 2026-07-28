@@ -1630,6 +1630,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRecordsYetTitle => 'No records yet';
 
   @override
+  String get remindersArchiveEmptyHint =>
+      'All your reminders will show up here. Tap \"+\" to add the first one';
+
+  @override
   String get noAppointmentsForSpecialty => 'No reminders with this tag';
 
   @override
@@ -1677,6 +1681,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get monthAbbrDec => 'DEC';
+
+  @override
+  String get remindBeforeAtTime => 'At the exact time';
+
+  @override
+  String get remindBefore10Min => '10 minutes before';
+
+  @override
+  String get remindBefore30Min => '30 minutes before';
 
   @override
   String get remindBefore1Hour => '1 hour before';
@@ -1733,7 +1746,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderRepeatSectionLabel => 'When to remind';
 
   @override
-  String get reminderRepeatOnceLabel => 'Once';
+  String get reminderRepeatOnceLabel => 'Don\'t repeat';
 
   @override
   String get reminderRepeatDailyLabel => 'Daily';
@@ -1742,10 +1755,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reminderRepeatWeeklyLabel => 'Specific weekdays';
 
   @override
+  String get reminderRepeatMonthlyLabel => 'Monthly';
+
+  @override
   String get reminderRepeatYearlyLabel => 'Yearly';
 
   @override
   String get reminderYearlyDateFieldLabel => 'Date (year ignored)';
+
+  @override
+  String get reminderMonthlyDayFieldLabel => 'Day of month';
+
+  @override
+  String get dayOfMonthCapsLabel => 'DAY';
+
+  @override
+  String get defaultNotesSectionName => 'Notes';
 
   @override
   String get addAnotherTimeAction => 'Add another time';
@@ -1934,7 +1959,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noWellbeingLogsTitle => 'No check-ins yet';
 
   @override
-  String get noWellbeingLogsHint => 'Tap \"+ Check-in\" to add your first one';
+  String get noWellbeingLogsHint =>
+      'Your wellbeing history will show up here. Tap \"+ Check-in\" to add your first entry';
 
   @override
   String get comingSoonEllipsis => 'Coming soon...';

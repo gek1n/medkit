@@ -406,7 +406,8 @@ class _ArchiveCard extends StatelessWidget {
         final isPast = r.repeatType == 'none' &&
             r.scheduledAt.isBefore(DateTime.now());
         return FeedPostCard(
-          icon: medcardIconFor(r.iconKey),
+          icon: Icons.notifications_rounded,
+          iconWidget: MedcardIcon(r.iconKey, size: 22),
           color: color,
           title: r.doctorType,
           dateLabel: _reminderScheduleSummary(context, r),
@@ -456,6 +457,9 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!filtered) {
+      return MkEmptyState(hint: context.l10n.remindersArchiveEmptyHint);
+    }
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -463,13 +467,10 @@ class _EmptyState extends StatelessWidget {
           const Icon(Icons.calendar_month_rounded,
               size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
-          Text(filtered ? context.l10n.noAppointmentsForSpecialty : context.l10n.noRecordsYetTitle,
-              style: AppTextStyles.h3),
+          Text(context.l10n.noAppointmentsForSpecialty, style: AppTextStyles.h3),
           const SizedBox(height: 8),
           Text(
-            filtered
-                ? context.l10n.tryDifferentSpecialtyHint
-                : context.l10n.tapToAddFirstHint,
+            context.l10n.tryDifferentSpecialtyHint,
             style: AppTextStyles.bodyMd
                 .copyWith(color: AppColors.textSub),
           ),

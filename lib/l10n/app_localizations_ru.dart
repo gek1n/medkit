@@ -1640,6 +1640,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noRecordsYetTitle => 'Записей ещё нет';
 
   @override
+  String get remindersArchiveEmptyHint =>
+      'Здесь будут храниться все созданные напоминания. Нажмите «+», чтобы добавить первое';
+
+  @override
   String get noAppointmentsForSpecialty => 'Нет напоминаний с этим тегом';
 
   @override
@@ -1687,6 +1691,15 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get monthAbbrDec => 'ДЕК';
+
+  @override
+  String get remindBeforeAtTime => 'В указанное время';
+
+  @override
+  String get remindBefore10Min => 'За 10 минут';
+
+  @override
+  String get remindBefore30Min => 'За 30 минут';
 
   @override
   String get remindBefore1Hour => 'За 1 час';
@@ -1743,7 +1756,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reminderRepeatSectionLabel => 'Когда напомнить';
 
   @override
-  String get reminderRepeatOnceLabel => 'Разово';
+  String get reminderRepeatOnceLabel => 'Не повторять';
 
   @override
   String get reminderRepeatDailyLabel => 'Ежедневно';
@@ -1752,10 +1765,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reminderRepeatWeeklyLabel => 'Определённые дни недели';
 
   @override
+  String get reminderRepeatMonthlyLabel => 'Ежемесячно';
+
+  @override
   String get reminderRepeatYearlyLabel => 'Ежегодно';
 
   @override
   String get reminderYearlyDateFieldLabel => 'Дата (год не важен)';
+
+  @override
+  String get reminderMonthlyDayFieldLabel => 'День месяца';
+
+  @override
+  String get dayOfMonthCapsLabel => 'ДЕНЬ';
+
+  @override
+  String get defaultNotesSectionName => 'Заметки';
 
   @override
   String get addAnotherTimeAction => 'Добавить ещё одно время';
@@ -1945,7 +1970,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get noWellbeingLogsHint =>
-      'Нажмите \"+ Чек-ин\" чтобы добавить первый';
+      'Здесь будет храниться история самочувствия. Нажмите «+ Чек-ин», чтобы добавить первую запись';
 
   @override
   String get comingSoonEllipsis => 'Скоро...';

@@ -145,16 +145,14 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
                       child: Container(
                         width: 52,
                         height: 52,
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: (colorFromHex(_colorHex) ?? AppColors.primary)
                               .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: Icon(
-                          medcardIconFor(_iconKey),
-                          color: colorFromHex(_colorHex) ?? AppColors.primary,
-                        ),
+                        child: MedcardIcon(_iconKey, size: 26),
                       ),
                     ),
                     const SizedBox(height: AppDimensions.lg),

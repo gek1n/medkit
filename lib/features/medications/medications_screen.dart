@@ -9,6 +9,7 @@ import '../../core/utils/med_form_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_card.dart';
 import '../../shared/widgets/section_label.dart';
 import 'add_medication_screen.dart';
@@ -301,10 +302,9 @@ class _MedCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
               child: Center(
-                child: Icon(
-                  medFormIcon(med.form),
-                  size: 24,
-                  color: dimmed ? AppColors.textMuted : AppColors.primary,
+                child: Opacity(
+                  opacity: dimmed ? 0.5 : 1.0,
+                  child: AssetIcon(medFormIconAsset(med.form), size: 28),
                 ),
               ),
             ),

@@ -9,6 +9,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
@@ -42,12 +43,15 @@ final _scheduleActivitiesProvider =
   return ref.watch(activitiesRepositoryProvider).watchByMember(memberId);
 });
 
-// Всі нагадування учасника — не лише "майбутні" за scheduledAt, бо для
-// щоденних/щотижневих/щорічних (repeatType != 'none') це поле лише "якір",
-// не реальна наступна дата спрацювання (та обчислюється нативно ОС).
+// Всі АКТИВНІ нагадування учасника — не лише "майбутні" за scheduledAt, бо
+// для щоденних/щотижневих/щорічних (repeatType != 'none') це поле лише
+// "якір", не реальна наступна дата спрацювання (та обчислюється нативно ОС).
+// watchActiveByMember (а не watchByMember) ховає одноразові нагадування, що
+// вже позначені виконаними/пропущеними — повторювані ж лишаються видимими,
+// доки серія не видалена цілком (їхній status завжди 'pending').
 final _scheduleAppointmentsProvider =
     StreamProvider.family<List<Reminder>, int>((ref, memberId) {
-  return ref.watch(remindersRepositoryProvider).watchByMember(memberId);
+  return ref.watch(remindersRepositoryProvider).watchActiveByMember(memberId);
 });
 
 final _scheduleWellbeingScheduleProvider =
@@ -785,6 +789,7 @@ class _TaskCardShell extends StatelessWidget {
   final String subtitle;
   final String? extraLine;
   final Widget? trailing;
+  final Widget? iconWidget;
 
   const _TaskCardShell({
     required this.color,
@@ -793,6 +798,7 @@ class _TaskCardShell extends StatelessWidget {
     required this.subtitle,
     this.extraLine,
     this.trailing,
+    this.iconWidget,
   });
 
   @override
@@ -814,7 +820,7 @@ class _TaskCardShell extends StatelessWidget {
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                   ),
-                  child: Center(child: Icon(icon, size: 22, color: color)),
+                  child: Center(child: iconWidget ?? Icon(icon, size: 22, color: color)),
                 ),
                 const SizedBox(width: AppDimensions.md),
                 Expanded(
@@ -884,6 +890,7 @@ class _MedCard extends StatelessWidget {
     return _TaskCardShell(
       color: color,
       icon: medFormIcon(med.form),
+      iconWidget: AssetIcon(medFormIconAsset(med.form), size: 26),
       title: med.name,
       subtitle: '${_doseStr(med)} · ${_repeatStr(context, med)}',
       extraLine: _daysLeftStr(context, med),
@@ -1035,6 +1042,13 @@ class _AppointmentCard extends StatelessWidget {
             textAlign: TextAlign.end,
             style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub));
         break;
+      case 'monthly':
+        // scheduledAt.month зафіксовано на січні при збереженні (див.
+        // AddAppointmentScreen._save) — важливий лише .day.
+        trailingContent = Text(
+            '${context.l10n.reminderMonthlyDayFieldLabel} ${appointment.scheduledAt.day}',
+            style: AppTextStyles.labelSm.copyWith(color: AppColors.textSub));
+        break;
       case 'yearly':
         final dfmt =
             DateFormat('d MMM', Localizations.localeOf(context).languageCode);
@@ -1048,7 +1062,8 @@ class _AppointmentCard extends StatelessWidget {
 
     return _TaskCardShell(
       color: color,
-      icon: medcardIconFor(appointment.iconKey),
+      icon: Icons.notifications_rounded,
+      iconWidget: MedcardIcon(appointment.iconKey, size: 26),
       title: appointment.doctorType,
       subtitle: hasLocation ? appointment.location! : context.l10n.noLocation,
       trailing: Column(
@@ -1057,6 +1072,7 @@ class _AppointmentCard extends StatelessWidget {
         children: [
           trailingContent,
           if (appointment.repeatType == 'none' ||
+              appointment.repeatType == 'monthly' ||
               appointment.repeatType == 'yearly')
             Text('$hh:$mm',
                 style: AppTextStyles.bodySm

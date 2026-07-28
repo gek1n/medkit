@@ -15102,6 +15102,21 @@ class $MedcardSectionsTable extends MedcardSections
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
+  static const VerificationMeta _isDefaultNotesMeta = const VerificationMeta(
+    'isDefaultNotes',
+  );
+  @override
+  late final GeneratedColumn<bool> isDefaultNotes = GeneratedColumn<bool>(
+    'is_default_notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_default_notes" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -15113,6 +15128,7 @@ class $MedcardSectionsTable extends MedcardSections
     createdAt,
     updatedAt,
     syncUuid,
+    isDefaultNotes,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -15181,6 +15197,15 @@ class $MedcardSectionsTable extends MedcardSections
         syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
       );
     }
+    if (data.containsKey('is_default_notes')) {
+      context.handle(
+        _isDefaultNotesMeta,
+        isDefaultNotes.isAcceptableOrUnknown(
+          data['is_default_notes']!,
+          _isDefaultNotesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -15226,6 +15251,10 @@ class $MedcardSectionsTable extends MedcardSections
         DriftSqlType.string,
         data['${effectivePrefix}sync_uuid'],
       ),
+      isDefaultNotes: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_default_notes'],
+      )!,
     );
   }
 
@@ -15245,6 +15274,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? syncUuid;
+  final bool isDefaultNotes;
   const MedcardSection({
     required this.id,
     required this.memberId,
@@ -15255,6 +15285,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     required this.createdAt,
     required this.updatedAt,
     this.syncUuid,
+    required this.isDefaultNotes,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -15272,6 +15303,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     if (!nullToAbsent || syncUuid != null) {
       map['sync_uuid'] = Variable<String>(syncUuid);
     }
+    map['is_default_notes'] = Variable<bool>(isDefaultNotes);
     return map;
   }
 
@@ -15290,6 +15322,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       syncUuid: syncUuid == null && nullToAbsent
           ? const Value.absent()
           : Value(syncUuid),
+      isDefaultNotes: Value(isDefaultNotes),
     );
   }
 
@@ -15308,6 +15341,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      isDefaultNotes: serializer.fromJson<bool>(json['isDefaultNotes']),
     );
   }
   @override
@@ -15323,6 +15357,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
+      'isDefaultNotes': serializer.toJson<bool>(isDefaultNotes),
     };
   }
 
@@ -15336,6 +15371,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
+    bool? isDefaultNotes,
   }) => MedcardSection(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -15346,6 +15382,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    isDefaultNotes: isDefaultNotes ?? this.isDefaultNotes,
   );
   MedcardSection copyWithCompanion(MedcardSectionsCompanion data) {
     return MedcardSection(
@@ -15358,6 +15395,9 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      isDefaultNotes: data.isDefaultNotes.present
+          ? data.isDefaultNotes.value
+          : this.isDefaultNotes,
     );
   }
 
@@ -15372,7 +15412,8 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
           ..write('comment: $comment, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('isDefaultNotes: $isDefaultNotes')
           ..write(')'))
         .toString();
   }
@@ -15388,6 +15429,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     createdAt,
     updatedAt,
     syncUuid,
+    isDefaultNotes,
   );
   @override
   bool operator ==(Object other) =>
@@ -15401,7 +15443,8 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
           other.comment == this.comment &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.syncUuid == this.syncUuid);
+          other.syncUuid == this.syncUuid &&
+          other.isDefaultNotes == this.isDefaultNotes);
 }
 
 class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
@@ -15414,6 +15457,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
+  final Value<bool> isDefaultNotes;
   const MedcardSectionsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -15424,6 +15468,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.isDefaultNotes = const Value.absent(),
   });
   MedcardSectionsCompanion.insert({
     this.id = const Value.absent(),
@@ -15435,6 +15480,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.isDefaultNotes = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name);
   static Insertable<MedcardSection> custom({
@@ -15447,6 +15493,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
+    Expression<bool>? isDefaultNotes,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -15458,6 +15505,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (isDefaultNotes != null) 'is_default_notes': isDefaultNotes,
     });
   }
 
@@ -15471,6 +15519,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
+    Value<bool>? isDefaultNotes,
   }) {
     return MedcardSectionsCompanion(
       id: id ?? this.id,
@@ -15482,6 +15531,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
+      isDefaultNotes: isDefaultNotes ?? this.isDefaultNotes,
     );
   }
 
@@ -15515,6 +15565,9 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     if (syncUuid.present) {
       map['sync_uuid'] = Variable<String>(syncUuid.value);
     }
+    if (isDefaultNotes.present) {
+      map['is_default_notes'] = Variable<bool>(isDefaultNotes.value);
+    }
     return map;
   }
 
@@ -15529,7 +15582,8 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
           ..write('comment: $comment, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('isDefaultNotes: $isDefaultNotes')
           ..write(')'))
         .toString();
   }

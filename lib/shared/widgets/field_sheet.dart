@@ -17,6 +17,10 @@ class FieldChip extends StatelessWidget {
   // [value] лише вмикає підсвічений стиль "заповнено" (напр. колір/тумблер,
   // де сенс несе колір/іконка, а не текстове значення).
   final bool forceLabel;
+  // Кастомний віджет замість [icon] (напр. повнокольорова MedcardIcon) —
+  // коли задано, [icon] ігнорується. Розмір/тонування — відповідальність
+  // самого віджета.
+  final Widget? iconWidget;
 
   const FieldChip({
     super.key,
@@ -26,6 +30,7 @@ class FieldChip extends StatelessWidget {
     this.value,
     this.swatchColor,
     this.forceLabel = false,
+    this.iconWidget,
   });
 
   @override
@@ -46,7 +51,9 @@ class FieldChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (swatchColor != null)
+            if (iconWidget != null)
+              iconWidget!
+            else if (swatchColor != null)
               Container(
                 width: 14,
                 height: 14,

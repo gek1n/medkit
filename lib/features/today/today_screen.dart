@@ -16,6 +16,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/medcard_icons.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../core/utils/task_color.dart';
 import '../../core/utils/youtube_utils.dart';
 import '../../data/db/app_database.dart';
@@ -1130,7 +1131,7 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, title, subtitle) = _scheduleItemInfo(
+    final (icon, title, subtitle, iconWidget) = _scheduleItemInfo(
       context,
       item,
       med: _resolvedMed,
@@ -1179,7 +1180,7 @@ class _ScheduleCard extends StatelessWidget {
                               fit: BoxFit.contain,
                             ),
                           )
-                        : Icon(icon, size: 20, color: color),
+                        : Center(child: iconWidget ?? Icon(icon, size: 20, color: color)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1298,7 +1299,10 @@ class _ScheduleCard extends StatelessWidget {
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
 
-(IconData, String, String?) _scheduleItemInfo(
+// Widget? — повнокольорова ілюстрація (MedcardIcon/AssetIcon) для
+// intake/appointment, коли доступна; null — рендерити [IconData] як звичайну
+// Icon() (activity/wellbeing лишаються Material-іконками).
+(IconData, String, String?, Widget?) _scheduleItemInfo(
   BuildContext context,
   _DayItem item, {
   Medication? med,
@@ -1312,21 +1316,24 @@ class _ScheduleCard extends StatelessWidget {
         med != null
             ? '${med.doseAmount.toStringAsFixed(med.doseAmount == med.doseAmount.roundToDouble() ? 0 : 1)} ${med.doseUnit}'
             : null,
+        AssetIcon(medFormIconAsset(med?.form ?? 'tablet'), size: 24),
       );
     case _ItemType.activity:
       return (
         _scheduleActIcon(activity?.type),
         activity?.name ?? context.l10n.defaultActivityName,
         null,
+        null,
       );
     case _ItemType.appointment:
       return (
-        medcardIconFor(item.appointment!.iconKey),
+        Icons.notifications_rounded,
         item.appointment!.doctorType,
         item.appointment!.location,
+        MedcardIcon(item.appointment!.iconKey, size: 24),
       );
     case _ItemType.wellbeing:
-      return (Icons.favorite_rounded, context.l10n.wellbeingTitle, null);
+      return (Icons.favorite_rounded, context.l10n.wellbeingTitle, null, null);
   }
 }
 
@@ -1353,7 +1360,7 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _scheduleCategoryColor(item.type);
-    final (icon, title, _) = _scheduleItemInfo(context, item, activity: activity);
+    final (icon, title, _, iconWidget) = _scheduleItemInfo(context, item, activity: activity);
 
     return SafeArea(
       child: Container(
@@ -1373,11 +1380,12 @@ class _ScheduleItemDetailsSheet extends StatelessWidget {
                   Container(
                     width: 44,
                     height: 44,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(icon, color: color, size: 22),
+                    child: iconWidget ?? Icon(icon, color: color, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(child: Text(title, style: AppTextStyles.h3)),
@@ -1546,7 +1554,7 @@ class _ScheduleRow extends StatelessWidget {
         return (_actIcon(a?.type), a?.name ?? context.l10n.defaultActivityName, null);
       case _ItemType.appointment:
         return (
-          medcardIconFor(item.appointment!.iconKey),
+          Icons.notifications_rounded,
           item.appointment!.doctorType,
           item.appointment!.location,
         );
@@ -1840,6 +1848,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                     children: [
                       _InfoChip(
                         icon: medFormIcon(med!.form),
+                        iconWidget: AssetIcon(medFormIconAsset(med!.form), size: 18),
                         label:
                             '${med!.doseAmount.toStringAsFixed(med!.doseAmount == med!.doseAmount.roundToDouble() ? 0 : 1)} ${med!.doseUnit}',
                       ),
@@ -2053,7 +2062,8 @@ class _IconHeader extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _InfoChip({required this.icon, required this.label});
+  final Widget? iconWidget;
+  const _InfoChip({required this.icon, required this.label, this.iconWidget});
 
   @override
   Widget build(BuildContext context) {
@@ -2067,7 +2077,7 @@ class _InfoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.textSub),
+          iconWidget ?? Icon(icon, size: 16, color: AppColors.textSub),
           const SizedBox(width: 6),
           Text(
             label,
@@ -2649,6 +2659,8 @@ class _ActiveAppointmentCard extends StatelessWidget {
         } catch (_) {
           return context.l10n.reminderRepeatWeeklyLabel;
         }
+      case 'monthly':
+        return '${context.l10n.reminderMonthlyDayFieldLabel} ${appointment.scheduledAt.day}';
       case 'yearly':
         return context.l10n.reminderRepeatYearlyLabel;
       default:

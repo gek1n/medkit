@@ -85,11 +85,12 @@ class MedcardSectionScreen extends ConsumerWidget {
                   Container(
                     width: 36,
                     height: 36,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                     ),
-                    child: Icon(medcardIconFor(section.iconKey), size: 18, color: color),
+                    child: MedcardIcon(section.iconKey, size: 22),
                   ),
                   const SizedBox(width: 10),
                   Expanded(child: Text(section.name, style: AppTextStyles.h3)),
@@ -163,7 +164,8 @@ class MedcardSectionScreen extends ConsumerWidget {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                           child: FeedPostCard(
-                            icon: medcardIconFor(section.iconKey),
+                            icon: Icons.folder_rounded,
+                            iconWidget: MedcardIcon(section.iconKey, size: 22),
                             color: color,
                             title: entry.title,
                             dateLabel: _formatDate(entry.recordDate),

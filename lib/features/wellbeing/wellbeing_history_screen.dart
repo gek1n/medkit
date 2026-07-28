@@ -8,6 +8,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_list_widgets.dart';
 import 'wellbeing_check_screen.dart';
 
 // ────────────────────────────── provider ──────────────────────────────
@@ -528,21 +529,8 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      child: Column(
-        children: [
-          const Icon(Icons.favorite_border_rounded,
-              size: 48, color: AppColors.textMuted),
-          const SizedBox(height: 16),
-          Text(context.l10n.noWellbeingLogsTitle, style: AppTextStyles.h3),
-          const SizedBox(height: 8),
-          Text(
-            context.l10n.noWellbeingLogsHint,
-            style:
-                AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: MkEmptyState(hint: context.l10n.noWellbeingLogsHint),
     );
   }
 }
