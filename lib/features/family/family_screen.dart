@@ -479,7 +479,7 @@ class _MemberActionsSheet extends ConsumerWidget {
         label: context.l10n.viewAsLabel(member.name),
         onTap: () {
           ref.read(activeMemberIdProvider.notifier).state = member.id;
-          ref.read(requestedTabIndexProvider.notifier).state = 0;
+          ref.read(requestedTabIndexProvider.notifier).state = 2; // Сьогодні
           Navigator.pop(context);
         },
       ),

@@ -538,6 +538,18 @@ abstract class AppLocalizations {
   /// **'Немає активних занять'**
   String get noActiveActivities;
 
+  /// No description provided for @noSimpleTasksHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Немає простих завдань'**
+  String get noSimpleTasksHint;
+
+  /// No description provided for @noRoutineTasksHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Немає рутинних справ'**
+  String get noRoutineTasksHint;
+
   /// No description provided for @sectionWellbeing.
   ///
   /// In uk, this message translates to:
@@ -831,6 +843,30 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Тут порожньо. Додайте перший запис через плюсик'**
   String get sectionEmptyHint;
+
+  /// No description provided for @spaceFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Простір'**
+  String get spaceFieldLabel;
+
+  /// No description provided for @spacePickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оберіть простір'**
+  String get spacePickerTitle;
+
+  /// No description provided for @noSpaceOption.
+  ///
+  /// In uk, this message translates to:
+  /// **'Без простору'**
+  String get noSpaceOption;
+
+  /// No description provided for @createNewSpaceAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Створити новий розділ'**
+  String get createNewSpaceAction;
 
   /// No description provided for @newEntryTitle.
   ///
@@ -4468,6 +4504,54 @@ abstract class AppLocalizations {
   /// **'Зробити зріз — настрій, теги, коментар'**
   String get addTypeWellbeingSub;
 
+  /// No description provided for @taskTypeSport.
+  ///
+  /// In uk, this message translates to:
+  /// **'Спорт'**
+  String get taskTypeSport;
+
+  /// No description provided for @taskTypeSportSub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Прогулянка, тренування, вправи'**
+  String get taskTypeSportSub;
+
+  /// No description provided for @taskTypeMeeting.
+  ///
+  /// In uk, this message translates to:
+  /// **'Зустрічі'**
+  String get taskTypeMeeting;
+
+  /// No description provided for @taskTypeMeetingSub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дата, час і нагадування про будь-яку подію'**
+  String get taskTypeMeetingSub;
+
+  /// No description provided for @taskTypeSimple.
+  ///
+  /// In uk, this message translates to:
+  /// **'Прості завдання'**
+  String get taskTypeSimple;
+
+  /// No description provided for @taskTypeSimpleSub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Одноразове чи просте нагадування'**
+  String get taskTypeSimpleSub;
+
+  /// No description provided for @taskTypeRoutine.
+  ///
+  /// In uk, this message translates to:
+  /// **'Рутинні справи'**
+  String get taskTypeRoutine;
+
+  /// No description provided for @taskTypeRoutineSub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Щоденні справи по дому'**
+  String get taskTypeRoutineSub;
+
   /// No description provided for @faqGroupPrivacyTitle.
   ///
   /// In uk, this message translates to:
@@ -4791,6 +4875,30 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Активність буде вилучена з розкладу.'**
   String get deleteActivityConfirmBody;
+
+  /// No description provided for @disableWellbeingConfirmTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Вимкнути збір самопочуття?'**
+  String get disableWellbeingConfirmTitle;
+
+  /// No description provided for @disableWellbeingConfirmBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нагадування зникнуть з Розкладу і Сьогодні. Налаштування збережуться — можна ввімкнути знову пізніше.'**
+  String get disableWellbeingConfirmBody;
+
+  /// No description provided for @applyAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Готово'**
+  String get applyAction;
+
+  /// No description provided for @noDaysSelectedHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Дні не обрані'**
+  String get noDaysSelectedHint;
 
   /// No description provided for @chooseActivityTypeError.
   ///

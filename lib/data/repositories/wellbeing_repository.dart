@@ -90,6 +90,13 @@ class WellbeingRepository {
     }
     _triggerFamilySync(schedule.memberId.value);
   }
+
+  Future<void> setActive(int memberId, bool active) async {
+    await (_db.update(_db.wellbeingSchedules)
+          ..where((t) => t.memberId.equals(memberId)))
+        .write(WellbeingSchedulesCompanion(isActive: Value(active)));
+    _triggerFamilySync(memberId);
+  }
 }
 
 final wellbeingRepositoryProvider = Provider<WellbeingRepository>((ref) {

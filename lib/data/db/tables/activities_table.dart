@@ -1,13 +1,23 @@
 import 'package:drift/drift.dart';
+import 'medcard_sections_table.dart';
 import 'members_table.dart';
 
 class Activities extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get memberId =>
       integer().references(Members, #id, onDelete: KeyAction.cascade)();
+  IntColumn get sectionId => integer()
+      .nullable()
+      .references(MedcardSections, #id, onDelete: KeyAction.setNull)();
+  // Необов'язковий Простір — див. коментар у medications_table.dart.
   TextColumn get type =>
       text().withDefault(const Constant('walk'))();
-  // walk/workout/yoga/cycling/custom
+  // walk/workout/yoga/cycling/custom — а також службові значення без
+  // видимого пікера: general_sport/simple_task/routine (див.
+  // add_activity_screen.dart) для пунктів "Спорт" (без сітки типів),
+  // "Прості завдання" й "Рутинні справи" з нового 6-пунктного пікера
+  // створення — юзер їх не обирає напряму, значення підставляється
+  // автоматично залежно від того, яку кнопку пікера він натиснув.
   TextColumn get name => text().withLength(min: 1, max: 100)();
   IntColumn get durationMin => integer().withDefault(const Constant(30))();
   TextColumn get repeatDays =>

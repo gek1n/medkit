@@ -83,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 32;
+  int get schemaVersion => 33;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -678,6 +678,25 @@ class AppDatabase extends _$AppDatabase {
             // жорстко зашитий медичний значок.
             try {
               await m.addColumn(reminders, reminders.iconKey);
+            } catch (_) {}
+          }
+          if (from < 33) {
+            // Простір — необов'язковий зв'язок із розділом архіву
+            // (MedcardSections), який тепер може містити не лише нотатки,
+            // а й самі завдання (ліки/активності/нагадування/самопочуття).
+            // setNull при видаленні розділу — сам запис не зникає, просто
+            // втрачає прив'язку.
+            try {
+              await m.addColumn(medications, medications.sectionId);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.sectionId);
+            } catch (_) {}
+            try {
+              await m.addColumn(reminders, reminders.sectionId);
+            } catch (_) {}
+            try {
+              await m.addColumn(wellbeingSchedules, wellbeingSchedules.sectionId);
             } catch (_) {}
           }
         },

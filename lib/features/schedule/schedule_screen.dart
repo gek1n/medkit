@@ -19,7 +19,7 @@ import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_activity_screen.dart';
-import '../add/add_type_sheet.dart';
+import '../add/add_task_screen.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../today/providers/today_providers.dart' show activeMemberIdProvider;
@@ -54,23 +54,43 @@ final _scheduleWellbeingScheduleProvider =
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-enum _ScheduleCategory { all, meds, appointments, activities, wellbeing }
+// 6 типізованих категорій (той самий порядок, що й у пікері створення
+// завдання) + "Всі". Спорт/Прості завдання/Рутинні справи — усі це записи
+// Activities, розрізняються за службовим (прихованим від юзера) полем type.
+enum _ScheduleCategory { all, meds, sport, meetings, simple, routine, wellbeing }
+
+// Службові значення Activities.type, якими позначаються Прості
+// завдання/Рутинні справи, коли їх створюють через відповідні пункти
+// пікера — не показуються юзеру, лише для розпізнавання картки/категорії.
+const _kActivityTypeSport = 'general_sport';
+const _kActivityTypeSimple = 'simple_task';
+const _kActivityTypeRoutine = 'routine';
+
+_ScheduleCategory _activityCategory(Activity a) => switch (a.type) {
+      _kActivityTypeSimple => _ScheduleCategory.simple,
+      _kActivityTypeRoutine => _ScheduleCategory.routine,
+      _ => _ScheduleCategory.sport,
+    };
 
 extension on _ScheduleCategory {
   IconData get icon => switch (this) {
         _ScheduleCategory.all => Icons.grid_view_rounded,
         _ScheduleCategory.meds => Icons.medication_rounded,
-        _ScheduleCategory.activities => Icons.directions_walk_rounded,
+        _ScheduleCategory.sport => Icons.directions_walk_rounded,
+        _ScheduleCategory.meetings => Icons.notifications_rounded,
+        _ScheduleCategory.simple => Icons.checklist_rounded,
+        _ScheduleCategory.routine => Icons.home_repair_service_rounded,
         _ScheduleCategory.wellbeing => Icons.favorite_rounded,
-        _ScheduleCategory.appointments => Icons.notifications_rounded,
       };
 
   String label(BuildContext context) => switch (this) {
         _ScheduleCategory.all => context.l10n.categoryAll,
         _ScheduleCategory.meds => context.l10n.categoryMeds,
-        _ScheduleCategory.activities => context.l10n.categoryActivities,
+        _ScheduleCategory.sport => context.l10n.taskTypeSport,
+        _ScheduleCategory.meetings => context.l10n.taskTypeMeeting,
+        _ScheduleCategory.simple => context.l10n.taskTypeSimple,
+        _ScheduleCategory.routine => context.l10n.taskTypeRoutine,
         _ScheduleCategory.wellbeing => context.l10n.categoryWellbeing,
-        _ScheduleCategory.appointments => context.l10n.categoryDoctors,
       };
 }
 
@@ -102,7 +122,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showAddTypeSheet(context, memberId: _selectedMemberId),
+        onPressed: () => openAddTaskScreen(context, memberId: _selectedMemberId),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
@@ -310,10 +330,64 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.appointments) ...[
+                    category == _ScheduleCategory.sport) ...[
+                  _SectionHeader(
+                    icon: Icons.directions_walk_rounded,
+                    title: context.l10n.taskTypeSport,
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  activitiesAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
+                    data: (activities) {
+                      final sport = activities
+                          .where((a) => _activityCategory(a) == _ScheduleCategory.sport)
+                          .toList();
+                      if (sport.isEmpty) {
+                        return _EmptySection(
+                          hint: context.l10n.noActiveActivities,
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddActivityScreen(
+                                memberId: selectedMemberId,
+                                hideTypePicker: true,
+                                forcedType: _kActivityTypeSport,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: sport
+                            .map((a) => Padding(
+                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => AddActivityScreen(
+                                          memberId: selectedMemberId,
+                                          existing: a,
+                                          hideTypePicker: true,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _ActivityCard(activity: a),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppDimensions.xl),
+                ],
+
+                if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.meetings) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
-                    title: context.l10n.sectionAppointments,
+                    title: context.l10n.taskTypeMeeting,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   appointmentsAsync.when(
@@ -357,30 +431,37 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.activities) ...[
+                    category == _ScheduleCategory.simple) ...[
                   _SectionHeader(
-                    icon: Icons.directions_walk_rounded,
-                    title: context.l10n.sectionActivities,
+                    icon: Icons.checklist_rounded,
+                    title: context.l10n.taskTypeSimple,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
                     loading: () => const _SectionLoading(),
                     error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (activities) {
-                      if (activities.isEmpty) {
+                      final simple = activities
+                          .where((a) => _activityCategory(a) == _ScheduleCategory.simple)
+                          .toList();
+                      if (simple.isEmpty) {
                         return _EmptySection(
-                          hint: context.l10n.noActiveActivities,
+                          hint: context.l10n.noSimpleTasksHint,
                           onAdd: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  AddActivityScreen(memberId: selectedMemberId),
+                              builder: (_) => AddActivityScreen(
+                                memberId: selectedMemberId,
+                                hideTypePicker: true,
+                                forcedType: _kActivityTypeSimple,
+                                compactMode: true,
+                              ),
                             ),
                           ),
                         );
                       }
                       return Column(
-                        children: activities
+                        children: simple
                             .map((a) => Padding(
                                   padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                                   child: GestureDetector(
@@ -390,6 +471,64 @@ class _ScheduleBody extends ConsumerWidget {
                                         builder: (_) => AddActivityScreen(
                                           memberId: selectedMemberId,
                                           existing: a,
+                                          hideTypePicker: true,
+                                          compactMode: true,
+                                        ),
+                                      ),
+                                    ),
+                                    child: _ActivityCard(activity: a),
+                                  ),
+                                ))
+                            .toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppDimensions.xl),
+                ],
+
+                if (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.routine) ...[
+                  _SectionHeader(
+                    icon: Icons.home_repair_service_rounded,
+                    title: context.l10n.taskTypeRoutine,
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+                  activitiesAsync.when(
+                    loading: () => const _SectionLoading(),
+                    error: (e, _) => Text(context.l10n.errorGeneric('$e')),
+                    data: (activities) {
+                      final routine = activities
+                          .where((a) => _activityCategory(a) == _ScheduleCategory.routine)
+                          .toList();
+                      if (routine.isEmpty) {
+                        return _EmptySection(
+                          hint: context.l10n.noRoutineTasksHint,
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddActivityScreen(
+                                memberId: selectedMemberId,
+                                hideTypePicker: true,
+                                forcedType: _kActivityTypeRoutine,
+                                compactMode: true,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: routine
+                            .map((a) => Padding(
+                                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => AddActivityScreen(
+                                          memberId: selectedMemberId,
+                                          existing: a,
+                                          hideTypePicker: true,
+                                          compactMode: true,
                                         ),
                                       ),
                                     ),
@@ -414,7 +553,7 @@ class _ScheduleBody extends ConsumerWidget {
                     loading: () => const _SectionLoading(),
                     error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (schedule) {
-                      if (schedule == null) {
+                      if (schedule == null || !schedule.isActive) {
                         return _EmptySection(
                           hint: context.l10n.wellbeingScheduleNotSet,
                           onAdd: () => Navigator.push(
@@ -495,6 +634,9 @@ class _ScheduleBody extends ConsumerWidget {
                                     builder: (_) => AddActivityScreen(
                                       memberId: selectedMemberId,
                                       existing: a,
+                                      hideTypePicker: true,
+                                      compactMode:
+                                          _activityCategory(a) != _ScheduleCategory.sport,
                                     ),
                                   ),
                                 ),
@@ -890,6 +1032,8 @@ class _ActivityCard extends StatelessWidget {
         'workout' => Icons.fitness_center_rounded,
         'yoga' => Icons.self_improvement_rounded,
         'cycling' => Icons.directions_bike_rounded,
+        _kActivityTypeSimple => Icons.checklist_rounded,
+        _kActivityTypeRoutine => Icons.home_repair_service_rounded,
         _ => Icons.bolt_rounded,
       };
 

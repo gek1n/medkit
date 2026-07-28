@@ -20,11 +20,12 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../today/providers/today_providers.dart';
 import '../../shared/widgets/documents_section.dart';
+import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
-import '../../shared/widgets/more_details_accordion.dart';
 import '../../shared/widgets/reminder_title_field.dart';
+import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/tags_field.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
@@ -55,6 +56,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   int _remindBeforeMin = 1440;
   String? _colorHex;
   late String _iconKey;
+  int? _sectionId;
   List<String> _documentPaths = [];
   bool _isSaving = false;
 
@@ -81,6 +83,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _colorHex = ex?.color;
     _iconKey = ex?.iconKey ?? 'calendar';
+    _sectionId = ex?.sectionId;
     if (ex != null) {
       _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
       try {
@@ -203,6 +206,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                 documentPaths: Value(jsonEncode(_documentPaths)),
                 color: Value(_colorHex),
                 iconKey: Value(_iconKey),
+                sectionId: Value(_sectionId),
               ),
             );
       } else {
@@ -220,6 +224,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                 documentPaths: Value(jsonEncode(_documentPaths)),
                 color: Value(_colorHex),
                 iconKey: Value(_iconKey),
+                sectionId: Value(_sectionId),
               ),
             );
       }
@@ -306,18 +311,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Теги
-                    MkFieldLabel(context.l10n.reminderTagsFieldLabel),
-                    const SizedBox(height: 6),
-                    TagsField(
-                      tags: _tags,
-                      onChanged: (t) => setState(() => _tags = t),
-                      hint: context.l10n.reminderTagsHint,
-                      loadHistory: ReminderTagsLibraryService.getAll,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Date & time
+                    // Дата і час — обов'язкові, завжди видимі
                     MkFieldLabel(context.l10n.fieldDateTime),
                     const SizedBox(height: 8),
                     Row(
@@ -342,103 +336,160 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Remind before — не потрібно для нагадування, що вже минуло
-                    if (!_isPastVisit) ...[
-                      MkFieldLabel(context.l10n.remindBeforeLabel),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ..._remindOptions(context).map((opt) {
-                            final sel = _remindBeforeMin == opt.$1;
-                            return GestureDetector(
-                              onTap: () =>
-                                  setState(() => _remindBeforeMin = opt.$1),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 120),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 9,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: sel
-                                      ? AppColors.primaryLight
-                                      : AppColors.surface,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: sel
-                                        ? AppColors.primary
-                                        : AppColors.border,
-                                    width: sel ? 2 : 1.5,
-                                  ),
-                                ),
-                                child: Text(
-                                  opt.$2,
-                                  style: AppTextStyles.labelMd.copyWith(
-                                    color: sel
-                                        ? AppColors.primary
-                                        : AppColors.textMain,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                      const SizedBox(height: AppDimensions.lg),
-                    ],
-
-                    // Нотатка
-                    MkFieldLabel(context.l10n.noteSingularLabel),
-                    const SizedBox(height: 6),
-                    MkTextField(
-                      controller: _notesController,
-                      maxLines: 3,
-                      hint: context.l10n.reminderNoteHint,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    TaskColorPicker(
-                      selectedHex: _colorHex,
-                      onChanged: (hex) => setState(() => _colorHex = hex),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    MoreDetailsAccordion(
-                      initiallyExpanded: _locationController.text.isNotEmpty ||
-                          _documentPaths.isNotEmpty,
+                    // Решта полів — необов'язкові, компактними чіпсами
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        MkFieldLabel(context.l10n.sectionIconFieldLabel),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: _pickIcon,
-                          child: Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: (colorFromHex(_colorHex) ?? AppColors.primary)
-                                  .withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Icon(
-                              medcardIconFor(_iconKey),
-                              color: colorFromHex(_colorHex) ?? AppColors.primary,
+                        FieldChip(
+                          icon: Icons.sell_outlined,
+                          label: context.l10n.reminderTagsFieldLabel,
+                          value: _tags.isEmpty ? null : _tags.join(', '),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderTagsFieldLabel,
+                            child: TagsField(
+                              tags: _tags,
+                              onChanged: (t) => setState(() => _tags = t),
+                              hint: context.l10n.reminderTagsHint,
+                              loadHistory: ReminderTagsLibraryService.getAll,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        MkFieldLabel(context.l10n.fieldWhere),
-                        const SizedBox(height: 6),
-                        MkTextField(
-                          controller: _locationController,
-                          hint: context.l10n.locationHint,
+                        // Remind before — не потрібно для нагадування, що вже минуло
+                        if (!_isPastVisit)
+                          FieldChip(
+                            icon: Icons.notifications_outlined,
+                            label: context.l10n.remindBeforeLabel,
+                            // Якщо збережене значення не збігається з жодною
+                            // з 3 опцій — чесно показуємо чіп як "не задано",
+                            // а не підставляємо першу опцію (це вводило б в
+                            // оману щодо реального стану).
+                            value: _remindOptions(context)
+                                .where((o) => o.$1 == _remindBeforeMin)
+                                .firstOrNull
+                                ?.$2,
+                            onTap: () => showFieldSheet(
+                              context,
+                              title: context.l10n.remindBeforeLabel,
+                              child: Wrap(
+                                spacing: 8,
+                                children: _remindOptions(context).map((opt) {
+                                  final sel = _remindBeforeMin == opt.$1;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() => _remindBeforeMin = opt.$1);
+                                      Navigator.pop(context);
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 120),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 9,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: sel
+                                            ? AppColors.primaryLight
+                                            : AppColors.surface,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: sel
+                                              ? AppColors.primary
+                                              : AppColors.border,
+                                          width: sel ? 2 : 1.5,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        opt.$2,
+                                        style: AppTextStyles.labelMd.copyWith(
+                                          color: sel
+                                              ? AppColors.primary
+                                              : AppColors.textMain,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        FieldChip(
+                          icon: Icons.notes_rounded,
+                          label: context.l10n.noteSingularLabel,
+                          value: _notesController.text.trim().isEmpty
+                              ? null
+                              : _notesController.text.trim(),
+                          onTap: () async {
+                            await showFieldSheet(
+                              context,
+                              title: context.l10n.noteSingularLabel,
+                              child: MkTextField(
+                                controller: _notesController,
+                                maxLines: 3,
+                                hint: context.l10n.reminderNoteHint,
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
                         ),
-                        const SizedBox(height: 16),
-                        DocumentsSection(
-                          paths: _documentPaths,
-                          onChanged: (paths) => setState(() => _documentPaths = paths),
+                        FieldChip(
+                          icon: Icons.palette_outlined,
+                          label: context.l10n.taskColorPickerLabel,
+                          value: _colorHex,
+                          forceLabel: true,
+                          swatchColor: colorFromHex(_colorHex),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.taskColorPickerLabel,
+                            child: TaskColorPicker(
+                              selectedHex: _colorHex,
+                              onChanged: (hex) => setState(() => _colorHex = hex),
+                            ),
+                          ),
+                        ),
+                        SpaceChip(
+                          memberId: widget.memberId,
+                          sectionId: _sectionId,
+                          onChanged: (id) => setState(() => _sectionId = id),
+                        ),
+                        FieldChip(
+                          icon: medcardIconFor(_iconKey),
+                          label: context.l10n.sectionIconFieldLabel,
+                          onTap: _pickIcon,
+                        ),
+                        FieldChip(
+                          icon: Icons.location_on_outlined,
+                          label: context.l10n.fieldWhere,
+                          value: _locationController.text.trim().isEmpty
+                              ? null
+                              : _locationController.text.trim(),
+                          onTap: () async {
+                            await showFieldSheet(
+                              context,
+                              title: context.l10n.fieldWhere,
+                              child: MkTextField(
+                                controller: _locationController,
+                                hint: context.l10n.locationHint,
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                        FieldChip(
+                          icon: Icons.attach_file_rounded,
                           label: context.l10n.reminderPhotoLabel,
+                          value: _documentPaths.isEmpty
+                              ? null
+                              : '${_documentPaths.length}',
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderPhotoLabel,
+                            child: DocumentsSection(
+                              paths: _documentPaths,
+                              onChanged: (paths) => setState(() => _documentPaths = paths),
+                              label: context.l10n.reminderPhotoLabel,
+                            ),
+                          ),
                         ),
                       ],
                     ),

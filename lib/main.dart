@@ -746,7 +746,7 @@ class _Shell extends ConsumerStatefulWidget {
 }
 
 class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
-  int _index = 0;
+  int _index = 2; // Сьогодні — за замовчуванням при запуску
   late final PageController _pageController;
   bool _syncing = false;
   bool _familySyncing = false;
@@ -754,10 +754,13 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   bool _backingUp = false;
   StreamSubscription<RemoteMessage>? _fcmSubscription;
 
+  // Порядок відповідає візуальному порядку іконок у AppBottomNav
+  // (зліва направо), інакше свайп вліво/вправо по PageView веде не туди,
+  // куди вказують сусідні іконки на панелі.
   static const _screens = [
-    TodayScreen(),     // 0 = Сьогодні
+    MedCardScreen(),   // 0 = Медкартка
     ScheduleScreen(),  // 1 = Розклад
-    MedCardScreen(),   // 2 = Медкартка
+    TodayScreen(),     // 2 = Сьогодні
     FamilyScreen(),    // 3 = Сім'я
     ProfileScreen(),   // 4 = Профіль
   ];

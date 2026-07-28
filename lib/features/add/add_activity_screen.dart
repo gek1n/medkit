@@ -5,9 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
+import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../../core/utils/l10n_ext.dart';
@@ -30,10 +33,24 @@ String _formatDuration(BuildContext context, int totalMinutes) {
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
   final Activity? existing;
+  // Коли true — грід "Тип активності" ховається (використовується для
+  // Спорт/Прості завдання/Рутинні справи з нового пікера створення); тоді
+  // [forcedType] задає службове значення, що йде в Activities.type
+  // непомітно для юзера.
+  final bool hideTypePicker;
+  final String? forcedType;
+  // Компактна форма у стилі Todoist — лише назва обов'язкова й видима
+  // одразу, решта полів (розклад, нагадування, колір, простір, посилання)
+  // згорнуті в чіпси. Використовується для Прості завдання/Рутинні справи;
+  // Спорт лишає повну форму (compactMode: false).
+  final bool compactMode;
   const AddActivityScreen({
     super.key,
     required this.memberId,
     this.existing,
+    this.hideTypePicker = false,
+    this.forcedType,
+    this.compactMode = false,
   });
 
   @override
@@ -47,6 +64,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _youtubeController;
   String? _colorHex;
+  int? _sectionId;
   List<_Slot> _slots = [
     (time: const TimeOfDay(hour: 8, minute: 30), duration: null),
   ];
@@ -96,8 +114,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     _nameController = TextEditingController(text: ex?.name ?? '');
     _youtubeController = TextEditingController(text: ex?.youtubeUrl ?? '');
     _colorHex = ex?.color;
+    _type = widget.forcedType;
     if (ex != null) {
       _type = ex.type;
+      _sectionId = ex.sectionId;
       _reminder = ex.reminderBeforeMin > 0;
       try {
         final days = List<int>.from(jsonDecode(ex.repeatDays) as List);
@@ -211,6 +231,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             reminderBeforeMin: Value(_reminder ? 10 : 0),
             youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
             color: Value(_colorHex),
+            sectionId: Value(_sectionId),
           ),
         );
         activityId = widget.existing!.id;
@@ -225,6 +246,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             reminderBeforeMin: Value(_reminder ? 10 : 0),
             youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
             color: Value(_colorHex),
+            sectionId: Value(_sectionId),
           ),
         );
       }
@@ -294,74 +316,76 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Type grid
-                    _Label(context.l10n.activityTypeLabel),
-                    const SizedBox(height: 8),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: 1.2,
-                      children: _types.map((t) {
-                        final sel = _type != null && _type == t.$1;
-                        final label = _typeLabel(context, t.$1);
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _type = t.$1;
-                              if (t.$1 != 'custom' &&
-                                  _nameController.text.trim().isEmpty) {
-                                _nameController.text = label;
-                              }
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? const Color(0xFFDCFCE7)
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
+                    if (!widget.hideTypePicker) ...[
+                      _Label(context.l10n.activityTypeLabel),
+                      const SizedBox(height: 8),
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1.2,
+                        children: _types.map((t) {
+                          final sel = _type != null && _type == t.$1;
+                          final label = _typeLabel(context, t.$1);
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _type = t.$1;
+                                if (t.$1 != 'custom' &&
+                                    _nameController.text.trim().isEmpty) {
+                                  _nameController.text = label;
+                                }
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              decoration: BoxDecoration(
                                 color: sel
-                                    ? AppColors.success
-                                    : AppColors.border,
-                                width: sel ? 2 : 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  t.$2,
-                                  size: 22,
+                                    ? const Color(0xFFDCFCE7)
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
                                   color: sel
-                                      ? const Color(0xFF15803D)
-                                      : AppColors.textMuted,
+                                      ? AppColors.success
+                                      : AppColors.border,
+                                  width: sel ? 2 : 1.5,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  label,
-                                  style: AppTextStyles.bodySm.copyWith(
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    t.$2,
+                                    size: 22,
                                     color: sel
                                         ? const Color(0xFF15803D)
                                         : AppColors.textMuted,
-                                    fontWeight: sel
-                                        ? FontWeight.w700
-                                        : FontWeight.w600,
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    label,
+                                    style: AppTextStyles.bodySm.copyWith(
+                                      color: sel
+                                          ? const Color(0xFF15803D)
+                                          : AppColors.textMuted,
+                                      fontWeight: sel
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                    ],
 
-                    // Name
+                    // Name — обов'язкове, завжди видиме
                     _Label(context.l10n.fieldName),
                     const SizedBox(height: 6),
                     _Input(
@@ -370,147 +394,145 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // YouTube link
-                    _Label(context.l10n.youtubeLinkLabel),
-                    const SizedBox(height: 6),
-                    _Input(
-                      controller: _youtubeController,
-                      hint: 'https://youtube.com/watch?v=...',
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      context.l10n.youtubeLinkDescription,
-                      style: AppTextStyles.bodySm.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Slots
-                    _Label(context.l10n.scheduleTitle),
-                    const SizedBox(height: 8),
-                    ..._slots.asMap().entries.map(
-                      (e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _ActivitySlot(
-                          index: e.key,
-                          time: e.value.time,
-                          duration: e.value.duration,
-                          onTimeTap: () => _pickTime(e.key),
-                          onDurationTap: () => _pickDuration(e.key),
-                          onRemove: _slots.length > 1
-                              ? () => setState(() => _slots.removeAt(e.key))
-                              : null,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(
-                        () => _slots.add((
-                          time: TimeOfDay(
-                            hour: (8 + _slots.length) % 24,
-                            minute: 0,
-                          ),
-                          duration: null,
-                        )),
-                      ),
-                      child: _DashedAdd(context.l10n.addAnotherActivityAction),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Weekdays
-                    _Label(context.l10n.weekdaysLabel),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(7, (i) {
-                        final day = i + 1;
-                        final sel = _weekdays.contains(day);
-                        return GestureDetector(
-                          onTap: () => setState(() {
-                            if (sel) {
-                              _weekdays.remove(day);
-                            } else {
-                              _weekdays.add(day);
-                            }
-                          }),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? AppColors.primary
-                                  : AppColors.surface,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: sel
-                                    ? AppColors.primary
-                                    : AppColors.border,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                _dayLabel(context, day),
-                                style: AppTextStyles.labelSm.copyWith(
-                                  color: sel
-                                      ? Colors.white
-                                      : AppColors.textMuted,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Reminder
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
+                    if (widget.compactMode) ...[
+                      // Компактна форма — решта полів чіпсами
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
-                          const Icon(
-                            Icons.notifications_outlined,
-                            color: AppColors.textSub,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.l10n.reminderLabel,
-                                  style: AppTextStyles.labelMd,
-                                ),
-                                Text(
-                                  context.l10n.reminderActivityDescription,
-                                  style: AppTextStyles.bodySm,
-                                ),
-                              ],
+                          FieldChip(
+                            icon: Icons.schedule_rounded,
+                            label: context.l10n.scheduleTitle,
+                            value: _scheduleSummary(context),
+                            onTap: () => showFieldSheet(
+                              context,
+                              title: context.l10n.scheduleTitle,
+                              child: _scheduleFields(context, showLabel: false),
                             ),
                           ),
-                          Switch(
-                            value: _reminder,
-                            onChanged: (v) => setState(() => _reminder = v),
-                            activeThumbColor: AppColors.primary,
+                          FieldChip(
+                            icon: Icons.notifications_outlined,
+                            label: context.l10n.reminderLabel,
+                            value: _reminder ? 'on' : null,
+                            forceLabel: true,
+                            onTap: () => setState(() => _reminder = !_reminder),
+                          ),
+                          FieldChip(
+                            icon: Icons.palette_outlined,
+                            label: context.l10n.taskColorPickerLabel,
+                            value: _colorHex,
+                            forceLabel: true,
+                            swatchColor: colorFromHex(_colorHex),
+                            onTap: () => showFieldSheet(
+                              context,
+                              title: context.l10n.taskColorPickerLabel,
+                              child: TaskColorPicker(
+                                selectedHex: _colorHex,
+                                onChanged: (hex) => setState(() => _colorHex = hex),
+                              ),
+                            ),
+                          ),
+                          SpaceChip(
+                            memberId: widget.memberId,
+                            sectionId: _sectionId,
+                            onChanged: (id) => setState(() => _sectionId = id),
+                          ),
+                          FieldChip(
+                            icon: Icons.link_rounded,
+                            label: context.l10n.youtubeLinkLabel,
+                            value: _youtubeController.text.trim().isEmpty ? null : 'on',
+                            forceLabel: true,
+                            onTap: () async {
+                              await showFieldSheet(
+                                context,
+                                title: context.l10n.youtubeLinkLabel,
+                                child: _Input(
+                                  controller: _youtubeController,
+                                  hint: 'https://youtube.com/watch?v=...',
+                                ),
+                              );
+                              if (mounted) setState(() {});
+                            },
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
+                      const SizedBox(height: 32),
+                    ] else ...[
+                      // YouTube link
+                      _Label(context.l10n.youtubeLinkLabel),
+                      const SizedBox(height: 6),
+                      _Input(
+                        controller: _youtubeController,
+                        hint: 'https://youtube.com/watch?v=...',
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.l10n.youtubeLinkDescription,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
 
-                    TaskColorPicker(
-                      selectedHex: _colorHex,
-                      onChanged: (hex) => setState(() => _colorHex = hex),
-                    ),
-                    const SizedBox(height: 32),
+                      _scheduleFields(context),
+                      const SizedBox(height: AppDimensions.lg),
+
+                      // Reminder
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.notifications_outlined,
+                              color: AppColors.textSub,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.l10n.reminderLabel,
+                                    style: AppTextStyles.labelMd,
+                                  ),
+                                  Text(
+                                    context.l10n.reminderActivityDescription,
+                                    style: AppTextStyles.bodySm,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: _reminder,
+                              onChanged: (v) => setState(() => _reminder = v),
+                              activeThumbColor: AppColors.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+
+                      TaskColorPicker(
+                        selectedHex: _colorHex,
+                        onChanged: (hex) => setState(() => _colorHex = hex),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+
+                      _Label(context.l10n.spaceFieldLabel),
+                      const SizedBox(height: 6),
+                      SpaceField(
+                        memberId: widget.memberId,
+                        sectionId: _sectionId,
+                        onChanged: (id) => setState(() => _sectionId = id),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
 
                     SizedBox(
                       width: double.infinity,
@@ -576,6 +598,99 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         duration: picked == -1 ? null : (picked ?? _slots[index].duration),
       );
     });
+  }
+
+  // Слоти часу + дні тижня — спільний блок для повної форми (Спорт) і
+  // вмісту шторки "Розклад" у компактній формі (Прості завдання/Рутинні
+  // справи).
+  Widget _scheduleFields(BuildContext context, {bool showLabel = true}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showLabel) ...[
+          _Label(context.l10n.scheduleTitle),
+          const SizedBox(height: 8),
+        ],
+        ..._slots.asMap().entries.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ActivitySlot(
+              index: e.key,
+              time: e.value.time,
+              duration: e.value.duration,
+              onTimeTap: () => _pickTime(e.key),
+              onDurationTap: () => _pickDuration(e.key),
+              onRemove: _slots.length > 1
+                  ? () => setState(() => _slots.removeAt(e.key))
+                  : null,
+            ),
+          ),
+        ),
+        GestureDetector(
+          onTap: () => setState(
+            () => _slots.add((
+              time: TimeOfDay(hour: (8 + _slots.length) % 24, minute: 0),
+              duration: null,
+            )),
+          ),
+          child: _DashedAdd(context.l10n.addAnotherActivityAction),
+        ),
+        const SizedBox(height: AppDimensions.lg),
+        _Label(context.l10n.weekdaysLabel),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(7, (i) {
+            final day = i + 1;
+            final sel = _weekdays.contains(day);
+            return GestureDetector(
+              onTap: () => setState(() {
+                if (sel) {
+                  _weekdays.remove(day);
+                } else {
+                  _weekdays.add(day);
+                }
+              }),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: sel ? AppColors.primary : AppColors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: sel ? AppColors.primary : AppColors.border,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    _dayLabel(context, day),
+                    style: AppTextStyles.labelSm.copyWith(
+                      color: sel ? Colors.white : AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  String _scheduleSummary(BuildContext context) {
+    final first = _slots.first;
+    final hh = first.time.hour.toString().padLeft(2, '0');
+    final mm = first.time.minute.toString().padLeft(2, '0');
+    final sortedDays = _weekdays.toList()..sort();
+    final daysLabel = sortedDays.isEmpty
+        ? context.l10n.noDaysSelectedHint
+        : sortedDays.length == 7
+            ? context.l10n.repeatDaily
+            : sortedDays.map((d) => _dayLabel(context, d)).join(', ');
+    final extra = _slots.length > 1 ? ' +${_slots.length - 1}' : '';
+    return '$hh:$mm · $daysLabel$extra';
   }
 }
 
