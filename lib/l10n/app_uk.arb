@@ -696,6 +696,28 @@
   "profileLimitReachedSubtitle": "Перейдіть на Elly Plus — необмежена кількість локальних профілів",
   "localProfilesTitle": "Профілі локальні",
   "familyUpgradeSubtitle": "Щоб сім'я теж могла керувати — перейдіть на Elly Family",
+  "routineTasksLimitBadge": "Рутинні справи",
+  "routineTasksLimitTitle": "Ліміт рутинних справ",
+  "routineTasksLimitSubtitle": "Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість",
+  "@routineTasksLimitSubtitle": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "routineTasksLimitDeniedTitle": "Ліміт рутинних справ досягнуто",
+  "routineTasksLimitDeniedSubtitle": "На безкоштовному тарифі доступна лише 1 рутинна справа. Перейдіть на Elly Plus для необмеженої кількості",
+  "medcardSectionsLimitBadge": "Простір",
+  "medcardSectionsLimitTitle": "Ліміт розділів Простору",
+  "medcardSectionsLimitSubtitle": "Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість",
+  "@medcardSectionsLimitSubtitle": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "medcardSectionsLimitDeniedTitle": "Ліміт розділів досягнуто",
+  "medcardSectionsLimitDeniedSubtitle": "На безкоштовному тарифі доступно до 3 розділів Простору. Перейдіть на Elly Plus для необмеженої кількості",
   "leaveGroupConfirmTitle": "Покинути \"{name}\"?",
   "@leaveGroupConfirmTitle": {
     "placeholders": {
@@ -1005,6 +1027,56 @@
   "reminderYearlyDateFieldLabel": "Дата (без року)",
   "reminderMonthlyDayFieldLabel": "День місяця",
   "dayOfMonthCapsLabel": "ДЕНЬ",
+  "routineRepeatSectionLabel": "Повторення",
+  "routineRepeatEveryNDaysOption": "Кожні N днів",
+  "routineRepeatWeeklyGoalOption": "N разів на тиждень",
+  "routineIntervalDaysValueLabel": "Кожні {n} дн.",
+  "@routineIntervalDaysValueLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineWeeklyGoalValueLabel": "{n} р./тиждень",
+  "@routineWeeklyGoalValueLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineTimeFieldLabel": "Час",
+  "routineFixedTimeOption": "У певний час",
+  "routineNoFixedTimeOption": "Без конкретного часу",
+  "routineWhoDoesLabel": "Хто виконує",
+  "routineRotationCadenceLabel": "Як часто змінюється черга",
+  "routineRotationCadencePerOccurrence": "Кожного разу",
+  "routineRotationCadenceWeekly": "Щотижня",
+  "routineRotationCadenceMonthly": "Щомісяця",
+  "routineRotationSummary": "По черзі ({n})",
+  "@routineRotationSummary": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineStepsLabel": "Кроки",
+  "routineStepsSheetTitle": "Кроки виконання",
+  "routineAddStepHint": "Додати крок…",
+  "routineWhoseTurnLabel": "Черга: {name}",
+  "@routineWhoseTurnLabel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "routineSwapTurnAction": "Поміняти",
+  "routineSkipTurnAction": "Пропустити чергу",
+  "routineWeeklyGoalProgressLabel": "{done}/{total} цього тижня",
+  "@routineWeeklyGoalProgressLabel": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "routinePartialStatusLabel": "Частково",
+  "routineStepsProgressLabel": "{done}/{total} кроків",
+  "@routineStepsProgressLabel": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "routineAnyTimeTodayLabel": "Будь-коли сьогодні",
+  "routineAllRoutinesScreenTitle": "Обов'язки сім'ї",
+  "routineNoAssigneesHint": "Ще немає обов'язків",
   "defaultNotesSectionName": "Нотатки",
   "addAnotherTimeAction": "Додати ще один час",
   "addAtLeastOneTimeError": "Додайте хоча б один час",

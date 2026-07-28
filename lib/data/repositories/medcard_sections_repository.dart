@@ -14,6 +14,13 @@ class MedcardSectionsRepository {
         .watch();
   }
 
+  Future<int> countByMember(int memberId) async {
+    final rows = await (_db.select(_db.medcardSections)
+          ..where((t) => t.memberId.equals(memberId)))
+        .get();
+    return rows.length;
+  }
+
   Future<MedcardSection?> getById(int id) =>
       (_db.select(_db.medcardSections)..where((t) => t.id.equals(id)))
           .getSingleOrNull();

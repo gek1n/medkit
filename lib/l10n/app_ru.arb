@@ -696,6 +696,28 @@
   "profileLimitReachedSubtitle": "Перейдите на Elly Plus — неограниченное количество локальных профилей",
   "localProfilesTitle": "Локальные профили",
   "familyUpgradeSubtitle": "Чтобы семья тоже могла управлять — перейдите на Elly Family",
+  "routineTasksLimitBadge": "Рутинные дела",
+  "routineTasksLimitTitle": "Лимит рутинных дел",
+  "routineTasksLimitSubtitle": "Использовано {used} из {max}. Перейдите на Elly Plus — неограниченное количество",
+  "@routineTasksLimitSubtitle": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "routineTasksLimitDeniedTitle": "Лимит рутинных дел достигнут",
+  "routineTasksLimitDeniedSubtitle": "На бесплатном тарифе доступно только 1 рутинное дело. Перейдите на Elly Plus для неограниченного количества",
+  "medcardSectionsLimitBadge": "Пространство",
+  "medcardSectionsLimitTitle": "Лимит разделов Пространства",
+  "medcardSectionsLimitSubtitle": "Использовано {used} из {max}. Перейдите на Elly Plus — неограниченное количество",
+  "@medcardSectionsLimitSubtitle": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "medcardSectionsLimitDeniedTitle": "Лимит разделов достигнут",
+  "medcardSectionsLimitDeniedSubtitle": "На бесплатном тарифе доступно до 3 разделов Пространства. Перейдите на Elly Plus для неограниченного количества",
   "leaveGroupConfirmTitle": "Покинуть \"{name}\"?",
   "@leaveGroupConfirmTitle": {
     "placeholders": {
@@ -1005,6 +1027,56 @@
   "reminderYearlyDateFieldLabel": "Дата (год не важен)",
   "reminderMonthlyDayFieldLabel": "День месяца",
   "dayOfMonthCapsLabel": "ДЕНЬ",
+  "routineRepeatSectionLabel": "Повторение",
+  "routineRepeatEveryNDaysOption": "Каждые N дней",
+  "routineRepeatWeeklyGoalOption": "N раз в неделю",
+  "routineIntervalDaysValueLabel": "Каждые {n} дн.",
+  "@routineIntervalDaysValueLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineWeeklyGoalValueLabel": "{n} р./неделю",
+  "@routineWeeklyGoalValueLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineTimeFieldLabel": "Время",
+  "routineFixedTimeOption": "В определённое время",
+  "routineNoFixedTimeOption": "Без конкретного времени",
+  "routineWhoDoesLabel": "Кто выполняет",
+  "routineRotationCadenceLabel": "Как часто меняется очередь",
+  "routineRotationCadencePerOccurrence": "Каждый раз",
+  "routineRotationCadenceWeekly": "Еженедельно",
+  "routineRotationCadenceMonthly": "Ежемесячно",
+  "routineRotationSummary": "По очереди ({n})",
+  "@routineRotationSummary": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineStepsLabel": "Шаги",
+  "routineStepsSheetTitle": "Шаги выполнения",
+  "routineAddStepHint": "Добавить шаг…",
+  "routineWhoseTurnLabel": "Очередь: {name}",
+  "@routineWhoseTurnLabel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "routineSwapTurnAction": "Поменяться",
+  "routineSkipTurnAction": "Пропустить очередь",
+  "routineWeeklyGoalProgressLabel": "{done}/{total} на этой неделе",
+  "@routineWeeklyGoalProgressLabel": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "routinePartialStatusLabel": "Частично",
+  "routineStepsProgressLabel": "{done}/{total} шагов",
+  "@routineStepsProgressLabel": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "routineAnyTimeTodayLabel": "Когда-нибудь сегодня",
+  "routineAllRoutinesScreenTitle": "Обязанности семьи",
+  "routineNoAssigneesHint": "Пока нет обязанностей",
   "defaultNotesSectionName": "Заметки",
   "addAnotherTimeAction": "Добавить ещё одно время",
   "addAtLeastOneTimeError": "Добавьте хотя бы одно время",
