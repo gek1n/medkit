@@ -156,11 +156,6 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     if (picked != null) setState(() => _time = picked);
   }
 
-  Future<void> _pickIcon() async {
-    final picked = await showMedcardIconPicker(context, current: _iconKey);
-    if (picked != null) setState(() => _iconKey = picked);
-  }
-
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -260,7 +255,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         await NotificationService.cancelAppointmentReminder(appointmentId);
       }
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -342,19 +337,23 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       runSpacing: 8,
                       children: [
                         FieldChip(
-                          icon: Icons.sell_outlined,
-                          label: context.l10n.reminderTagsFieldLabel,
-                          value: _tags.isEmpty ? null : _tags.join(', '),
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.reminderTagsFieldLabel,
-                            child: TagsField(
-                              tags: _tags,
-                              onChanged: (t) => setState(() => _tags = t),
-                              hint: context.l10n.reminderTagsHint,
-                              loadHistory: ReminderTagsLibraryService.getAll,
-                            ),
-                          ),
+                          icon: Icons.notes_rounded,
+                          label: context.l10n.noteSingularLabel,
+                          value: _notesController.text.trim().isEmpty
+                              ? null
+                              : _notesController.text.trim(),
+                          onTap: () async {
+                            await showFieldSheet(
+                              context,
+                              title: context.l10n.noteSingularLabel,
+                              child: MkTextField(
+                                controller: _notesController,
+                                maxLines: 3,
+                                hint: context.l10n.reminderNoteHint,
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
                         ),
                         // Remind before — не потрібно для нагадування, що вже минуло
                         if (!_isPastVisit)
@@ -413,49 +412,26 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                               ),
                             ),
                           ),
-                        FieldChip(
-                          icon: Icons.notes_rounded,
-                          label: context.l10n.noteSingularLabel,
-                          value: _notesController.text.trim().isEmpty
-                              ? null
-                              : _notesController.text.trim(),
-                          onTap: () async {
-                            await showFieldSheet(
-                              context,
-                              title: context.l10n.noteSingularLabel,
-                              child: MkTextField(
-                                controller: _notesController,
-                                maxLines: 3,
-                                hint: context.l10n.reminderNoteHint,
-                              ),
-                            );
-                            if (mounted) setState(() {});
-                          },
-                        ),
-                        FieldChip(
-                          icon: Icons.palette_outlined,
-                          label: context.l10n.taskColorPickerLabel,
-                          value: _colorHex,
-                          forceLabel: true,
-                          swatchColor: colorFromHex(_colorHex),
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.taskColorPickerLabel,
-                            child: TaskColorPicker(
-                              selectedHex: _colorHex,
-                              onChanged: (hex) => setState(() => _colorHex = hex),
-                            ),
-                          ),
-                        ),
                         SpaceChip(
                           memberId: widget.memberId,
                           sectionId: _sectionId,
                           onChanged: (id) => setState(() => _sectionId = id),
                         ),
                         FieldChip(
-                          icon: medcardIconFor(_iconKey),
-                          label: context.l10n.sectionIconFieldLabel,
-                          onTap: _pickIcon,
+                          icon: Icons.attach_file_rounded,
+                          label: context.l10n.reminderPhotoLabel,
+                          value: _documentPaths.isEmpty
+                              ? null
+                              : '${_documentPaths.length}',
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderPhotoLabel,
+                            child: DocumentsSection(
+                              paths: _documentPaths,
+                              onChanged: (paths) => setState(() => _documentPaths = paths),
+                              label: context.l10n.reminderPhotoLabel,
+                            ),
+                          ),
                         ),
                         FieldChip(
                           icon: Icons.location_on_outlined,
@@ -476,18 +452,79 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                           },
                         ),
                         FieldChip(
-                          icon: Icons.attach_file_rounded,
-                          label: context.l10n.reminderPhotoLabel,
-                          value: _documentPaths.isEmpty
-                              ? null
-                              : '${_documentPaths.length}',
+                          icon: Icons.sell_outlined,
+                          label: context.l10n.reminderTagsFieldLabel,
+                          value: _tags.isEmpty ? null : _tags.join(', '),
                           onTap: () => showFieldSheet(
                             context,
-                            title: context.l10n.reminderPhotoLabel,
-                            child: DocumentsSection(
-                              paths: _documentPaths,
-                              onChanged: (paths) => setState(() => _documentPaths = paths),
-                              label: context.l10n.reminderPhotoLabel,
+                            title: context.l10n.reminderTagsFieldLabel,
+                            child: TagsField(
+                              tags: _tags,
+                              onChanged: (t) => setState(() => _tags = t),
+                              hint: context.l10n.reminderTagsHint,
+                              loadHistory: ReminderTagsLibraryService.getAll,
+                            ),
+                          ),
+                        ),
+                        // Колір картки — разом з іконкою (без окремого чіпа
+                        // для іконки): вибір обох за один тап, показуємо
+                        // живо в тому ж дереві шторки через StatefulBuilder.
+                        FieldChip(
+                          icon: medcardIconFor(_iconKey),
+                          label: context.l10n.taskColorPickerLabel,
+                          value: _colorHex,
+                          forceLabel: true,
+                          swatchColor: colorFromHex(_colorHex),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.taskColorPickerLabel,
+                            child: StatefulBuilder(
+                              builder: (sheetContext, setSheetState) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TaskColorPicker(
+                                    selectedHex: _colorHex,
+                                    onChanged: (hex) {
+                                      setState(() => _colorHex = hex);
+                                      setSheetState(() {});
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  MkFieldLabel(context.l10n.sectionIconFieldLabel),
+                                  const SizedBox(height: 6),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showMedcardIconPicker(
+                                        sheetContext,
+                                        current: _iconKey,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _iconKey = picked);
+                                        setSheetState(() {});
+                                      }
+                                    },
+                                    child: Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        color: (colorFromHex(_colorHex) ??
+                                                AppColors.primary)
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(
+                                          AppDimensions.radiusMd,
+                                        ),
+                                        border: Border.all(color: AppColors.border),
+                                      ),
+                                      child: Icon(
+                                        medcardIconFor(_iconKey),
+                                        color: colorFromHex(_colorHex) ??
+                                            AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

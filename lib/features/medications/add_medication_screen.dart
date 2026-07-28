@@ -16,6 +16,8 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
+import '../../core/utils/task_color.dart';
+import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -343,7 +345,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       ref.invalidate(generateTodayIntakesProvider);
       ref.invalidate(tomorrowIntakesProvider);
 
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -509,38 +511,80 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    // Optional block
-                    _OptionalSection(
-                      trackStock: _trackStock,
-                      availableCount: _availableCount,
-                      phases: _phases,
-                      doseAmount: _phases.isNotEmpty
-                          ? _phases.first.doseAmount
-                          : 1.0,
-                      doseUnit: _unitForForm(_form),
-                      form: _form,
-                      onTrackToggle: (v) => setState(() => _trackStock = v),
-                      onDecrement: () => setState(() {
-                        if (_availableCount > 0) _availableCount--;
-                      }),
-                      onIncrement: () => setState(() => _availableCount++),
-                      onEdit: (v) => setState(() => _availableCount = v),
-                      photoPaths: _photoPaths,
-                      onPhotosChanged: (paths) =>
-                          setState(() => _photoPaths = paths),
-                      colorHex: _colorHex,
-                      onColorChanged: (hex) => setState(() => _colorHex = hex),
+                    // Необов'язкові поля — компактними чіпсами
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FieldChip(
+                          icon: Icons.photo_camera_outlined,
+                          label: context.l10n.reminderPhotoLabel,
+                          value: _photoPaths.isEmpty
+                              ? null
+                              : '${_photoPaths.length}',
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderPhotoLabel,
+                            child: _PhotoSection(
+                              paths: _photoPaths,
+                              onChanged: (paths) =>
+                                  setState(() => _photoPaths = paths),
+                            ),
+                          ),
+                        ),
+                        FieldChip(
+                          icon: Icons.inventory_2_outlined,
+                          label: context.l10n.trackStockLabel,
+                          value: _trackStock ? 'on' : null,
+                          forceLabel: true,
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.trackStockLabel,
+                            child: _MedStockContent(
+                              trackStock: _trackStock,
+                              availableCount: _availableCount,
+                              phases: _phases,
+                              doseAmount: _phases.isNotEmpty
+                                  ? _phases.first.doseAmount
+                                  : 1.0,
+                              doseUnit: _unitForForm(_form),
+                              form: _form,
+                              onTrackToggle: (v) =>
+                                  setState(() => _trackStock = v),
+                              onDecrement: () => setState(() {
+                                if (_availableCount > 0) _availableCount--;
+                              }),
+                              onIncrement: () =>
+                                  setState(() => _availableCount++),
+                              onEdit: (v) =>
+                                  setState(() => _availableCount = v),
+                            ),
+                          ),
+                        ),
+                        FieldChip(
+                          icon: Icons.palette_outlined,
+                          label: context.l10n.taskColorPickerLabel,
+                          value: _colorHex,
+                          forceLabel: true,
+                          swatchColor: colorFromHex(_colorHex),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.taskColorPickerLabel,
+                            child: TaskColorPicker(
+                              selectedHex: _colorHex,
+                              onChanged: (hex) =>
+                                  setState(() => _colorHex = hex),
+                            ),
+                          ),
+                        ),
+                        if (widget.memberId != null)
+                          SpaceChip(
+                            memberId: widget.memberId!,
+                            sectionId: _sectionId,
+                            onChanged: (id) => setState(() => _sectionId = id),
+                          ),
+                      ],
                     ),
-
-                    if (widget.memberId != null) ...[
-                      const SizedBox(height: AppDimensions.lg),
-                      _FormLabel(context.l10n.spaceFieldLabel),
-                      SpaceField(
-                        memberId: widget.memberId!,
-                        sectionId: _sectionId,
-                        onChanged: (id) => setState(() => _sectionId = id),
-                      ),
-                    ],
                     const SizedBox(height: 32),
 
                     // Save
@@ -2012,55 +2056,40 @@ class _DurationSectionState extends State<_DurationSection> {
   }
 }
 
-// ─── Optional section ─────────────────────────────────────────────────────────
+// ─── Стан запасу (вміст чіпа "Наявність") ─────────────────────────────────────
 
-class _OptionalSection extends StatefulWidget {
+class _MedStockContent extends StatelessWidget {
   final bool trackStock;
   final int availableCount;
   final List<_MedPhase> phases;
   final double doseAmount;
   final String doseUnit;
   final String form;
-  final List<String> photoPaths;
-  final String? colorHex;
   final void Function(bool) onTrackToggle;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final void Function(int) onEdit;
-  final void Function(List<String>) onPhotosChanged;
-  final void Function(String) onColorChanged;
 
-  const _OptionalSection({
+  const _MedStockContent({
     required this.trackStock,
     required this.availableCount,
     required this.phases,
     required this.doseAmount,
     required this.doseUnit,
     required this.form,
-    required this.photoPaths,
-    required this.colorHex,
     required this.onTrackToggle,
     required this.onDecrement,
     required this.onIncrement,
     required this.onEdit,
-    required this.onPhotosChanged,
-    required this.onColorChanged,
   });
-
-  @override
-  State<_OptionalSection> createState() => _OptionalSectionState();
-}
-
-class _OptionalSectionState extends State<_OptionalSection> {
-  bool _expanded = false;
 
   // Загальна кількість прийомів за курс (одиниць ліків)
   int _totalIntakes() {
     double total = 0;
-    for (final phase in widget.phases) {
+    for (final phase in phases) {
       final days = phase.durationDays ?? 0;
       final intakesPerDay = phase.effectiveTimes.length;
-      total += days * intakesPerDay * widget.doseAmount;
+      total += days * intakesPerDay * doseAmount;
     }
     return total.ceil();
   }
@@ -2068,259 +2097,147 @@ class _OptionalSectionState extends State<_OptionalSection> {
   @override
   Widget build(BuildContext context) {
     final needed = _totalIntakes();
-    final toBuy = (needed - widget.availableCount).clamp(0, 99999);
+    final toBuy = (needed - availableCount).clamp(0, 99999);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Заголовок-тоглер
+        // Галочка відстеження
         GestureDetector(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.tune_rounded,
-                  size: 18,
-                  color: AppColors.textSub,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    context.l10n.optionalParamsLabel,
-                    style: AppTextStyles.labelMd.copyWith(
-                      color: AppColors.textSub,
-                    ),
+          onTap: () => onTrackToggle(!trackStock),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: trackStock ? AppColors.primary : AppColors.bg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: trackStock ? AppColors.primary : AppColors.border,
+                    width: 1.5,
                   ),
                 ),
-                Text(
-                  context.l10n.optionalLabel,
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.textMuted,
-                  ),
+                child: trackStock
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.l10n.trackStockLabel,
+                  style: AppTextStyles.bodyMd,
                 ),
-                const SizedBox(width: 8),
-                AnimatedRotation(
-                  turns: _expanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 20,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
 
-        // Розкривний вміст
+        // Поля наявності та розрахунку
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
-          secondChild: Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Фото упаковки
-                _PhotoSection(
-                  paths: widget.photoPaths,
-                  onChanged: widget.onPhotosChanged,
-                ),
+          secondChild: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: AppColors.border),
+              const SizedBox(height: 14),
 
+              if (isPercentTrackedForm(form)) ...[
+                Text(context.l10n.vialPackageLabel, style: AppTextStyles.labelMd),
+                const SizedBox(height: 4),
+                Text(
+                  context.l10n.markAsOpenedHint,
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                ),
+              ] else ...[
+                Text(context.l10n.inStockLabel, style: AppTextStyles.labelMd),
+                const SizedBox(height: 4),
+                Text(
+                  context.l10n.howManyNowLabel(doseUnit),
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 10),
+                _PillCountRow(
+                  count: availableCount,
+                  unit: doseUnit,
+                  onDecrement: onDecrement,
+                  onIncrement: onIncrement,
+                  onEdit: onEdit,
+                ),
+              ],
+
+              if (!isPercentTrackedForm(form) && needed > 0) ...[
                 const SizedBox(height: 16),
                 const Divider(height: 1, color: AppColors.border),
-                const SizedBox(height: 16),
-
-                // Галочка відстеження
-                GestureDetector(
-                  onTap: () => widget.onTrackToggle(!widget.trackStock),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: toBuy > 0 ? AppColors.primaryLight : AppColors.bg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: toBuy > 0
+                          ? AppColors.primary.withValues(alpha: 0.4)
+                          : AppColors.border,
+                    ),
+                  ),
                   child: Row(
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          color: widget.trackStock
-                              ? AppColors.primary
-                              : AppColors.bg,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: widget.trackStock
-                                ? AppColors.primary
-                                : AppColors.border,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: widget.trackStock
-                            ? const Icon(
-                                Icons.check_rounded,
-                                size: 14,
-                                color: Colors.white,
-                              )
-                            : null,
+                      Icon(
+                        toBuy > 0
+                            ? Icons.shopping_bag_outlined
+                            : Icons.check_circle_outline_rounded,
+                        size: 20,
+                        color: toBuy > 0 ? AppColors.primary : Colors.green,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          context.l10n.trackStockLabel,
-                          style: AppTextStyles.bodyMd,
-                        ),
+                        child: toBuy > 0
+                            ? RichText(
+                                text: TextSpan(
+                                  style: AppTextStyles.bodyMd,
+                                  children: [
+                                    TextSpan(text: context.l10n.needToBuyLabel),
+                                    TextSpan(
+                                      text: '$toBuy $doseUnit',
+                                      style: AppTextStyles.labelMd.copyWith(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: context.l10n.courseAvailableLabel(
+                                        needed,
+                                        availableCount,
+                                      ),
+                                      style: AppTextStyles.bodySm.copyWith(
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Text(
+                                context.l10n.enoughForCourseLabel,
+                                style: AppTextStyles.bodyMd.copyWith(
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
                       ),
                     ],
                   ),
                 ),
-
-                // Поля наявності та розрахунку
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
-                      const Divider(height: 1, color: AppColors.border),
-                      const SizedBox(height: 14),
-
-                      if (isPercentTrackedForm(widget.form)) ...[
-                        Text(
-                          context.l10n.vialPackageLabel,
-                          style: AppTextStyles.labelMd,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          context.l10n.markAsOpenedHint,
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ] else ...[
-                        Text(
-                          context.l10n.inStockLabel,
-                          style: AppTextStyles.labelMd,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          context.l10n.howManyNowLabel(widget.doseUnit),
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _PillCountRow(
-                          count: widget.availableCount,
-                          unit: widget.doseUnit,
-                          onDecrement: widget.onDecrement,
-                          onIncrement: widget.onIncrement,
-                          onEdit: widget.onEdit,
-                        ),
-                      ],
-
-                      if (!isPercentTrackedForm(widget.form) && needed > 0) ...[
-                        const SizedBox(height: 16),
-                        const Divider(height: 1, color: AppColors.border),
-                        const SizedBox(height: 14),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: toBuy > 0
-                                ? AppColors.primaryLight
-                                : AppColors.bg,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: toBuy > 0
-                                  ? AppColors.primary.withValues(alpha: 0.4)
-                                  : AppColors.border,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                toBuy > 0
-                                    ? Icons.shopping_bag_outlined
-                                    : Icons.check_circle_outline_rounded,
-                                size: 20,
-                                color: toBuy > 0
-                                    ? AppColors.primary
-                                    : Colors.green,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: toBuy > 0
-                                    ? RichText(
-                                        text: TextSpan(
-                                          style: AppTextStyles.bodyMd,
-                                          children: [
-                                            TextSpan(
-                                              text:
-                                                  context.l10n.needToBuyLabel,
-                                            ),
-                                            TextSpan(
-                                              text: '$toBuy ${widget.doseUnit}',
-                                              style: AppTextStyles.labelMd
-                                                  .copyWith(
-                                                    color: AppColors.primary,
-                                                  ),
-                                            ),
-                                            TextSpan(
-                                              text: context.l10n
-                                                  .courseAvailableLabel(
-                                                    needed,
-                                                    widget.availableCount,
-                                                  ),
-                                              style: AppTextStyles.bodySm
-                                                  .copyWith(
-                                                    color: AppColors.textMuted,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : Text(
-                                        context.l10n.enoughForCourseLabel,
-                                        style: AppTextStyles.bodyMd.copyWith(
-                                          color: Colors.green.shade700,
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  crossFadeState: widget.trackStock
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 200),
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(height: 1, color: AppColors.border),
-                const SizedBox(height: 16),
-
-                // Кастомний колір картки
-                TaskColorPicker(
-                  selectedHex: widget.colorHex,
-                  onChanged: widget.onColorChanged,
-                ),
               ],
-            ),
+            ],
           ),
-          crossFadeState: _expanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
+          crossFadeState:
+              trackStock ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
       ],

@@ -3037,7 +3037,7 @@ abstract class AppLocalizations {
   /// No description provided for @newAppointmentTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Нове нагадування'**
+  /// **'Нова зустріч'**
   String get newAppointmentTitle;
 
   /// No description provided for @fieldWhere.

@@ -1700,7 +1700,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deleteAppointmentBody => 'Напоминание будет удалено.';
 
   @override
-  String get newAppointmentTitle => 'Новое напоминание';
+  String get newAppointmentTitle => 'Новая встреча';
 
   @override
   String get fieldWhere => 'Где';

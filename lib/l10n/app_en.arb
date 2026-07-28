@@ -979,7 +979,7 @@
   "remindBefore1Day": "1 day before",
   "remindBefore2Days": "2 days before",
   "deleteAppointmentBody": "This reminder will be deleted.",
-  "newAppointmentTitle": "New reminder",
+  "newAppointmentTitle": "New meeting",
   "fieldWhere": "Where",
   "locationHint": "Enter an address or name",
   "fieldDateTime": "Date & time",

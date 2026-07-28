@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../features/today/providers/today_providers.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/elly_denied_screen.dart';
@@ -57,7 +58,12 @@ class AddTaskScreen extends ConsumerWidget {
     final fallbackMemberAsync = ref.watch(currentMemberProvider);
     final resolvedMemberId = memberId ?? fallbackMemberAsync.valueOrNull?.id;
 
-    void openType(_TaskType type) {
+    // push (не pushReplacement) — пікер лишається в стеку, тож кнопка
+    // "назад"/свайп на формі повертає саме до вибору типу. Але після
+    // успішного збереження форма повертає true, і ми одразу "пропускаємо"
+    // пікер, popаючи й його — користувач опиняється одразу на Сьогодні/
+    // Розкладі, а не знову на екрані вибору типу.
+    Future<void> openType(_TaskType type) async {
       if (resolvedMemberId == null) return;
       final Widget screen = switch (type) {
         _TaskType.meds => AddMedicationScreen(memberId: resolvedMemberId),
@@ -82,10 +88,11 @@ class AddTaskScreen extends ConsumerWidget {
         _TaskType.wellbeing =>
           AddWellbeingScheduleScreen(memberId: resolvedMemberId),
       };
-      Navigator.pushReplacement(
+      final saved = await Navigator.push<bool>(
         context,
         MaterialPageRoute(builder: (_) => screen),
       );
+      if (saved == true && context.mounted) Navigator.pop(context, true);
     }
 
     return Scaffold(
@@ -98,11 +105,7 @@ class AddTaskScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    color: AppColors.textMain,
-                  ),
+                  MkBackButton(onTap: () => Navigator.pop(context)),
                 ],
               ),
             ),
