@@ -287,6 +287,13 @@ class _ScheduleBody extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.medication_rounded,
                     title: context.l10n.sectionMeds,
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddMedicationScreen(memberId: selectedMemberId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   medsAsync.when(
@@ -334,6 +341,16 @@ class _ScheduleBody extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.directions_walk_rounded,
                     title: context.l10n.taskTypeSport,
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddActivityScreen(
+                          memberId: selectedMemberId,
+                          hideTypePicker: true,
+                          forcedType: _kActivityTypeSport,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
@@ -388,6 +405,13 @@ class _ScheduleBody extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
                     title: context.l10n.taskTypeMeeting,
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddAppointmentScreen(memberId: selectedMemberId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   appointmentsAsync.when(
@@ -435,6 +459,17 @@ class _ScheduleBody extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.checklist_rounded,
                     title: context.l10n.taskTypeSimple,
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddActivityScreen(
+                          memberId: selectedMemberId,
+                          hideTypePicker: true,
+                          forcedType: _kActivityTypeSimple,
+                          compactMode: true,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
@@ -491,6 +526,17 @@ class _ScheduleBody extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
                     title: context.l10n.taskTypeRoutine,
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddActivityScreen(
+                          memberId: selectedMemberId,
+                          hideTypePicker: true,
+                          forcedType: _kActivityTypeRoutine,
+                          compactMode: true,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
@@ -547,6 +593,13 @@ class _ScheduleBody extends ConsumerWidget {
                   _SectionHeader(
                     icon: Icons.favorite_rounded,
                     title: context.l10n.sectionWellbeing,
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   wellbeingScheduleAsync.when(
@@ -822,8 +875,9 @@ class _SearchFieldState extends State<_SearchField> {
 class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
+  final VoidCallback? onAdd;
 
-  const _SectionHeader({required this.icon, required this.title});
+  const _SectionHeader({required this.icon, required this.title, this.onAdd});
 
   @override
   Widget build(BuildContext context) {
@@ -832,6 +886,23 @@ class _SectionHeader extends StatelessWidget {
         Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 8),
         Expanded(child: SectionLabel(title)),
+        if (onAdd != null)
+          GestureDetector(
+            onTap: onAdd,
+            child: Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.add_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
       ],
     );
   }

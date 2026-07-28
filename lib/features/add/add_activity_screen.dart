@@ -266,7 +266,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       ref.invalidate(generateTodayActivityLogsProvider);
       ref.invalidate(tomorrowActivityLogsProvider);
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -458,22 +458,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       ),
                       const SizedBox(height: 32),
                     ] else ...[
-                      // YouTube link
-                      _Label(context.l10n.youtubeLinkLabel),
-                      const SizedBox(height: 6),
-                      _Input(
-                        controller: _youtubeController,
-                        hint: 'https://youtube.com/watch?v=...',
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        context.l10n.youtubeLinkDescription,
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: AppDimensions.lg),
-
                       _scheduleFields(context),
                       const SizedBox(height: AppDimensions.lg),
 
@@ -518,18 +502,51 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       ),
                       const SizedBox(height: AppDimensions.lg),
 
-                      TaskColorPicker(
-                        selectedHex: _colorHex,
-                        onChanged: (hex) => setState(() => _colorHex = hex),
-                      ),
-                      const SizedBox(height: AppDimensions.lg),
-
-                      _Label(context.l10n.spaceFieldLabel),
-                      const SizedBox(height: 6),
-                      SpaceField(
-                        memberId: widget.memberId,
-                        sectionId: _sectionId,
-                        onChanged: (id) => setState(() => _sectionId = id),
+                      // Необов'язкові — компактними чіпсами внизу картки
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FieldChip(
+                            icon: Icons.link_rounded,
+                            label: context.l10n.youtubeLinkLabel,
+                            value: _youtubeController.text.trim().isEmpty
+                                ? null
+                                : 'on',
+                            forceLabel: true,
+                            onTap: () async {
+                              await showFieldSheet(
+                                context,
+                                title: context.l10n.youtubeLinkLabel,
+                                child: _Input(
+                                  controller: _youtubeController,
+                                  hint: 'https://youtube.com/watch?v=...',
+                                ),
+                              );
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                          FieldChip(
+                            icon: Icons.palette_outlined,
+                            label: context.l10n.taskColorPickerLabel,
+                            value: _colorHex,
+                            forceLabel: true,
+                            swatchColor: colorFromHex(_colorHex),
+                            onTap: () => showFieldSheet(
+                              context,
+                              title: context.l10n.taskColorPickerLabel,
+                              child: TaskColorPicker(
+                                selectedHex: _colorHex,
+                                onChanged: (hex) => setState(() => _colorHex = hex),
+                              ),
+                            ),
+                          ),
+                          SpaceChip(
+                            memberId: widget.memberId,
+                            sectionId: _sectionId,
+                            onChanged: (id) => setState(() => _sectionId = id),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 32),
                     ],

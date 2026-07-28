@@ -13,8 +13,9 @@ import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../today/providers/today_providers.dart';
+import '../../core/utils/task_color.dart';
+import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_back_button.dart';
-import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
@@ -37,7 +38,6 @@ class _AddWellbeingScheduleScreenState
     const TimeOfDay(hour: 20, minute: 0),
   ];
   String? _colorHex;
-  int? _sectionId;
   bool _isSaving = false;
   bool _loaded = false;
   bool _hasActiveExisting = false;
@@ -61,7 +61,6 @@ class _AddWellbeingScheduleScreenState
           return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }).toList();
         _colorHex = existing.color;
-        _sectionId = existing.sectionId;
         _hasActiveExisting = existing.isActive;
         _loaded = true;
       });
@@ -138,7 +137,6 @@ class _AddWellbeingScheduleScreenState
               times: Value(timesJson),
               isActive: const Value(true),
               color: Value(_colorHex),
-              sectionId: Value(_sectionId),
             ),
           );
 
@@ -168,7 +166,7 @@ class _AddWellbeingScheduleScreenState
         );
       }
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -224,16 +222,18 @@ class _AddWellbeingScheduleScreenState
                           ),
                         ),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
                             color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.border),
                           ),
-                          child: Text(context.l10n.historyLabel,
-                              style: AppTextStyles.labelMd
-                                  .copyWith(color: AppColors.textSub)),
+                          child: const Icon(
+                            Icons.history_rounded,
+                            size: 18,
+                            color: AppColors.textSub,
+                          ),
                         ),
                       ),
                       if (_hasActiveExisting) ...[
@@ -391,18 +391,20 @@ class _AddWellbeingScheduleScreenState
                     }),
                     const SizedBox(height: AppDimensions.lg),
 
-                    TaskColorPicker(
-                      selectedHex: _colorHex,
-                      onChanged: (hex) => setState(() => _colorHex = hex),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    Text(context.l10n.spaceFieldLabel, style: AppTextStyles.labelSm),
-                    const SizedBox(height: 8),
-                    SpaceField(
-                      memberId: widget.memberId,
-                      sectionId: _sectionId,
-                      onChanged: (id) => setState(() => _sectionId = id),
+                    FieldChip(
+                      icon: Icons.palette_outlined,
+                      label: context.l10n.taskColorPickerLabel,
+                      value: _colorHex,
+                      forceLabel: true,
+                      swatchColor: colorFromHex(_colorHex),
+                      onTap: () => showFieldSheet(
+                        context,
+                        title: context.l10n.taskColorPickerLabel,
+                        child: TaskColorPicker(
+                          selectedHex: _colorHex,
+                          onChanged: (hex) => setState(() => _colorHex = hex),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 32),
 

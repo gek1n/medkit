@@ -1690,7 +1690,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAppointmentBody => 'This reminder will be deleted.';
 
   @override
-  String get newAppointmentTitle => 'New reminder';
+  String get newAppointmentTitle => 'New meeting';
 
   @override
   String get fieldWhere => 'Where';

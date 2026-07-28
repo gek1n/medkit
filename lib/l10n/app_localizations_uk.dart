@@ -1698,7 +1698,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get deleteAppointmentBody => 'Нагадування буде видалено.';
 
   @override
-  String get newAppointmentTitle => 'Нове нагадування';
+  String get newAppointmentTitle => 'Нова зустріч';
 
   @override
   String get fieldWhere => 'Де';
