@@ -27,7 +27,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get navProfile => 'Профіль';
 
   @override
-  String get navMedCard => 'Архів';
+  String get navMedCard => 'Простір';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -349,7 +349,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get allTagsFilter => 'Усі теги';
 
   @override
-  String get medCardTitle => 'Архів';
+  String get medCardTitle => 'Простір';
 
   @override
   String get medCardArchiveTitle => 'Архів ліків';
@@ -358,10 +358,11 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medCardArchiveSubtitle => 'Усі препарати й статус лікування';
 
   @override
-  String get medCardAppointmentsTitle => 'Нагадування';
+  String get medCardAppointmentsTitle => 'Архів нагадувань';
 
   @override
-  String get medCardAppointmentsSubtitle => 'Записи обраного профілю';
+  String get medCardAppointmentsSubtitle =>
+      'Зустрічі, прості завдання, рутинні справи';
 
   @override
   String get medCardWellbeingHistoryTitle => 'Історія самопочуття';
@@ -1622,7 +1623,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get saveAction => 'Зберегти';
 
   @override
-  String get appointmentsHistoryTitle => 'Нагадування';
+  String get appointmentsHistoryTitle => 'Архів нагадувань';
 
   @override
   String get sectionFuture => 'Майбутні';

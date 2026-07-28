@@ -27,7 +27,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navProfile => 'Profile';
 
   @override
-  String get navMedCard => 'Archive';
+  String get navMedCard => 'Space';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -347,7 +347,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allTagsFilter => 'All tags';
 
   @override
-  String get medCardTitle => 'Archive';
+  String get medCardTitle => 'Space';
 
   @override
   String get medCardArchiveTitle => 'Medication archive';
@@ -357,10 +357,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'All medications and their treatment status';
 
   @override
-  String get medCardAppointmentsTitle => 'Reminders';
+  String get medCardAppointmentsTitle => 'Reminders archive';
 
   @override
-  String get medCardAppointmentsSubtitle => 'Records for the selected profile';
+  String get medCardAppointmentsSubtitle =>
+      'Meetings, simple tasks, routine chores';
 
   @override
   String get medCardWellbeingHistoryTitle => 'Wellbeing history';
@@ -1614,7 +1615,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveAction => 'Save';
 
   @override
-  String get appointmentsHistoryTitle => 'Reminders';
+  String get appointmentsHistoryTitle => 'Reminders archive';
 
   @override
   String get sectionFuture => 'Upcoming';

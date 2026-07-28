@@ -14,6 +14,11 @@ class MedcardEntriesRepository {
         .watch();
   }
 
+  Stream<MedcardEntry?> watchById(int id) {
+    return (_db.select(_db.medcardEntries)..where((t) => t.id.equals(id)))
+        .watchSingleOrNull();
+  }
+
   Future<int> insert(MedcardEntriesCompanion entry) =>
       _db.into(_db.medcardEntries).insert(entry);
 

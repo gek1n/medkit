@@ -6,15 +6,21 @@ import '../../core/services/reminder_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/medcard_icons.dart';
+import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
+import '../../shared/widgets/feed_post_card.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
-import '../../shared/widgets/section_label.dart';
+import '../add/add_activity_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
+
+const _kActivityTypeSimple = 'simple_task';
+const _kActivityTypeRoutine = 'routine';
 
 List<String> _parseTags(String raw) {
   try {
@@ -24,18 +30,40 @@ List<String> _parseTags(String raw) {
   }
 }
 
-// ────────────────────────────── provider ──────────────────────────────
+// ────────────────────────────── providers ──────────────────────────────
 
-final _allAppointmentsProvider =
-    StreamProvider<List<Reminder>>((ref) {
+final _allAppointmentsProvider = StreamProvider<List<Reminder>>((ref) {
   return ref.watch(remindersRepositoryProvider).watchAll();
 });
+
+final _allTaskActivitiesProvider = StreamProvider<List<Activity>>((ref) {
+  return ref.watch(activitiesRepositoryProvider).watchAll();
+});
+
+// ────────────────────────────── archive item (unified) ─────────────────
+
+enum _ArchiveKind { meeting, simpleTask, routine }
+
+class _ArchiveItem {
+  final _ArchiveKind kind;
+  final DateTime effectiveDate;
+  final int memberId;
+  final Reminder? reminder;
+  final Activity? activity;
+  const _ArchiveItem({
+    required this.kind,
+    required this.effectiveDate,
+    required this.memberId,
+    this.reminder,
+    this.activity,
+  });
+}
 
 // ────────────────────────────── screen ──────────────────────────────
 
 class AppointmentsHistoryScreen extends ConsumerStatefulWidget {
   // Якщо задано (напр. з Медкартки, де вже обраний конкретний профіль) —
-  // показує візити лише цього члена сім'ї. Без нього — усі візити родини,
+  // показує записи лише цього члена сім'ї. Без нього — усі записи родини,
   // як і раніше (той самий шлях, яким Сім'я/Профіль можуть показати
   // спільний календар).
   final int? memberId;
@@ -67,7 +95,7 @@ class _AppointmentsHistoryScreenState
   @override
   Widget build(BuildContext context) {
     final aptsAsync = ref.watch(_allAppointmentsProvider);
-    final membersAsync = ref.watch(allMembersProvider);
+    final activitiesAsync = ref.watch(_allTaskActivitiesProvider);
     final currentMemberAsync = ref.watch(currentMemberProvider);
 
     return Scaffold(
@@ -101,19 +129,67 @@ class _AppointmentsHistoryScreenState
             Expanded(
               child: aptsAsync.when(
                 loading: () => const Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.primary)),
+                    child: CircularProgressIndicator(color: AppColors.primary)),
                 error: (e, _) =>
                     Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                 data: (allApts) {
-                  final members = membersAsync.valueOrNull ?? [];
-                  final apts = allApts
-                      .where((a) => widget.memberId == null || a.memberId == widget.memberId)
-                      .where((a) => _tag == null || _parseTags(a.tags).contains(_tag))
-                      .toList();
-                  final hasFilter = _tag != null;
-                  return _AppointmentsList(
-                      apts: apts, members: members, filtered: hasFilter);
+                  return activitiesAsync.when(
+                    loading: () => const Center(
+                        child: CircularProgressIndicator(color: AppColors.primary)),
+                    error: (e, _) =>
+                        Center(child: Text(context.l10n.errorGeneric(e.toString()))),
+                    data: (allActivities) {
+                      final hasFilter = _tag != null;
+
+                      final reminderItems = allApts
+                          .where((a) => widget.memberId == null || a.memberId == widget.memberId)
+                          .where((a) => _tag == null || _parseTags(a.tags).contains(_tag))
+                          .map((a) => _ArchiveItem(
+                                kind: _ArchiveKind.meeting,
+                                effectiveDate: a.scheduledAt,
+                                memberId: a.memberId,
+                                reminder: a,
+                              ));
+
+                      // Активності без тегів — коли фільтр за тегом активний,
+                      // вони не мають чому відповідати, тож ховаються.
+                      final activityItems = hasFilter
+                          ? const Iterable<_ArchiveItem>.empty()
+                          : allActivities
+                              .where((a) =>
+                                  widget.memberId == null || a.memberId == widget.memberId)
+                              .where((a) =>
+                                  a.type == _kActivityTypeSimple ||
+                                  a.type == _kActivityTypeRoutine)
+                              .map((a) => _ArchiveItem(
+                                    kind: a.type == _kActivityTypeRoutine
+                                        ? _ArchiveKind.routine
+                                        : _ArchiveKind.simpleTask,
+                                    effectiveDate: a.createdAt,
+                                    memberId: a.memberId,
+                                    activity: a,
+                                  ));
+
+                      final items = [...reminderItems, ...activityItems]
+                        ..sort((a, b) => b.effectiveDate.compareTo(a.effectiveDate));
+
+                      if (items.isEmpty) return _EmptyState(filtered: hasFilter);
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppDimensions.screenPadding,
+                          AppDimensions.md,
+                          AppDimensions.screenPadding,
+                          88,
+                        ),
+                        itemCount: items.length,
+                        itemBuilder: (context, i) => Padding(
+                          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                          child: _ArchiveCard(item: items[i]),
+                        ),
+                      );
+                    },
+                  );
                 },
               ),
             ),
@@ -260,246 +336,102 @@ class _TagFilterSheet extends StatelessWidget {
   }
 }
 
-// ────────────────────────────── list ──────────────────────────────
+// ────────────────────────────── archive card ──────────────────────────
 
-class _AppointmentsList extends StatelessWidget {
-  final List<Reminder> apts;
-  final List<Member> members;
-  final bool filtered;
+class _ArchiveCard extends StatelessWidget {
+  final _ArchiveItem item;
+  const _ArchiveCard({required this.item});
 
-  const _AppointmentsList(
-      {required this.apts, required this.members, this.filtered = false});
+  String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final upcoming =
-        apts.where((a) => a.scheduledAt.isAfter(now)).toList();
-    final past = apts
-        .where((a) => !a.scheduledAt.isAfter(now))
-        .toList()
-        .reversed
-        .toList(); // newest past first
+  String _fmtTime(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-    if (apts.isEmpty) return _EmptyState(filtered: filtered);
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimensions.screenPadding,
-        AppDimensions.md,
-        AppDimensions.screenPadding,
-        48,
-      ),
-      children: [
-        if (upcoming.isNotEmpty) ...[
-          SectionLabel(context.l10n.sectionFuture),
-          const SizedBox(height: AppDimensions.md),
-          ...upcoming.asMap().entries.map((e) => Padding(
-                padding: const EdgeInsets.only(
-                    bottom: AppDimensions.sm),
-                child: _AppointmentCard(
-                  apt: e.value,
-                  members: members,
-                  isNext: e.key == 0,
-                  isPast: false,
-                ),
-              )),
-          const SizedBox(height: AppDimensions.lg),
-        ],
-        if (past.isNotEmpty) ...[
-          SectionLabel(context.l10n.sectionPast),
-          const SizedBox(height: AppDimensions.md),
-          ...past.map((a) => Padding(
-                padding: const EdgeInsets.only(
-                    bottom: AppDimensions.sm),
-                child: _AppointmentCard(
-                  apt: a,
-                  members: members,
-                  isNext: false,
-                  isPast: true,
-                ),
-              )),
-        ],
-      ],
-    );
-  }
-}
-
-// ────────────────────────────── appointment card ──────────────────────────────
-
-class _AppointmentCard extends StatelessWidget {
-  final Reminder apt;
-  final List<Member> members;
-  final bool isNext;
-  final bool isPast;
-
-  const _AppointmentCard({
-    required this.apt,
-    required this.members,
-    required this.isNext,
-    required this.isPast,
-  });
-
-  List<String> _monthsShort(BuildContext context) {
+  String _dayLabel(BuildContext context, int weekday) {
     final l10n = context.l10n;
-    return [
-      '',
-      l10n.monthAbbrJan,
-      l10n.monthAbbrFeb,
-      l10n.monthAbbrMar,
-      l10n.monthAbbrApr,
-      l10n.monthAbbrMay,
-      l10n.monthAbbrJun,
-      l10n.monthAbbrJul,
-      l10n.monthAbbrAug,
-      l10n.monthAbbrSep,
-      l10n.monthAbbrOct,
-      l10n.monthAbbrNov,
-      l10n.monthAbbrDec,
-    ];
+    return switch (weekday) {
+      1 => l10n.dayMon,
+      2 => l10n.dayTue,
+      3 => l10n.dayWed,
+      4 => l10n.dayThu,
+      5 => l10n.dayFri,
+      6 => l10n.daySat,
+      _ => l10n.daySun,
+    };
   }
 
-  Member? get _member =>
-      members.cast<Member?>().firstWhere(
-            (m) => m?.id == apt.memberId,
-            orElse: () => null,
-          );
-
-  Color get _badgeBg {
-    if (isPast) return AppColors.successLight;
-    if (isNext) return AppColors.primary;
-    return const Color(0xFFF1F5F9);
-  }
-
-  Color get _badgeText {
-    if (isPast) return AppColors.success;
-    if (isNext) return Colors.white;
-    return AppColors.textSub;
+  String _scheduleSummary(BuildContext context, Activity a) {
+    List<int> days = const [];
+    try {
+      days = List<int>.from(jsonDecode(a.repeatDays) as List);
+    } catch (_) {}
+    final sorted = days.toList()..sort();
+    return sorted.length == 7
+        ? context.l10n.repeatDaily
+        : sorted.map((d) => _dayLabel(context, d)).join(', ');
   }
 
   @override
   Widget build(BuildContext context) {
-    final member = _member;
-    final memberName =
-        member?.role == 'owner' ? context.l10n.meCapsLabel : (member?.name ?? '');
-
-    final hh = apt.scheduledAt.hour.toString().padLeft(2, '0');
-    final mm = apt.scheduledAt.minute.toString().padLeft(2, '0');
-    final timeStr = '$hh:$mm';
-
-    return Opacity(
-      opacity: isPast ? 0.72 : 1.0,
-      child: Container(
-        padding: const EdgeInsets.all(AppDimensions.md),
-        decoration: BoxDecoration(
-          color: isNext ? AppColors.primaryLight : AppColors.bg,
-          borderRadius:
-              BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: isNext
-                ? AppColors.primary
-                : AppColors.border,
+    switch (item.kind) {
+      case _ArchiveKind.meeting:
+        final r = item.reminder!;
+        final tags = _parseTags(r.tags);
+        final photos = () {
+          try {
+            return List<String>.from(jsonDecode(r.documentPaths) as List);
+          } catch (_) {
+            return <String>[];
+          }
+        }();
+        final color = colorFromHex(r.color) ?? AppColors.primary;
+        final isPast = r.scheduledAt.isBefore(DateTime.now());
+        return FeedPostCard(
+          icon: medcardIconFor(r.iconKey),
+          color: color,
+          title: r.doctorType,
+          dateLabel: '${_fmtDate(r.scheduledAt)} · ${_fmtTime(r.scheduledAt)}',
+          subtitle: isPast
+              ? context.l10n.visitPassedLabel
+              : (r.location != null && r.location!.isNotEmpty ? r.location : null),
+          notePreview: r.notes,
+          tags: tags,
+          photoPaths: photos,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddAppointmentScreen(memberId: r.memberId, existing: r),
+            ),
           ),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6)),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Date badge
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _badgeBg,
-                borderRadius:
-                    BorderRadius.circular(AppDimensions.radiusMd),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${apt.scheduledAt.day}',
-                    style: AppTextStyles.bodyMd.copyWith(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: _badgeText,
-                      height: 1,
-                    ),
-                  ),
-                  Text(
-                    _monthsShort(context)[apt.scheduledAt.month],
-                    style: AppTextStyles.bodyMd.copyWith(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      color: _badgeText.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
+        );
+      case _ArchiveKind.simpleTask:
+      case _ArchiveKind.routine:
+        final a = item.activity!;
+        final color = colorFromHex(a.color) ?? AppColors.primary;
+        return FeedPostCard(
+          icon: item.kind == _ArchiveKind.routine
+              ? Icons.home_repair_service_rounded
+              : Icons.checklist_rounded,
+          color: color,
+          title: a.name,
+          dateLabel: _scheduleSummary(context, a),
+          subtitle: item.kind == _ArchiveKind.routine
+              ? context.l10n.taskTypeRoutine
+              : context.l10n.taskTypeSimple,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddActivityScreen(
+                memberId: a.memberId,
+                existing: a,
+                hideTypePicker: true,
+                compactMode: true,
               ),
             ),
-            const SizedBox(width: AppDimensions.md),
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    apt.doctorType,
-                    style: AppTextStyles.bodyMd.copyWith(
-                        fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    apt.location != null && apt.location!.isNotEmpty
-                        ? '$timeStr · ${apt.location}'
-                        : timeStr,
-                    style: AppTextStyles.bodySm
-                        .copyWith(color: AppColors.textSub),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      member != null
-                          ? AvatarImage(index: member.avatarIndex, size: 14)
-                          : const Icon(Icons.person_rounded,
-                              size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Text(
-                        memberName,
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: isNext
-                              ? AppColors.primary
-                              : AppColors.textSub,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Trailing
-            isPast
-                ? Text(
-                    context.l10n.visitPassedLabel,
-                    style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  )
-                : Text(
-                    context.l10n.arrowRightLabel,
-                    style: AppTextStyles.bodyMd
-                        .copyWith(color: AppColors.textMuted),
-                  ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
+    }
   }
 }
 

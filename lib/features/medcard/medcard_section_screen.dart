@@ -12,15 +12,20 @@ import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
+import '../../shared/widgets/feed_post_card.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import 'add_medcard_entry_screen.dart';
 import 'add_medcard_section_screen.dart';
+import 'medcard_entry_view_screen.dart';
 
 final _sectionEntriesProvider =
     StreamProvider.family<List<MedcardEntry>, int>((ref, sectionId) {
   return ref.watch(medcardEntriesRepositoryProvider).watchBySection(sectionId);
 });
+
+String _formatDate(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
 class MedcardSectionScreen extends ConsumerWidget {
   final MedcardSection section;
@@ -139,135 +144,49 @@ class MedcardSectionScreen extends ConsumerWidget {
                         88,
                       ),
                       itemCount: entries.length,
-                      itemBuilder: (context, i) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                        child: _EntryCard(
-                          entry: entries[i],
-                          color: color,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddMedcardEntryScreen(
-                                section: section,
-                                existing: entries[i],
+                      itemBuilder: (context, i) {
+                        final entry = entries[i];
+                        final tags = () {
+                          try {
+                            return List<String>.from(jsonDecode(entry.tags) as List);
+                          } catch (_) {
+                            return <String>[];
+                          }
+                        }();
+                        final photos = () {
+                          try {
+                            return List<String>.from(jsonDecode(entry.documentPaths) as List);
+                          } catch (_) {
+                            return <String>[];
+                          }
+                        }();
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                          child: FeedPostCard(
+                            icon: medcardIconFor(section.iconKey),
+                            color: color,
+                            title: entry.title,
+                            dateLabel: _formatDate(entry.recordDate),
+                            notePreview: entry.notes,
+                            tags: tags,
+                            photoPaths: photos,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MedcardEntryViewScreen(
+                                  section: section,
+                                  entryId: entry.id,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EntryCard extends StatelessWidget {
-  final MedcardEntry entry;
-  final Color color;
-  final VoidCallback onTap;
-  const _EntryCard({required this.entry, required this.color, required this.onTap});
-
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-
-  @override
-  Widget build(BuildContext context) {
-    final tags = () {
-      try {
-        return List<String>.from(jsonDecode(entry.tags) as List);
-      } catch (_) {
-        return <String>[];
-      }
-    }();
-    final hasPhotos = () {
-      try {
-        return (jsonDecode(entry.documentPaths) as List).isNotEmpty;
-      } catch (_) {
-        return false;
-      }
-    }();
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppDimensions.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${entry.recordDate.day}',
-                    style: AppTextStyles.bodyMd.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                      height: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppDimensions.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(entry.title, style: AppTextStyles.labelLg),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDate(entry.recordDate),
-                    style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                  ),
-                  if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: tags
-                          .map((t) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                                ),
-                                child: Text(
-                                  t,
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: color,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (hasPhotos) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.attach_file_rounded, size: 16, color: AppColors.textMuted),
-            ],
           ],
         ),
       ),

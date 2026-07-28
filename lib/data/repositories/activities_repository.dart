@@ -25,6 +25,10 @@ class ActivitiesRepository {
                 t.memberId.equals(memberId) & t.isActive.equals(true)))
           .watch();
 
+  Stream<List<Activity>> watchAll() =>
+      (_db.select(_db.activities)..where((t) => t.isActive.equals(true)))
+          .watch();
+
   Future<List<ActivitySlot>> getSlotsForActivity(int activityId) =>
       (_db.select(_db.activitySlots)
             ..where((t) => t.activityId.equals(activityId))
