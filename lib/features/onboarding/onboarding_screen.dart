@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,13 +9,15 @@ import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../core/services/notification_service.dart';
-import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/section_label.dart';
+import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
+import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'join_family_screen.dart';
 import 'privacy_gate_screen.dart';
@@ -43,9 +44,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // в _finish(), коли власний профіль вже створено.
   final List<MedicationsCompanion> _medicationDrafts = [];
 
-  // Step 5: activity/wellbeing toggles
-  bool _walkEnabled = true;
-  bool _wellbeingEnabled = true;
+  // Step 3 (пікер "Нагадування") і Step 4 ("Спорт") — той самий патерн
+  // чернеток, що й ліки; (companion, slotTimes) — slotTimes потрібні
+  // окремо, бо ReminderSlots — дочірня таблиця, прив'язана до ще
+  // неіснуючого reminderId.
+  final List<(RemindersCompanion, List<String>)> _reminderDrafts = [];
+
+  // Step 4: самопочуття — одна чернетка (чи нема взагалі, якщо юзер
+  // пропустив цей крок).
+  WellbeingSchedulesCompanion? _wellbeingDraft;
 
   bool _isSaving = false;
 
@@ -63,6 +70,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _removeMedicationDraft(int index) {
     setState(() => _medicationDrafts.removeAt(index));
+  }
+
+  Future<void> _openAddReminder() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddAppointmentScreen(
+          onDraftCreated: (draft, slotTimes) =>
+              setState(() => _reminderDrafts.add((draft, slotTimes))),
+        ),
+      ),
+    );
+  }
+
+  void _removeReminderDraft(int index) {
+    setState(() => _reminderDrafts.removeAt(index));
+  }
+
+  Future<void> _openAddWellbeing() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddWellbeingScheduleScreen(
+          onDraftCreated: (draft) => setState(() => _wellbeingDraft = draft),
+        ),
+      ),
+    );
+  }
+
+  void _removeWellbeingDraft() {
+    setState(() => _wellbeingDraft = null);
+  }
+
+  // Крок 3: замість прямого переходу до форми ліків — вибір між
+  // Нагадуванням (генеричне) і Ліками, той самий 2-пунктовий пікер.
+  Future<void> _showAddPicker() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _AddTypePickerSheet(),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'reminder') {
+      await _openAddReminder();
+    } else if (choice == 'medication') {
+      await _openAddMedication();
+    }
   }
 
   @override
@@ -133,38 +187,43 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         container.invalidate(tomorrowIntakesProvider);
       }
 
-      if (_walkEnabled) {
-        final activitiesRepo = container.read(activitiesRepositoryProvider);
-        final activityId = await activitiesRepo.insertActivity(
-          ActivitiesCompanion.insert(
-            memberId: ownerId,
-            name: l10n.walkActivityName,
-            type: const Value('walk'),
-            durationMin: const Value(30),
-            repeatDays: Value(jsonEncode(const [1, 2, 3, 4, 5, 6, 7])),
-          ),
-        );
-        await activitiesRepo.insertSlots([
-          ActivitySlotsCompanion.insert(
-            activityId: activityId,
-            timeOfDay: '08:30',
-            durationMin: const Value(30),
-            sortOrder: const Value(0),
-          ),
-        ]);
-        container.invalidate(generateTodayActivityLogsProvider);
-        container.invalidate(tomorrowActivityLogsProvider);
+      if (_reminderDrafts.isNotEmpty) {
+        final remindersRepo = container.read(remindersRepositoryProvider);
+        for (final (draft, slotTimes) in _reminderDrafts) {
+          final reminderId = await remindersRepo.insert(
+            draft.copyWith(memberId: Value(ownerId)),
+          );
+          if (slotTimes.isNotEmpty) {
+            final slotCompanions = slotTimes.asMap().entries.map((e) {
+              return ReminderSlotsCompanion.insert(
+                reminderId: reminderId,
+                timeOfDay: e.value,
+                sortOrder: Value(e.key),
+              );
+            }).toList();
+            await remindersRepo.replaceSlots(reminderId, slotCompanions);
+          }
+          final inserted = await remindersRepo.watchById(reminderId).first;
+          if (inserted != null) {
+            await remindersRepo.scheduleNotificationsForReminder(
+              inserted,
+              slotTimes: slotTimes,
+            );
+          }
+        }
+        container.invalidate(generateTodayReminderLogsProvider);
+        container.invalidate(tomorrowAppointmentsProvider);
       }
 
-      if (_wellbeingEnabled) {
+      if (_wellbeingDraft != null) {
         final wellbeingRepo = container.read(wellbeingRepositoryProvider);
         await wellbeingRepo.upsertSchedule(
-          WellbeingSchedulesCompanion.insert(
-            memberId: ownerId,
-            timesPerDay: const Value(3),
-            times: Value(jsonEncode(const ['08:00', '14:00', '20:00'])),
-          ),
+          _wellbeingDraft!.copyWith(memberId: Value(ownerId)),
         );
+        final saved = await wellbeingRepo.getScheduleByMember(ownerId);
+        if (saved != null) {
+          await wellbeingRepo.scheduleNotificationsForSchedule(saved);
+        }
       }
     } catch (e, st) {
       debugPrint('🔴 Onboarding _finish() error: $e\n$st');
@@ -225,17 +284,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       3 => _StepMedications(
         key: const ValueKey(3),
         drafts: _medicationDrafts,
+        reminderDrafts: _reminderDrafts,
         onSkip: _skip,
         onNext: _next,
-        onAddMedication: _openAddMedication,
+        onAdd: _showAddPicker,
         onRemoveDraft: _removeMedicationDraft,
+        onRemoveReminderDraft: _removeReminderDraft,
       ),
       4 => _StepActivities(
         key: const ValueKey(4),
-        walkEnabled: _walkEnabled,
-        wellbeingEnabled: _wellbeingEnabled,
-        onWalkToggle: (v) => setState(() => _walkEnabled = v),
-        onWellbeingToggle: (v) => setState(() => _wellbeingEnabled = v),
+        reminderDrafts: _reminderDrafts,
+        wellbeingDraft: _wellbeingDraft,
+        onAddSport: _openAddReminder,
+        onRemoveReminderDraft: _removeReminderDraft,
+        onAddWellbeing: _openAddWellbeing,
+        onRemoveWellbeing: _removeWellbeingDraft,
         onNext: _next,
       ),
       _ => PrivacyGateStep(
@@ -646,23 +709,27 @@ class _SectionDivider extends StatelessWidget {
 
 class _StepMedications extends StatelessWidget {
   final List<MedicationsCompanion> drafts;
+  final List<(RemindersCompanion, List<String>)> reminderDrafts;
   final VoidCallback onSkip;
   final VoidCallback onNext;
-  final VoidCallback onAddMedication;
+  final VoidCallback onAdd;
   final void Function(int index) onRemoveDraft;
+  final void Function(int index) onRemoveReminderDraft;
 
   const _StepMedications({
     super.key,
     required this.drafts,
+    required this.reminderDrafts,
     required this.onSkip,
     required this.onNext,
-    required this.onAddMedication,
+    required this.onAdd,
     required this.onRemoveDraft,
+    required this.onRemoveReminderDraft,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasDrafts = drafts.isNotEmpty;
+    final hasDrafts = drafts.isNotEmpty || reminderDrafts.isNotEmpty;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
@@ -688,12 +755,21 @@ class _StepMedications extends StatelessWidget {
                     ),
                   ),
                 ),
+            ...reminderDrafts.asMap().entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _DraftMedRow(
+                      name: e.value.$1.doctorType.value,
+                      onRemove: () => onRemoveReminderDraft(e.key),
+                    ),
+                  ),
+                ),
             const SizedBox(height: 12),
           ],
 
-          // Add medication button
+          // Додати — 2-пунктовий пікер: Нагадування або Ліки.
           GestureDetector(
-            onTap: onAddMedication,
+            onTap: onAdd,
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -703,7 +779,7 @@ class _StepMedications extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.medication_rounded,
+                    Icons.add_circle_outline_rounded,
                     color: Colors.white,
                     size: 24,
                   ),
@@ -713,14 +789,14 @@ class _StepMedications extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          hasDrafts ? context.l10n.addMoreMedsAction : context.l10n.addMedsShortAction,
+                          context.l10n.onboardingAddItemAction,
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          context.l10n.addMedsHint,
+                          context.l10n.onboardingAddItemHint,
                           style: AppTextStyles.bodySm.copyWith(
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
@@ -809,18 +885,22 @@ class _DraftMedRow extends StatelessWidget {
 // ─── Step 4: Активність та самопочуття ───────────────────────────────────────
 
 class _StepActivities extends StatelessWidget {
-  final bool walkEnabled;
-  final bool wellbeingEnabled;
-  final void Function(bool) onWalkToggle;
-  final void Function(bool) onWellbeingToggle;
+  final List<(RemindersCompanion, List<String>)> reminderDrafts;
+  final WellbeingSchedulesCompanion? wellbeingDraft;
+  final VoidCallback onAddSport;
+  final void Function(int index) onRemoveReminderDraft;
+  final VoidCallback onAddWellbeing;
+  final VoidCallback onRemoveWellbeing;
   final VoidCallback onNext;
 
   const _StepActivities({
     super.key,
-    required this.walkEnabled,
-    required this.wellbeingEnabled,
-    required this.onWalkToggle,
-    required this.onWellbeingToggle,
+    required this.reminderDrafts,
+    required this.wellbeingDraft,
+    required this.onAddSport,
+    required this.onRemoveReminderDraft,
+    required this.onAddWellbeing,
+    required this.onRemoveWellbeing,
     required this.onNext,
   });
 
@@ -842,14 +922,24 @@ class _StepActivities extends StatelessWidget {
           SectionLabel(context.l10n.activitySectionLabel),
           const SizedBox(height: 10),
 
-          _ToggleRow(
+          // "Спорт" — той самий пікер створення Нагадування, що й на кроці
+          // ліків, лише інша точка входу; чернетки спільні (_reminderDrafts).
+          ...reminderDrafts.asMap().entries.map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _DraftMedRow(
+                    name: e.value.$1.doctorType.value,
+                    onRemove: () => onRemoveReminderDraft(e.key),
+                  ),
+                ),
+              ),
+          _AddRow(
             icon: Icons.directions_walk_rounded,
-            title: context.l10n.walkActivityName,
+            label: context.l10n.walkActivityName,
             sub: context.l10n.walkActivitySub,
-            value: walkEnabled,
-            onChanged: onWalkToggle,
+            onTap: onAddSport,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
 
           SectionLabel(context.l10n.wellbeingDiaryLabel),
           const SizedBox(height: 6),
@@ -859,14 +949,19 @@ class _StepActivities extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          _ToggleRow(
-            icon: Icons.favorite_rounded,
-            title: context.l10n.wellbeingSlotsTitle,
-            sub: context.l10n.wellbeingSlotsSub,
-            value: wellbeingEnabled,
-            onChanged: onWellbeingToggle,
-            activeColor: const Color(0xFF3F8F5F),
-          ),
+          if (wellbeingDraft != null)
+            _DraftMedRow(
+              name: context.l10n.wellbeingSlotsTitle,
+              onRemove: onRemoveWellbeing,
+            )
+          else
+            _AddRow(
+              icon: Icons.favorite_rounded,
+              label: context.l10n.wellbeingSlotsTitle,
+              sub: context.l10n.wellbeingSlotsSub,
+              onTap: onAddWellbeing,
+              activeColor: const Color(0xFF3F8F5F),
+            ),
 
           const SizedBox(height: 32),
           _NextButton(label: context.l10n.almostDoneAction, onTap: onNext),
@@ -876,73 +971,107 @@ class _StepActivities extends StatelessWidget {
   }
 }
 
-
-class _ToggleRow extends StatelessWidget {
+class _AddRow extends StatelessWidget {
   final IconData icon;
-  final String title;
+  final String label;
   final String sub;
-  final bool value;
-  final void Function(bool) onChanged;
+  final VoidCallback onTap;
   final Color activeColor;
 
-  const _ToggleRow({
+  const _AddRow({
     required this.icon,
-    required this.title,
+    required this.label,
     required this.sub,
-    required this.value,
-    required this.onChanged,
+    required this.onTap,
     this.activeColor = AppColors.primary,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.bgPage,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border, width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.bgPage,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Icon(icon, size: 18, color: activeColor),
+              ),
             ),
-            child: Center(
-              child: Icon(icon, size: 18, color: AppColors.primary),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.labelMd),
-                const SizedBox(height: 2),
-                Text(
-                  sub,
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.textMuted,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppTextStyles.labelMd),
+                  const SizedBox(height: 2),
+                  Text(
+                    sub,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: activeColor,
-            activeTrackColor: activeColor.withValues(alpha: 0.4),
-          ),
-        ],
+            Icon(Icons.add_circle_outline_rounded, color: activeColor),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Пікер типу для кроку ліків: Нагадування чи Ліки ─────────────────────────
+
+class _AddTypePickerSheet extends StatelessWidget {
+  const _AddTypePickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined,
+                  color: AppColors.primary),
+              title: Text(context.l10n.reminderCategoryTitle,
+                  style: AppTextStyles.bodyMd),
+              onTap: () => Navigator.pop(context, 'reminder'),
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.medication_rounded, color: AppColors.primary),
+              title:
+                  Text(context.l10n.categoryMeds, style: AppTextStyles.bodyMd),
+              onTap: () => Navigator.pop(context, 'medication'),
+            ),
+          ],
+        ),
       ),
     );
   }

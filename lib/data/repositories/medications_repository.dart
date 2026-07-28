@@ -31,6 +31,14 @@ class MedicationsRepository {
             ..orderBy([(t) => OrderingTerm.asc(t.name)]))
           .watch();
 
+  // Для Простору — ліки, прив'язані до конкретного розділу (наприклад,
+  // "Дитина" чи "Мама"), окремо від списку всіх ліків профілю.
+  Stream<List<Medication>> watchBySection(int sectionId) =>
+      (_db.select(_db.medications)
+            ..where((t) =>
+                t.sectionId.equals(sectionId) & t.isActive.equals(true)))
+          .watch();
+
   Future<List<Medication>> getByMember(int memberId) =>
       (_db.select(_db.medications)
             ..where((t) => t.memberId.equals(memberId) & t.isActive.equals(true)))

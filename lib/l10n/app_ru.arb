@@ -6,7 +6,7 @@
   "navMeds": "Расписание",
   "navFamily": "Семья",
   "navProfile": "Профиль",
-  "navMedCard": "Пространство",
+  "navMedCard": "Полки",
   "todayProgressTitle": "{taken} из {total}",
   "@todayProgressTitle": {
     "placeholders": {
@@ -162,7 +162,7 @@
   "dayTomorrow": "Завтра",
   "dayYesterday": "Вчера",
   "allTagsFilter": "Все теги",
-  "medCardTitle": "Пространство",
+  "medCardTitle": "Полки",
   "medCardArchiveTitle": "Архив лекарств",
   "medCardArchiveSubtitle": "Все препараты и статус лечения",
   "medCardAppointmentsTitle": "Архив напоминаний",
@@ -183,9 +183,9 @@
   "deleteSectionConfirmTitle": "Удалить раздел?",
   "deleteSectionConfirmBody": "Раздел и все записи в нём будут удалены.",
   "sectionEmptyHint": "Здесь пусто. Добавьте первую запись через плюсик",
-  "spaceFieldLabel": "Пространство",
-  "spacePickerTitle": "Выберите пространство",
-  "noSpaceOption": "Без пространства",
+  "spaceFieldLabel": "Полка",
+  "spacePickerTitle": "Выберите полку",
+  "noSpaceOption": "Без полки",
   "createNewSpaceAction": "Создать новый раздел",
   "newEntryTitle": "Новая запись",
   "editEntryTitle": "Редактировать запись",
@@ -707,8 +707,8 @@
   },
   "routineTasksLimitDeniedTitle": "Лимит рутинных дел достигнут",
   "routineTasksLimitDeniedSubtitle": "На бесплатном тарифе доступно только 1 рутинное дело. Перейдите на Elly Plus для неограниченного количества",
-  "medcardSectionsLimitBadge": "Пространство",
-  "medcardSectionsLimitTitle": "Лимит разделов Пространства",
+  "medcardSectionsLimitBadge": "Полки",
+  "medcardSectionsLimitTitle": "Лимит полок",
   "medcardSectionsLimitSubtitle": "Использовано {used} из {max}. Перейдите на Elly Plus — неограниченное количество",
   "@medcardSectionsLimitSubtitle": {
     "placeholders": {
@@ -716,8 +716,8 @@
       "max": { "type": "int" }
     }
   },
-  "medcardSectionsLimitDeniedTitle": "Лимит разделов достигнут",
-  "medcardSectionsLimitDeniedSubtitle": "На бесплатном тарифе доступно до 3 разделов Пространства. Перейдите на Elly Plus для неограниченного количества",
+  "medcardSectionsLimitDeniedTitle": "Лимит полок достигнут",
+  "medcardSectionsLimitDeniedSubtitle": "На бесплатном тарифе доступно до 3 полок. Перейдите на Elly Plus для неограниченного количества",
   "leaveGroupConfirmTitle": "Покинуть \"{name}\"?",
   "@leaveGroupConfirmTitle": {
     "placeholders": {
@@ -1018,7 +1018,7 @@
   "reminderTitleFieldLabel": "Название",
   "reminderTitleHint": "Укажите, о чём напомнить",
   "enterReminderTitleError": "Введите название",
-  "reminderRepeatSectionLabel": "Когда напомнить",
+  "reminderRepeatSectionLabel": "Повторение",
   "reminderRepeatOnceLabel": "Не повторять",
   "reminderRepeatDailyLabel": "Ежедневно",
   "reminderRepeatWeeklyLabel": "Определённые дни недели",
@@ -1075,6 +1075,12 @@
     }
   },
   "routineAnyTimeTodayLabel": "Когда-нибудь сегодня",
+  "routineFormExplainer": "Рутина повторяется и считает выполнение — для привычек и семейных обязанностей, в отличие от разового напоминания",
+  "routineStreakDaysLabel": "{n} дней подряд",
+  "@routineStreakDaysLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineNoStreakYetLabel": "Пока нет серии — начните сегодня",
   "routineAllRoutinesScreenTitle": "Обязанности семьи",
   "routineNoAssigneesHint": "Пока нет обязанностей",
   "defaultNotesSectionName": "Заметки",
@@ -1271,6 +1277,8 @@
   "addMedsShortAction": "Добавить лекарства",
   "addMoreMedsAction": "Добавить ещё лекарства",
   "addMedsHint": "Скан фото рецепта или название, доза и расписание вручную",
+  "onboardingAddItemAction": "Добавить",
+  "onboardingAddItemHint": "Напоминание или лекарство — выберите вариант",
   "addMedsLaterInfo": "Лекарства можно добавить позже через раздел «Лекарства» в главном меню",
   "nextAction": "Далее →",
   "skipAddLaterAction": "Пропустить — добавлю позже",
@@ -1523,7 +1531,8 @@
   "noDaysSelectedHint": "Дни не выбраны",
   "chooseActivityTypeError": "Выберите тип активности",
   "enterActivityNameError": "Введите название активности",
-  "editActivityTitle": "Редактировать активность",
+  "editActivityTitle": "Редактировать рутину",
+  "newRoutineTitle": "Рутина",
   "activityTypeLabel": "Тип активности",
   "activityTypeWorkout": "Зарядка",
   "activityTypeGym": "Тренировка",

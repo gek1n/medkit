@@ -26,6 +26,14 @@ class RemindersRepository {
         .watch();
   }
 
+  // Для Простору — нагадування, прив'язані до конкретного розділу.
+  Stream<List<Reminder>> watchBySection(int sectionId) {
+    return (_db.select(_db.reminders)
+          ..where((t) => t.sectionId.equals(sectionId))
+          ..orderBy([(t) => OrderingTerm.desc(t.scheduledAt)]))
+        .watch();
+  }
+
   // Для Розкладу — на відміну від watchByMember (використовує й Архів, де
   // потрібна повна історія включно з виконаними/скасованими), тут лише
   // "живі" нагадування. Для daily/weekly/monthly/yearly status завжди
@@ -141,6 +149,134 @@ class RemindersRepository {
     final h = int.tryParse(parts[0]) ?? 0;
     final m = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
     return DateTime(day.year, day.month, day.day, h, m);
+  }
+
+  // Планує сповіщення для вже вставленого нагадування (реальний id/memberId
+  // обов'язкові) — спільна логіка для форми створення й фіналізації
+  // онбординг-чернеток (де сповіщення відкладені до появи реального
+  // профілю), щоб не дублювати цей switch у двох місцях.
+  Future<void> scheduleNotificationsForReminder(
+    Reminder reminder, {
+    List<String> slotTimes = const [],
+  }) async {
+    final settings = _ref.read(notificationSettingsProvider);
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(reminder.memberId)))
+        .getSingleOrNull();
+    final memberName = member?.name ?? '';
+    final scheduledAt = reminder.scheduledAt;
+
+    List<(int, int)> adjustedSlots() {
+      final adjusted = <(int, int)>[];
+      for (final s in slotTimes) {
+        final parts = s.split(':');
+        final now = DateTime.now();
+        final raw = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+        );
+        final at = settings.adjust(raw, memberId: reminder.memberId);
+        if (at != null) adjusted.add((at.hour, at.minute));
+      }
+      return adjusted;
+    }
+
+    switch (reminder.repeatType) {
+      case 'none':
+        final rawReminderAt =
+            scheduledAt.subtract(Duration(minutes: reminder.remindBeforeMin));
+        final remindAt = settings.adjust(rawReminderAt, memberId: reminder.memberId);
+        if (remindAt != null) {
+          await NotificationService.scheduleAppointmentReminder(
+            appointmentId: reminder.id,
+            memberName: memberName,
+            doctorType: reminder.doctorType,
+            location: reminder.location,
+            scheduledAt: remindAt,
+            remindBeforeMin: 0,
+            vibrationEnabled: settings.vibrationEnabled,
+            repeatMinutes: settings.repeatMinutes,
+          );
+        }
+        break;
+      case 'yearly':
+        {
+          final rawReminderAt = scheduledAt
+              .subtract(Duration(minutes: reminder.remindBeforeMin));
+          final remindAt =
+              settings.adjust(rawReminderAt, memberId: reminder.memberId);
+          if (remindAt != null) {
+            await NotificationService.scheduleYearlyReminder(
+              reminderId: reminder.id,
+              memberName: memberName,
+              title: reminder.doctorType,
+              location: reminder.location,
+              date: remindAt,
+              remindBeforeMin: 0,
+              vibrationEnabled: settings.vibrationEnabled,
+            );
+          }
+        }
+        break;
+      case 'monthly':
+        {
+          final rawReminderAt = scheduledAt
+              .subtract(Duration(minutes: reminder.remindBeforeMin));
+          final remindAt =
+              settings.adjust(rawReminderAt, memberId: reminder.memberId);
+          if (remindAt != null) {
+            await NotificationService.scheduleMonthlyReminder(
+              reminderId: reminder.id,
+              memberName: memberName,
+              title: reminder.doctorType,
+              location: reminder.location,
+              dayOfMonth: remindAt.day,
+              hour: remindAt.hour,
+              minute: remindAt.minute,
+              vibrationEnabled: settings.vibrationEnabled,
+            );
+          }
+        }
+        break;
+      case 'daily':
+        {
+          final adjusted = adjustedSlots();
+          if (adjusted.isNotEmpty) {
+            await NotificationService.scheduleDailyReminderSlots(
+              reminderId: reminder.id,
+              memberName: memberName,
+              title: reminder.doctorType,
+              slots: adjusted,
+              vibrationEnabled: settings.vibrationEnabled,
+            );
+          }
+        }
+        break;
+      case 'weekly':
+        {
+          var weekdays = <int>[];
+          try {
+            final cfg =
+                jsonDecode(reminder.repeatConfig) as Map<String, dynamic>;
+            weekdays = List<int>.from(cfg['days'] as List);
+          } catch (_) {}
+          final adjusted = adjustedSlots();
+          if (adjusted.isNotEmpty) {
+            await NotificationService.scheduleWeeklyReminderSlots(
+              reminderId: reminder.id,
+              memberName: memberName,
+              title: reminder.doctorType,
+              weekdays: weekdays,
+              slots: adjusted,
+              vibrationEnabled: settings.vibrationEnabled,
+            );
+          }
+        }
+        break;
+    }
   }
 
   Future<int> insert(RemindersCompanion appointment) =>

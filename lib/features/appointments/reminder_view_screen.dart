@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/services/attachment_cleanup_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -13,14 +15,27 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/medcard_sections_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
 final _reminderProvider =
     StreamProvider.family<Reminder?, int>((ref, id) {
   return ref.watch(remindersRepositoryProvider).watchById(id);
+});
+
+final _slotsProvider =
+    FutureProvider.family<List<ReminderSlot>, int>((ref, reminderId) {
+  return ref.watch(remindersRepositoryProvider).getSlotsForReminder(reminderId);
+});
+
+final _sectionProvider =
+    FutureProvider.family<MedcardSection?, int>((ref, sectionId) {
+  return ref.watch(medcardSectionsRepositoryProvider).getById(sectionId);
 });
 
 /// Перегляд збереженого нагадування — показує все заповнене, без прямого
@@ -57,7 +72,7 @@ class ReminderViewScreen extends ConsumerWidget {
   }
 }
 
-class _ViewBody extends StatelessWidget {
+class _ViewBody extends ConsumerWidget {
   final Reminder reminder;
   const _ViewBody({required this.reminder});
 
@@ -118,14 +133,70 @@ class _ViewBody extends StatelessWidget {
     }
   }
 
+  static String _remindBeforeLabel(BuildContext context, int min) {
+    final l10n = context.l10n;
+    return switch (min) {
+      10 => l10n.remindBefore10Min,
+      30 => l10n.remindBefore30Min,
+      60 => l10n.remindBefore1Hour,
+      1440 => l10n.remindBefore1Day,
+      2880 => l10n.remindBefore2Days,
+      _ => l10n.remindBeforeAtTime,
+    };
+  }
+
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    Reminder reminder,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.deleteSurgeryConfirmTitle),
+        content: Text(ctx.l10n.deleteAppointmentBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(ctx.l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              ctx.l10n.deleteAction,
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+    await AttachmentCleanupService.deletePaths(reminder.documentPaths);
+    await ref.read(remindersRepositoryProvider).delete(reminder.id);
+    await NotificationService.cancelAppointmentReminder(reminder.id);
+    await NotificationService.cancelRecurringReminder(reminder.id);
+    ref.invalidate(tomorrowAppointmentsProvider);
+    if (context.mounted) Navigator.pop(context);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tags = _tags;
     final photos = _photos;
     final color = colorFromHex(reminder.color) ?? AppColors.primary;
     final hasNote = reminder.notes != null && reminder.notes!.trim().isNotEmpty;
     final hasLocation =
         reminder.location != null && reminder.location!.trim().isNotEmpty;
+    final hasSlots =
+        reminder.repeatType == 'daily' || reminder.repeatType == 'weekly';
+    final showRemindBefore = reminder.repeatType == 'none' ||
+        reminder.repeatType == 'monthly' ||
+        reminder.repeatType == 'yearly';
+    final slotsAsync =
+        hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null;
+    final sectionAsync = reminder.sectionId != null
+        ? ref.watch(_sectionProvider(reminder.sectionId!))
+        : null;
 
     return Column(
       children: [
@@ -137,41 +208,29 @@ class _ViewBody extends StatelessWidget {
               MkBackButton(onTap: () => Navigator.pop(context)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(reminder.doctorType,
-                    style: AppTextStyles.h3,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddAppointmentScreen(
-                      memberId: reminder.memberId,
-                      existing: reminder,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(reminder.doctorType,
+                          style: AppTextStyles.h3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ),
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.edit_outlined,
-                          size: 15, color: AppColors.textSub),
-                      const SizedBox(width: 6),
-                      Text(context.l10n.editAction,
-                          style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.textSub)),
-                    ],
-                  ),
+                    MkEditIconButton(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AddAppointmentScreen(
+                            memberId: reminder.memberId,
+                            existing: reminder,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
             ],
           ),
         ),
@@ -206,6 +265,83 @@ class _ViewBody extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (hasSlots) ...[
+                  const SizedBox(height: 12),
+                  slotsAsync!.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (e, _) => const SizedBox.shrink(),
+                    data: (slots) => slots.isEmpty
+                        ? const SizedBox.shrink()
+                        : Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: slots
+                                .map((s) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 7),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surface,
+                                        borderRadius: BorderRadius.circular(
+                                            AppDimensions.radiusFull),
+                                        border:
+                                            Border.all(color: AppColors.border),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.access_time_rounded,
+                                              size: 14, color: color),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            s.timeOfDay,
+                                            style: AppTextStyles.labelSm
+                                                .copyWith(
+                                                    fontWeight:
+                                                        FontWeight.w700),
+                                          ),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                  ),
+                ],
+                if (showRemindBefore) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.notifications_outlined, size: 15, color: color),
+                      const SizedBox(width: 8),
+                      Text(
+                        _remindBeforeLabel(context, reminder.remindBeforeMin),
+                        style: AppTextStyles.bodyMd
+                            .copyWith(color: AppColors.textSub),
+                      ),
+                    ],
+                  ),
+                ],
+                if (sectionAsync != null) ...[
+                  const SizedBox(height: 12),
+                  sectionAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (e, _) => const SizedBox.shrink(),
+                    data: (section) => section == null
+                        ? const SizedBox.shrink()
+                        : Row(
+                            children: [
+                              Icon(Icons.folder_outlined, size: 15, color: color),
+                              const SizedBox(width: 8),
+                              MedcardIcon(section.iconKey, size: 15),
+                              const SizedBox(width: 6),
+                              Text(
+                                section.name,
+                                style: AppTextStyles.bodyMd
+                                    .copyWith(color: AppColors.textSub),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
                 if (hasLocation) ...[
                   const SizedBox(height: 12),
                   Row(

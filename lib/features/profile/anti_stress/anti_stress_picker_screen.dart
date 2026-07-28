@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/l10n_ext.dart';
+import '../../../shared/widgets/asset_icon.dart';
 import '../../../shared/widgets/mk_back_button.dart';
 import 'breathing_exercise_screen.dart';
 import 'clear_mind_screen.dart';
@@ -57,7 +58,7 @@ class AntiStressPickerScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimensions.xl),
                     _ExerciseCard(
-                      icon: Icons.air_rounded,
+                      assetIcon: 'task_wellbeing',
                       color: AppColors.primary,
                       title: context.l10n.breathingExerciseTitle,
                       subtitle: context.l10n.breathingExerciseSubtitle,
@@ -69,7 +70,7 @@ class AntiStressPickerScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimensions.md),
                     _ExerciseCard(
-                      icon: Icons.visibility_rounded,
+                      assetIcon: 'words',
                       color: AppColors.info,
                       title: context.l10n.grounding54321Title,
                       subtitle: context.l10n.grounding54321Subtitle,
@@ -81,7 +82,7 @@ class AntiStressPickerScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppDimensions.md),
                     _ExerciseCard(
-                      icon: Icons.blur_on_rounded,
+                      assetIcon: 'brain',
                       color: AppColors.accent,
                       title: context.l10n.clearMindTitle,
                       subtitle: context.l10n.clearMindPickerSubtitle,
@@ -103,14 +104,14 @@ class AntiStressPickerScreen extends StatelessWidget {
 }
 
 class _ExerciseCard extends StatelessWidget {
-  final IconData icon;
+  final String assetIcon;
   final Color color;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   const _ExerciseCard({
-    required this.icon,
+    required this.assetIcon,
     required this.color,
     required this.title,
     required this.subtitle,
@@ -141,7 +142,7 @@ class _ExerciseCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
-              child: Center(child: Icon(icon, size: 24, color: color)),
+              child: Center(child: AssetIcon(assetIcon, size: 26)),
             ),
             const SizedBox(width: AppDimensions.md),
             Expanded(

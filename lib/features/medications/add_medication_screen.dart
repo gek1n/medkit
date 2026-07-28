@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -2058,7 +2059,7 @@ class _DurationSectionState extends State<_DurationSection> {
 
 // ─── Стан запасу (вміст чіпа "Наявність") ─────────────────────────────────────
 
-class _MedStockContent extends StatelessWidget {
+class _MedStockContent extends StatefulWidget {
   final bool trackStock;
   final int availableCount;
   final List<_MedPhase> phases;
@@ -2083,13 +2084,42 @@ class _MedStockContent extends StatelessWidget {
     required this.onEdit,
   });
 
+  @override
+  State<_MedStockContent> createState() => _MedStockContentState();
+}
+
+class _MedStockContentState extends State<_MedStockContent> {
+  // Локальна копія trackStock/availableCount — та сама причина, що й у
+  // TagsField/DocumentsSection: showFieldSheet будує child один раз при
+  // відкритті шторки, і setState батьківського екрана не перебудовує вже
+  // відкриту шторку, тож без власного стану галочка й лічильник не
+  // оновлювались би одразу.
+  late bool _trackStock;
+  late int _availableCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _trackStock = widget.trackStock;
+    _availableCount = widget.availableCount;
+  }
+
+  @override
+  void didUpdateWidget(covariant _MedStockContent old) {
+    super.didUpdateWidget(old);
+    if (old.trackStock != widget.trackStock) _trackStock = widget.trackStock;
+    if (old.availableCount != widget.availableCount) {
+      _availableCount = widget.availableCount;
+    }
+  }
+
   // Загальна кількість прийомів за курс (одиниць ліків)
   int _totalIntakes() {
     double total = 0;
-    for (final phase in phases) {
+    for (final phase in widget.phases) {
       final days = phase.durationDays ?? 0;
       final intakesPerDay = phase.effectiveTimes.length;
-      total += days * intakesPerDay * doseAmount;
+      total += days * intakesPerDay * widget.doseAmount;
     }
     return total.ceil();
   }
@@ -2097,7 +2127,9 @@ class _MedStockContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final needed = _totalIntakes();
-    final toBuy = (needed - availableCount).clamp(0, 99999);
+    final toBuy = (needed - _availableCount).clamp(0, 99999);
+    final doseUnit = widget.doseUnit;
+    final form = widget.form;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2105,7 +2137,10 @@ class _MedStockContent extends StatelessWidget {
       children: [
         // Галочка відстеження
         GestureDetector(
-          onTap: () => onTrackToggle(!trackStock),
+          onTap: () {
+            setState(() => _trackStock = !_trackStock);
+            widget.onTrackToggle(_trackStock);
+          },
           child: Row(
             children: [
               AnimatedContainer(
@@ -2113,14 +2148,14 @@ class _MedStockContent extends StatelessWidget {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: trackStock ? AppColors.primary : AppColors.bg,
+                  color: _trackStock ? AppColors.primary : AppColors.bg,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: trackStock ? AppColors.primary : AppColors.border,
+                    color: _trackStock ? AppColors.primary : AppColors.border,
                     width: 1.5,
                   ),
                 ),
-                child: trackStock
+                child: _trackStock
                     ? const Icon(
                         Icons.check_rounded,
                         size: 14,
@@ -2165,11 +2200,22 @@ class _MedStockContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _PillCountRow(
-                  count: availableCount,
+                  count: _availableCount,
                   unit: doseUnit,
-                  onDecrement: onDecrement,
-                  onIncrement: onIncrement,
-                  onEdit: onEdit,
+                  onDecrement: () {
+                    setState(() {
+                      if (_availableCount > 0) _availableCount--;
+                    });
+                    widget.onDecrement();
+                  },
+                  onIncrement: () {
+                    setState(() => _availableCount++);
+                    widget.onIncrement();
+                  },
+                  onEdit: (v) {
+                    setState(() => _availableCount = v);
+                    widget.onEdit(v);
+                  },
                 ),
               ],
 
@@ -2214,7 +2260,7 @@ class _MedStockContent extends StatelessWidget {
                                     TextSpan(
                                       text: context.l10n.courseAvailableLabel(
                                         needed,
-                                        availableCount,
+                                        _availableCount,
                                       ),
                                       style: AppTextStyles.bodySm.copyWith(
                                         color: AppColors.textMuted,
@@ -2236,8 +2282,9 @@ class _MedStockContent extends StatelessWidget {
               ],
             ],
           ),
-          crossFadeState:
-              trackStock ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: _trackStock
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 200),
         ),
       ],
@@ -2328,8 +2375,27 @@ class _PhotoSection extends StatefulWidget {
 }
 
 class _PhotoSectionState extends State<_PhotoSection> {
+  // Локальна копія — та сама причина, що й у TagsField/DocumentsSection:
+  // showFieldSheet будує child один раз при відкритті шторки, і setState
+  // батьківського екрана не перебудовує вже відкриту шторку, тож без
+  // власного стану нове фото не з'являлось би, поки шторку не закрити.
+  late List<String> _paths;
   final Map<String, Uint8List> _bytesCache = {};
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _paths = [...widget.paths];
+  }
+
+  @override
+  void didUpdateWidget(covariant _PhotoSection old) {
+    super.didUpdateWidget(old);
+    if (!listEquals(old.paths, widget.paths)) {
+      _paths = [...widget.paths];
+    }
+  }
 
   Future<Uint8List> _decrypted(String rel) async {
     return _bytesCache[rel] ??= await PhotoService.decryptedBytes(rel);
@@ -2352,7 +2418,8 @@ class _PhotoSectionState extends State<_PhotoSection> {
       }
       final path = await PhotoService.pickAndSave(ImageSource.camera);
       if (path != null) {
-        widget.onChanged([...widget.paths, path]);
+        setState(() => _paths = [..._paths, path]);
+        widget.onChanged(_paths);
       }
     } on PlatformException catch (_) {
       if (mounted) {
@@ -2368,12 +2435,13 @@ class _PhotoSectionState extends State<_PhotoSection> {
   Future<void> _remove(String rel) async {
     await PhotoService.delete(rel);
     _bytesCache.remove(rel);
-    widget.onChanged(widget.paths.where((p) => p != rel).toList());
+    setState(() => _paths = _paths.where((p) => p != rel).toList());
+    widget.onChanged(_paths);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.paths.isEmpty) {
+    if (_paths.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2475,10 +2543,10 @@ class _PhotoSectionState extends State<_PhotoSection> {
           height: 80,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: widget.paths.length,
+            itemCount: _paths.length,
             separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (ctx, i) {
-              final rel = widget.paths[i];
+              final rel = _paths[i];
               return FutureBuilder<Uint8List>(
                 future: _decrypted(rel),
                 builder: (ctx, snap) {

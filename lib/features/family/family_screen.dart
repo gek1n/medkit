@@ -19,6 +19,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/family_peers_repository.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/section_label.dart';
@@ -702,7 +703,7 @@ class _FamilyDutiesTile extends StatelessWidget {
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
-              child: const Icon(Icons.sync_rounded, color: AppColors.primary),
+              child: const AssetIcon('home', size: 22),
             ),
             const SizedBox(width: AppDimensions.md),
             Expanded(
@@ -881,7 +882,7 @@ class _FamilyGroupSection extends ConsumerWidget {
           children: [
             Expanded(
               child: _GroupActionTile(
-                icon: Icons.qr_code_2_rounded,
+                assetIcon: 'qr-code',
                 label: context.l10n.inviteToFamilyTitle,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -898,7 +899,7 @@ class _FamilyGroupSection extends ConsumerWidget {
             const SizedBox(width: AppDimensions.sm),
             Expanded(
               child: _GroupActionTile(
-                icon: Icons.group_add_rounded,
+                assetIcon: 'family',
                 label: context.l10n.joinAction,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const FamilyGroupJoinScreen()),
@@ -1285,10 +1286,10 @@ class _PeerCard extends ConsumerWidget {
 }
 
 class _GroupActionTile extends StatelessWidget {
-  final IconData icon;
+  final String assetIcon;
   final String label;
   final VoidCallback onTap;
-  const _GroupActionTile({required this.icon, required this.label, required this.onTap});
+  const _GroupActionTile({required this.assetIcon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1306,7 +1307,7 @@ class _GroupActionTile extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.primary, size: 24),
+            AssetIcon(assetIcon, size: 24),
             const SizedBox(height: 8),
             Text(
               label,

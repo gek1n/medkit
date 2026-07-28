@@ -21,6 +21,9 @@ class FieldChip extends StatelessWidget {
   // коли задано, [icon] ігнорується. Розмір/тонування — відповідальність
   // самого віджета.
   final Widget? iconWidget;
+  // Коли задано — і значення встановлене (isSet), поруч з текстом з'являється
+  // маленький хрестик, що скидає поле напряму, без відкриття шторки.
+  final VoidCallback? onClear;
 
   const FieldChip({
     super.key,
@@ -31,6 +34,7 @@ class FieldChip extends StatelessWidget {
     this.swatchColor,
     this.forceLabel = false,
     this.iconWidget,
+    this.onClear,
   });
 
   @override
@@ -40,7 +44,12 @@ class FieldChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.only(
+          left: 12,
+          right: isSet && onClear != null ? 8 : 12,
+          top: 8,
+          bottom: 8,
+        ),
         decoration: BoxDecoration(
           color: isSet ? AppColors.primaryLight : AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
@@ -73,6 +82,17 @@ class FieldChip extends StatelessWidget {
                 color: isSet ? AppColors.primary : AppColors.textSub,
               ),
             ),
+            if (isSet && onClear != null) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onClear,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(Icons.close_rounded,
+                      size: 14, color: AppColors.primary),
+                ),
+              ),
+            ],
           ],
         ),
       ),

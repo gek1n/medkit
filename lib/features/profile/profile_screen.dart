@@ -22,6 +22,7 @@ import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../today/providers/today_providers.dart';
@@ -490,7 +491,9 @@ class _SectionCard extends StatelessWidget {
 class _SectionIcon extends StatelessWidget {
   final IconData icon;
   final Color color;
-  const _SectionIcon(this.icon, {required this.color});
+  // Коли задано — рендериться повнокольорова AssetIcon замість [icon].
+  final String? assetIcon;
+  const _SectionIcon(this.icon, {required this.color, this.assetIcon});
 
   @override
   Widget build(BuildContext context) => Container(
@@ -500,7 +503,11 @@ class _SectionIcon extends StatelessWidget {
           color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         ),
-        child: Center(child: Icon(icon, size: 18, color: color)),
+        child: Center(
+          child: assetIcon != null
+              ? AssetIcon(assetIcon!, size: 20)
+              : Icon(icon, size: 18, color: color),
+        ),
       );
 }
 
@@ -510,6 +517,8 @@ class _RowItem extends StatelessWidget {
   final Color color;
   final Widget? trailing;
   final VoidCallback? onTap;
+  // Коли задано — рядок показує повнокольорову AssetIcon замість [icon].
+  final String? assetIcon;
 
   const _RowItem({
     required this.icon,
@@ -517,6 +526,7 @@ class _RowItem extends StatelessWidget {
     this.color = AppColors.primary,
     this.trailing,
     this.onTap,
+    this.assetIcon,
   });
 
   @override
@@ -531,7 +541,7 @@ class _RowItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _SectionIcon(icon, color: color),
+            _SectionIcon(icon, color: color, assetIcon: assetIcon),
             const SizedBox(width: AppDimensions.md),
             Expanded(
               child: Text(label, style: AppTextStyles.bodyMd),
@@ -558,6 +568,7 @@ class _HealthSection extends StatelessWidget {
       children: [
         _RowItem(
           icon: Icons.self_improvement_rounded,
+          assetIcon: 'antistress',
           label: context.l10n.antiStressLabel,
           color: AppColors.primary,
           onTap: () => Navigator.push(
@@ -694,6 +705,7 @@ class _AppSettingsSection extends ConsumerWidget {
           ),
           _RowItem(
             icon: Icons.notifications_rounded,
+            assetIcon: 'task_reminder',
             label: context.l10n.notificationsLabel,
             color: AppColors.accent,
             onTap: () => Navigator.push(
@@ -705,6 +717,7 @@ class _AppSettingsSection extends ConsumerWidget {
         ],
         _RowItem(
           icon: Icons.language_rounded,
+          assetIcon: 'language',
           label: context.l10n.languageLabel,
           color: AppColors.accent,
           trailing: Text(appLanguageLabel(ref.watch(appLanguageProvider)),
@@ -730,6 +743,7 @@ class _AccountSection extends ConsumerWidget {
       children: [
         _RowItem(
           icon: Icons.workspace_premium_rounded,
+          assetIcon: 'plans',
           label: context.l10n.plansLabel,
           color: AppColors.warning,
           trailing: Row(
@@ -750,6 +764,7 @@ class _AccountSection extends ConsumerWidget {
         ),
         _RowItem(
           icon: Icons.visibility_rounded,
+          assetIcon: 'eye',
           label: context.l10n.familyVisibilityLabel,
           color: AppColors.warning,
           onTap: () => Navigator.push(
@@ -762,6 +777,7 @@ class _AccountSection extends ConsumerWidget {
         ),
         _RowItem(
           icon: Icons.backup_rounded,
+          assetIcon: 'backup',
           label: context.l10n.backupLabel,
           color: AppColors.warning,
           onTap: () async {
@@ -774,6 +790,7 @@ class _AccountSection extends ConsumerWidget {
         ),
         _RowItem(
           icon: Icons.privacy_tip_rounded,
+          assetIcon: 'tools',
           label: context.l10n.privacyLabel,
           color: AppColors.warning,
           onTap: () => Navigator.push(
@@ -795,6 +812,7 @@ class _OtherSection extends StatelessWidget {
       children: [
         _RowItem(
           icon: Icons.star_rounded,
+          assetIcon: 'star',
           label: context.l10n.rateAppLabel,
           color: AppColors.info,
           onTap: () async {
@@ -808,6 +826,7 @@ class _OtherSection extends StatelessWidget {
         ),
         _RowItem(
           icon: Icons.help_outline_rounded,
+          assetIcon: 'faq',
           label: context.l10n.helpFaqLabel,
           color: AppColors.info,
           onTap: () => Navigator.push(
@@ -817,6 +836,7 @@ class _OtherSection extends StatelessWidget {
         ),
         _RowItem(
           icon: Icons.privacy_tip_outlined,
+          assetIcon: 'privacy',
           label: context.l10n.privacyPolicyLabel,
           color: AppColors.info,
           onTap: () => Navigator.push(
@@ -826,6 +846,7 @@ class _OtherSection extends StatelessWidget {
         ),
         _RowItem(
           icon: Icons.ios_share_rounded,
+          assetIcon: 'export',
           label: context.l10n.exportDataLabel,
           color: AppColors.info,
           onTap: () => Navigator.push(

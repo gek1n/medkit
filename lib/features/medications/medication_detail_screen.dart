@@ -15,6 +15,7 @@ import '../../core/utils/task_color.dart';
 import '../../shared/widgets/affiliate_buy_button.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_header_action_button.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -210,6 +211,8 @@ class _DetailBody extends ConsumerWidget {
             title: med.name,
             subtitle: _doseSubtitle(context, med),
             onBack: () => Navigator.pop(context),
+            onEdit: () => _openMedicationEditIfAllowed(context, ref, med),
+            onDelete: () => _confirmStopMedication(context, ref, med),
           ),
         ),
         SliverToBoxAdapter(
@@ -255,8 +258,7 @@ class _DetailBody extends ConsumerWidget {
                     );
                   },
                 ),
-              _ActionRow(med: med),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
             ]),
           ),
         ),
@@ -1295,143 +1297,96 @@ class _SectionTitle extends StatelessWidget {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-class _ActionRow extends ConsumerWidget {
-  final Medication med;
-  const _ActionRow({required this.med});
-
-  void _openIfAllowed(
-    BuildContext context,
-    WidgetRef ref,
-    VoidCallback action,
-  ) {
-    if (isMemberBlockedByPlan(ref, med.memberId)) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const EllyDeniedScreen()),
-      );
-      return;
-    }
-    action();
+// onEdit/onDelete на _BackHeader — той самий плановий чек, що й раніше в
+// _ActionRow, лише переміщений у заголовок (див. коментар класу _BackHeader).
+void _openMedicationEditIfAllowed(
+  BuildContext context,
+  WidgetRef ref,
+  Medication med,
+) {
+  if (isMemberBlockedByPlan(ref, med.memberId)) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EllyDeniedScreen()),
+    );
+    return;
   }
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AddMedicationScreen(memberId: med.memberId, existing: med),
+    ),
+  );
+}
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ActBtn(
-            label: context.l10n.stopAction,
-            isDestructive: true,
-            onTap: () =>
-                _openIfAllowed(context, ref, () => _confirmStop(context, ref)),
-          ),
+Future<void> _confirmStopMedication(
+  BuildContext context,
+  WidgetRef ref,
+  Medication med,
+) async {
+  if (isMemberBlockedByPlan(ref, med.memberId)) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EllyDeniedScreen()),
+    );
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(context.l10n.stopCourseConfirmTitle, style: AppTextStyles.h3),
+      content: Text(
+        context.l10n.stopCourseConfirmBody(med.name),
+        style: AppTextStyles.bodyMd,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(context.l10n.actionCancel),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ActBtn(
-            label: context.l10n.editAction,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    AddMedicationScreen(memberId: med.memberId, existing: med),
-              ),
-            ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(
+            context.l10n.stopAction,
+            style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger),
           ),
         ),
       ],
-    );
-  }
-
-  Future<void> _confirmStop(BuildContext context, WidgetRef ref) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.stopCourseConfirmTitle, style: AppTextStyles.h3),
-        content: Text(
-          context.l10n.stopCourseConfirmBody(med.name),
-          style: AppTextStyles.bodyMd,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(context.l10n.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              context.l10n.stopAction,
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await ref.read(medicationsRepositoryProvider).softDelete(med.id);
-      // generateTodayIntakesProvider/tomorrowIntakesProvider — кешовані
-      // FutureProvider'и: якщо "Коротко про завтра" вже було відкрито до
-      // зупинки курсу, застарілий inтake для цих ліків лишався б там
-      // видимим (а назва відображалась би як "Ліки", бо список медикаментів
-      // для підпису вже реактивно оновився й перестав містити зупинений
-      // препарат — розсинхрон між застарілим списком intake і живим списком
-      // ліків).
-      ref.invalidate(generateTodayIntakesProvider);
-      ref.invalidate(tomorrowIntakesProvider);
-      if (context.mounted) Navigator.pop(context);
-    }
-  }
-}
-
-// Нейтральні текстові кнопки без тіні (навмисно — щоб не з'являлась кольорова
-// підсвітка під кнопками, як у референсі).
-class _ActBtn extends StatelessWidget {
-  final String label;
-  final bool isDestructive;
-  final VoidCallback onTap;
-  const _ActBtn({
-    required this.label,
-    this.isDestructive = false,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDestructive ? const Color(0xFFFECACA) : AppColors.border,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: AppTextStyles.bodyMd.copyWith(
-              color: isDestructive ? AppColors.danger : AppColors.textMain,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
+    ),
+  );
+  if (ok == true) {
+    await ref.read(medicationsRepositoryProvider).softDelete(med.id);
+    // generateTodayIntakesProvider/tomorrowIntakesProvider — кешовані
+    // FutureProvider'и: якщо "Коротко про завтра" вже було відкрито до
+    // зупинки курсу, застарілий inтake для цих ліків лишався б там
+    // видимим (а назва відображалась би як "Ліки", бо список медикаментів
+    // для підпису вже реактивно оновився й перестав містити зупинений
+    // препарат — розсинхрон між застарілим списком intake і живим списком
+    // ліків).
+    ref.invalidate(generateTodayIntakesProvider);
+    ref.invalidate(tomorrowIntakesProvider);
+    if (context.mounted) Navigator.pop(context);
   }
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
+// onEdit/onDelete — той самий уніфікований патерн, що й у
+// ReminderViewScreen/MedcardEntryViewScreen: олівець одразу біля заголовка,
+// червоний кошик у правому куті того ж рядка (замість окремих кнопок
+// внизу екрана).
 class _BackHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onBack;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
   const _BackHeader({
     required this.title,
     required this.subtitle,
     required this.onBack,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -1448,11 +1403,18 @@ class _BackHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.h2,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: AppTextStyles.h2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    MkEditIconButton(onTap: onEdit),
+                  ],
                 ),
                 Text(
                   subtitle,
@@ -1465,6 +1427,7 @@ class _BackHeader extends StatelessWidget {
               ],
             ),
           ),
+          MkDeleteIconButton(onTap: onDelete),
         ],
       ),
     );

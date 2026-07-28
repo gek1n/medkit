@@ -16,6 +16,7 @@ import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
+import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/tags_field.dart';
 import '../plans/elly_denied_screen.dart';
 
@@ -35,6 +36,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
   List<String> _tags = [];
   List<String> _documentPaths = [];
   late DateTime _recordDate;
+  late int _sectionId;
   bool _isSaving = false;
 
   @override
@@ -45,6 +47,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
     _notesController = TextEditingController(text: ex?.notes ?? '');
     _locationController = TextEditingController(text: ex?.location ?? '');
     _recordDate = ex?.recordDate ?? DateTime.now();
+    _sectionId = ex?.sectionId ?? widget.section.id;
     if (ex != null) {
       try {
         _tags = List<String>.from(jsonDecode(ex.tags) as List);
@@ -117,6 +120,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
         await ref.read(medcardEntriesRepositoryProvider).update(
               MedcardEntriesCompanion(
                 id: Value(ex.id),
+                sectionId: Value(_sectionId),
                 title: Value(title),
                 recordDate: Value(_recordDate),
                 notes: Value(notesVal),
@@ -129,7 +133,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
       } else {
         await ref.read(medcardEntriesRepositoryProvider).insert(
               MedcardEntriesCompanion.insert(
-                sectionId: widget.section.id,
+                sectionId: _sectionId,
                 memberId: widget.section.memberId,
                 title: title,
                 recordDate: _recordDate,
@@ -204,6 +208,18 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
+                    // Нотатка — окремим завжди розгорнутим полем одразу під
+                    // назвою (не чіпсом/шторкою), щоб її було видно й зручно
+                    // заповнювати без зайвого тапу.
+                    MkFieldLabel(context.l10n.noteSingularLabel),
+                    const SizedBox(height: 6),
+                    MkTextField(
+                      controller: _notesController,
+                      maxLines: 4,
+                      hint: context.l10n.entryNotesHint,
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
                     // Решта полів — компактними чіпсами
                     Wrap(
                       spacing: 8,
@@ -214,25 +230,6 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                           label: context.l10n.entryDateFieldLabel,
                           value: _formatDate(_recordDate),
                           onTap: _pickDate,
-                        ),
-                        FieldChip(
-                          icon: Icons.notes_rounded,
-                          label: context.l10n.noteSingularLabel,
-                          value: _notesController.text.trim().isEmpty
-                              ? null
-                              : _notesController.text.trim(),
-                          onTap: () async {
-                            await showFieldSheet(
-                              context,
-                              title: context.l10n.noteSingularLabel,
-                              child: MkTextField(
-                                controller: _notesController,
-                                maxLines: 4,
-                                hint: context.l10n.entryNotesHint,
-                              ),
-                            );
-                            if (mounted) setState(() {});
-                          },
                         ),
                         FieldChip(
                           icon: Icons.sell_outlined,
@@ -248,6 +245,12 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                               loadHistory: MedcardEntryTagLibraryService.getAll,
                             ),
                           ),
+                        ),
+                        SpaceChip(
+                          memberId: widget.section.memberId,
+                          sectionId: _sectionId,
+                          onChanged: (id) =>
+                              setState(() => _sectionId = id ?? widget.section.id),
                         ),
                         FieldChip(
                           icon: Icons.location_on_outlined,

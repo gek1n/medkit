@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
+import 'wide_swipe_back_transitions.dart';
 
 ThemeData buildAppTheme() {
   return ThemeData(
@@ -38,15 +38,18 @@ ThemeData buildAppTheme() {
       hintStyle: GoogleFonts.nunito(fontSize: 14, color: AppColors.textMuted),
     ),
     // iOS-стиль переходів на ВСІХ платформах — єдина зміна тут дає
-    // свайп-назад (з лівого краю праворуч) на кожному екрані, відкритому
-    // через MaterialPageRoute/Navigator.push, без правок у 80+ місцях, де
-    // такі push викликаються. На головних 5 вкладках (PageView, не
-    // Navigator) свайп не активується — там немає що "попнути" назад, тож
-    // конфлікту зі свайпом між вкладками немає.
+    // свайп-назад на кожному екрані, відкритому через
+    // MaterialPageRoute/Navigator.push, без правок у 80+ місцях, де такі
+    // push викликаються. На головних 5 вкладках (PageView, не Navigator)
+    // свайп не активується — там немає що "попнути" назад, тож конфлікту зі
+    // свайпом між вкладками немає. Зона жесту — від лівого краю до середини
+    // екрана (WideSwipeBackPageTransitionsBuilder), а не вузька 20px смуга
+    // за замовчуванням — щоб можна було почати свайп не тільки з самого
+    // краю, а й ближче до центру.
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
-        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.android: WideSwipeBackPageTransitionsBuilder(),
+        TargetPlatform.iOS: WideSwipeBackPageTransitionsBuilder(),
       },
     ),
   );
