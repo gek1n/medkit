@@ -28,11 +28,13 @@ import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_task_screen.dart';
+import '../appointments/reminder_view_screen.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
 import 'providers/today_providers.dart';
 import 'widgets/family_status_strip.dart';
+import '../add/routine_view_screen.dart';
 
 // Час, на який приймання фактично заплановано зараз — з урахуванням
 // перенесення (snoozedUntil), а не лише вихідний scheduledAt. Використовується
@@ -41,6 +43,29 @@ import 'widgets/family_status_strip.dart';
 extension _IntakeEffectiveDue on Intake {
   DateTime get effectiveDue =>
       status == 'snoozed' && snoozedUntil != null ? snoozedUntil! : scheduledAt;
+}
+
+// ─── Reminder occurrence (нагадування + per-day стан) ────────────────────────
+
+// Обгортка над Reminder, що додає ЕФЕКТИВНИЙ стан ЦЬОГО дня: для
+// repeatType=='none' це просто Reminder.status/scheduledAt як є; для
+// daily/weekly/monthly/yearly — status/scheduledAt беруться з відповідного
+// ReminderLog (з урахуванням snoozedUntil), а не з самого Reminder (його
+// status спільний для всієї серії й тут не використовується).
+class _ApptOccurrence {
+  final Reminder reminder;
+  final int? logId; // null лише для repeatType=='none'
+  final String status; // pending/attended-done/skipped — див. коментар вище
+  final DateTime scheduledAt; // ефективний час (з урахуванням snooze)
+
+  const _ApptOccurrence({
+    required this.reminder,
+    required this.logId,
+    required this.status,
+    required this.scheduledAt,
+  });
+
+  bool get isRecurring => reminder.repeatType != 'none';
 }
 
 // ─── Unified day item ─────────────────────────────────────────────────────────
@@ -56,14 +81,15 @@ class _DayItem {
 
   Intake? get intake => _data is Intake ? _data : null;
   ActivityLog? get activityLog => _data is ActivityLog ? _data : null;
-  Reminder? get appointment =>
-      _data is Reminder ? _data : null;
+  _ApptOccurrence? get apptOccurrence =>
+      _data is _ApptOccurrence ? _data : null;
+  Reminder? get appointment => apptOccurrence?.reminder;
 
   static _DayItem fromIntake(Intake i) =>
       _DayItem._(type: _ItemType.intake, scheduledAt: i.effectiveDue, data: i);
   static _DayItem fromActivity(ActivityLog l) =>
       _DayItem._(type: _ItemType.activity, scheduledAt: l.scheduledAt, data: l);
-  static _DayItem fromAppointment(Reminder a) => _DayItem._(
+  static _DayItem fromAppointment(_ApptOccurrence a) => _DayItem._(
     type: _ItemType.appointment,
     scheduledAt: a.scheduledAt,
     data: a,
@@ -81,6 +107,7 @@ class TodayScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(generateTodayIntakesProvider);
     ref.watch(generateTodayActivityLogsProvider);
+    ref.watch(generateTodayReminderLogsProvider);
     final memberAsync = ref.watch(currentMemberProvider);
     final activeId = ref.watch(activeMemberIdProvider);
 
@@ -120,6 +147,7 @@ class _TodayContent extends ConsumerWidget {
     final medsAsync = ref.watch(todayMedicationsProvider(member.id));
     final activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
     final appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
+    final reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
     final membersAsync = ref.watch(allMembersProvider);
     final wellbeingScheduleAsync = ref.watch(
       todayWellbeingScheduleProvider(member.id),
@@ -143,8 +171,35 @@ class _TodayContent extends ConsumerWidget {
           final meds = medsAsync.valueOrNull ?? [];
           final activities = activitiesAsync.valueOrNull ?? [];
           final activityLogs = activityLogsAsync.valueOrNull ?? [];
-          final appointments = appointmentsAsync.valueOrNull ?? [];
+          final reminderLogs = reminderLogsAsync.valueOrNull ?? [];
           final members = membersAsync.valueOrNull ?? [];
+
+          // Для repeatType=='none' — status/scheduledAt з самого Reminder
+          // (як і раніше). Для повторюваних — з відповідного ReminderLog за
+          // ЦЕЙ день (генерується generateTodayReminderLogsProvider вище),
+          // з урахуванням snoozedUntil; поки лог іще не згенерувався (напр.
+          // щойно відкрили екран) — трактуємо як 'pending' без logId, кнопки
+          // дій просто не покажуться для цього єдиного кадру.
+          ReminderLog? logFor(Reminder r) => reminderLogs
+              .where((l) => l.reminderId == r.id && l.scheduledAt == r.scheduledAt)
+              .firstOrNull;
+          final appointments = (appointmentsAsync.valueOrNull ?? []).map((r) {
+            if (r.repeatType == 'none') {
+              return _ApptOccurrence(
+                reminder: r,
+                logId: null,
+                status: r.status,
+                scheduledAt: r.scheduledAt,
+              );
+            }
+            final log = logFor(r);
+            return _ApptOccurrence(
+              reminder: r,
+              logId: log?.id,
+              status: log?.status ?? 'pending',
+              scheduledAt: log?.snoozedUntil ?? r.scheduledAt,
+            );
+          }).toList();
 
           final taken = intakes.where((i) => i.status == 'taken').length;
           final total = intakes.length;
@@ -313,7 +368,7 @@ class _TodayContent extends ConsumerWidget {
             checkNext(dt, 'Самопочуття');
           }
           for (final a in [...activeAppointments, ...upcomingAppointments]) {
-            checkNext(a.scheduledAt, a.doctorType);
+            checkNext(a.scheduledAt, a.reminder.doctorType);
           }
 
           // ── Done / past (sorted) ─────────────────────────────────────────
@@ -429,6 +484,12 @@ class _TodayContent extends ConsumerWidget {
                     wellbeingSchedule: schedule,
                   ),
                 ),
+
+              // Цілі тижня (weeklyGoal) — окремо від часового розкладу, бо
+              // не прив'язані до конкретного дня/часу.
+              SliverToBoxAdapter(
+                child: _WeeklyGoalsSection(memberId: member.id, ref: ref),
+              ),
 
               // 4. Розклад на сьогодні
               if (scheduleItems.isNotEmpty)
@@ -740,11 +801,7 @@ class _CompactHero extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.favorite_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        const AssetIcon('task_wellbeing', size: 22),
                         const SizedBox(height: 3),
                         Text(
                           context.l10n.todayHurtsNow,
@@ -775,7 +832,7 @@ class _MissedSection extends StatelessWidget {
   final List<Intake> intakes;
   final List<ActivityLog> activityLogs;
   final List<DateTime> wellbeingSlots;
-  final List<Reminder> appointments;
+  final List<_ApptOccurrence> appointments;
   final List<Medication> meds;
   final List<Activity> activities;
   final int memberId;
@@ -821,6 +878,7 @@ class _MissedSection extends StatelessWidget {
               activity: activities
                   .where((a) => a.id == l.activityId)
                   .firstOrNull,
+              activeMemberId: memberId,
               missed: true,
             ),
           ),
@@ -844,7 +902,7 @@ class _MissedSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ActiveAppointmentCard(
-              appointment: a,
+              occurrence: a,
               ref: ref,
               missed: true,
             ),
@@ -892,7 +950,7 @@ class _ActiveNowSection extends StatelessWidget {
   final List<Intake> intakes;
   final List<ActivityLog> activityLogs;
   final List<DateTime> wellbeingSlots;
-  final List<Reminder> appointments;
+  final List<_ApptOccurrence> appointments;
   final List<Medication> meds;
   final List<Activity> activities;
   final int memberId;
@@ -937,6 +995,7 @@ class _ActiveNowSection extends StatelessWidget {
               activity: activities
                   .where((a) => a.id == l.activityId)
                   .firstOrNull,
+              activeMemberId: memberId,
             ),
           ),
         ),
@@ -957,7 +1016,7 @@ class _ActiveNowSection extends StatelessWidget {
           a.scheduledAt,
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _ActiveAppointmentCard(appointment: a, ref: ref),
+            child: _ActiveAppointmentCard(occurrence: a, ref: ref),
           ),
         ),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
@@ -1162,17 +1221,14 @@ class _ScheduleCard extends StatelessWidget {
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    // Нагадування (item.type == appointment), а також
-                    // Прості завдання/Рутинні справи (Activity зі службовим
-                    // type simple_task/routine) — замість довільної обраної
-                    // іконки тут завжди дружня ілюстрація Ellу, щоб картка на
-                    // Сьогодні лишалась впізнаваною й "неклінічною" незалежно
-                    // від того, яку іконку користувач обрав при створенні (та
-                    // іконка видна в Розкладі/деталях).
-                    child: item.type == _ItemType.appointment ||
-                            (item.type == _ItemType.activity &&
-                                (_resolvedActivity?.type == 'simple_task' ||
-                                    _resolvedActivity?.type == 'routine'))
+                    // Нагадування (item.type == appointment) — замість
+                    // довільної обраної іконки тут завжди дружня ілюстрація
+                    // Еллі, щоб картка на Сьогодні лишалась впізнаваною й
+                    // "неклінічною" незалежно від того, яку іконку користувач
+                    // обрав при створенні (та іконка видна в Розкладі/
+                    // деталях). Рутинні справи — власна task_routine-іконка
+                    // (iconWidget з _scheduleItemInfo), не ілюстрація.
+                    child: item.type == _ItemType.appointment
                         ? Padding(
                             padding: const EdgeInsets.all(6),
                             child: Image.asset(
@@ -1286,13 +1342,29 @@ class _ScheduleCard extends StatelessWidget {
       );
       return;
     }
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) =>
-          _ScheduleItemDetailsSheet(item: item, activity: _resolvedActivity),
-    );
+    // Нагадування — той самий "повна картка" патерн, що й ліки, замість
+    // легкого попапу.
+    if (item.type == _ItemType.appointment) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              ReminderViewScreen(reminderId: item.appointment!.id),
+        ),
+      );
+      return;
+    }
+    // Рутинна справа — той самий "повна картка" патерн.
+    if (item.type == _ItemType.activity) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              RoutineViewScreen(activityId: item.activityLog!.activityId),
+        ),
+      );
+      return;
+    }
   }
 
   String _fmt(DateTime dt) =>
@@ -1323,7 +1395,9 @@ class _ScheduleCard extends StatelessWidget {
         _scheduleActIcon(activity?.type),
         activity?.name ?? context.l10n.defaultActivityName,
         null,
-        null,
+        activity?.type == 'routine'
+            ? const AssetIcon('task_routine', size: 24)
+            : null,
       );
     case _ItemType.appointment:
       return (
@@ -1345,98 +1419,6 @@ IconData _scheduleActIcon(String? t) => switch (t) {
   'cycling' => Icons.directions_bike_rounded,
   _ => Icons.directions_run_rounded,
 };
-
-// ─── Schedule item details modal ──────────────────────────────────────────────
-
-// Показується лише для activity/appointment — ліки (intake) ведуть напряму
-// на MedicationDetailScreen (повна картка препарату), wellbeing на свій
-// власний екран чек-іну.
-class _ScheduleItemDetailsSheet extends StatelessWidget {
-  final _DayItem item;
-  final Activity? activity;
-
-  const _ScheduleItemDetailsSheet({required this.item, this.activity});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _scheduleCategoryColor(item.type);
-    final (icon, title, _, iconWidget) = _scheduleItemInfo(context, item, activity: activity);
-
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: iconWidget ?? Icon(icon, color: color, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(title, style: AppTextStyles.h3)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _DetailRow(label: context.l10n.detailLabelTime, value: _fmt(item.scheduledAt)),
-              if (activity != null && activity!.durationMin > 0)
-                _DetailRow(
-                  label: context.l10n.detailLabelDuration,
-                  value: context.l10n.durationMinutes(activity!.durationMin),
-                ),
-              if (item.type == _ItemType.appointment &&
-                  item.appointment!.location != null &&
-                  item.appointment!.location!.isNotEmpty)
-                _DetailRow(label: context.l10n.detailLabelLocation, value: item.appointment!.location!),
-              if (item.type == _ItemType.appointment &&
-                  item.appointment!.notes != null &&
-                  item.appointment!.notes!.isNotEmpty)
-                _DetailRow(label: context.l10n.detailLabelNotes, value: item.appointment!.notes!),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _fmt(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label.toUpperCase(), style: AppTextStyles.labelSm),
-          const SizedBox(height: 3),
-          Text(value, style: AppTextStyles.bodyMd),
-        ],
-      ),
-    );
-  }
-}
 
 // ─── Schedule Row (компактний вигляд — лише для "Виконано") ──────────────────
 
@@ -1605,7 +1587,16 @@ class _TomorrowSection extends ConsumerWidget {
       items.addAll(actLogsAsync.value!.map(_DayItem.fromActivity));
     }
     if (apptsAsync.hasValue) {
-      items.addAll(apptsAsync.value!.map(_DayItem.fromAppointment));
+      // Прев'ю завтрашнього дня — без дій, тож logId/статус тут не
+      // потрібні (завжди трактується як 'pending' з actual scheduledAt).
+      items.addAll(apptsAsync.value!.map((r) => _DayItem.fromAppointment(
+            _ApptOccurrence(
+              reminder: r,
+              logId: null,
+              status: r.status,
+              scheduledAt: r.scheduledAt,
+            ),
+          )));
     }
     if (wellbeingSchedule != null && wellbeingSchedule!.isActive) {
       final tomorrow = DateTime.now().add(const Duration(days: 1));
@@ -2207,16 +2198,245 @@ class _CountBadge extends StatelessWidget {
 
 // ─── Active Activity Card ─────────────────────────────────────────────────────
 
+// ─── Цілі тижня (weeklyGoal) ────────────────────────────────────────────────
+
+class _WeeklyGoalsSection extends ConsumerWidget {
+  final int memberId;
+  final WidgetRef ref;
+  const _WeeklyGoalsSection({required this.memberId, required this.ref});
+
+  @override
+  Widget build(BuildContext context, WidgetRef _) {
+    final goalsAsync = ref.watch(_weeklyGoalActivitiesProvider(memberId));
+    return goalsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (goals) {
+        if (goals.isEmpty) return const SizedBox.shrink();
+        return _SectionPad(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionLabel(context.l10n.routineRepeatWeeklyGoalOption),
+              const SizedBox(height: AppDimensions.md),
+              ...goals.map((a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _WeeklyGoalCard(activity: a, ref: ref),
+                  )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+final _weeklyGoalActivitiesProvider =
+    StreamProvider.family<List<Activity>, int>((ref, memberId) {
+  return ref
+      .watch(activitiesRepositoryProvider)
+      .watchWeeklyGoalsByMember(memberId);
+});
+
+final _weeklyGoalCountProvider =
+    StreamProvider.family<int, int>((ref, activityId) {
+  return ref
+      .watch(activitiesRepositoryProvider)
+      .watchWeeklyGoalDoneCount(activityId);
+});
+
+class _WeeklyGoalCard extends ConsumerWidget {
+  final Activity activity;
+  final WidgetRef ref;
+  const _WeeklyGoalCard({required this.activity, required this.ref});
+
+  @override
+  Widget build(BuildContext context, WidgetRef _) {
+    final color = colorFromHex(activity.color) ?? const Color(0xFFA58BC9);
+    final done = ref.watch(_weeklyGoalCountProvider(activity.id)).valueOrNull ?? 0;
+    final goal = activity.weeklyGoalCount ?? 1;
+    final reached = done >= goal;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _cardDecoration,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            ),
+            child: const Icon(Icons.flag_rounded, color: Color(0xFFA58BC9)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(activity.name,
+                    style: AppTextStyles.bodyMd
+                        .copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                  context.l10n.routineWeeklyGoalProgressLabel(done, goal),
+                  style: AppTextStyles.bodySm
+                      .copyWith(color: AppColors.textSub),
+                ),
+              ],
+            ),
+          ),
+          if (reached)
+            const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+          else
+            GestureDetector(
+              onTap: () => ref
+                  .read(activitiesRepositoryProvider)
+                  .markWeeklyGoalDone(activity, actingMemberId: activity.memberId),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                ),
+                child: Text(
+                  context.l10n.doneAction,
+                  style: AppTextStyles.labelMd.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Ротація виконавців (лише коли пул > 1) ────────────────────────────────
+
+class _RotationRow extends StatelessWidget {
+  final WidgetRef ref;
+  final Activity activity;
+  final ActivityLog log;
+  final Color accent;
+  const _RotationRow({
+    required this.ref,
+    required this.activity,
+    required this.log,
+    required this.accent,
+  });
+
+  void _openSwapSheet(
+    BuildContext context,
+    List<ActivityAssignee> pool,
+    List<Member> members,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SafeArea(
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: pool.map((a) {
+              final name = members
+                      .where((m) => m.id == a.memberId)
+                      .map((m) => m.name)
+                      .firstOrNull ??
+                  '';
+              return ListTile(
+                title: Text(name, style: AppTextStyles.bodyMd),
+                trailing: a.memberId == log.memberId
+                    ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  ref
+                      .read(activitiesRepositoryProvider)
+                      .reassignLog(log.id, a.memberId);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ActivityAssignee>>(
+      future: ref.read(activitiesRepositoryProvider).getAssignees(activity.id),
+      builder: (context, snap) {
+        final pool = snap.data ?? const [];
+        if (pool.length <= 1) return const SizedBox.shrink();
+        final members = ref.read(allMembersProvider).valueOrNull ?? [];
+        final turnName = members
+                .where((m) => m.id == log.memberId)
+                .map((m) => m.name)
+                .firstOrNull ??
+            '';
+        return Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Row(
+            children: [
+              Icon(Icons.sync_rounded, size: 14, color: accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  context.l10n.routineWhoseTurnLabel(turnName),
+                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _openSwapSheet(context, pool, members),
+                child: Text(
+                  context.l10n.routineSwapTurnAction,
+                  style: AppTextStyles.labelSm
+                      .copyWith(color: accent, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () =>
+                    ref.read(activitiesRepositoryProvider).skipTurn(log.id),
+                child: Text(
+                  context.l10n.routineSkipTurnAction,
+                  style: AppTextStyles.labelSm.copyWith(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ActiveActivityCard extends StatefulWidget {
   final ActivityLog log;
   final Activity? activity;
   final WidgetRef ref;
+  final int activeMemberId;
   final bool missed;
 
   const _ActiveActivityCard({
     required this.log,
     this.activity,
     required this.ref,
+    required this.activeMemberId,
     this.missed = false,
   });
 
@@ -2231,6 +2451,24 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
     if (_playing) setState(() => _playing = false);
   }
 
+  List<String> get _stepTitles {
+    try {
+      final list = jsonDecode(widget.activity?.stepsJson ?? '[]') as List;
+      return list.map((s) => (s as Map)['title'] as String).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Set<int> get _completedSteps {
+    try {
+      return Set<int>.from(
+          jsonDecode(widget.log.completedStepsJson ?? '[]') as List);
+    } catch (_) {
+      return {};
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final iconColor =
@@ -2238,6 +2476,8 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
     final icon = _actIcon(widget.activity?.type);
     final videoId = youtubeVideoId(widget.activity?.youtubeUrl ?? '');
     final thumbnailUrl = youtubeThumbnailUrl(widget.activity?.youtubeUrl);
+    final steps = _stepTitles;
+    final completedSteps = _completedSteps;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -2257,15 +2497,13 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                   )
           else
             _IconHeader(
-              illustration: 'assets/illustrations/elly-sport.png',
+              illustration: 'assets/illustrations/elly-calendar.png',
               accent: iconColor,
-              onZoom: () => showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => _ScheduleItemDetailsSheet(
-                  item: _DayItem.fromActivity(widget.log),
-                  activity: widget.activity,
+              onZoom: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      RoutineViewScreen(activityId: widget.log.activityId),
                 ),
               ),
             ),
@@ -2300,6 +2538,57 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                     label: context.l10n.durationMinutes(widget.activity!.durationMin),
                   ),
                 ],
+                if (widget.activity != null)
+                  _RotationRow(
+                    ref: widget.ref,
+                    activity: widget.activity!,
+                    log: widget.log,
+                    accent: iconColor,
+                  ),
+                if (steps.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  ...steps.asMap().entries.map((e) {
+                    final done = completedSteps.contains(e.key);
+                    return GestureDetector(
+                      onTap: () => widget.ref
+                          .read(activitiesRepositoryProvider)
+                          .toggleLogStep(
+                            widget.log.id,
+                            e.key,
+                            steps.length,
+                            actingMemberId: widget.activeMemberId,
+                          ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            Icon(
+                              done
+                                  ? Icons.check_circle_rounded
+                                  : Icons.circle_outlined,
+                              size: 18,
+                              color: done ? iconColor : AppColors.textMuted,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                e.value,
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: done
+                                      ? AppColors.textMuted
+                                      : AppColors.textMain,
+                                  decoration: done
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ],
             ),
           ),
@@ -2307,9 +2596,10 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
             doneColor: AppColors.primary,
             onDone: () {
               _stopVideo();
-              widget.ref
-                  .read(activitiesRepositoryProvider)
-                  .markLogDone(widget.log.id);
+              widget.ref.read(activitiesRepositoryProvider).markLogDone(
+                    widget.log.id,
+                    actingMemberId: widget.activeMemberId,
+                  );
             },
             onSkip: () {
               _stopVideo();
@@ -2527,15 +2817,17 @@ class _ActiveWellbeingCard extends ConsumerWidget {
 // ─── Active Appointment Card ──────────────────────────────────────────────────
 
 class _ActiveAppointmentCard extends StatelessWidget {
-  final Reminder appointment;
+  final _ApptOccurrence occurrence;
   final WidgetRef ref;
   final bool missed;
 
   const _ActiveAppointmentCard({
-    required this.appointment,
+    required this.occurrence,
     required this.ref,
     this.missed = false,
   });
+
+  Reminder get appointment => occurrence.reminder;
 
   @override
   Widget build(BuildContext context) {
@@ -2548,14 +2840,12 @@ class _ActiveAppointmentCard extends StatelessWidget {
       child: Column(
         children: [
           _IconHeader(
-            illustration: 'assets/illustrations/elly-doctor.png',
+            illustration: 'assets/illustrations/elly-calendar.png',
             accent: iconColor,
-            onZoom: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => _ScheduleItemDetailsSheet(
-                item: _DayItem.fromAppointment(appointment),
+            onZoom: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReminderViewScreen(reminderId: appointment.id),
               ),
             ),
           ),
@@ -2577,7 +2867,7 @@ class _ActiveAppointmentCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     _TimeStamp(
-                      time: _fmt(appointment.scheduledAt),
+                      time: _fmt(occurrence.scheduledAt),
                       missed: missed,
                     ),
                   ],
@@ -2590,16 +2880,25 @@ class _ActiveAppointmentCard extends StatelessWidget {
                     label: appointment.location!,
                   ),
                 ],
+                if (occurrence.isRecurring) ...[
+                  const SizedBox(height: 10),
+                  _InfoChip(
+                    icon: Icons.repeat_rounded,
+                    label: _repeatLabel(context, appointment),
+                  ),
+                ],
               ],
             ),
           ),
-          // "Виконати"/"Пропустити"/"Перенести" міняють спільний для всіх
-          // повторів status/scheduledAt у Reminders — коректно лише для
-          // одноразового (repeatType == 'none'). Для daily/weekly/yearly
-          // немає окремого стану "сьогоднішнього" відпрацювання (свідомо не
-          // будували Activities-подібну генерацію по днях), тож замість дій
-          // просто показуємо, яке це повторення.
-          if (appointment.repeatType == 'none')
+          // Для repeatType=='none' — Виконати/Пропустити/Перенести міняють
+          // сам Reminder (markAttended/markSkipped/reschedule), як і раніше.
+          // Для повторюваних — ті самі дії, але на per-day ReminderLog
+          // (markLogDone/markLogSkipped/snoozeLog): не чіпають ні серію, ні
+          // саме (нативно-повторюване) сповіщення — Перенести тут суто
+          // локальне зміщення картки на Сьогодні, а не зсув будильника ОС.
+          // Поки лог іще не згенерувався (рідкісне вікно одразу після
+          // відкриття екрана) — logId==null, кнопки не показуємо.
+          if (!occurrence.isRecurring)
             _ActionRow(
               doneColor: AppColors.primary,
               onDone: () => ref
@@ -2613,17 +2912,27 @@ class _ActiveAppointmentCard extends StatelessWidget {
                   .reschedule(
                     appointment.id,
                     _snoozeFrom(
-                      appointment.scheduledAt,
+                      occurrence.scheduledAt,
                     ).add(Duration(minutes: min)),
                   ),
             )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 2, 14, 14),
-              child: _InfoChip(
-                icon: Icons.repeat_rounded,
-                label: _repeatLabel(context, appointment),
-              ),
+          else if (occurrence.logId != null)
+            _ActionRow(
+              doneColor: AppColors.primary,
+              onDone: () => ref
+                  .read(remindersRepositoryProvider)
+                  .markLogDone(occurrence.logId!),
+              onSkip: () => ref
+                  .read(remindersRepositoryProvider)
+                  .markLogSkipped(occurrence.logId!),
+              onSnooze: (min) => ref
+                  .read(remindersRepositoryProvider)
+                  .snoozeLog(
+                    occurrence.logId!,
+                    _snoozeFrom(
+                      occurrence.scheduledAt,
+                    ).add(Duration(minutes: min)),
+                  ),
             ),
         ],
       ),

@@ -15,11 +15,10 @@ import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/feed_post_card.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
-import '../add/add_activity_screen.dart';
+import '../add/routine_view_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
-
-const _kActivityTypeRoutine = 'routine';
+import 'reminder_view_screen.dart';
 
 List<String> _parseTags(String raw) {
   try {
@@ -152,12 +151,14 @@ class _AppointmentsHistoryScreenState
 
                       // Рутинні справи не мають тегів — коли фільтр за тегом
                       // активний, вони не мають чому відповідати, тож ховаються.
+                      // Усі isActive-активності, не лише type=='routine' —
+                      // старі записи Спорту/Простих завдань (до об'єднання
+                      // пікера) інакше зникли б з архіву попри активність.
                       final activityItems = hasFilter
                           ? const Iterable<_ArchiveItem>.empty()
                           : allActivities
                               .where((a) =>
                                   widget.memberId == null || a.memberId == widget.memberId)
-                              .where((a) => a.type == _kActivityTypeRoutine)
                               .map((a) => _ArchiveItem(
                                     kind: _ArchiveKind.routine,
                                     effectiveDate: a.createdAt,
@@ -420,7 +421,7 @@ class _ArchiveCard extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AddAppointmentScreen(memberId: r.memberId, existing: r),
+              builder: (_) => ReminderViewScreen(reminderId: r.id),
             ),
           ),
         );
@@ -436,12 +437,7 @@ class _ArchiveCard extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AddActivityScreen(
-                memberId: a.memberId,
-                existing: a,
-                hideTypePicker: true,
-                compactMode: true,
-              ),
+              builder: (_) => RoutineViewScreen(activityId: a.id),
             ),
           ),
         );

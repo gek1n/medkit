@@ -4,6 +4,7 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
 import '../../features/today/providers/today_providers.dart';
 import '../../shared/widgets/asset_icon.dart';
@@ -69,6 +70,28 @@ class AddTaskScreen extends ConsumerWidget {
     // Розкладі, а не знову на екрані вибору типу.
     Future<void> openType(_TaskType type) async {
       if (resolvedMemberId == null) return;
+
+      if (type == _TaskType.routine) {
+        final limits = ref.read(planProvider).limits;
+        if (limits.maxRoutineTasks != 0) {
+          final count = await ref
+              .read(activitiesRepositoryProvider)
+              .countByMember(resolvedMemberId);
+          if (!context.mounted) return;
+          if (count >= limits.maxRoutineTasks) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EllyDeniedScreen(
+                  title: context.l10n.routineTasksLimitDeniedTitle,
+                  subtitle: context.l10n.routineTasksLimitDeniedSubtitle,
+                ),
+              ),
+            );
+            return;
+          }
+        }
+      }
 
       if (type == _TaskType.note) {
         // Нотатка завжди належить конкретному розділу — спершу пікер

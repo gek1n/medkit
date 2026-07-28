@@ -21,3 +21,15 @@ bool isMemberBlockedByPlan(WidgetRef ref, int? memberId) {
   }
   return false;
 }
+
+/// true, якщо кількість рутинних справ учасника вже перевищує ліміт
+/// поточного плану (напр. підписка злетіла, а рутини понад Free-ліміт
+/// лишились). Такі справи лишаються активними — позначити виконаним/
+/// пропущеним чи видалити все ще можна, редагувати — ні, доки ліміт не
+/// звільниться або план не оновиться. [routineCount] — кількість, яку
+/// викликач вже має завантаженою (щоб не плодити окремий провайдер).
+bool isRoutineOverLimit(WidgetRef ref, int routineCount) {
+  final limits = ref.watch(planProvider).limits;
+  if (limits.maxRoutineTasks == 0) return false;
+  return routineCount > limits.maxRoutineTasks;
+}

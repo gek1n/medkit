@@ -1182,6 +1182,42 @@ class AppLocalizationsEn extends AppLocalizations {
       'So your family can manage it too — upgrade to Elly Family';
 
   @override
+  String get routineTasksLimitBadge => 'Routines';
+
+  @override
+  String get routineTasksLimitTitle => 'Routine tasks limit';
+
+  @override
+  String routineTasksLimitSubtitle(int used, int max) {
+    return 'Used $used of $max. Upgrade to Elly Plus for unlimited';
+  }
+
+  @override
+  String get routineTasksLimitDeniedTitle => 'Routine tasks limit reached';
+
+  @override
+  String get routineTasksLimitDeniedSubtitle =>
+      'The free plan allows only 1 routine task. Upgrade to Elly Plus for an unlimited amount';
+
+  @override
+  String get medcardSectionsLimitBadge => 'Space';
+
+  @override
+  String get medcardSectionsLimitTitle => 'Sections limit';
+
+  @override
+  String medcardSectionsLimitSubtitle(int used, int max) {
+    return 'Used $used of $max. Upgrade to Elly Plus for unlimited';
+  }
+
+  @override
+  String get medcardSectionsLimitDeniedTitle => 'Sections limit reached';
+
+  @override
+  String get medcardSectionsLimitDeniedSubtitle =>
+      'The free plan allows up to 3 Space sections. Upgrade to Elly Plus for an unlimited amount';
+
+  @override
   String leaveGroupConfirmTitle(String name) {
     return 'Leave \"$name\"?';
   }
@@ -1768,6 +1804,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dayOfMonthCapsLabel => 'DAY';
+
+  @override
+  String get routineRepeatSectionLabel => 'Repeat';
+
+  @override
+  String get routineRepeatEveryNDaysOption => 'Every N days';
+
+  @override
+  String get routineRepeatWeeklyGoalOption => 'N times a week';
+
+  @override
+  String routineIntervalDaysValueLabel(int n) {
+    return 'Every $n days';
+  }
+
+  @override
+  String routineWeeklyGoalValueLabel(int n) {
+    return '${n}x/week';
+  }
+
+  @override
+  String get routineTimeFieldLabel => 'Time';
+
+  @override
+  String get routineFixedTimeOption => 'At a set time';
+
+  @override
+  String get routineNoFixedTimeOption => 'Anytime, no set time';
+
+  @override
+  String get routineWhoDoesLabel => 'Who does it';
+
+  @override
+  String get routineRotationCadenceLabel => 'How often the turn changes';
+
+  @override
+  String get routineRotationCadencePerOccurrence => 'Every time';
+
+  @override
+  String get routineRotationCadenceWeekly => 'Weekly';
+
+  @override
+  String get routineRotationCadenceMonthly => 'Monthly';
+
+  @override
+  String routineRotationSummary(int n) {
+    return 'Rotating ($n)';
+  }
+
+  @override
+  String get routineStepsLabel => 'Steps';
+
+  @override
+  String get routineStepsSheetTitle => 'Steps to complete';
+
+  @override
+  String get routineAddStepHint => 'Add a step…';
+
+  @override
+  String routineWhoseTurnLabel(String name) {
+    return 'Turn: $name';
+  }
+
+  @override
+  String get routineSwapTurnAction => 'Swap';
+
+  @override
+  String get routineSkipTurnAction => 'Skip turn';
+
+  @override
+  String routineWeeklyGoalProgressLabel(int done, int total) {
+    return '$done/$total this week';
+  }
+
+  @override
+  String get routinePartialStatusLabel => 'Partial';
+
+  @override
+  String routineStepsProgressLabel(int done, int total) {
+    return '$done/$total steps';
+  }
+
+  @override
+  String get routineAnyTimeTodayLabel => 'Anytime today';
+
+  @override
+  String get routineAllRoutinesScreenTitle => 'Family duties';
+
+  @override
+  String get routineNoAssigneesHint => 'No duties yet';
 
   @override
   String get defaultNotesSectionName => 'Notes';

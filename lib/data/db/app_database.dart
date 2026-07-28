@@ -61,9 +61,11 @@ part 'app_database.g.dart';
   Activities,
   ActivitySlots,
   ActivityLogs,
+  ActivityAssignees,
   DoctorAppointments,
   Reminders,
   ReminderSlots,
+  ReminderLogs,
   SharedChannels,
   LabResults,
   Allergies,
@@ -84,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 35;
+  int get schemaVersion => 37;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -721,6 +723,59 @@ class AppDatabase extends _$AppDatabase {
             // розділ "Нотатки" (isDefaultNotes) замість блокування створення.
             try {
               await m.addColumn(medcardSections, medcardSections.isDefaultNotes);
+            } catch (_) {}
+          }
+          if (from < 36) {
+            // Per-occurrence стан виконання для повторюваних нагадувань —
+            // див. коментар над класом ReminderLogs.
+            try {
+              await m.createTable(reminderLogs);
+            } catch (_) {}
+          }
+          if (from < 37) {
+            // Рутинні справи v2 — гнучкі повтори, сімейна ротація, чек-лист
+            // підкроків, м'який статус partial. Див. коментарі над
+            // Activities/ActivityAssignees/ActivityLogs у activities_table.dart.
+            try {
+              await m.addColumn(activities, activities.repeatType);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.repeatDayOfMonth);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.repeatIntervalDays);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.weeklyGoalCount);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.rotationAnchorDate);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.rotationMode);
+            } catch (_) {}
+            try {
+              await m.addColumn(activities, activities.stepsJson);
+            } catch (_) {}
+            try {
+              await m.createTable(activityAssignees);
+            } catch (_) {}
+            try {
+              await m.addColumn(
+                  activityLogs, activityLogs.completedByMemberId);
+            } catch (_) {}
+            try {
+              await m.addColumn(
+                  activityLogs, activityLogs.completedStepsJson);
+            } catch (_) {}
+            // Існуючі рядки Activities не мають rotationAnchorDate — без
+            // нього формули ротації/everyNDays не мають точки відліку.
+            // Бекфілимо значенням createdAt (== момент створення рутини,
+            // той самий сенс, що заклав би новий запис).
+            try {
+              await customStatement(
+                  'UPDATE activities SET rotation_anchor_date = created_at '
+                  'WHERE rotation_anchor_date IS NULL');
             } catch (_) {}
           }
         },

@@ -65,3 +65,25 @@ class ReminderSlots extends Table {
   // "08:30" — застосовується лише коли Reminders.repeatType == daily/weekly
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
+
+// Стан ВИКОНАННЯ конкретного випадку повторюваного нагадування (daily/
+// weekly/monthly/yearly) — на відміну від Reminders.status (спільний для
+// всієї серії, і має сенс лише для repeatType=='none'). Генерується
+// ReminderLogGenerator при відкритті Сьогодні, за тим самим принципом, що й
+// ActivityLogs/Intakes. Не впливає на саме сповіщення (воно й далі
+// нативно-повторюване, планується один раз при збереженні нагадування) —
+// це суто внутрішньоблог для позначення "зроблено сьогодні"/"пропущено" й
+// коректного відображення кнопок на Сьогодні.
+class ReminderLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get reminderId =>
+      integer().references(Reminders, #id, onDelete: KeyAction.cascade)();
+  IntColumn get memberId =>
+      integer().references(Members, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get scheduledAt => dateTime()();
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+  // pending/done/skipped
+  DateTimeColumn get snoozedUntil => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get syncUuid => text().nullable()();
+}

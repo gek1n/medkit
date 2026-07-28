@@ -16,6 +16,9 @@ class RemindersRepository {
             ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
           .watch();
 
+  Stream<Reminder?> watchById(int id) =>
+      (_db.select(_db.reminders)..where((t) => t.id.equals(id))).watchSingleOrNull();
+
   Stream<List<Reminder>> watchByMember(int memberId) {
     return (_db.select(_db.reminders)
           ..where((t) => t.memberId.equals(memberId))
@@ -59,79 +62,73 @@ class RemindersRepository {
         .watch();
   }
 
+  // Час(и) спрацювання КОНКРЕТНОГО нагадування у вказаний день, або
+  // порожній список, якщо воно неактивне цього дня — єдине джерело правди
+  // для watchActiveOnDate (показ на Сьогодні/Розкладі) і
+  // ReminderLogGenerator (per-occurrence лог виконання), щоб їхня логіка
+  // не розходилась.
+  Future<List<DateTime>> occurrencesOnDate(Reminder r, DateTime date) async {
+    final dayStart = DateTime(date.year, date.month, date.day);
+    final anchorDay =
+        DateTime(r.scheduledAt.year, r.scheduledAt.month, r.scheduledAt.day);
+    switch (r.repeatType) {
+      case 'daily':
+        if (anchorDay.isAfter(dayStart)) return const [];
+        final slots = await getSlotsForReminder(r.id);
+        if (slots.isEmpty) return [dayStart];
+        return slots.map((s) => _atTimeOfDay(dayStart, s.timeOfDay)).toList();
+      case 'weekly':
+        if (anchorDay.isAfter(dayStart)) return const [];
+        var days = <int>{};
+        try {
+          final cfg = jsonDecode(r.repeatConfig) as Map<String, dynamic>;
+          days = Set<int>.from(cfg['days'] as List);
+        } catch (_) {}
+        if (!days.contains(date.weekday)) return const [];
+        final slots = await getSlotsForReminder(r.id);
+        if (slots.isEmpty) return [dayStart];
+        return slots.map((s) => _atTimeOfDay(dayStart, s.timeOfDay)).toList();
+      case 'yearly':
+        if (r.scheduledAt.month != date.month || r.scheduledAt.day != date.day) {
+          return const [];
+        }
+        return [
+          DateTime(date.year, date.month, date.day, r.scheduledAt.hour,
+              r.scheduledAt.minute)
+        ];
+      case 'monthly':
+        // scheduledAt.month завжди зафіксовано на січні (форма зберігає
+        // якір саме так — див. AddAppointmentScreen), тож тут важливий
+        // лише .day; для коротших місяців (напр. 31 у лютому) день
+        // клемпиться до останнього дня місяця — так само, як і в
+        // NotificationService.scheduleMonthlyReminder.
+        final daysInTargetMonth = DateTime(date.year, date.month + 1, 0).day;
+        final targetDay = r.scheduledAt.day > daysInTargetMonth
+            ? daysInTargetMonth
+            : r.scheduledAt.day;
+        if (date.day != targetDay) return const [];
+        return [
+          DateTime(date.year, date.month, date.day, r.scheduledAt.hour,
+              r.scheduledAt.minute)
+        ];
+      default:
+        return anchorDay == dayStart ? [r.scheduledAt] : const [];
+    }
+  }
+
   // Нагадування, що фактично "спрацьовують" у вказаний день — на відміну
   // від watchByDate (буквальний збіг дати), тут враховуються daily/weekly/
-  // yearly повтори: scheduledAt для них лише якір (дата створення/перший
-  // випадок), а не дата конкретного дня. Мультислотові daily/weekly
+  // monthly/yearly повтори (occurrencesOnDate). Мультислотові daily/weekly
   // розгортаються в окремий Reminder-об'єкт (copyWith) на кожен час —
   // scheduledAt кожної копії підмінюється на реальний час ЦЬОГО дня, щоб
   // існуючий UI (сортування/класифікація за scheduledAt) працював без змін.
   Stream<List<Reminder>> watchActiveOnDate(int memberId, DateTime date) {
-    final dayStart = DateTime(date.year, date.month, date.day);
     return watchByMember(memberId).asyncMap((reminders) async {
       final result = <Reminder>[];
       for (final r in reminders) {
-        final anchorDay =
-            DateTime(r.scheduledAt.year, r.scheduledAt.month, r.scheduledAt.day);
-        switch (r.repeatType) {
-          case 'daily':
-            if (anchorDay.isAfter(dayStart)) continue;
-            final slots = await getSlotsForReminder(r.id);
-            if (slots.isEmpty) {
-              result.add(r.copyWith(scheduledAt: dayStart));
-            } else {
-              for (final s in slots) {
-                result.add(r.copyWith(
-                    scheduledAt: _atTimeOfDay(dayStart, s.timeOfDay)));
-              }
-            }
-            break;
-          case 'weekly':
-            if (anchorDay.isAfter(dayStart)) continue;
-            var days = <int>{};
-            try {
-              final cfg = jsonDecode(r.repeatConfig) as Map<String, dynamic>;
-              days = Set<int>.from(cfg['days'] as List);
-            } catch (_) {}
-            if (!days.contains(date.weekday)) continue;
-            final slots = await getSlotsForReminder(r.id);
-            if (slots.isEmpty) {
-              result.add(r.copyWith(scheduledAt: dayStart));
-            } else {
-              for (final s in slots) {
-                result.add(r.copyWith(
-                    scheduledAt: _atTimeOfDay(dayStart, s.timeOfDay)));
-              }
-            }
-            break;
-          case 'yearly':
-            if (r.scheduledAt.month != date.month ||
-                r.scheduledAt.day != date.day) {
-              continue;
-            }
-            result.add(r.copyWith(
-              scheduledAt: DateTime(date.year, date.month, date.day,
-                  r.scheduledAt.hour, r.scheduledAt.minute),
-            ));
-            break;
-          case 'monthly':
-            // scheduledAt.month завжди зафіксовано на січні (форма зберігає
-            // якір саме так — див. AddAppointmentScreen), тож тут важливий
-            // лише .day; для коротших місяців (напр. 31 у лютому) день
-            // клемпиться до останнього дня місяця — так само, як і в
-            // NotificationService.scheduleMonthlyReminder.
-            final daysInTargetMonth = DateTime(date.year, date.month + 1, 0).day;
-            final targetDay = r.scheduledAt.day > daysInTargetMonth
-                ? daysInTargetMonth
-                : r.scheduledAt.day;
-            if (date.day != targetDay) continue;
-            result.add(r.copyWith(
-              scheduledAt: DateTime(date.year, date.month, date.day,
-                  r.scheduledAt.hour, r.scheduledAt.minute),
-            ));
-            break;
-          default:
-            if (anchorDay == dayStart) result.add(r);
+        final occurrences = await occurrencesOnDate(r, date);
+        for (final at in occurrences) {
+          result.add(r.copyWith(scheduledAt: at));
         }
       }
       result.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
@@ -230,6 +227,52 @@ class RemindersRepository {
       );
     }
   }
+
+  // ── ReminderLogs: per-occurrence виконання для daily/weekly/monthly/
+  // yearly (репетувані serії) — окремо від Reminders.status, який має сенс
+  // лише для repeatType=='none'. Не чіпає саме сповіщення (воно нативно-
+  // повторюване, планується один раз при збереженні) — лише позначає
+  // "зроблено/пропущено сьогодні" для відображення на Сьогодні.
+
+  Stream<List<ReminderLog>> watchLogsByMemberAndDate(
+    int memberId,
+    DateTime date,
+  ) {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+    return (_db.select(_db.reminderLogs)
+          ..where((t) =>
+              t.memberId.equals(memberId) &
+              t.scheduledAt.isBiggerOrEqualValue(start) &
+              t.scheduledAt.isSmallerThanValue(end))
+          ..orderBy([(t) => OrderingTerm.asc(t.scheduledAt)]))
+        .watch();
+  }
+
+  Future<void> markLogDone(int logId) => (_db.update(_db.reminderLogs)
+        ..where((t) => t.id.equals(logId)))
+      .write(ReminderLogsCompanion(
+        status: const Value('done'),
+        updatedAt: Value(DateTime.now()),
+      ));
+
+  Future<void> markLogSkipped(int logId) => (_db.update(_db.reminderLogs)
+        ..where((t) => t.id.equals(logId)))
+      .write(ReminderLogsCompanion(
+        status: const Value('skipped'),
+        updatedAt: Value(DateTime.now()),
+      ));
+
+  // Лише переносить відображення на Сьогодні (сам натив-повторюваний алярм
+  // ОС не можна перепланувати для "тільки цього випадку" — див. коментар
+  // над ReminderLogs) — тому snoozedUntil суто локальний UI-стан.
+  Future<void> snoozeLog(int logId, DateTime until) =>
+      (_db.update(_db.reminderLogs)..where((t) => t.id.equals(logId))).write(
+        ReminderLogsCompanion(
+          snoozedUntil: Value(until),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
 }
 
 final remindersRepositoryProvider =

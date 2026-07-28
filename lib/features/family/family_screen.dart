@@ -20,11 +20,13 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../plans/elly_denied_screen.dart';
 import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
+import 'family_duties_screen.dart';
 import 'family_group_invite_screen.dart';
 import 'family_group_join_screen.dart';
 import 'shared_family_data_screen.dart';
@@ -144,6 +146,8 @@ class _FamilyBody extends ConsumerWidget {
               if (!blocked) const _AddMemberTile(),
               const SizedBox(height: AppDimensions.xl),
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
+              const SizedBox(height: AppDimensions.md),
+              _FamilyDutiesTile(),
               const SizedBox(height: AppDimensions.xl),
               _FamilyGroupSection(ownerFamilyId: owner.familyId),
               const SizedBox(height: 100),
@@ -671,6 +675,48 @@ class _CareSummaryCard extends StatelessWidget {
   }
 }
 
+// ── Family duties tile ──────────────────────────────────────────────────────
+
+class _FamilyDutiesTile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FamilyDutiesScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppDimensions.md),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+              ),
+              child: const Icon(Icons.sync_rounded, color: AppColors.primary),
+            ),
+            const SizedBox(width: AppDimensions.md),
+            Expanded(
+              child: Text(context.l10n.routineAllRoutinesScreenTitle,
+                  style: AppTextStyles.labelLg),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Add member tile ───────────────────────────────────────────────────────────
 
 class _AddMemberTile extends StatelessWidget {
@@ -736,78 +782,12 @@ class _FamilyUpgradeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badgeText = badge ?? context.l10n.familyLabel;
-    final titleText = title ?? context.l10n.profileLimitReachedTitle;
-    final subtitleText = subtitle ?? context.l10n.profileLimitReachedSubtitle;
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PlansScreen()),
-      ),
-      child: Container(
-        width: double.infinity,
-        clipBehavior: Clip.hardEdge,
-        constraints: const BoxConstraints(minHeight: 110),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF4C9A6A), Color(0xFF3B7A56)],
-          ),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -10,
-              bottom: 0,
-              child: Image.asset('assets/illustrations/family.png',
-                  height: 92, fit: BoxFit.contain),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.family_restroom_rounded,
-                            size: 12, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text(badgeText,
-                            style: AppTextStyles.bodySm.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(titleText,
-                      style: AppTextStyles.labelLg.copyWith(
-                          color: Colors.white, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 3),
-                  SizedBox(
-                    width: 190,
-                    child: Text(subtitleText,
-                        style: AppTextStyles.bodySm.copyWith(
-                            color: Colors.white.withValues(alpha: 0.85))),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return PlanUpgradeBanner(
+      badgeIcon: Icons.family_restroom_rounded,
+      badge: badge ?? context.l10n.familyLabel,
+      title: title ?? context.l10n.profileLimitReachedTitle,
+      subtitle: subtitle ?? context.l10n.profileLimitReachedSubtitle,
+      illustrationAsset: 'assets/illustrations/family.png',
     );
   }
 }

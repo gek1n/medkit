@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -10,6 +11,7 @@ import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
 import '../../features/medcard/add_medcard_section_screen.dart';
+import '../../features/plans/elly_denied_screen.dart';
 import 'field_sheet.dart';
 
 // Сентинел "явно обрано Без простору" — відрізняється від null (шторку
@@ -44,7 +46,19 @@ class _SpacePickerSheet extends ConsumerWidget {
   final int? current;
   const _SpacePickerSheet({required this.memberId, required this.current});
 
-  Future<void> _createNew(BuildContext context) async {
+  Future<void> _createNew(BuildContext context, bool limitReached) async {
+    if (limitReached) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EllyDeniedScreen(
+            title: context.l10n.medcardSectionsLimitDeniedTitle,
+            subtitle: context.l10n.medcardSectionsLimitDeniedSubtitle,
+          ),
+        ),
+      );
+      return;
+    }
     final newId = await Navigator.push<int?>(
       context,
       MaterialPageRoute(
@@ -57,6 +71,10 @@ class _SpacePickerSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(_sectionsProvider(memberId));
+    final limits = ref.watch(planProvider).limits;
+    final sectionsCount = sectionsAsync.valueOrNull?.length ?? 0;
+    final limitReached = limits.maxMedcardSections != 0 &&
+        sectionsCount >= limits.maxMedcardSections;
 
     return SafeArea(
       child: Padding(
@@ -146,7 +164,7 @@ class _SpacePickerSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             GestureDetector(
-              onTap: () => _createNew(context),
+              onTap: () => _createNew(context, limitReached),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(

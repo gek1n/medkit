@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -9,9 +10,12 @@ import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
+import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
+import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
 import 'add_medcard_section_screen.dart';
@@ -68,7 +72,15 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
               showSwitchBanner: showBanner,
               members: members,
               selected: selected,
-              onMemberChanged: (id) => setState(() => _selectedMemberId = id),
+              onMemberChanged: (id) {
+                setState(() => _selectedMemberId = id);
+                // Пишемо і в глобальний activeMemberIdProvider — інакше вибір
+                // діє лише на цьому екрані й злітає при переході на інші
+                // вкладки (Сьогодні/Розклад). Вибір власного профілю в пікері
+                // рівнозначний натисканню "Повернутись".
+                ref.read(activeMemberIdProvider.notifier).state =
+                    id == defaultMember.id ? null : id;
+              },
             );
           },
         ),
@@ -96,6 +108,10 @@ class _MedCardBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(_medcardSectionsProvider(memberId));
+    final limits = ref.watch(planProvider).limits;
+    final sectionsCount = sectionsAsync.valueOrNull?.length ?? 0;
+    final sectionsLimitReached = limits.maxMedcardSections != 0 &&
+        sectionsCount >= limits.maxMedcardSections;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,6 +147,7 @@ class _MedCardBody extends ConsumerWidget {
             children: [
               _MedCardTile(
                 icon: Icons.medication_liquid_rounded,
+                iconWidget: const AssetIcon('task_meds', size: 22),
                 iconColor: AppColors.primary,
                 title: context.l10n.medCardArchiveTitle,
                 subtitle: context.l10n.medCardArchiveSubtitle,
@@ -144,6 +161,7 @@ class _MedCardBody extends ConsumerWidget {
               const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
                 icon: Icons.event_note_rounded,
+                iconWidget: const AssetIcon('task_reminder', size: 22),
                 iconColor: AppColors.primary,
                 title: context.l10n.medCardAppointmentsTitle,
                 subtitle: context.l10n.medCardAppointmentsSubtitle,
@@ -157,6 +175,7 @@ class _MedCardBody extends ConsumerWidget {
               const SizedBox(height: AppDimensions.sm),
               _MedCardTile(
                 icon: Icons.mood_rounded,
+                iconWidget: const AssetIcon('task_wellbeing', size: 22),
                 iconColor: AppColors.primary,
                 title: context.l10n.medCardWellbeingHistoryTitle,
                 subtitle: context.l10n.medCardWellbeingHistorySubtitle,
@@ -215,13 +234,39 @@ class _MedCardBody extends ConsumerWidget {
               ),
 
               const SizedBox(height: AppDimensions.lg),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddMedcardSectionScreen(memberId: memberId),
-                  ),
+              if (limits.maxMedcardSections != 0) ...[
+                PlanUpgradeBanner(
+                  badgeIcon: Icons.folder_rounded,
+                  badge: context.l10n.medcardSectionsLimitBadge,
+                  title: context.l10n.medcardSectionsLimitTitle,
+                  subtitle: context.l10n.medcardSectionsLimitSubtitle(
+                      sectionsCount, limits.maxMedcardSections),
+                  illustrationAsset: 'assets/illustrations/elly-docs.png',
                 ),
+                const SizedBox(height: AppDimensions.md),
+              ],
+              GestureDetector(
+                onTap: () {
+                  if (sectionsLimitReached) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EllyDeniedScreen(
+                          title: context.l10n.medcardSectionsLimitDeniedTitle,
+                          subtitle:
+                              context.l10n.medcardSectionsLimitDeniedSubtitle,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddMedcardSectionScreen(memberId: memberId),
+                    ),
+                  );
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(

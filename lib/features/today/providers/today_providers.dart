@@ -8,6 +8,7 @@ import '../../../data/repositories/reminders_repository.dart';
 import '../../../data/repositories/wellbeing_repository.dart';
 import '../../../core/services/intake_generator.dart';
 import '../../../core/services/activity_log_generator.dart';
+import '../../../core/services/reminder_log_generator.dart';
 
 // Активний профіль (null = власник за замовчуванням)
 final activeMemberIdProvider = StateProvider<int?>((_) => null);
@@ -116,6 +117,11 @@ final generateTodayActivityLogsProvider = FutureProvider<void>((ref) async {
   await ref.watch(activityLogGeneratorProvider).generateForDay(DateTime.now());
 });
 
+// Генерація per-occurrence логів повторюваних нагадувань при відкритті екрану
+final generateTodayReminderLogsProvider = FutureProvider<void>((ref) async {
+  await ref.watch(reminderLogGeneratorProvider).generateForDay(DateTime.now());
+});
+
 // Активні ліки члена сім'ї (для відображення фото та деталей)
 final todayMedicationsProvider =
     StreamProvider.family<List<Medication>, int>((ref, memberId) {
@@ -161,4 +167,14 @@ final todayAppointmentsProvider =
   return ref
       .watch(remindersRepositoryProvider)
       .watchActiveOnDate(memberId, DateTime.now());
+});
+
+// Per-occurrence логи повторюваних нагадувань на сьогодні (для реальних
+// кнопок Виконати/Пропустити/Перенести замість інфо-чипа — repeatType !=
+// 'none' лише, 'none' і далі керується напряму через Reminders.status).
+final todayReminderLogsProvider =
+    StreamProvider.family<List<ReminderLog>, int>((ref, memberId) {
+  return ref
+      .watch(remindersRepositoryProvider)
+      .watchLogsByMemberAndDate(memberId, DateTime.now());
 });

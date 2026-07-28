@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -17,12 +18,16 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
+import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_activity_screen.dart';
 import '../add/add_task_screen.dart';
+import '../add/routine_view_screen.dart';
 import '../appointments/add_appointment_screen.dart';
+import '../appointments/reminder_view_screen.dart';
 import '../medications/add_medication_screen.dart';
+import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart' show activeMemberIdProvider;
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
@@ -78,6 +83,16 @@ extension on _ScheduleCategory {
         _ScheduleCategory.wellbeing => Icons.favorite_rounded,
       };
 
+  // "Всі" не має власного task_*-асета (це не окремий тип, а перемикач
+  // показу всіх одразу) — лишається на Material-іконці.
+  String? get assetKey => switch (this) {
+        _ScheduleCategory.all => null,
+        _ScheduleCategory.meds => 'task_meds',
+        _ScheduleCategory.reminders => 'task_reminder',
+        _ScheduleCategory.routine => 'task_routine',
+        _ScheduleCategory.wellbeing => 'task_wellbeing',
+      };
+
   String label(BuildContext context) => switch (this) {
         _ScheduleCategory.all => context.l10n.categoryAll,
         _ScheduleCategory.meds => context.l10n.categoryMeds,
@@ -129,10 +144,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             return const _EmptyMembers();
           }
           final memberId = _selectedMemberId ?? activeId ?? members.first.id;
+          final owner = members.firstWhere((m) => m.role == 'owner',
+              orElse: () => members.first);
           return _ScheduleBody(
             members: members,
             selectedMemberId: memberId,
-            onMemberChanged: (id) => setState(() => _selectedMemberId = id),
+            onMemberChanged: (id) {
+              setState(() => _selectedMemberId = id);
+              // Пишемо і в глобальний activeMemberIdProvider — інакше вибір
+              // діє лише на цьому екрані й злітає при переході на інші
+              // вкладки (Сьогодні/Медкартка). Вибір власного профілю в
+              // пікері рівнозначний натисканню "Повернутись".
+              ref.read(activeMemberIdProvider.notifier).state =
+                  id == owner.id ? null : id;
+            },
             category: _category,
             onCategoryChanged: (c) => setState(() => _category = c),
             search: _search,
@@ -171,6 +196,36 @@ class _ScheduleBody extends ConsumerWidget {
     final activitiesAsync = ref.watch(_scheduleActivitiesProvider(selectedMemberId));
     final appointmentsAsync = ref.watch(_scheduleAppointmentsProvider(selectedMemberId));
     final wellbeingScheduleAsync = ref.watch(_scheduleWellbeingScheduleProvider(selectedMemberId));
+    final limits = ref.watch(planProvider).limits;
+    final routineCount = activitiesAsync.valueOrNull?.length ?? 0;
+    final routineLimitReached =
+        limits.maxRoutineTasks != 0 && routineCount >= limits.maxRoutineTasks;
+
+    void openAddRoutine() {
+      if (routineLimitReached) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EllyDeniedScreen(
+              title: context.l10n.routineTasksLimitDeniedTitle,
+              subtitle: context.l10n.routineTasksLimitDeniedSubtitle,
+            ),
+          ),
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddActivityScreen(
+            memberId: selectedMemberId,
+            hideTypePicker: true,
+            forcedType: _kActivityTypeRoutine,
+            compactMode: true,
+          ),
+        ),
+      );
+    }
 
     final member = members.firstWhere(
       (m) => m.id == selectedMemberId,
@@ -279,6 +334,7 @@ class _ScheduleBody extends ConsumerWidget {
                     category == _ScheduleCategory.meds) ...[
                   _SectionHeader(
                     icon: Icons.medication_rounded,
+                    iconWidget: const AssetIcon('task_meds', size: 22),
                     title: context.l10n.sectionMeds,
                     onAdd: () => Navigator.push(
                       context,
@@ -333,6 +389,7 @@ class _ScheduleBody extends ConsumerWidget {
                     category == _ScheduleCategory.reminders) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
+                    iconWidget: const AssetIcon('task_reminder', size: 22),
                     title: context.l10n.reminderCategoryTitle,
                     onAdd: () => Navigator.push(
                       context,
@@ -367,10 +424,8 @@ class _ScheduleBody extends ConsumerWidget {
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => AddAppointmentScreen(
-                                          memberId: selectedMemberId,
-                                          existing: a,
-                                        ),
+                                        builder: (_) =>
+                                            ReminderViewScreen(reminderId: a.id),
                                       ),
                                     ),
                                     child: _AppointmentCard(appointment: a),
@@ -387,41 +442,27 @@ class _ScheduleBody extends ConsumerWidget {
                     category == _ScheduleCategory.routine) ...[
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
+                    iconWidget: const AssetIcon('task_routine', size: 22),
                     title: context.l10n.taskTypeRoutine,
-                    onAdd: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddActivityScreen(
-                          memberId: selectedMemberId,
-                          hideTypePicker: true,
-                          forcedType: _kActivityTypeRoutine,
-                          compactMode: true,
-                        ),
-                      ),
-                    ),
+                    onAdd: openAddRoutine,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
                     loading: () => const _SectionLoading(),
                     error: (e, _) => Text(context.l10n.errorGeneric('$e')),
                     data: (activities) {
-                      final routine = activities
-                          .where((a) => a.type == _kActivityTypeRoutine)
-                          .toList();
+                      // Усі isActive-активності — не лише type=='routine'.
+                      // Старі записи Спорту/Простих завдань (типи
+                      // general_sport/simple_task, створені до об'єднання
+                      // пікера) досі можуть існувати в БД — без цього вони
+                      // "губились" би: не мають власної секції жодного
+                      // категорійного фільтра, тож ставали невидимими в
+                      // Розкладі попри isActive=true.
+                      final routine = activities;
                       if (routine.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noRoutineTasksHint,
-                          onAdd: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddActivityScreen(
-                                memberId: selectedMemberId,
-                                hideTypePicker: true,
-                                forcedType: _kActivityTypeRoutine,
-                                compactMode: true,
-                              ),
-                            ),
-                          ),
+                          onAdd: openAddRoutine,
                         );
                       }
                       return Column(
@@ -432,12 +473,8 @@ class _ScheduleBody extends ConsumerWidget {
                                     onTap: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => AddActivityScreen(
-                                          memberId: selectedMemberId,
-                                          existing: a,
-                                          hideTypePicker: true,
-                                          compactMode: true,
-                                        ),
+                                        builder: (_) =>
+                                            RoutineViewScreen(activityId: a.id),
                                       ),
                                     ),
                                     child: _ActivityCard(activity: a),
@@ -447,6 +484,17 @@ class _ScheduleBody extends ConsumerWidget {
                       );
                     },
                   ),
+                  if (limits.maxRoutineTasks != 0) ...[
+                    const SizedBox(height: AppDimensions.md),
+                    PlanUpgradeBanner(
+                      badgeIcon: Icons.home_repair_service_rounded,
+                      badge: context.l10n.routineTasksLimitBadge,
+                      title: context.l10n.routineTasksLimitTitle,
+                      subtitle: context.l10n.routineTasksLimitSubtitle(
+                          routineCount, limits.maxRoutineTasks),
+                      illustrationAsset: 'assets/illustrations/elly-calendar.png',
+                    ),
+                  ],
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
@@ -454,6 +502,7 @@ class _ScheduleBody extends ConsumerWidget {
                     category == _ScheduleCategory.wellbeing) ...[
                   _SectionHeader(
                     icon: Icons.favorite_rounded,
+                    iconWidget: const AssetIcon('task_wellbeing', size: 22),
                     title: context.l10n.sectionWellbeing,
                     onAdd: () => Navigator.push(
                       context,
@@ -518,7 +567,11 @@ class _ScheduleBody extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (meds.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.medication_rounded, title: context.l10n.sectionMeds),
+                        _SectionHeader(
+                          icon: Icons.medication_rounded,
+                          iconWidget: const AssetIcon('task_meds', size: 22),
+                          title: context.l10n.sectionMeds,
+                        ),
                         const SizedBox(height: AppDimensions.md),
                         ...meds.map((m) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -538,7 +591,11 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (activities.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.directions_walk_rounded, title: context.l10n.sectionActivities),
+                        _SectionHeader(
+                          icon: Icons.home_repair_service_rounded,
+                          iconWidget: const AssetIcon('task_routine', size: 22),
+                          title: context.l10n.sectionActivities,
+                        ),
                         const SizedBox(height: AppDimensions.md),
                         ...activities.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -546,12 +603,8 @@ class _ScheduleBody extends ConsumerWidget {
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => AddActivityScreen(
-                                      memberId: selectedMemberId,
-                                      existing: a,
-                                      hideTypePicker: true,
-                                      compactMode: true,
-                                    ),
+                                    builder: (_) =>
+                                        RoutineViewScreen(activityId: a.id),
                                   ),
                                 ),
                                 child: _ActivityCard(activity: a),
@@ -560,7 +613,11 @@ class _ScheduleBody extends ConsumerWidget {
                         const SizedBox(height: AppDimensions.xl),
                       ],
                       if (appointments.isNotEmpty) ...[
-                        _SectionHeader(icon: Icons.notifications_rounded, title: context.l10n.sectionAppointments),
+                        _SectionHeader(
+                          icon: Icons.notifications_rounded,
+                          iconWidget: const AssetIcon('task_reminder', size: 22),
+                          title: context.l10n.sectionAppointments,
+                        ),
                         const SizedBox(height: AppDimensions.md),
                         ...appointments.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
@@ -568,10 +625,8 @@ class _ScheduleBody extends ConsumerWidget {
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => AddAppointmentScreen(
-                                      memberId: selectedMemberId,
-                                      existing: a,
-                                    ),
+                                    builder: (_) =>
+                                        ReminderViewScreen(reminderId: a.id),
                                   ),
                                 ),
                                 child: _AppointmentCard(appointment: a),
@@ -628,9 +683,11 @@ class _CategoryChipsRow extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(c.icon,
-                      size: 16,
-                      color: active ? Colors.white : AppColors.textSub),
+                  c.assetKey != null
+                      ? AssetIcon(c.assetKey!, size: 20)
+                      : Icon(c.icon,
+                          size: 16,
+                          color: active ? Colors.white : AppColors.textSub),
                   const SizedBox(width: 6),
                   Text(
                     c.label(context),
@@ -737,14 +794,20 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback? onAdd;
+  final Widget? iconWidget;
 
-  const _SectionHeader({required this.icon, required this.title, this.onAdd});
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    this.onAdd,
+    this.iconWidget,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
+        iconWidget ?? Icon(icon, size: 18, color: AppColors.primary),
         const SizedBox(width: 8),
         Expanded(child: SectionLabel(title)),
         if (onAdd != null)
@@ -956,6 +1019,9 @@ class _ActivityCard extends StatelessWidget {
     return _TaskCardShell(
       color: color,
       icon: _typeIcon(activity.type),
+      iconWidget: activity.type == _kActivityTypeRoutine
+          ? const AssetIcon('task_routine', size: 26)
+          : null,
       title: activity.name,
       subtitle:
           '${context.l10n.durationMinutes(activity.durationMin)} · ${_daysStr(context, activity.repeatDays)}',
@@ -1103,6 +1169,7 @@ class _WellbeingScheduleCard extends StatelessWidget {
     return _TaskCardShell(
       color: color,
       icon: Icons.favorite_rounded,
+      iconWidget: const AssetIcon('task_wellbeing', size: 26),
       title: freqStr,
       subtitle: timesStr,
     );

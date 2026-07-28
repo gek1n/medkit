@@ -2134,6 +2134,66 @@ abstract class AppLocalizations {
   /// **'Щоб сім\'я теж могла керувати — перейдіть на Elly Family'**
   String get familyUpgradeSubtitle;
 
+  /// No description provided for @routineTasksLimitBadge.
+  ///
+  /// In uk, this message translates to:
+  /// **'Рутинні справи'**
+  String get routineTasksLimitBadge;
+
+  /// No description provided for @routineTasksLimitTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ліміт рутинних справ'**
+  String get routineTasksLimitTitle;
+
+  /// No description provided for @routineTasksLimitSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість'**
+  String routineTasksLimitSubtitle(int used, int max);
+
+  /// No description provided for @routineTasksLimitDeniedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ліміт рутинних справ досягнуто'**
+  String get routineTasksLimitDeniedTitle;
+
+  /// No description provided for @routineTasksLimitDeniedSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'На безкоштовному тарифі доступна лише 1 рутинна справа. Перейдіть на Elly Plus для необмеженої кількості'**
+  String get routineTasksLimitDeniedSubtitle;
+
+  /// No description provided for @medcardSectionsLimitBadge.
+  ///
+  /// In uk, this message translates to:
+  /// **'Простір'**
+  String get medcardSectionsLimitBadge;
+
+  /// No description provided for @medcardSectionsLimitTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ліміт розділів Простору'**
+  String get medcardSectionsLimitTitle;
+
+  /// No description provided for @medcardSectionsLimitSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість'**
+  String medcardSectionsLimitSubtitle(int used, int max);
+
+  /// No description provided for @medcardSectionsLimitDeniedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ліміт розділів досягнуто'**
+  String get medcardSectionsLimitDeniedTitle;
+
+  /// No description provided for @medcardSectionsLimitDeniedSubtitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'На безкоштовному тарифі доступно до 3 розділів Простору. Перейдіть на Elly Plus для необмеженої кількості'**
+  String get medcardSectionsLimitDeniedSubtitle;
+
   /// No description provided for @leaveGroupConfirmTitle.
   ///
   /// In uk, this message translates to:
@@ -3189,6 +3249,162 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'ДЕНЬ'**
   String get dayOfMonthCapsLabel;
+
+  /// No description provided for @routineRepeatSectionLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Повторення'**
+  String get routineRepeatSectionLabel;
+
+  /// No description provided for @routineRepeatEveryNDaysOption.
+  ///
+  /// In uk, this message translates to:
+  /// **'Кожні N днів'**
+  String get routineRepeatEveryNDaysOption;
+
+  /// No description provided for @routineRepeatWeeklyGoalOption.
+  ///
+  /// In uk, this message translates to:
+  /// **'N разів на тиждень'**
+  String get routineRepeatWeeklyGoalOption;
+
+  /// No description provided for @routineIntervalDaysValueLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Кожні {n} дн.'**
+  String routineIntervalDaysValueLabel(int n);
+
+  /// No description provided for @routineWeeklyGoalValueLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'{n} р./тиждень'**
+  String routineWeeklyGoalValueLabel(int n);
+
+  /// No description provided for @routineTimeFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Час'**
+  String get routineTimeFieldLabel;
+
+  /// No description provided for @routineFixedTimeOption.
+  ///
+  /// In uk, this message translates to:
+  /// **'У певний час'**
+  String get routineFixedTimeOption;
+
+  /// No description provided for @routineNoFixedTimeOption.
+  ///
+  /// In uk, this message translates to:
+  /// **'Без конкретного часу'**
+  String get routineNoFixedTimeOption;
+
+  /// No description provided for @routineWhoDoesLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Хто виконує'**
+  String get routineWhoDoesLabel;
+
+  /// No description provided for @routineRotationCadenceLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Як часто змінюється черга'**
+  String get routineRotationCadenceLabel;
+
+  /// No description provided for @routineRotationCadencePerOccurrence.
+  ///
+  /// In uk, this message translates to:
+  /// **'Кожного разу'**
+  String get routineRotationCadencePerOccurrence;
+
+  /// No description provided for @routineRotationCadenceWeekly.
+  ///
+  /// In uk, this message translates to:
+  /// **'Щотижня'**
+  String get routineRotationCadenceWeekly;
+
+  /// No description provided for @routineRotationCadenceMonthly.
+  ///
+  /// In uk, this message translates to:
+  /// **'Щомісяця'**
+  String get routineRotationCadenceMonthly;
+
+  /// No description provided for @routineRotationSummary.
+  ///
+  /// In uk, this message translates to:
+  /// **'По черзі ({n})'**
+  String routineRotationSummary(int n);
+
+  /// No description provided for @routineStepsLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Кроки'**
+  String get routineStepsLabel;
+
+  /// No description provided for @routineStepsSheetTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Кроки виконання'**
+  String get routineStepsSheetTitle;
+
+  /// No description provided for @routineAddStepHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додати крок…'**
+  String get routineAddStepHint;
+
+  /// No description provided for @routineWhoseTurnLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Черга: {name}'**
+  String routineWhoseTurnLabel(String name);
+
+  /// No description provided for @routineSwapTurnAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поміняти'**
+  String get routineSwapTurnAction;
+
+  /// No description provided for @routineSkipTurnAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Пропустити чергу'**
+  String get routineSkipTurnAction;
+
+  /// No description provided for @routineWeeklyGoalProgressLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'{done}/{total} цього тижня'**
+  String routineWeeklyGoalProgressLabel(int done, int total);
+
+  /// No description provided for @routinePartialStatusLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Частково'**
+  String get routinePartialStatusLabel;
+
+  /// No description provided for @routineStepsProgressLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'{done}/{total} кроків'**
+  String routineStepsProgressLabel(int done, int total);
+
+  /// No description provided for @routineAnyTimeTodayLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Будь-коли сьогодні'**
+  String get routineAnyTimeTodayLabel;
+
+  /// No description provided for @routineAllRoutinesScreenTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Обов\'язки сім\'ї'**
+  String get routineAllRoutinesScreenTitle;
+
+  /// No description provided for @routineNoAssigneesHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ще немає обов\'язків'**
+  String get routineNoAssigneesHint;
 
   /// No description provided for @defaultNotesSectionName.
   ///
