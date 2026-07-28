@@ -139,7 +139,7 @@ abstract class AppLocalizations {
   /// No description provided for @navMedCard.
   ///
   /// In uk, this message translates to:
-  /// **'Архів'**
+  /// **'Простір'**
   String get navMedCard;
 
   /// No description provided for @todayProgressTitle.
@@ -721,7 +721,7 @@ abstract class AppLocalizations {
   /// No description provided for @medCardTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Архів'**
+  /// **'Простір'**
   String get medCardTitle;
 
   /// No description provided for @medCardArchiveTitle.
@@ -739,13 +739,13 @@ abstract class AppLocalizations {
   /// No description provided for @medCardAppointmentsTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Нагадування'**
+  /// **'Архів нагадувань'**
   String get medCardAppointmentsTitle;
 
   /// No description provided for @medCardAppointmentsSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Записи обраного профілю'**
+  /// **'Зустрічі, прості завдання, рутинні справи'**
   String get medCardAppointmentsSubtitle;
 
   /// No description provided for @medCardWellbeingHistoryTitle.
@@ -2887,7 +2887,7 @@ abstract class AppLocalizations {
   /// No description provided for @appointmentsHistoryTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Нагадування'**
+  /// **'Архів нагадувань'**
   String get appointmentsHistoryTitle;
 
   /// No description provided for @sectionFuture.

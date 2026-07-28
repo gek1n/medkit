@@ -13,9 +13,9 @@ import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
 import '../../shared/widgets/documents_section.dart';
+import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
-import '../../shared/widgets/more_details_accordion.dart';
 import '../../shared/widgets/tags_field.dart';
 import '../plans/elly_denied_screen.dart';
 
@@ -204,52 +204,84 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
-                    MkFieldLabel(context.l10n.entryDateFieldLabel),
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: _pickDate,
-                      child: MkTapField(
-                        value: _formatDate(_recordDate),
-                        filled: true,
-                        onTap: _pickDate,
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    MkFieldLabel(context.l10n.noteSingularLabel),
-                    const SizedBox(height: 6),
-                    MkTextField(
-                      controller: _notesController,
-                      maxLines: 4,
-                      hint: context.l10n.entryNotesHint,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    MkFieldLabel(context.l10n.reminderTagsFieldLabel),
-                    const SizedBox(height: 6),
-                    TagsField(
-                      tags: _tags,
-                      onChanged: (t) => setState(() => _tags = t),
-                      hint: context.l10n.reminderTagsHint,
-                      loadHistory: MedcardEntryTagLibraryService.getAll,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    MoreDetailsAccordion(
-                      initiallyExpanded: _locationController.text.isNotEmpty ||
-                          _documentPaths.isNotEmpty,
+                    // Решта полів — компактними чіпсами
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        MkFieldLabel(context.l10n.fieldWhere),
-                        const SizedBox(height: 6),
-                        MkTextField(
-                          controller: _locationController,
-                          hint: context.l10n.locationHint,
+                        FieldChip(
+                          icon: Icons.calendar_today_rounded,
+                          label: context.l10n.entryDateFieldLabel,
+                          value: _formatDate(_recordDate),
+                          onTap: _pickDate,
                         ),
-                        const SizedBox(height: 16),
-                        DocumentsSection(
-                          paths: _documentPaths,
-                          onChanged: (paths) => setState(() => _documentPaths = paths),
+                        FieldChip(
+                          icon: Icons.notes_rounded,
+                          label: context.l10n.noteSingularLabel,
+                          value: _notesController.text.trim().isEmpty
+                              ? null
+                              : _notesController.text.trim(),
+                          onTap: () async {
+                            await showFieldSheet(
+                              context,
+                              title: context.l10n.noteSingularLabel,
+                              child: MkTextField(
+                                controller: _notesController,
+                                maxLines: 4,
+                                hint: context.l10n.entryNotesHint,
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                        FieldChip(
+                          icon: Icons.sell_outlined,
+                          label: context.l10n.reminderTagsFieldLabel,
+                          value: _tags.isEmpty ? null : _tags.join(', '),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderTagsFieldLabel,
+                            child: TagsField(
+                              tags: _tags,
+                              onChanged: (t) => setState(() => _tags = t),
+                              hint: context.l10n.reminderTagsHint,
+                              loadHistory: MedcardEntryTagLibraryService.getAll,
+                            ),
+                          ),
+                        ),
+                        FieldChip(
+                          icon: Icons.location_on_outlined,
+                          label: context.l10n.fieldWhere,
+                          value: _locationController.text.trim().isEmpty
+                              ? null
+                              : _locationController.text.trim(),
+                          onTap: () async {
+                            await showFieldSheet(
+                              context,
+                              title: context.l10n.fieldWhere,
+                              child: MkTextField(
+                                controller: _locationController,
+                                hint: context.l10n.locationHint,
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                        FieldChip(
+                          icon: Icons.attach_file_rounded,
                           label: context.l10n.reminderPhotoLabel,
+                          value: _documentPaths.isEmpty
+                              ? null
+                              : '${_documentPaths.length}',
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderPhotoLabel,
+                            child: DocumentsSection(
+                              paths: _documentPaths,
+                              onChanged: (paths) => setState(() => _documentPaths = paths),
+                              label: context.l10n.reminderPhotoLabel,
+                            ),
+                          ),
                         ),
                       ],
                     ),
