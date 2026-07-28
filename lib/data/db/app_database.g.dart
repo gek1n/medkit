@@ -845,6 +845,17 @@ class $MedicationsTable extends Medications
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _sectionIdMeta = const VerificationMeta(
+    'sectionId',
+  );
+  @override
+  late final GeneratedColumn<int> sectionId = GeneratedColumn<int>(
+    'section_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -1102,6 +1113,7 @@ class $MedicationsTable extends Medications
   List<GeneratedColumn> get $columns => [
     id,
     memberId,
+    sectionId,
     name,
     form,
     doseAmount,
@@ -1147,6 +1159,12 @@ class $MedicationsTable extends Medications
       );
     } else if (isInserting) {
       context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('section_id')) {
+      context.handle(
+        _sectionIdMeta,
+        sectionId.isAcceptableOrUnknown(data['section_id']!, _sectionIdMeta),
+      );
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -1321,6 +1339,10 @@ class $MedicationsTable extends Medications
         DriftSqlType.int,
         data['${effectivePrefix}member_id'],
       )!,
+      sectionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}section_id'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -1421,6 +1443,7 @@ class $MedicationsTable extends Medications
 class Medication extends DataClass implements Insertable<Medication> {
   final int id;
   final int memberId;
+  final int? sectionId;
   final String name;
   final String form;
   final double doseAmount;
@@ -1446,6 +1469,7 @@ class Medication extends DataClass implements Insertable<Medication> {
   const Medication({
     required this.id,
     required this.memberId,
+    this.sectionId,
     required this.name,
     required this.form,
     required this.doseAmount,
@@ -1474,6 +1498,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['member_id'] = Variable<int>(memberId);
+    if (!nullToAbsent || sectionId != null) {
+      map['section_id'] = Variable<int>(sectionId);
+    }
     map['name'] = Variable<String>(name);
     map['form'] = Variable<String>(form);
     map['dose_amount'] = Variable<double>(doseAmount);
@@ -1519,6 +1546,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     return MedicationsCompanion(
       id: Value(id),
       memberId: Value(memberId),
+      sectionId: sectionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sectionId),
       name: Value(name),
       form: Value(form),
       doseAmount: Value(doseAmount),
@@ -1568,6 +1598,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     return Medication(
       id: serializer.fromJson<int>(json['id']),
       memberId: serializer.fromJson<int>(json['memberId']),
+      sectionId: serializer.fromJson<int?>(json['sectionId']),
       name: serializer.fromJson<String>(json['name']),
       form: serializer.fromJson<String>(json['form']),
       doseAmount: serializer.fromJson<double>(json['doseAmount']),
@@ -1598,6 +1629,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'memberId': serializer.toJson<int>(memberId),
+      'sectionId': serializer.toJson<int?>(sectionId),
       'name': serializer.toJson<String>(name),
       'form': serializer.toJson<String>(form),
       'doseAmount': serializer.toJson<double>(doseAmount),
@@ -1626,6 +1658,7 @@ class Medication extends DataClass implements Insertable<Medication> {
   Medication copyWith({
     int? id,
     int? memberId,
+    Value<int?> sectionId = const Value.absent(),
     String? name,
     String? form,
     double? doseAmount,
@@ -1651,6 +1684,7 @@ class Medication extends DataClass implements Insertable<Medication> {
   }) => Medication(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
+    sectionId: sectionId.present ? sectionId.value : this.sectionId,
     name: name ?? this.name,
     form: form ?? this.form,
     doseAmount: doseAmount ?? this.doseAmount,
@@ -1678,6 +1712,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     return Medication(
       id: data.id.present ? data.id.value : this.id,
       memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
       name: data.name.present ? data.name.value : this.name,
       form: data.form.present ? data.form.value : this.form,
       doseAmount: data.doseAmount.present
@@ -1728,6 +1763,7 @@ class Medication extends DataClass implements Insertable<Medication> {
     return (StringBuffer('Medication(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('name: $name, ')
           ..write('form: $form, ')
           ..write('doseAmount: $doseAmount, ')
@@ -1758,6 +1794,7 @@ class Medication extends DataClass implements Insertable<Medication> {
   int get hashCode => Object.hashAll([
     id,
     memberId,
+    sectionId,
     name,
     form,
     doseAmount,
@@ -1787,6 +1824,7 @@ class Medication extends DataClass implements Insertable<Medication> {
       (other is Medication &&
           other.id == this.id &&
           other.memberId == this.memberId &&
+          other.sectionId == this.sectionId &&
           other.name == this.name &&
           other.form == this.form &&
           other.doseAmount == this.doseAmount &&
@@ -1814,6 +1852,7 @@ class Medication extends DataClass implements Insertable<Medication> {
 class MedicationsCompanion extends UpdateCompanion<Medication> {
   final Value<int> id;
   final Value<int> memberId;
+  final Value<int?> sectionId;
   final Value<String> name;
   final Value<String> form;
   final Value<double> doseAmount;
@@ -1839,6 +1878,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   const MedicationsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
+    this.sectionId = const Value.absent(),
     this.name = const Value.absent(),
     this.form = const Value.absent(),
     this.doseAmount = const Value.absent(),
@@ -1865,6 +1905,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   MedicationsCompanion.insert({
     this.id = const Value.absent(),
     required int memberId,
+    this.sectionId = const Value.absent(),
     required String name,
     this.form = const Value.absent(),
     required double doseAmount,
@@ -1894,6 +1935,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   static Insertable<Medication> custom({
     Expression<int>? id,
     Expression<int>? memberId,
+    Expression<int>? sectionId,
     Expression<String>? name,
     Expression<String>? form,
     Expression<double>? doseAmount,
@@ -1920,6 +1962,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (memberId != null) 'member_id': memberId,
+      if (sectionId != null) 'section_id': sectionId,
       if (name != null) 'name': name,
       if (form != null) 'form': form,
       if (doseAmount != null) 'dose_amount': doseAmount,
@@ -1948,6 +1991,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   MedicationsCompanion copyWith({
     Value<int>? id,
     Value<int>? memberId,
+    Value<int?>? sectionId,
     Value<String>? name,
     Value<String>? form,
     Value<double>? doseAmount,
@@ -1974,6 +2018,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     return MedicationsCompanion(
       id: id ?? this.id,
       memberId: memberId ?? this.memberId,
+      sectionId: sectionId ?? this.sectionId,
       name: name ?? this.name,
       form: form ?? this.form,
       doseAmount: doseAmount ?? this.doseAmount,
@@ -2007,6 +2052,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     }
     if (memberId.present) {
       map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<int>(sectionId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -2082,6 +2130,7 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     return (StringBuffer('MedicationsCompanion(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('name: $name, ')
           ..write('form: $form, ')
           ..write('doseAmount: $doseAmount, ')
@@ -4317,6 +4366,17 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _sectionIdMeta = const VerificationMeta(
+    'sectionId',
+  );
+  @override
+  late final GeneratedColumn<int> sectionId = GeneratedColumn<int>(
+    'section_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _timesPerDayMeta = const VerificationMeta(
     'timesPerDay',
   );
@@ -4390,6 +4450,7 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
   List<GeneratedColumn> get $columns => [
     id,
     memberId,
+    sectionId,
     timesPerDay,
     times,
     isActive,
@@ -4419,6 +4480,12 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
       );
     } else if (isInserting) {
       context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('section_id')) {
+      context.handle(
+        _sectionIdMeta,
+        sectionId.isAcceptableOrUnknown(data['section_id']!, _sectionIdMeta),
+      );
     }
     if (data.containsKey('times_per_day')) {
       context.handle(
@@ -4476,6 +4543,10 @@ class $WellbeingSchedulesTable extends WellbeingSchedules
         DriftSqlType.int,
         data['${effectivePrefix}member_id'],
       )!,
+      sectionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}section_id'],
+      ),
       timesPerDay: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}times_per_day'],
@@ -4513,6 +4584,7 @@ class WellbeingSchedule extends DataClass
     implements Insertable<WellbeingSchedule> {
   final int id;
   final int memberId;
+  final int? sectionId;
   final int timesPerDay;
   final String times;
   final bool isActive;
@@ -4522,6 +4594,7 @@ class WellbeingSchedule extends DataClass
   const WellbeingSchedule({
     required this.id,
     required this.memberId,
+    this.sectionId,
     required this.timesPerDay,
     required this.times,
     required this.isActive,
@@ -4534,6 +4607,9 @@ class WellbeingSchedule extends DataClass
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['member_id'] = Variable<int>(memberId);
+    if (!nullToAbsent || sectionId != null) {
+      map['section_id'] = Variable<int>(sectionId);
+    }
     map['times_per_day'] = Variable<int>(timesPerDay);
     map['times'] = Variable<String>(times);
     map['is_active'] = Variable<bool>(isActive);
@@ -4551,6 +4627,9 @@ class WellbeingSchedule extends DataClass
     return WellbeingSchedulesCompanion(
       id: Value(id),
       memberId: Value(memberId),
+      sectionId: sectionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sectionId),
       timesPerDay: Value(timesPerDay),
       times: Value(times),
       isActive: Value(isActive),
@@ -4572,6 +4651,7 @@ class WellbeingSchedule extends DataClass
     return WellbeingSchedule(
       id: serializer.fromJson<int>(json['id']),
       memberId: serializer.fromJson<int>(json['memberId']),
+      sectionId: serializer.fromJson<int?>(json['sectionId']),
       timesPerDay: serializer.fromJson<int>(json['timesPerDay']),
       times: serializer.fromJson<String>(json['times']),
       isActive: serializer.fromJson<bool>(json['isActive']),
@@ -4586,6 +4666,7 @@ class WellbeingSchedule extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'memberId': serializer.toJson<int>(memberId),
+      'sectionId': serializer.toJson<int?>(sectionId),
       'timesPerDay': serializer.toJson<int>(timesPerDay),
       'times': serializer.toJson<String>(times),
       'isActive': serializer.toJson<bool>(isActive),
@@ -4598,6 +4679,7 @@ class WellbeingSchedule extends DataClass
   WellbeingSchedule copyWith({
     int? id,
     int? memberId,
+    Value<int?> sectionId = const Value.absent(),
     int? timesPerDay,
     String? times,
     bool? isActive,
@@ -4607,6 +4689,7 @@ class WellbeingSchedule extends DataClass
   }) => WellbeingSchedule(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
+    sectionId: sectionId.present ? sectionId.value : this.sectionId,
     timesPerDay: timesPerDay ?? this.timesPerDay,
     times: times ?? this.times,
     isActive: isActive ?? this.isActive,
@@ -4618,6 +4701,7 @@ class WellbeingSchedule extends DataClass
     return WellbeingSchedule(
       id: data.id.present ? data.id.value : this.id,
       memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
       timesPerDay: data.timesPerDay.present
           ? data.timesPerDay.value
           : this.timesPerDay,
@@ -4634,6 +4718,7 @@ class WellbeingSchedule extends DataClass
     return (StringBuffer('WellbeingSchedule(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('timesPerDay: $timesPerDay, ')
           ..write('times: $times, ')
           ..write('isActive: $isActive, ')
@@ -4648,6 +4733,7 @@ class WellbeingSchedule extends DataClass
   int get hashCode => Object.hash(
     id,
     memberId,
+    sectionId,
     timesPerDay,
     times,
     isActive,
@@ -4661,6 +4747,7 @@ class WellbeingSchedule extends DataClass
       (other is WellbeingSchedule &&
           other.id == this.id &&
           other.memberId == this.memberId &&
+          other.sectionId == this.sectionId &&
           other.timesPerDay == this.timesPerDay &&
           other.times == this.times &&
           other.isActive == this.isActive &&
@@ -4672,6 +4759,7 @@ class WellbeingSchedule extends DataClass
 class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   final Value<int> id;
   final Value<int> memberId;
+  final Value<int?> sectionId;
   final Value<int> timesPerDay;
   final Value<String> times;
   final Value<bool> isActive;
@@ -4681,6 +4769,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   const WellbeingSchedulesCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
+    this.sectionId = const Value.absent(),
     this.timesPerDay = const Value.absent(),
     this.times = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -4691,6 +4780,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   WellbeingSchedulesCompanion.insert({
     this.id = const Value.absent(),
     required int memberId,
+    this.sectionId = const Value.absent(),
     this.timesPerDay = const Value.absent(),
     this.times = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -4701,6 +4791,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   static Insertable<WellbeingSchedule> custom({
     Expression<int>? id,
     Expression<int>? memberId,
+    Expression<int>? sectionId,
     Expression<int>? timesPerDay,
     Expression<String>? times,
     Expression<bool>? isActive,
@@ -4711,6 +4802,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (memberId != null) 'member_id': memberId,
+      if (sectionId != null) 'section_id': sectionId,
       if (timesPerDay != null) 'times_per_day': timesPerDay,
       if (times != null) 'times': times,
       if (isActive != null) 'is_active': isActive,
@@ -4723,6 +4815,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
   WellbeingSchedulesCompanion copyWith({
     Value<int>? id,
     Value<int>? memberId,
+    Value<int?>? sectionId,
     Value<int>? timesPerDay,
     Value<String>? times,
     Value<bool>? isActive,
@@ -4733,6 +4826,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     return WellbeingSchedulesCompanion(
       id: id ?? this.id,
       memberId: memberId ?? this.memberId,
+      sectionId: sectionId ?? this.sectionId,
       timesPerDay: timesPerDay ?? this.timesPerDay,
       times: times ?? this.times,
       isActive: isActive ?? this.isActive,
@@ -4750,6 +4844,9 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     }
     if (memberId.present) {
       map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<int>(sectionId.value);
     }
     if (timesPerDay.present) {
       map['times_per_day'] = Variable<int>(timesPerDay.value);
@@ -4777,6 +4874,7 @@ class WellbeingSchedulesCompanion extends UpdateCompanion<WellbeingSchedule> {
     return (StringBuffer('WellbeingSchedulesCompanion(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('timesPerDay: $timesPerDay, ')
           ..write('times: $times, ')
           ..write('isActive: $isActive, ')
@@ -4817,6 +4915,17 @@ class $ActivitiesTable extends Activities
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sectionIdMeta = const VerificationMeta(
+    'sectionId',
+  );
+  @override
+  late final GeneratedColumn<int> sectionId = GeneratedColumn<int>(
+    'section_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
@@ -4951,6 +5060,7 @@ class $ActivitiesTable extends Activities
   List<GeneratedColumn> get $columns => [
     id,
     memberId,
+    sectionId,
     type,
     name,
     durationMin,
@@ -4985,6 +5095,12 @@ class $ActivitiesTable extends Activities
       );
     } else if (isInserting) {
       context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('section_id')) {
+      context.handle(
+        _sectionIdMeta,
+        sectionId.isAcceptableOrUnknown(data['section_id']!, _sectionIdMeta),
+      );
     }
     if (data.containsKey('type')) {
       context.handle(
@@ -5077,6 +5193,10 @@ class $ActivitiesTable extends Activities
         DriftSqlType.int,
         data['${effectivePrefix}member_id'],
       )!,
+      sectionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}section_id'],
+      ),
       type: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}type'],
@@ -5133,6 +5253,7 @@ class $ActivitiesTable extends Activities
 class Activity extends DataClass implements Insertable<Activity> {
   final int id;
   final int memberId;
+  final int? sectionId;
   final String type;
   final String name;
   final int durationMin;
@@ -5147,6 +5268,7 @@ class Activity extends DataClass implements Insertable<Activity> {
   const Activity({
     required this.id,
     required this.memberId,
+    this.sectionId,
     required this.type,
     required this.name,
     required this.durationMin,
@@ -5164,6 +5286,9 @@ class Activity extends DataClass implements Insertable<Activity> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['member_id'] = Variable<int>(memberId);
+    if (!nullToAbsent || sectionId != null) {
+      map['section_id'] = Variable<int>(sectionId);
+    }
     map['type'] = Variable<String>(type);
     map['name'] = Variable<String>(name);
     map['duration_min'] = Variable<int>(durationMin);
@@ -5188,6 +5313,9 @@ class Activity extends DataClass implements Insertable<Activity> {
     return ActivitiesCompanion(
       id: Value(id),
       memberId: Value(memberId),
+      sectionId: sectionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sectionId),
       type: Value(type),
       name: Value(name),
       durationMin: Value(durationMin),
@@ -5216,6 +5344,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     return Activity(
       id: serializer.fromJson<int>(json['id']),
       memberId: serializer.fromJson<int>(json['memberId']),
+      sectionId: serializer.fromJson<int?>(json['sectionId']),
       type: serializer.fromJson<String>(json['type']),
       name: serializer.fromJson<String>(json['name']),
       durationMin: serializer.fromJson<int>(json['durationMin']),
@@ -5235,6 +5364,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'memberId': serializer.toJson<int>(memberId),
+      'sectionId': serializer.toJson<int?>(sectionId),
       'type': serializer.toJson<String>(type),
       'name': serializer.toJson<String>(name),
       'durationMin': serializer.toJson<int>(durationMin),
@@ -5252,6 +5382,7 @@ class Activity extends DataClass implements Insertable<Activity> {
   Activity copyWith({
     int? id,
     int? memberId,
+    Value<int?> sectionId = const Value.absent(),
     String? type,
     String? name,
     int? durationMin,
@@ -5266,6 +5397,7 @@ class Activity extends DataClass implements Insertable<Activity> {
   }) => Activity(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
+    sectionId: sectionId.present ? sectionId.value : this.sectionId,
     type: type ?? this.type,
     name: name ?? this.name,
     durationMin: durationMin ?? this.durationMin,
@@ -5282,6 +5414,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     return Activity(
       id: data.id.present ? data.id.value : this.id,
       memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
       type: data.type.present ? data.type.value : this.type,
       name: data.name.present ? data.name.value : this.name,
       durationMin: data.durationMin.present
@@ -5309,6 +5442,7 @@ class Activity extends DataClass implements Insertable<Activity> {
     return (StringBuffer('Activity(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('type: $type, ')
           ..write('name: $name, ')
           ..write('durationMin: $durationMin, ')
@@ -5328,6 +5462,7 @@ class Activity extends DataClass implements Insertable<Activity> {
   int get hashCode => Object.hash(
     id,
     memberId,
+    sectionId,
     type,
     name,
     durationMin,
@@ -5346,6 +5481,7 @@ class Activity extends DataClass implements Insertable<Activity> {
       (other is Activity &&
           other.id == this.id &&
           other.memberId == this.memberId &&
+          other.sectionId == this.sectionId &&
           other.type == this.type &&
           other.name == this.name &&
           other.durationMin == this.durationMin &&
@@ -5362,6 +5498,7 @@ class Activity extends DataClass implements Insertable<Activity> {
 class ActivitiesCompanion extends UpdateCompanion<Activity> {
   final Value<int> id;
   final Value<int> memberId;
+  final Value<int?> sectionId;
   final Value<String> type;
   final Value<String> name;
   final Value<int> durationMin;
@@ -5376,6 +5513,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   const ActivitiesCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
+    this.sectionId = const Value.absent(),
     this.type = const Value.absent(),
     this.name = const Value.absent(),
     this.durationMin = const Value.absent(),
@@ -5391,6 +5529,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   ActivitiesCompanion.insert({
     this.id = const Value.absent(),
     required int memberId,
+    this.sectionId = const Value.absent(),
     this.type = const Value.absent(),
     required String name,
     this.durationMin = const Value.absent(),
@@ -5407,6 +5546,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   static Insertable<Activity> custom({
     Expression<int>? id,
     Expression<int>? memberId,
+    Expression<int>? sectionId,
     Expression<String>? type,
     Expression<String>? name,
     Expression<int>? durationMin,
@@ -5422,6 +5562,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (memberId != null) 'member_id': memberId,
+      if (sectionId != null) 'section_id': sectionId,
       if (type != null) 'type': type,
       if (name != null) 'name': name,
       if (durationMin != null) 'duration_min': durationMin,
@@ -5439,6 +5580,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   ActivitiesCompanion copyWith({
     Value<int>? id,
     Value<int>? memberId,
+    Value<int?>? sectionId,
     Value<String>? type,
     Value<String>? name,
     Value<int>? durationMin,
@@ -5454,6 +5596,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     return ActivitiesCompanion(
       id: id ?? this.id,
       memberId: memberId ?? this.memberId,
+      sectionId: sectionId ?? this.sectionId,
       type: type ?? this.type,
       name: name ?? this.name,
       durationMin: durationMin ?? this.durationMin,
@@ -5476,6 +5619,9 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     }
     if (memberId.present) {
       map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<int>(sectionId.value);
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
@@ -5518,6 +5664,7 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     return (StringBuffer('ActivitiesCompanion(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('type: $type, ')
           ..write('name: $name, ')
           ..write('durationMin: $durationMin, ')
@@ -7318,6 +7465,17 @@ class $RemindersTable extends Reminders
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _sectionIdMeta = const VerificationMeta(
+    'sectionId',
+  );
+  @override
+  late final GeneratedColumn<int> sectionId = GeneratedColumn<int>(
+    'section_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _doctorTypeMeta = const VerificationMeta(
     'doctorType',
   );
@@ -7476,6 +7634,7 @@ class $RemindersTable extends Reminders
   List<GeneratedColumn> get $columns => [
     id,
     memberId,
+    sectionId,
     doctorType,
     tags,
     location,
@@ -7513,6 +7672,12 @@ class $RemindersTable extends Reminders
       );
     } else if (isInserting) {
       context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('section_id')) {
+      context.handle(
+        _sectionIdMeta,
+        sectionId.isAcceptableOrUnknown(data['section_id']!, _sectionIdMeta),
+      );
     }
     if (data.containsKey('doctor_type')) {
       context.handle(
@@ -7628,6 +7793,10 @@ class $RemindersTable extends Reminders
         DriftSqlType.int,
         data['${effectivePrefix}member_id'],
       )!,
+      sectionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}section_id'],
+      ),
       doctorType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}doctor_type'],
@@ -7696,6 +7865,7 @@ class $RemindersTable extends Reminders
 class Reminder extends DataClass implements Insertable<Reminder> {
   final int id;
   final int memberId;
+  final int? sectionId;
   final String doctorType;
   final String tags;
   final String? location;
@@ -7713,6 +7883,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   const Reminder({
     required this.id,
     required this.memberId,
+    this.sectionId,
     required this.doctorType,
     required this.tags,
     this.location,
@@ -7733,6 +7904,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['member_id'] = Variable<int>(memberId);
+    if (!nullToAbsent || sectionId != null) {
+      map['section_id'] = Variable<int>(sectionId);
+    }
     map['doctor_type'] = Variable<String>(doctorType);
     map['tags'] = Variable<String>(tags);
     if (!nullToAbsent || location != null) {
@@ -7764,6 +7938,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     return RemindersCompanion(
       id: Value(id),
       memberId: Value(memberId),
+      sectionId: sectionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sectionId),
       doctorType: Value(doctorType),
       tags: Value(tags),
       location: location == null && nullToAbsent
@@ -7799,6 +7976,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     return Reminder(
       id: serializer.fromJson<int>(json['id']),
       memberId: serializer.fromJson<int>(json['memberId']),
+      sectionId: serializer.fromJson<int?>(json['sectionId']),
       doctorType: serializer.fromJson<String>(json['doctorType']),
       tags: serializer.fromJson<String>(json['tags']),
       location: serializer.fromJson<String?>(json['location']),
@@ -7821,6 +7999,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'memberId': serializer.toJson<int>(memberId),
+      'sectionId': serializer.toJson<int?>(sectionId),
       'doctorType': serializer.toJson<String>(doctorType),
       'tags': serializer.toJson<String>(tags),
       'location': serializer.toJson<String?>(location),
@@ -7841,6 +8020,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   Reminder copyWith({
     int? id,
     int? memberId,
+    Value<int?> sectionId = const Value.absent(),
     String? doctorType,
     String? tags,
     Value<String?> location = const Value.absent(),
@@ -7858,6 +8038,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   }) => Reminder(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
+    sectionId: sectionId.present ? sectionId.value : this.sectionId,
     doctorType: doctorType ?? this.doctorType,
     tags: tags ?? this.tags,
     location: location.present ? location.value : this.location,
@@ -7877,6 +8058,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     return Reminder(
       id: data.id.present ? data.id.value : this.id,
       memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
       doctorType: data.doctorType.present
           ? data.doctorType.value
           : this.doctorType,
@@ -7907,6 +8089,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     return (StringBuffer('Reminder(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('doctorType: $doctorType, ')
           ..write('tags: $tags, ')
           ..write('location: $location, ')
@@ -7929,6 +8112,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   int get hashCode => Object.hash(
     id,
     memberId,
+    sectionId,
     doctorType,
     tags,
     location,
@@ -7950,6 +8134,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       (other is Reminder &&
           other.id == this.id &&
           other.memberId == this.memberId &&
+          other.sectionId == this.sectionId &&
           other.doctorType == this.doctorType &&
           other.tags == this.tags &&
           other.location == this.location &&
@@ -7969,6 +8154,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
 class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<int> id;
   final Value<int> memberId;
+  final Value<int?> sectionId;
   final Value<String> doctorType;
   final Value<String> tags;
   final Value<String?> location;
@@ -7986,6 +8172,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   const RemindersCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
+    this.sectionId = const Value.absent(),
     this.doctorType = const Value.absent(),
     this.tags = const Value.absent(),
     this.location = const Value.absent(),
@@ -8004,6 +8191,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   RemindersCompanion.insert({
     this.id = const Value.absent(),
     required int memberId,
+    this.sectionId = const Value.absent(),
     required String doctorType,
     this.tags = const Value.absent(),
     this.location = const Value.absent(),
@@ -8024,6 +8212,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   static Insertable<Reminder> custom({
     Expression<int>? id,
     Expression<int>? memberId,
+    Expression<int>? sectionId,
     Expression<String>? doctorType,
     Expression<String>? tags,
     Expression<String>? location,
@@ -8042,6 +8231,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (memberId != null) 'member_id': memberId,
+      if (sectionId != null) 'section_id': sectionId,
       if (doctorType != null) 'doctor_type': doctorType,
       if (tags != null) 'tags': tags,
       if (location != null) 'location': location,
@@ -8062,6 +8252,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   RemindersCompanion copyWith({
     Value<int>? id,
     Value<int>? memberId,
+    Value<int?>? sectionId,
     Value<String>? doctorType,
     Value<String>? tags,
     Value<String?>? location,
@@ -8080,6 +8271,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     return RemindersCompanion(
       id: id ?? this.id,
       memberId: memberId ?? this.memberId,
+      sectionId: sectionId ?? this.sectionId,
       doctorType: doctorType ?? this.doctorType,
       tags: tags ?? this.tags,
       location: location ?? this.location,
@@ -8105,6 +8297,9 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     }
     if (memberId.present) {
       map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<int>(sectionId.value);
     }
     if (doctorType.present) {
       map['doctor_type'] = Variable<String>(doctorType.value);
@@ -8156,6 +8351,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     return (StringBuffer('RemindersCompanion(')
           ..write('id: $id, ')
           ..write('memberId: $memberId, ')
+          ..write('sectionId: $sectionId, ')
           ..write('doctorType: $doctorType, ')
           ..write('tags: $tags, ')
           ..write('location: $location, ')

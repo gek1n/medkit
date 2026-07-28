@@ -1,10 +1,15 @@
 import 'package:drift/drift.dart';
+import 'medcard_sections_table.dart';
 import 'members_table.dart';
 
 class Reminders extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get memberId =>
       integer().references(Members, #id, onDelete: KeyAction.cascade)();
+  IntColumn get sectionId => integer()
+      .nullable()
+      .references(MedcardSections, #id, onDelete: KeyAction.setNull)();
+  // Необов'язковий Простір — див. коментар у medications_table.dart.
   // Назва нагадування — вільний текст (з підказками з історії введених
   // значень, див. ReminderTitleLibraryService), а не контрольований
   // словник напрямків лікаря, як раніше. Назва колонки лишилась старою

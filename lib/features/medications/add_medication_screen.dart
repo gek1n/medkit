@@ -19,6 +19,7 @@ import '../../data/repositories/medications_repository.dart';
 import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
@@ -108,6 +109,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   // Card color (null = дефолтний колір типу завдання)
   String? _colorHex;
 
+  // Простір — необов'язково, недоступно в онбордингу (memberId ще не існує)
+  int? _sectionId;
+
   bool _isSaving = false;
 
   @override
@@ -129,6 +133,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _foodRelation = ex.foodRelation;
     _repeatType = ex.repeatType;
     _colorHex = ex.color;
+    _sectionId = ex.sectionId;
     _trackStock = ex.stockPercent != null;
     _availableCount = ex.remainingCount;
     try {
@@ -307,6 +312,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
+            sectionId: Value(_sectionId),
             ),
         );
       } else {
@@ -329,6 +335,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
+            sectionId: Value(_sectionId),
             ),
         );
       }
@@ -524,6 +531,16 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                       colorHex: _colorHex,
                       onColorChanged: (hex) => setState(() => _colorHex = hex),
                     ),
+
+                    if (widget.memberId != null) ...[
+                      const SizedBox(height: AppDimensions.lg),
+                      _FormLabel(context.l10n.spaceFieldLabel),
+                      SpaceField(
+                        memberId: widget.memberId!,
+                        sectionId: _sectionId,
+                        onChanged: (id) => setState(() => _sectionId = id),
+                      ),
+                    ],
                     const SizedBox(height: 32),
 
                     // Save

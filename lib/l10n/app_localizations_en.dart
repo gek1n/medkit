@@ -241,6 +241,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noActiveActivities => 'No active activities';
 
   @override
+  String get noSimpleTasksHint => 'No simple tasks';
+
+  @override
+  String get noRoutineTasksHint => 'No routine chores';
+
+  @override
   String get sectionWellbeing => 'Wellbeing';
 
   @override
@@ -405,6 +411,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sectionEmptyHint =>
       'Nothing here yet. Add your first entry with the plus button';
+
+  @override
+  String get spaceFieldLabel => 'Space';
+
+  @override
+  String get spacePickerTitle => 'Choose a space';
+
+  @override
+  String get noSpaceOption => 'No space';
+
+  @override
+  String get createNewSpaceAction => 'Create a new section';
 
   @override
   String get newEntryTitle => 'New entry';
@@ -2501,6 +2519,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addTypeWellbeingSub => 'Log a check-in — mood, tags, comment';
 
   @override
+  String get taskTypeSport => 'Sport';
+
+  @override
+  String get taskTypeSportSub => 'Walk, workout, exercise';
+
+  @override
+  String get taskTypeMeeting => 'Meetings';
+
+  @override
+  String get taskTypeMeetingSub => 'Date, time, and a reminder for anything';
+
+  @override
+  String get taskTypeSimple => 'Simple tasks';
+
+  @override
+  String get taskTypeSimpleSub => 'A one-off or simple reminder';
+
+  @override
+  String get taskTypeRoutine => 'Routine chores';
+
+  @override
+  String get taskTypeRoutineSub => 'Everyday household tasks';
+
+  @override
   String get faqGroupPrivacyTitle => 'Privacy & data';
 
   @override
@@ -2687,6 +2729,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteActivityConfirmBody =>
       'The activity will be removed from your schedule.';
+
+  @override
+  String get disableWellbeingConfirmTitle => 'Turn off wellbeing check-ins?';
+
+  @override
+  String get disableWellbeingConfirmBody =>
+      'Reminders will disappear from Schedule and Today. Your settings are kept — you can turn it back on later.';
+
+  @override
+  String get applyAction => 'Done';
+
+  @override
+  String get noDaysSelectedHint => 'No days selected';
 
   @override
   String get chooseActivityTypeError => 'Choose an activity type';

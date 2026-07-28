@@ -1,10 +1,18 @@
 import 'package:drift/drift.dart';
+import 'medcard_sections_table.dart';
 import 'members_table.dart';
 
 class Medications extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get memberId =>
       integer().references(Members, #id, onDelete: KeyAction.cascade)();
+  IntColumn get sectionId => integer()
+      .nullable()
+      .references(MedcardSections, #id, onDelete: KeyAction.setNull)();
+  // Необов'язковий Простір (розділ архіву) — той самий розділ, куди можна
+  // класти й нотатки. Видалення розділу не видаляє самі ліки, лише
+  // відв'язує їх (setNull), на відміну від MedcardEntries, які каскадно
+  // видаляються разом із розділом.
   TextColumn get name => text().withLength(min: 1, max: 200)();
   TextColumn get form => text().withDefault(const Constant('tablet'))();
   // tablet/capsule/syrup/drops/cream/inhaler/injection/other

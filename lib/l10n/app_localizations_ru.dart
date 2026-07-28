@@ -241,6 +241,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noActiveActivities => 'Нет активных занятий';
 
   @override
+  String get noSimpleTasksHint => 'Нет простых задач';
+
+  @override
+  String get noRoutineTasksHint => 'Нет рутинных дел';
+
+  @override
   String get sectionWellbeing => 'Самочувствие';
 
   @override
@@ -406,6 +412,18 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get sectionEmptyHint =>
       'Здесь пусто. Добавьте первую запись через плюсик';
+
+  @override
+  String get spaceFieldLabel => 'Пространство';
+
+  @override
+  String get spacePickerTitle => 'Выберите пространство';
+
+  @override
+  String get noSpaceOption => 'Без пространства';
+
+  @override
+  String get createNewSpaceAction => 'Создать новый раздел';
 
   @override
   String get newEntryTitle => 'Новая запись';
@@ -2517,6 +2535,30 @@ class AppLocalizationsRu extends AppLocalizations {
       'Сделать чек-ин — настроение, теги, комментарий';
 
   @override
+  String get taskTypeSport => 'Спорт';
+
+  @override
+  String get taskTypeSportSub => 'Прогулка, тренировка, упражнения';
+
+  @override
+  String get taskTypeMeeting => 'Встречи';
+
+  @override
+  String get taskTypeMeetingSub => 'Дата, время и напоминание о чём угодно';
+
+  @override
+  String get taskTypeSimple => 'Простые задачи';
+
+  @override
+  String get taskTypeSimpleSub => 'Разовое или простое напоминание';
+
+  @override
+  String get taskTypeRoutine => 'Рутинные дела';
+
+  @override
+  String get taskTypeRoutineSub => 'Ежедневные дела по дому';
+
+  @override
   String get faqGroupPrivacyTitle => 'Приватность и данные';
 
   @override
@@ -2701,6 +2743,19 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get deleteActivityConfirmBody =>
       'Активность будет удалена из расписания.';
+
+  @override
+  String get disableWellbeingConfirmTitle => 'Выключить сбор самочувствия?';
+
+  @override
+  String get disableWellbeingConfirmBody =>
+      'Напоминания исчезнут из Расписания и Сегодня. Настройки сохранятся — можно включить снова позже.';
+
+  @override
+  String get applyAction => 'Готово';
+
+  @override
+  String get noDaysSelectedHint => 'Дни не выбраны';
 
   @override
   String get chooseActivityTypeError => 'Выберите тип активности';

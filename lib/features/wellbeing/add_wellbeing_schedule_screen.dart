@@ -14,6 +14,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../today/providers/today_providers.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
@@ -36,8 +37,10 @@ class _AddWellbeingScheduleScreenState
     const TimeOfDay(hour: 20, minute: 0),
   ];
   String? _colorHex;
+  int? _sectionId;
   bool _isSaving = false;
   bool _loaded = false;
+  bool _hasActiveExisting = false;
 
   @override
   void initState() {
@@ -58,6 +61,8 @@ class _AddWellbeingScheduleScreenState
           return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
         }).toList();
         _colorHex = existing.color;
+        _sectionId = existing.sectionId;
+        _hasActiveExisting = existing.isActive;
         _loaded = true;
       });
     } else {
@@ -90,6 +95,33 @@ class _AddWellbeingScheduleScreenState
     if (picked != null) setState(() => _slots[index] = picked);
   }
 
+  Future<void> _disable() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.l10n.disableWellbeingConfirmTitle),
+        content: Text(ctx.l10n.disableWellbeingConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(ctx.l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              ctx.l10n.deleteAction,
+              style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await ref.read(wellbeingRepositoryProvider).setActive(widget.memberId, false);
+    await NotificationService.cancelAllWellbeingForMember(widget.memberId);
+    if (mounted) Navigator.pop(context);
+  }
+
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
@@ -106,6 +138,7 @@ class _AddWellbeingScheduleScreenState
               times: Value(timesJson),
               isActive: const Value(true),
               color: Value(_colorHex),
+              sectionId: Value(_sectionId),
             ),
           );
 
@@ -180,26 +213,50 @@ class _AddWellbeingScheduleScreenState
                       ),
                     ],
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            WellbeingHistoryScreen(memberId: widget.memberId),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => WellbeingHistoryScreen(
+                                memberId: widget.memberId),
+                          ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Text(context.l10n.historyLabel,
+                              style: AppTextStyles.labelMd
+                                  .copyWith(color: AppColors.textSub)),
+                        ),
                       ),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Text(context.l10n.historyLabel,
-                          style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.textSub)),
-                    ),
+                      if (_hasActiveExisting) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _disable,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFFECACA)),
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                              color: Color(0xFFDC2626),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -337,6 +394,15 @@ class _AddWellbeingScheduleScreenState
                     TaskColorPicker(
                       selectedHex: _colorHex,
                       onChanged: (hex) => setState(() => _colorHex = hex),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    Text(context.l10n.spaceFieldLabel, style: AppTextStyles.labelSm),
+                    const SizedBox(height: 8),
+                    SpaceField(
+                      memberId: widget.memberId,
+                      sectionId: _sectionId,
+                      onChanged: (id) => setState(() => _sectionId = id),
                     ),
                     const SizedBox(height: 32),
 
