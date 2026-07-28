@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../core/services/photo_service.dart';
@@ -34,8 +35,28 @@ class DocumentsSection extends StatefulWidget {
 }
 
 class _DocumentsSectionState extends State<DocumentsSection> {
+  // Локальна копія — та сама причина, що й у TagsField (див. коментар там):
+  // showFieldSheet будує child один раз при відкритті шторки, і setState
+  // батьківського екрана не перебудовує вже відкритий bottom sheet, тож без
+  // власного стану нова мініатюра/видалення не з'являлись би, поки шторку не
+  // закрити й відкрити знову.
+  late List<String> _paths;
   final Map<String, Uint8List> _bytesCache = {};
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _paths = [...widget.paths];
+  }
+
+  @override
+  void didUpdateWidget(covariant DocumentsSection old) {
+    super.didUpdateWidget(old);
+    if (!listEquals(old.paths, widget.paths)) {
+      _paths = [...widget.paths];
+    }
+  }
 
   Future<Uint8List> _decrypted(String rel) async {
     return _bytesCache[rel] ??= await PhotoService.decryptedBytes(rel);
@@ -46,7 +67,8 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     try {
       final path = await PhotoService.showPickerDialog(context);
       if (path != null) {
-        widget.onChanged([...widget.paths, path]);
+        setState(() => _paths = [..._paths, path]);
+        widget.onChanged(_paths);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -56,7 +78,8 @@ class _DocumentsSectionState extends State<DocumentsSection> {
   Future<void> _remove(String rel) async {
     await PhotoService.delete(rel);
     _bytesCache.remove(rel);
-    widget.onChanged(widget.paths.where((p) => p != rel).toList());
+    setState(() => _paths = _paths.where((p) => p != rel).toList());
+    widget.onChanged(_paths);
   }
 
   Future<void> _open(String rel) async {
@@ -66,7 +89,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     }
     // Фото — перегляд і масштабування прямо в застосунку, з гортанням між
     // усіма фото цього ж запису (PDF пропускаємо, для них лишається шеринг).
-    final images = widget.paths.where((p) => !PhotoService.isPdf(p)).toList();
+    final images = _paths.where((p) => !PhotoService.isPdf(p)).toList();
     if (!mounted) return;
     await showPhotoGalleryViewer(
       context,
@@ -101,7 +124,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
           ],
         ),
         const SizedBox(height: 8),
-        if (widget.paths.isEmpty)
+        if (_paths.isEmpty)
           widget.readOnly
               ? Text(l10n.noDocumentsLabel,
                   style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted))
@@ -129,7 +152,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.paths
+            children: _paths
                 .map((rel) => _DocumentTile(
                       path: rel,
                       isPdf: PhotoService.isPdf(rel),

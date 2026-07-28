@@ -35,6 +35,13 @@ final _routineCountProvider = StreamProvider.family<int, int>((ref, memberId) {
       .map((list) => list.length);
 });
 
+// Скільки разів підряд рутину виконано — мотиваційний показник, який
+// одразу пояснює, навіщо взагалі рахувати виконання рутини (на відміну від
+// разового нагадування). Див. ActivitiesRepository.computeStreakDays.
+final _streakProvider = FutureProvider.family<int, int>((ref, activityId) {
+  return ref.watch(activitiesRepositoryProvider).computeStreakDays(activityId);
+});
+
 /// Перегляд рутинної справи — той самий патерн, що й ReminderViewScreen/
 /// MedcardEntryViewScreen: показує все заповнене, кнопка "Редагувати" веде
 /// на форму. Дії відмітити виконано/пропустити/поміняти чергу лишаються на
@@ -136,6 +143,7 @@ class _ViewBody extends ConsumerWidget {
     final routineCount =
         ref.watch(_routineCountProvider(activity.memberId)).valueOrNull ?? 0;
     final editBlocked = isRoutineOverLimit(ref, routineCount);
+    final streak = ref.watch(_streakProvider(activity.id)).valueOrNull ?? 0;
 
     return Column(
       children: [
@@ -233,6 +241,16 @@ class _ViewBody extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (activity.repeatType != 'weeklyGoal') ...[
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.local_fire_department_rounded,
+                    color: color,
+                    text: streak > 0
+                        ? context.l10n.routineStreakDaysLabel(streak)
+                        : context.l10n.routineNoStreakYetLabel,
+                  ),
+                ],
                 const SizedBox(height: 18),
                 assigneesAsync.when(
                   loading: () => const SizedBox.shrink(),

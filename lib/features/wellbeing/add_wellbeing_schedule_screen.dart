@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -12,7 +11,6 @@ import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
-import '../today/providers/today_providers.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_back_button.dart';
@@ -22,8 +20,20 @@ import '../plans/elly_denied_screen.dart';
 import 'wellbeing_history_screen.dart';
 
 class AddWellbeingScheduleScreen extends ConsumerStatefulWidget {
-  final int memberId;
-  const AddWellbeingScheduleScreen({super.key, required this.memberId});
+  final int? memberId;
+  // Онбординг: власного профілю ще не існує в БД на момент показу цього
+  // екрана. Коли задано — форма лишається без змін, але замість запису в БД
+  // (та планування сповіщень) повертає компаньйон (з фіктивним memberId,
+  // який викликач підмінить) — той самий патерн, що й AddMedicationScreen.
+  final void Function(WellbeingSchedulesCompanion draft)? onDraftCreated;
+  const AddWellbeingScheduleScreen({
+    super.key,
+    this.memberId,
+    this.onDraftCreated,
+  }) : assert(
+          memberId != null || onDraftCreated != null,
+          'AddWellbeingScheduleScreen needs either memberId or onDraftCreated',
+        );
 
   @override
   ConsumerState<AddWellbeingScheduleScreen> createState() =>
@@ -45,13 +55,17 @@ class _AddWellbeingScheduleScreenState
   @override
   void initState() {
     super.initState();
-    _loadExisting();
+    if (widget.memberId != null) {
+      _loadExisting();
+    } else {
+      _loaded = true;
+    }
   }
 
   Future<void> _loadExisting() async {
     final existing = await ref
         .read(wellbeingRepositoryProvider)
-        .getScheduleByMember(widget.memberId);
+        .getScheduleByMember(widget.memberId!);
     if (existing != null && mounted) {
       final times = List<String>.from(jsonDecode(existing.times) as List);
       setState(() {
@@ -116,23 +130,37 @@ class _AddWellbeingScheduleScreenState
       ),
     );
     if (confirm != true || !mounted) return;
-    await ref.read(wellbeingRepositoryProvider).setActive(widget.memberId, false);
-    await NotificationService.cancelAllWellbeingForMember(widget.memberId);
+    await ref.read(wellbeingRepositoryProvider).setActive(widget.memberId!, false);
+    await NotificationService.cancelAllWellbeingForMember(widget.memberId!);
     if (mounted) Navigator.pop(context);
   }
 
   Future<void> _save() async {
+    final timesJson = jsonEncode(_slots.map((t) {
+      final hh = t.hour.toString().padLeft(2, '0');
+      final mm = t.minute.toString().padLeft(2, '0');
+      return '$hh:$mm';
+    }).toList());
+
+    if (widget.onDraftCreated != null) {
+      widget.onDraftCreated!(
+        WellbeingSchedulesCompanion.insert(
+          memberId: 0,
+          timesPerDay: Value(_timesPerDay),
+          times: Value(timesJson),
+          isActive: const Value(true),
+          color: Value(_colorHex),
+        ),
+      );
+      Navigator.of(context).pop(true);
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      final timesJson = jsonEncode(_slots.map((t) {
-        final hh = t.hour.toString().padLeft(2, '0');
-        final mm = t.minute.toString().padLeft(2, '0');
-        return '$hh:$mm';
-      }).toList());
-
       await ref.read(wellbeingRepositoryProvider).upsertSchedule(
             WellbeingSchedulesCompanion(
-              memberId: Value(widget.memberId),
+              memberId: Value(widget.memberId!),
               timesPerDay: Value(_timesPerDay),
               times: Value(timesJson),
               isActive: const Value(true),
@@ -140,30 +168,11 @@ class _AddWellbeingScheduleScreenState
             ),
           );
 
-      await NotificationService.cancelAllWellbeingForMember(widget.memberId);
-      final settings = ref.read(notificationSettingsProvider);
-      final members = ref.read(allMembersProvider).valueOrNull ?? [];
-      String memberName = '';
-      for (final m in members) {
-        if (m.id == widget.memberId) {
-          memberName = m.name;
-          break;
-        }
-      }
-      for (var i = 0; i < _slots.length; i++) {
-        final now = DateTime.now();
-        final raw = DateTime(
-            now.year, now.month, now.day, _slots[i].hour, _slots[i].minute);
-        final at = settings.adjust(raw, memberId: widget.memberId);
-        if (at == null) continue;
-        await NotificationService.scheduleWellbeingDaily(
-          memberId: widget.memberId,
-          memberName: memberName,
-          slotIndex: i,
-          hour: at.hour,
-          minute: at.minute,
-          vibrationEnabled: settings.vibrationEnabled,
-        );
+      await NotificationService.cancelAllWellbeingForMember(widget.memberId!);
+      final wellbeingRepo = ref.read(wellbeingRepositoryProvider);
+      final saved = await wellbeingRepo.getScheduleByMember(widget.memberId!);
+      if (saved != null) {
+        await wellbeingRepo.scheduleNotificationsForSchedule(saved);
       }
 
       if (mounted) Navigator.pop(context, true);
@@ -206,19 +215,20 @@ class _AddWellbeingScheduleScreenState
                       MkBackButton(onTap: () => Navigator.pop(context)),
                       const SizedBox(width: 12),
                       Text(
-                        '${context.l10n.wellbeingTitle}${memberNameSuffix(context, ref, widget.memberId)}',
+                        '${context.l10n.wellbeingTitle}${widget.memberId != null ? memberNameSuffix(context, ref, widget.memberId!) : ''}',
                         style: AppTextStyles.h3,
                       ),
                     ],
                   ),
                   Row(
                     children: [
-                      GestureDetector(
+                      if (widget.memberId != null)
+                        GestureDetector(
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => WellbeingHistoryScreen(
-                                memberId: widget.memberId),
+                                memberId: widget.memberId!),
                           ),
                         ),
                         child: Container(

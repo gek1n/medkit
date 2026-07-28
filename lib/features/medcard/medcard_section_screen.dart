@@ -7,14 +7,22 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
+import '../../data/repositories/medications_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
+import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/feed_post_card.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
+import '../add/routine_view_screen.dart';
+import '../appointments/reminder_view_screen.dart';
+import '../medications/medication_detail_screen.dart';
 import 'add_medcard_entry_screen.dart';
 import 'add_medcard_section_screen.dart';
 import 'medcard_entry_view_screen.dart';
@@ -24,8 +32,53 @@ final _sectionEntriesProvider =
   return ref.watch(medcardEntriesRepositoryProvider).watchBySection(sectionId);
 });
 
+final _sectionMedicationsProvider =
+    StreamProvider.family<List<Medication>, int>((ref, sectionId) {
+  return ref.watch(medicationsRepositoryProvider).watchBySection(sectionId);
+});
+
+final _sectionActivitiesProvider =
+    StreamProvider.family<List<Activity>, int>((ref, sectionId) {
+  return ref.watch(activitiesRepositoryProvider).watchBySection(sectionId);
+});
+
+final _sectionRemindersProvider =
+    StreamProvider.family<List<Reminder>, int>((ref, sectionId) {
+  return ref.watch(remindersRepositoryProvider).watchBySection(sectionId);
+});
+
 String _formatDate(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+
+List<String> _parseTags(String raw) {
+  try {
+    return List<String>.from(jsonDecode(raw) as List);
+  } catch (_) {
+    return const [];
+  }
+}
+
+// ─── Уніфікований елемент стрічки: запис архіву + все, що прив'язане до
+// цього розділу через Простір (ліки/рутини/нагадування) ─────────────────────
+
+enum _ItemKind { entry, medication, activity, reminder }
+
+class _FeedItem {
+  final _ItemKind kind;
+  final DateTime date;
+  final MedcardEntry? entry;
+  final Medication? medication;
+  final Activity? activity;
+  final Reminder? reminder;
+  const _FeedItem({
+    required this.kind,
+    required this.date,
+    this.entry,
+    this.medication,
+    this.activity,
+    this.reminder,
+  });
+}
 
 class MedcardSectionScreen extends ConsumerWidget {
   final MedcardSection section;
@@ -60,6 +113,9 @@ class MedcardSectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entriesAsync = ref.watch(_sectionEntriesProvider(section.id));
+    final medsAsync = ref.watch(_sectionMedicationsProvider(section.id));
+    final activitiesAsync = ref.watch(_sectionActivitiesProvider(section.id));
+    final remindersAsync = ref.watch(_sectionRemindersProvider(section.id));
     final color = colorFromHex(section.color) ?? AppColors.primary;
 
     return Scaffold(
@@ -122,13 +178,47 @@ class MedcardSectionScreen extends ConsumerWidget {
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: () async => ref.invalidate(_sectionEntriesProvider(section.id)),
+                onRefresh: () async {
+                  ref.invalidate(_sectionEntriesProvider(section.id));
+                  ref.invalidate(_sectionMedicationsProvider(section.id));
+                  ref.invalidate(_sectionActivitiesProvider(section.id));
+                  ref.invalidate(_sectionRemindersProvider(section.id));
+                },
                 child: entriesAsync.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                   data: (entries) {
-                    if (entries.isEmpty) {
+                    final items = [
+                      ...entries.map((e) => _FeedItem(
+                            kind: _ItemKind.entry,
+                            date: e.recordDate,
+                            entry: e,
+                          )),
+                      ...(medsAsync.valueOrNull ?? const <Medication>[]).map(
+                        (m) => _FeedItem(
+                          kind: _ItemKind.medication,
+                          date: m.startDate,
+                          medication: m,
+                        ),
+                      ),
+                      ...(activitiesAsync.valueOrNull ?? const <Activity>[]).map(
+                        (a) => _FeedItem(
+                          kind: _ItemKind.activity,
+                          date: a.createdAt,
+                          activity: a,
+                        ),
+                      ),
+                      ...(remindersAsync.valueOrNull ?? const <Reminder>[]).map(
+                        (r) => _FeedItem(
+                          kind: _ItemKind.reminder,
+                          date: r.scheduledAt,
+                          reminder: r,
+                        ),
+                      ),
+                    ]..sort((a, b) => b.date.compareTo(a.date));
+
+                    if (items.isEmpty) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
@@ -144,46 +234,11 @@ class MedcardSectionScreen extends ConsumerWidget {
                         AppDimensions.screenPadding,
                         88,
                       ),
-                      itemCount: entries.length,
-                      itemBuilder: (context, i) {
-                        final entry = entries[i];
-                        final tags = () {
-                          try {
-                            return List<String>.from(jsonDecode(entry.tags) as List);
-                          } catch (_) {
-                            return <String>[];
-                          }
-                        }();
-                        final photos = () {
-                          try {
-                            return List<String>.from(jsonDecode(entry.documentPaths) as List);
-                          } catch (_) {
-                            return <String>[];
-                          }
-                        }();
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                          child: FeedPostCard(
-                            icon: Icons.folder_rounded,
-                            iconWidget: MedcardIcon(section.iconKey, size: 22),
-                            color: color,
-                            title: entry.title,
-                            dateLabel: _formatDate(entry.recordDate),
-                            notePreview: entry.notes,
-                            tags: tags,
-                            photoPaths: photos,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => MedcardEntryViewScreen(
-                                  section: section,
-                                  entryId: entry.id,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                      itemCount: items.length,
+                      itemBuilder: (context, i) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                        child: _FeedCard(item: items[i], section: section, color: color),
+                      ),
                     );
                   },
                 ),
@@ -193,5 +248,91 @@ class MedcardSectionScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _FeedCard extends StatelessWidget {
+  final _FeedItem item;
+  final MedcardSection section;
+  final Color color;
+  const _FeedCard({required this.item, required this.section, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (item.kind) {
+      case _ItemKind.entry:
+        final entry = item.entry!;
+        final tags = _parseTags(entry.tags);
+        final photos = _parseTags(entry.documentPaths);
+        return FeedPostCard(
+          icon: Icons.folder_rounded,
+          iconWidget: MedcardIcon(section.iconKey, size: 22),
+          color: color,
+          title: entry.title,
+          dateLabel: _formatDate(entry.recordDate),
+          notePreview: entry.notes,
+          tags: tags,
+          photoPaths: photos,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MedcardEntryViewScreen(
+                section: section,
+                entryId: entry.id,
+              ),
+            ),
+          ),
+        );
+      case _ItemKind.medication:
+        final m = item.medication!;
+        return FeedPostCard(
+          icon: Icons.medication_liquid_rounded,
+          iconWidget: AssetIcon(medFormIconAsset(m.form), size: 22),
+          color: color,
+          title: m.name,
+          dateLabel: _formatDate(m.startDate),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MedicationDetailScreen(
+                medicationId: m.id,
+                memberId: m.memberId,
+              ),
+            ),
+          ),
+        );
+      case _ItemKind.activity:
+        final a = item.activity!;
+        return FeedPostCard(
+          icon: Icons.home_repair_service_rounded,
+          iconWidget: const AssetIcon('task_routine', size: 22),
+          color: color,
+          title: a.name,
+          dateLabel: _formatDate(a.createdAt),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RoutineViewScreen(activityId: a.id),
+            ),
+          ),
+        );
+      case _ItemKind.reminder:
+        final r = item.reminder!;
+        final tags = _parseTags(r.tags);
+        return FeedPostCard(
+          icon: Icons.notifications_rounded,
+          iconWidget: MedcardIcon(r.iconKey, size: 22),
+          color: color,
+          title: r.doctorType,
+          dateLabel: _formatDate(r.scheduledAt),
+          tags: tags,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ReminderViewScreen(reminderId: r.id),
+            ),
+          ),
+        );
+    }
   }
 }

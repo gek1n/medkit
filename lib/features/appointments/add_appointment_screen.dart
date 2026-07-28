@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/reminder_tags_library_service.dart';
@@ -18,7 +17,6 @@ import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/reminders_repository.dart';
-import '../today/providers/today_providers.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
@@ -31,6 +29,7 @@ import '../../shared/widgets/tags_field.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
+import '../today/providers/today_providers.dart';
 
 typedef _Slot = TimeOfDay;
 
@@ -38,13 +37,24 @@ typedef _Slot = TimeOfDay;
 /// завдання. Перше поле після назви — "Коли нагадати" (одноразово/щодня/
 /// певні дні тижня/щороку), яке підміняє решту полів розкладу під собою.
 class AddAppointmentScreen extends ConsumerStatefulWidget {
-  final int memberId;
+  final int? memberId;
   final Reminder? existing;
+  // Онбординг: власного профілю ще не існує в БД на момент показу цього
+  // екрана. Коли задано — форма лишається без змін, але замість запису в БД
+  // (та планування сповіщень) повертає компаньйон (з фіктивним memberId,
+  // який викликач підмінить) і час слотів (для daily/weekly), а екран
+  // одразу закривається — той самий патерн, що й AddMedicationScreen.
+  final void Function(RemindersCompanion draft, List<String> slotTimes)?
+      onDraftCreated;
   const AddAppointmentScreen({
     super.key,
-    required this.memberId,
+    this.memberId,
     this.existing,
-  });
+    this.onDraftCreated,
+  }) : assert(
+          memberId != null || onDraftCreated != null,
+          'AddAppointmentScreen needs either memberId or onDraftCreated',
+        );
 
   @override
   ConsumerState<AddAppointmentScreen> createState() =>
@@ -182,35 +192,6 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     super.dispose();
   }
 
-  Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.l10n.deleteSurgeryConfirmTitle),
-        content: Text(ctx.l10n.deleteAppointmentBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(ctx.l10n.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              ctx.l10n.deleteAction,
-              style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true || !mounted) return;
-    await AttachmentCleanupService.deletePaths(widget.existing!.documentPaths);
-    await ref.read(remindersRepositoryProvider).delete(widget.existing!.id);
-    await NotificationService.cancelAppointmentReminder(widget.existing!.id);
-    await NotificationService.cancelRecurringReminder(widget.existing!.id);
-    if (mounted) Navigator.pop(context);
-  }
-
   Future<void> _pickDate() async {
     // Дозволяємо минулі дати — цей самий екран використовується і для
     // майбутнього нагадування, і для внесення заднім числом того, що вже
@@ -253,34 +234,63 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       );
       return;
     }
+    // Для 'monthly' місяць у scheduledAt фіксуємо як січень (завжди 31
+    // день) — інакше DateTime() мовчки "перекидає" день у наступний
+    // місяць, якщо поточний _date.month коротший за обраний _dayOfMonth
+    // (напр. 31 у лютому), спотворюючи сам якір. Реальний місяць для
+    // 'monthly' не має значення — важливий лише .day (див.
+    // RemindersRepository.watchActiveOnDate/scheduleMonthlyReminder).
+    final scheduledAt = _repeatType == 'monthly'
+        ? DateTime(_date.year, 1, _dayOfMonth, _time.hour, _time.minute)
+        : DateTime(
+            _date.year,
+            _date.month,
+            _date.day,
+            _time.hour,
+            _time.minute,
+          );
+    final locationVal = _locationController.text.trim().isEmpty
+        ? null
+        : _locationController.text.trim();
+    final notesVal = _notesController.text.trim().isEmpty
+        ? null
+        : _notesController.text.trim();
+    final tagsJson = jsonEncode(_tags);
+    final repeatConfig = _repeatType == 'weekly'
+        ? jsonEncode({'days': _weekdays.toList()..sort()})
+        : '{}';
+    final slotTimes = (_repeatType == 'daily' || _repeatType == 'weekly')
+        ? _slots
+            .map((t) =>
+                '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}')
+            .toList()
+        : <String>[];
+
+    if (widget.onDraftCreated != null) {
+      widget.onDraftCreated!(
+        RemindersCompanion.insert(
+          memberId: 0,
+          doctorType: title,
+          tags: Value(tagsJson),
+          scheduledAt: scheduledAt,
+          location: Value(locationVal),
+          remindBeforeMin: Value(_remindBeforeMin),
+          notes: Value(notesVal),
+          documentPaths: Value(jsonEncode(_documentPaths)),
+          color: Value(_colorHex),
+          iconKey: Value(_iconKey),
+          sectionId: Value(_sectionId),
+          repeatType: Value(_repeatType),
+          repeatConfig: Value(repeatConfig),
+        ),
+        slotTimes,
+      );
+      Navigator.of(context).pop(true);
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      // Для 'monthly' місяць у scheduledAt фіксуємо як січень (завжди 31
-      // день) — інакше DateTime() мовчки "перекидає" день у наступний
-      // місяць, якщо поточний _date.month коротший за обраний _dayOfMonth
-      // (напр. 31 у лютому), спотворюючи сам якір. Реальний місяць для
-      // 'monthly' не має значення — важливий лише .day (див.
-      // RemindersRepository.watchActiveOnDate/scheduleMonthlyReminder).
-      final scheduledAt = _repeatType == 'monthly'
-          ? DateTime(_date.year, 1, _dayOfMonth, _time.hour, _time.minute)
-          : DateTime(
-              _date.year,
-              _date.month,
-              _date.day,
-              _time.hour,
-              _time.minute,
-            );
-      final locationVal = _locationController.text.trim().isEmpty
-          ? null
-          : _locationController.text.trim();
-      final notesVal = _notesController.text.trim().isEmpty
-          ? null
-          : _notesController.text.trim();
-      final tagsJson = jsonEncode(_tags);
-      final repeatConfig = _repeatType == 'weekly'
-          ? jsonEncode({'days': _weekdays.toList()..sort()})
-          : '{}';
-
       await ReminderTitleLibraryService.add(title);
       await ReminderTagsLibraryService.addAll(_tags);
 
@@ -307,7 +317,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       } else {
         reminderId = await ref.read(remindersRepositoryProvider).insert(
               RemindersCompanion.insert(
-                memberId: widget.memberId,
+                memberId: widget.memberId!,
                 doctorType: title,
                 tags: Value(tagsJson),
                 scheduledAt: scheduledAt,
@@ -340,124 +350,27 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         await remindersRepo.replaceSlots(reminderId, const []);
       }
 
-      final settings = ref.read(notificationSettingsProvider);
-      final members = ref.read(allMembersProvider).valueOrNull ?? [];
-      String memberName = '';
-      for (final m in members) {
-        if (m.id == widget.memberId) {
-          memberName = m.name;
-          break;
-        }
-      }
-
       await NotificationService.cancelAppointmentReminder(reminderId);
       await NotificationService.cancelRecurringReminder(reminderId);
 
-      switch (_repeatType) {
-        case 'none':
-          final rawReminderAt = scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
-          final remindAt = settings.adjust(rawReminderAt, memberId: widget.memberId);
-          if (remindAt != null) {
-            await NotificationService.scheduleAppointmentReminder(
-              appointmentId: reminderId,
-              memberName: memberName,
-              doctorType: title,
-              location: locationVal,
-              scheduledAt: remindAt,
-              remindBeforeMin: 0,
-              vibrationEnabled: settings.vibrationEnabled,
-              repeatMinutes: settings.repeatMinutes,
-            );
-          }
-          break;
-        case 'yearly':
-          {
-            // Як і в 'none' — remindBeforeMin та тихі години/глобальний
-            // тумблер застосовуємо ТУТ (через settings.adjust), а не
-            // передаємо сирі значення в NotificationService: інакше щорічне
-            // нагадування планувалось би навіть при вимкнених push/профілі
-            // й ігнорувало тихі години.
-            final rawReminderAt =
-                scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
-            final remindAt =
-                settings.adjust(rawReminderAt, memberId: widget.memberId);
-            if (remindAt != null) {
-              await NotificationService.scheduleYearlyReminder(
-                reminderId: reminderId,
-                memberName: memberName,
-                title: title,
-                location: locationVal,
-                date: remindAt,
-                remindBeforeMin: 0,
-                vibrationEnabled: settings.vibrationEnabled,
-              );
-            }
-          }
-          break;
-        case 'monthly':
-          {
-            // Так само, як 'yearly': remindBeforeMin + settings.adjust ТУТ,
-            // до передачі в NotificationService.
-            final rawReminderAt =
-                scheduledAt.subtract(Duration(minutes: _remindBeforeMin));
-            final remindAt =
-                settings.adjust(rawReminderAt, memberId: widget.memberId);
-            if (remindAt != null) {
-              await NotificationService.scheduleMonthlyReminder(
-                reminderId: reminderId,
-                memberName: memberName,
-                title: title,
-                location: locationVal,
-                dayOfMonth: remindAt.day,
-                hour: remindAt.hour,
-                minute: remindAt.minute,
-                vibrationEnabled: settings.vibrationEnabled,
-              );
-            }
-          }
-          break;
-        case 'daily':
-          {
-            final adjusted = <(int, int)>[];
-            for (final t in _slots) {
-              final now = DateTime.now();
-              final raw = DateTime(now.year, now.month, now.day, t.hour, t.minute);
-              final at = settings.adjust(raw, memberId: widget.memberId);
-              if (at != null) adjusted.add((at.hour, at.minute));
-            }
-            if (adjusted.isNotEmpty) {
-              await NotificationService.scheduleDailyReminderSlots(
-                reminderId: reminderId,
-                memberName: memberName,
-                title: title,
-                slots: adjusted,
-                vibrationEnabled: settings.vibrationEnabled,
-              );
-            }
-          }
-          break;
-        case 'weekly':
-          {
-            final adjusted = <(int, int)>[];
-            for (final t in _slots) {
-              final now = DateTime.now();
-              final raw = DateTime(now.year, now.month, now.day, t.hour, t.minute);
-              final at = settings.adjust(raw, memberId: widget.memberId);
-              if (at != null) adjusted.add((at.hour, at.minute));
-            }
-            if (adjusted.isNotEmpty) {
-              await NotificationService.scheduleWeeklyReminderSlots(
-                reminderId: reminderId,
-                memberName: memberName,
-                title: title,
-                weekdays: _weekdays.toList(),
-                slots: adjusted,
-                vibrationEnabled: settings.vibrationEnabled,
-              );
-            }
-          }
-          break;
+      final inserted = await remindersRepo.watchById(reminderId).first;
+      if (inserted != null) {
+        await remindersRepo.scheduleNotificationsForReminder(
+          inserted,
+          slotTimes: slotTimes,
+        );
       }
+
+      // Інакше щойно створене повторюване нагадування лишається без
+      // ReminderLog (і без кнопок виконано/пропустити на Сьогодні) до
+      // наступного холодного старту — FutureProvider генерації вже
+      // резолвнутий і сам по собі не перезапускається.
+      ref.invalidate(generateTodayReminderLogsProvider);
+      // Той самий принцип для прев'ю "завтра" — FutureProvider.family
+      // кешується по memberId і без явної інвалідації показував би старий
+      // список до перезаходу, тож щойно створене/змінене нагадування не
+      // з'являлося б у завтрашньому прев'ю.
+      ref.invalidate(tomorrowAppointmentsProvider);
 
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -494,9 +407,10 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
             MkFormHeader(
               title:
                   (isEdit ? context.l10n.editSurgeryTitle : context.l10n.newAppointmentTitle) +
-                  memberNameSuffix(context, ref, widget.memberId),
+                  (widget.memberId != null
+                      ? memberNameSuffix(context, ref, widget.memberId!)
+                      : ''),
               onBack: () => Navigator.pop(context),
-              onDelete: isEdit ? _delete : null,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -513,6 +427,18 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                     ReminderTitleField(
                       controller: _titleController,
                       hint: context.l10n.reminderTitleHint,
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    // Нотатка — окремим завжди розгорнутим полем одразу під
+                    // назвою (не чіпсом/шторкою), щоб її було видно й зручно
+                    // заповнювати без зайвого тапу.
+                    MkFieldLabel(context.l10n.noteSingularLabel),
+                    const SizedBox(height: 6),
+                    MkTextField(
+                      controller: _notesController,
+                      maxLines: 3,
+                      hint: context.l10n.reminderNoteHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -801,25 +727,6 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        FieldChip(
-                          icon: Icons.notes_rounded,
-                          label: context.l10n.noteSingularLabel,
-                          value: _notesController.text.trim().isEmpty
-                              ? null
-                              : _notesController.text.trim(),
-                          onTap: () async {
-                            await showFieldSheet(
-                              context,
-                              title: context.l10n.noteSingularLabel,
-                              child: MkTextField(
-                                controller: _notesController,
-                                maxLines: 3,
-                                hint: context.l10n.reminderNoteHint,
-                              ),
-                            );
-                            if (mounted) setState(() {});
-                          },
-                        ),
                         // Remind before — для разового/місячного/щорічного
                         // (для щоденного/тижневого нагадування час слоту й Є
                         // моментом нагадування, "заздалегідь" тут не має сенсу.
@@ -834,6 +741,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                                   .where((o) => o.$1 == _remindBeforeMin)
                                   .firstOrNull
                                   ?.$2,
+                              onClear: _remindBeforeMin == 0
+                                  ? null
+                                  : () => setState(() => _remindBeforeMin = 0),
                               onTap: () => showFieldSheet(
                                 context,
                                 title: context.l10n.remindBeforeLabel,
@@ -878,17 +788,28 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                                 ),
                               ),
                             ),
-                        SpaceChip(
-                          memberId: widget.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) => setState(() => _sectionId = id),
-                        ),
+                        if (widget.memberId != null)
+                          SpaceChip(
+                            memberId: widget.memberId!,
+                            sectionId: _sectionId,
+                            onChanged: (id) => setState(() => _sectionId = id),
+                          ),
                         FieldChip(
                           icon: Icons.attach_file_rounded,
                           label: context.l10n.reminderPhotoLabel,
                           value: _documentPaths.isEmpty
                               ? null
                               : '${_documentPaths.length}',
+                          onClear: _documentPaths.isEmpty
+                              ? null
+                              : () async {
+                                  await AttachmentCleanupService.deletePaths(
+                                    jsonEncode(_documentPaths),
+                                  );
+                                  if (mounted) {
+                                    setState(() => _documentPaths = []);
+                                  }
+                                },
                           onTap: () => showFieldSheet(
                             context,
                             title: context.l10n.reminderPhotoLabel,
@@ -905,6 +826,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                           value: _locationController.text.trim().isEmpty
                               ? null
                               : _locationController.text.trim(),
+                          onClear: () => setState(_locationController.clear),
                           onTap: () async {
                             await showFieldSheet(
                               context,
@@ -921,6 +843,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                           icon: Icons.sell_outlined,
                           label: context.l10n.reminderTagsFieldLabel,
                           value: _tags.isEmpty ? null : _tags.join(', '),
+                          onClear: _tags.isEmpty
+                              ? null
+                              : () => setState(() => _tags = []),
                           onTap: () => showFieldSheet(
                             context,
                             title: context.l10n.reminderTagsFieldLabel,
@@ -938,6 +863,9 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                           value: _colorHex,
                           forceLabel: true,
                           swatchColor: colorFromHex(_colorHex),
+                          onClear: _colorHex == null
+                              ? null
+                              : () => setState(() => _colorHex = null),
                           onTap: () => showFieldSheet(
                             context,
                             title: context.l10n.taskColorPickerLabel,

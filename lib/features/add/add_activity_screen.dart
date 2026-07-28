@@ -345,7 +345,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             _BackHeader(
               title: (isEdit
                       ? context.l10n.editActivityTitle
-                      : context.l10n.defaultActivityName) +
+                      : context.l10n.newRoutineTitle) +
                   memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
               onDelete: isEdit ? _delete : null,
@@ -359,6 +359,20 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Пояснення, чим рутина відрізняється від разового
+                    // нагадування — без цього рядка форма виглядає як
+                    // звичайний дубль форми нагадування, і незрозуміло,
+                    // навіщо взагалі окремий тип.
+                    if (!isEdit)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: AppDimensions.lg),
+                        child: Text(
+                          context.l10n.routineFormExplainer,
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: AppColors.textSub),
+                        ),
+                      ),
                     _Label(context.l10n.fieldName),
                     const SizedBox(height: 6),
                     _Input(
@@ -398,35 +412,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             ),
                           ),
                         ),
-                        if (showTime)
-                          FieldChip(
-                            icon: Icons.notifications_outlined,
-                            label: context.l10n.reminderLabel,
-                            value: _reminder ? 'on' : null,
-                            forceLabel: true,
-                            onTap: () => setState(() => _reminder = !_reminder),
-                          ),
-                        FieldChip(
-                          icon: Icons.palette_outlined,
-                          label: context.l10n.taskColorPickerLabel,
-                          value: _colorHex,
-                          forceLabel: true,
-                          swatchColor: colorFromHex(_colorHex),
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.taskColorPickerLabel,
-                            child: TaskColorPicker(
-                              selectedHex: _colorHex,
-                              onChanged: (hex) =>
-                                  setState(() => _colorHex = hex),
-                            ),
-                          ),
-                        ),
-                        SpaceChip(
-                          memberId: widget.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) => setState(() => _sectionId = id),
-                        ),
+                        // Хто виконує/Кроки — те, що реально відрізняє
+                        // рутину від нагадування (сімейна ротація,
+                        // чек-лист), тож стоять одразу після розкладу, а
+                        // не в кінці серед косметичних полів.
                         FieldChip(
                           icon: Icons.people_outline_rounded,
                           label: context.l10n.routineWhoDoesLabel,
@@ -460,6 +449,35 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                                   setState(() => _steps = steps),
                             ),
                           ),
+                        ),
+                        if (showTime)
+                          FieldChip(
+                            icon: Icons.notifications_outlined,
+                            label: context.l10n.reminderLabel,
+                            value: _reminder ? 'on' : null,
+                            forceLabel: true,
+                            onTap: () => setState(() => _reminder = !_reminder),
+                          ),
+                        FieldChip(
+                          icon: Icons.palette_outlined,
+                          label: context.l10n.taskColorPickerLabel,
+                          value: _colorHex,
+                          forceLabel: true,
+                          swatchColor: colorFromHex(_colorHex),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.taskColorPickerLabel,
+                            child: TaskColorPicker(
+                              selectedHex: _colorHex,
+                              onChanged: (hex) =>
+                                  setState(() => _colorHex = hex),
+                            ),
+                          ),
+                        ),
+                        SpaceChip(
+                          memberId: widget.memberId,
+                          sectionId: _sectionId,
+                          onChanged: (id) => setState(() => _sectionId = id),
                         ),
                       ],
                     ),

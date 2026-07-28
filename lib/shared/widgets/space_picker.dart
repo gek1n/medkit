@@ -273,6 +273,7 @@ class SpaceChip extends ConsumerWidget {
       iconWidget: current != null ? MedcardIcon(current.iconKey, size: 15) : null,
       label: context.l10n.spaceFieldLabel,
       value: current?.name,
+      onClear: current == null ? null : () => onChanged(null),
       onTap: () async {
         final picked = await showSpacePicker(context, memberId: memberId, current: sectionId);
         if (picked == null) return;

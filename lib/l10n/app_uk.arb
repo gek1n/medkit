@@ -6,7 +6,7 @@
   "navMeds": "Розклад",
   "navFamily": "Сім'я",
   "navProfile": "Профіль",
-  "navMedCard": "Простір",
+  "navMedCard": "Полички",
   "todayProgressTitle": "{taken} з {total}",
   "@todayProgressTitle": {
     "placeholders": {
@@ -162,7 +162,7 @@
   "dayTomorrow": "Завтра",
   "dayYesterday": "Вчора",
   "allTagsFilter": "Усі теги",
-  "medCardTitle": "Простір",
+  "medCardTitle": "Полички",
   "medCardArchiveTitle": "Архів ліків",
   "medCardArchiveSubtitle": "Усі препарати й статус лікування",
   "medCardAppointmentsTitle": "Архів нагадувань",
@@ -183,9 +183,9 @@
   "deleteSectionConfirmTitle": "Видалити розділ?",
   "deleteSectionConfirmBody": "Розділ і всі записи в ньому буде видалено.",
   "sectionEmptyHint": "Тут порожньо. Додайте перший запис через плюсик",
-  "spaceFieldLabel": "Простір",
-  "spacePickerTitle": "Оберіть простір",
-  "noSpaceOption": "Без простору",
+  "spaceFieldLabel": "Поличка",
+  "spacePickerTitle": "Оберіть поличку",
+  "noSpaceOption": "Без полички",
   "createNewSpaceAction": "Створити новий розділ",
   "newEntryTitle": "Новий запис",
   "editEntryTitle": "Редагувати запис",
@@ -400,6 +400,7 @@
   "saveChangesAction": "Зберегти зміни",
   "saveAndContinueAction": "Зберегти і продовжити →",
   "saveAndViewScheduleAction": "Зберегти та переглянути розклад →",
+  "medicalDisclaimerText": "Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.",
   "phaseCardTitle": "Фаза {number}",
   "@phaseCardTitle": {
     "placeholders": {
@@ -707,8 +708,8 @@
   },
   "routineTasksLimitDeniedTitle": "Ліміт рутинних справ досягнуто",
   "routineTasksLimitDeniedSubtitle": "На безкоштовному тарифі доступна лише 1 рутинна справа. Перейдіть на Elly Plus для необмеженої кількості",
-  "medcardSectionsLimitBadge": "Простір",
-  "medcardSectionsLimitTitle": "Ліміт розділів Простору",
+  "medcardSectionsLimitBadge": "Полички",
+  "medcardSectionsLimitTitle": "Ліміт поличок",
   "medcardSectionsLimitSubtitle": "Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість",
   "@medcardSectionsLimitSubtitle": {
     "placeholders": {
@@ -716,8 +717,8 @@
       "max": { "type": "int" }
     }
   },
-  "medcardSectionsLimitDeniedTitle": "Ліміт розділів досягнуто",
-  "medcardSectionsLimitDeniedSubtitle": "На безкоштовному тарифі доступно до 3 розділів Простору. Перейдіть на Elly Plus для необмеженої кількості",
+  "medcardSectionsLimitDeniedTitle": "Ліміт поличок досягнуто",
+  "medcardSectionsLimitDeniedSubtitle": "На безкоштовному тарифі доступно до 3 поличок. Перейдіть на Elly Plus для необмеженої кількості",
   "leaveGroupConfirmTitle": "Покинути \"{name}\"?",
   "@leaveGroupConfirmTitle": {
     "placeholders": {
@@ -1018,7 +1019,7 @@
   "reminderTitleFieldLabel": "Назва",
   "reminderTitleHint": "Вкажіть, про що нагадати",
   "enterReminderTitleError": "Введіть назву",
-  "reminderRepeatSectionLabel": "Коли нагадати",
+  "reminderRepeatSectionLabel": "Повторювання",
   "reminderRepeatOnceLabel": "Не повторювати",
   "reminderRepeatDailyLabel": "Щодня",
   "reminderRepeatWeeklyLabel": "Певні дні тижня",
@@ -1075,6 +1076,12 @@
     }
   },
   "routineAnyTimeTodayLabel": "Будь-коли сьогодні",
+  "routineFormExplainer": "Рутина повторюється й рахує виконання — для звичок і сімейних обов'язків, на відміну від разового нагадування",
+  "routineStreakDaysLabel": "{n} днів поспіль",
+  "@routineStreakDaysLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineNoStreakYetLabel": "Ще немає серії — почніть сьогодні",
   "routineAllRoutinesScreenTitle": "Обов'язки сім'ї",
   "routineNoAssigneesHint": "Ще немає обов'язків",
   "defaultNotesSectionName": "Нотатки",
@@ -1271,6 +1278,8 @@
   "addMedsShortAction": "Додати ліки",
   "addMoreMedsAction": "Додати ще ліки",
   "addMedsHint": "Скан фото рецепта або назва, доза і розклад вручну",
+  "onboardingAddItemAction": "Додати",
+  "onboardingAddItemHint": "Нагадування або ліки — оберіть варіант",
   "addMedsLaterInfo": "Ліки можна додати пізніше через розділ «Ліки» в головному меню",
   "nextAction": "Далі →",
   "skipAddLaterAction": "Пропустити — додам пізніше",
@@ -1523,7 +1532,8 @@
   "noDaysSelectedHint": "Дні не обрані",
   "chooseActivityTypeError": "Оберіть тип активності",
   "enterActivityNameError": "Введіть назву активності",
-  "editActivityTitle": "Редагувати активність",
+  "editActivityTitle": "Редагувати рутину",
+  "newRoutineTitle": "Рутина",
   "activityTypeLabel": "Тип активності",
   "activityTypeWorkout": "Зарядка",
   "activityTypeGym": "Тренування",

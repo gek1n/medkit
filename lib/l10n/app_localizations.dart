@@ -139,7 +139,7 @@ abstract class AppLocalizations {
   /// No description provided for @navMedCard.
   ///
   /// In uk, this message translates to:
-  /// **'Простір'**
+  /// **'Полички'**
   String get navMedCard;
 
   /// No description provided for @todayProgressTitle.
@@ -721,7 +721,7 @@ abstract class AppLocalizations {
   /// No description provided for @medCardTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Простір'**
+  /// **'Полички'**
   String get medCardTitle;
 
   /// No description provided for @medCardArchiveTitle.
@@ -847,19 +847,19 @@ abstract class AppLocalizations {
   /// No description provided for @spaceFieldLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Простір'**
+  /// **'Поличка'**
   String get spaceFieldLabel;
 
   /// No description provided for @spacePickerTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Оберіть простір'**
+  /// **'Оберіть поличку'**
   String get spacePickerTitle;
 
   /// No description provided for @noSpaceOption.
   ///
   /// In uk, this message translates to:
-  /// **'Без простору'**
+  /// **'Без полички'**
   String get noSpaceOption;
 
   /// No description provided for @createNewSpaceAction.
@@ -1419,6 +1419,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Зберегти та переглянути розклад →'**
   String get saveAndViewScheduleAction;
+
+  /// No description provided for @medicalDisclaimerText.
+  ///
+  /// In uk, this message translates to:
+  /// **'Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.'**
+  String get medicalDisclaimerText;
 
   /// No description provided for @phaseCardTitle.
   ///
@@ -2167,13 +2173,13 @@ abstract class AppLocalizations {
   /// No description provided for @medcardSectionsLimitBadge.
   ///
   /// In uk, this message translates to:
-  /// **'Простір'**
+  /// **'Полички'**
   String get medcardSectionsLimitBadge;
 
   /// No description provided for @medcardSectionsLimitTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Ліміт розділів Простору'**
+  /// **'Ліміт поличок'**
   String get medcardSectionsLimitTitle;
 
   /// No description provided for @medcardSectionsLimitSubtitle.
@@ -2185,13 +2191,13 @@ abstract class AppLocalizations {
   /// No description provided for @medcardSectionsLimitDeniedTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Ліміт розділів досягнуто'**
+  /// **'Ліміт поличок досягнуто'**
   String get medcardSectionsLimitDeniedTitle;
 
   /// No description provided for @medcardSectionsLimitDeniedSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'На безкоштовному тарифі доступно до 3 розділів Простору. Перейдіть на Elly Plus для необмеженої кількості'**
+  /// **'На безкоштовному тарифі доступно до 3 поличок. Перейдіть на Elly Plus для необмеженої кількості'**
   String get medcardSectionsLimitDeniedSubtitle;
 
   /// No description provided for @leaveGroupConfirmTitle.
@@ -3199,7 +3205,7 @@ abstract class AppLocalizations {
   /// No description provided for @reminderRepeatSectionLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Коли нагадати'**
+  /// **'Повторювання'**
   String get reminderRepeatSectionLabel;
 
   /// No description provided for @reminderRepeatOnceLabel.
@@ -3393,6 +3399,24 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Будь-коли сьогодні'**
   String get routineAnyTimeTodayLabel;
+
+  /// No description provided for @routineFormExplainer.
+  ///
+  /// In uk, this message translates to:
+  /// **'Рутина повторюється й рахує виконання — для звичок і сімейних обов\'язків, на відміну від разового нагадування'**
+  String get routineFormExplainer;
+
+  /// No description provided for @routineStreakDaysLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'{n} днів поспіль'**
+  String routineStreakDaysLabel(int n);
+
+  /// No description provided for @routineNoStreakYetLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Ще немає серії — почніть сьогодні'**
+  String get routineNoStreakYetLabel;
 
   /// No description provided for @routineAllRoutinesScreenTitle.
   ///
@@ -4215,6 +4239,18 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Скан фото рецепта або назва, доза і розклад вручну'**
   String get addMedsHint;
+
+  /// No description provided for @onboardingAddItemAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додати'**
+  String get onboardingAddItemAction;
+
+  /// No description provided for @onboardingAddItemHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нагадування або ліки — оберіть варіант'**
+  String get onboardingAddItemHint;
 
   /// No description provided for @addMedsLaterInfo.
   ///
@@ -5269,8 +5305,14 @@ abstract class AppLocalizations {
   /// No description provided for @editActivityTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Редагувати активність'**
+  /// **'Редагувати рутину'**
   String get editActivityTitle;
+
+  /// No description provided for @newRoutineTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Рутина'**
+  String get newRoutineTitle;
 
   /// No description provided for @activityTypeLabel.
   ///

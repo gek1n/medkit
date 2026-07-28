@@ -39,8 +39,19 @@ class ActivitiesRepository {
         .watch();
   }
 
+  // Для Простору — рутини, прив'язані до конкретного розділу.
+  Stream<List<Activity>> watchBySection(int sectionId) =>
+      (_db.select(_db.activities)
+            ..where((t) =>
+                t.sectionId.equals(sectionId) & t.isActive.equals(true)))
+          .watch();
+
+  // isActive.equals(true) — інакше після softDelete (isActive=false)
+  // RoutineViewScreen продовжував би показувати щойно "видалену" рутину
+  // замість того, щоб закритись (єдиний споживач цього методу).
   Stream<Activity?> watchById(int id) =>
-      (_db.select(_db.activities)..where((t) => t.id.equals(id)))
+      (_db.select(_db.activities)
+            ..where((t) => t.id.equals(id) & t.isActive.equals(true)))
           .watchSingleOrNull();
 
   Future<int> countByMember(int memberId) async {
@@ -56,6 +67,25 @@ class ActivitiesRepository {
             ..where((t) => t.activityId.equals(activityId))
             ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
           .get();
+
+  // Рутини "без фіксованого часу" (ActivitySlots порожній — див. коментар в
+  // ActivityLogGenerator) — id активностей члена сім'ї, чиї ActivityLogs слід
+  // показувати поза звичайним бакетингом пропущено/зараз/незабаром (див.
+  // today_screen.dart _AnytimeRoutinesSection).
+  Stream<Set<int>> watchNoFixedTimeActivityIds(int memberId) {
+    return (_db.select(_db.activities)
+          ..where(
+              (t) => t.memberId.equals(memberId) & t.isActive.equals(true)))
+        .watch()
+        .asyncMap((acts) async {
+      final result = <int>{};
+      for (final a in acts) {
+        final slots = await getSlotsForActivity(a.id);
+        if (slots.isEmpty) result.add(a.id);
+      }
+      return result;
+    });
+  }
 
   Future<List<ActivityLog>> getLogsByMemberAndDate(
     int memberId,
@@ -394,6 +424,31 @@ class ActivitiesRepository {
                 t.scheduledAt.isBiggerOrEqualValue(from) &
                 t.scheduledAt.isSmallerThanValue(to)))
           .get();
+
+  // Кількість підряд виконаних (status=='done') минулих/поточних входжень,
+  // рахуючи від найновішого — той самий "streak", що й у habit-tracker
+  // застосунках, мотиваційний показник "чому це рутина, а не просто
+  // нагадування". Майбутні (ще не настали) логи пропускаються — вони не
+  // мають статусу ще, тож не повинні ні продовжувати, ні обривати серію.
+  // Перший-же минулий лог не зі статусом 'done' (пропущено/частково) обриває
+  // підрахунок.
+  Future<int> computeStreakDays(int activityId) async {
+    final now = DateTime.now();
+    final logs = await (_db.select(_db.activityLogs)
+          ..where((t) => t.activityId.equals(activityId))
+          ..orderBy([(t) => OrderingTerm.desc(t.scheduledAt)]))
+        .get();
+    var streak = 0;
+    for (final log in logs) {
+      if (log.scheduledAt.isAfter(now)) continue;
+      if (log.status == 'done') {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
 
   Future<int> insertLog(ActivityLogsCompanion log) async {
     final id = await _db.into(_db.activityLogs).insert(log);

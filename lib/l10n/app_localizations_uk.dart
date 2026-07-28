@@ -27,7 +27,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get navProfile => 'Профіль';
 
   @override
-  String get navMedCard => 'Простір';
+  String get navMedCard => 'Полички';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -349,7 +349,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get allTagsFilter => 'Усі теги';
 
   @override
-  String get medCardTitle => 'Простір';
+  String get medCardTitle => 'Полички';
 
   @override
   String get medCardArchiveTitle => 'Архів ліків';
@@ -415,13 +415,13 @@ class AppLocalizationsUk extends AppLocalizations {
       'Тут порожньо. Додайте перший запис через плюсик';
 
   @override
-  String get spaceFieldLabel => 'Простір';
+  String get spaceFieldLabel => 'Поличка';
 
   @override
-  String get spacePickerTitle => 'Оберіть простір';
+  String get spacePickerTitle => 'Оберіть поличку';
 
   @override
-  String get noSpaceOption => 'Без простору';
+  String get noSpaceOption => 'Без полички';
 
   @override
   String get createNewSpaceAction => 'Створити новий розділ';
@@ -748,6 +748,10 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get saveAndViewScheduleAction => 'Зберегти та переглянути розклад →';
+
+  @override
+  String get medicalDisclaimerText =>
+      'Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.';
 
   @override
   String phaseCardTitle(int number) {
@@ -1206,10 +1210,10 @@ class AppLocalizationsUk extends AppLocalizations {
       'На безкоштовному тарифі доступна лише 1 рутинна справа. Перейдіть на Elly Plus для необмеженої кількості';
 
   @override
-  String get medcardSectionsLimitBadge => 'Простір';
+  String get medcardSectionsLimitBadge => 'Полички';
 
   @override
-  String get medcardSectionsLimitTitle => 'Ліміт розділів Простору';
+  String get medcardSectionsLimitTitle => 'Ліміт поличок';
 
   @override
   String medcardSectionsLimitSubtitle(int used, int max) {
@@ -1217,11 +1221,11 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get medcardSectionsLimitDeniedTitle => 'Ліміт розділів досягнуто';
+  String get medcardSectionsLimitDeniedTitle => 'Ліміт поличок досягнуто';
 
   @override
   String get medcardSectionsLimitDeniedSubtitle =>
-      'На безкоштовному тарифі доступно до 3 розділів Простору. Перейдіть на Elly Plus для необмеженої кількості';
+      'На безкоштовному тарифі доступно до 3 поличок. Перейдіть на Elly Plus для необмеженої кількості';
 
   @override
   String leaveGroupConfirmTitle(String name) {
@@ -1787,7 +1791,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get enterReminderTitleError => 'Введіть назву';
 
   @override
-  String get reminderRepeatSectionLabel => 'Коли нагадати';
+  String get reminderRepeatSectionLabel => 'Повторювання';
 
   @override
   String get reminderRepeatOnceLabel => 'Не повторювати';
@@ -1896,6 +1900,18 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get routineAnyTimeTodayLabel => 'Будь-коли сьогодні';
+
+  @override
+  String get routineFormExplainer =>
+      'Рутина повторюється й рахує виконання — для звичок і сімейних обов\'язків, на відміну від разового нагадування';
+
+  @override
+  String routineStreakDaysLabel(int n) {
+    return '$n днів поспіль';
+  }
+
+  @override
+  String get routineNoStreakYetLabel => 'Ще немає серії — почніть сьогодні';
 
   @override
   String get routineAllRoutinesScreenTitle => 'Обов\'язки сім\'ї';
@@ -2346,6 +2362,12 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get addMedsHint =>
       'Скан фото рецепта або назва, доза і розклад вручну';
+
+  @override
+  String get onboardingAddItemAction => 'Додати';
+
+  @override
+  String get onboardingAddItemHint => 'Нагадування або ліки — оберіть варіант';
 
   @override
   String get addMedsLaterInfo =>
@@ -2959,7 +2981,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String get enterActivityNameError => 'Введіть назву активності';
 
   @override
-  String get editActivityTitle => 'Редагувати активність';
+  String get editActivityTitle => 'Редагувати рутину';
+
+  @override
+  String get newRoutineTitle => 'Рутина';
 
   @override
   String get activityTypeLabel => 'Тип активності';

@@ -36,6 +36,20 @@ const List<String> medcardIconKeys = [
   'heart',
   'tag',
   'box',
+  'antistress',
+  'backup',
+  'brain',
+  'family',
+  'eye',
+  'excercise',
+  'doctor',
+  'cleaning',
+  'form_cream',
+  'plans',
+  'repeat_yearly',
+  'sleep',
+  'task_routine',
+  'task_note',
 ];
 
 const String defaultMedcardIconKey = 'folder';
