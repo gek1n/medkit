@@ -1188,6 +1188,42 @@ class AppLocalizationsUk extends AppLocalizations {
       'Щоб сім\'я теж могла керувати — перейдіть на Elly Family';
 
   @override
+  String get routineTasksLimitBadge => 'Рутинні справи';
+
+  @override
+  String get routineTasksLimitTitle => 'Ліміт рутинних справ';
+
+  @override
+  String routineTasksLimitSubtitle(int used, int max) {
+    return 'Використано $used з $max. Перейдіть на Elly Plus — необмежена кількість';
+  }
+
+  @override
+  String get routineTasksLimitDeniedTitle => 'Ліміт рутинних справ досягнуто';
+
+  @override
+  String get routineTasksLimitDeniedSubtitle =>
+      'На безкоштовному тарифі доступна лише 1 рутинна справа. Перейдіть на Elly Plus для необмеженої кількості';
+
+  @override
+  String get medcardSectionsLimitBadge => 'Простір';
+
+  @override
+  String get medcardSectionsLimitTitle => 'Ліміт розділів Простору';
+
+  @override
+  String medcardSectionsLimitSubtitle(int used, int max) {
+    return 'Використано $used з $max. Перейдіть на Elly Plus — необмежена кількість';
+  }
+
+  @override
+  String get medcardSectionsLimitDeniedTitle => 'Ліміт розділів досягнуто';
+
+  @override
+  String get medcardSectionsLimitDeniedSubtitle =>
+      'На безкоштовному тарифі доступно до 3 розділів Простору. Перейдіть на Elly Plus для необмеженої кількості';
+
+  @override
   String leaveGroupConfirmTitle(String name) {
     return 'Покинути \"$name\"?';
   }
@@ -1776,6 +1812,96 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get dayOfMonthCapsLabel => 'ДЕНЬ';
+
+  @override
+  String get routineRepeatSectionLabel => 'Повторення';
+
+  @override
+  String get routineRepeatEveryNDaysOption => 'Кожні N днів';
+
+  @override
+  String get routineRepeatWeeklyGoalOption => 'N разів на тиждень';
+
+  @override
+  String routineIntervalDaysValueLabel(int n) {
+    return 'Кожні $n дн.';
+  }
+
+  @override
+  String routineWeeklyGoalValueLabel(int n) {
+    return '$n р./тиждень';
+  }
+
+  @override
+  String get routineTimeFieldLabel => 'Час';
+
+  @override
+  String get routineFixedTimeOption => 'У певний час';
+
+  @override
+  String get routineNoFixedTimeOption => 'Без конкретного часу';
+
+  @override
+  String get routineWhoDoesLabel => 'Хто виконує';
+
+  @override
+  String get routineRotationCadenceLabel => 'Як часто змінюється черга';
+
+  @override
+  String get routineRotationCadencePerOccurrence => 'Кожного разу';
+
+  @override
+  String get routineRotationCadenceWeekly => 'Щотижня';
+
+  @override
+  String get routineRotationCadenceMonthly => 'Щомісяця';
+
+  @override
+  String routineRotationSummary(int n) {
+    return 'По черзі ($n)';
+  }
+
+  @override
+  String get routineStepsLabel => 'Кроки';
+
+  @override
+  String get routineStepsSheetTitle => 'Кроки виконання';
+
+  @override
+  String get routineAddStepHint => 'Додати крок…';
+
+  @override
+  String routineWhoseTurnLabel(String name) {
+    return 'Черга: $name';
+  }
+
+  @override
+  String get routineSwapTurnAction => 'Поміняти';
+
+  @override
+  String get routineSkipTurnAction => 'Пропустити чергу';
+
+  @override
+  String routineWeeklyGoalProgressLabel(int done, int total) {
+    return '$done/$total цього тижня';
+  }
+
+  @override
+  String get routinePartialStatusLabel => 'Частково';
+
+  @override
+  String routineStepsProgressLabel(int done, int total) {
+    return '$done/$total кроків';
+  }
+
+  @override
+  String get routineAnyTimeTodayLabel => 'Будь-коли сьогодні';
+
+  @override
+  String get routineAllRoutinesScreenTitle => 'Обов\'язки сім\'ї';
+
+  @override
+  String get routineNoAssigneesHint => 'Ще немає обов\'язків';
 
   @override
   String get defaultNotesSectionName => 'Нотатки';

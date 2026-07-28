@@ -19,9 +19,8 @@ import '../../core/utils/plan_access.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 
-// Форматує тривалість у хвилинах у вигляд "N хв" / "N год" / "N год M хв" —
-// спільна логіка для картки слоту заняття й кнопки збереження в пікері
-// тривалості, щоб текст скрізь виглядав однаково.
+typedef _Slot = ({TimeOfDay time, int? duration});
+
 String _formatDuration(BuildContext context, int totalMinutes) {
   final l10n = context.l10n;
   if (totalMinutes < 60) return l10n.durationMinutes(totalMinutes);
@@ -30,19 +29,29 @@ String _formatDuration(BuildContext context, int totalMinutes) {
   return m == 0 ? l10n.hoursCountLabel(h) : l10n.durationHoursMinutesLabel(h, m);
 }
 
+String weekdayLabel(BuildContext context, int weekday) {
+  final l10n = context.l10n;
+  return switch (weekday) {
+    1 => l10n.dayMon,
+    2 => l10n.dayTue,
+    3 => l10n.dayWed,
+    4 => l10n.dayThu,
+    5 => l10n.dayFri,
+    6 => l10n.daySat,
+    _ => l10n.daySun,
+  };
+}
+
+/// Форма створення/редагування Рутинної справи — гнучкі повтори (щодня/дні
+/// тижня/раз на місяць/кожні N днів/N разів на тиждень будь-якими днями),
+/// сімейна ротація виконавців, чек-лист підкроків. Легасі-поля старого
+/// повного редактора (сітка типів Спорт, YouTube-посилання) прибрані з UI —
+/// жоден живий виклик цього екрана вже не використовує compactMode:false.
 class AddActivityScreen extends ConsumerStatefulWidget {
   final int memberId;
   final Activity? existing;
-  // Коли true — грід "Тип активності" ховається (використовується для
-  // Спорт/Прості завдання/Рутинні справи з нового пікера створення); тоді
-  // [forcedType] задає службове значення, що йде в Activities.type
-  // непомітно для юзера.
   final bool hideTypePicker;
   final String? forcedType;
-  // Компактна форма у стилі Todoist — лише назва обов'язкова й видима
-  // одразу, решта полів (розклад, нагадування, колір, простір, посилання)
-  // згорнуті в чіпси. Використовується для Прості завдання/Рутинні справи;
-  // Спорт лишає повну форму (compactMode: false).
   final bool compactMode;
   const AddActivityScreen({
     super.key,
@@ -57,105 +66,89 @@ class AddActivityScreen extends ConsumerStatefulWidget {
   ConsumerState<AddActivityScreen> createState() => _AddActivityScreenState();
 }
 
-typedef _Slot = ({TimeOfDay time, int? duration});
-
 class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
-  String? _type;
   late final TextEditingController _nameController;
-  late final TextEditingController _youtubeController;
   String? _colorHex;
   int? _sectionId;
-  List<_Slot> _slots = [
-    (time: const TimeOfDay(hour: 8, minute: 30), duration: null),
-  ];
-  Set<int> _weekdays = {1, 2, 3, 4, 5};
   bool _reminder = true;
   bool _isSaving = false;
   bool _loaded = false;
 
-  static const _types = [
-    ('walk', Icons.directions_walk_rounded),
-    ('workout', Icons.fitness_center_rounded),
-    ('gym', Icons.fitness_center_rounded),
-    ('yoga', Icons.self_improvement_rounded),
-    ('cycling', Icons.directions_bike_rounded),
-    ('custom', Icons.add_rounded),
+  String _repeatType = 'weekly';
+  Set<int> _weekdays = {1, 2, 3, 4, 5};
+  int _dayOfMonth = DateTime.now().day;
+  int _intervalDays = 3;
+  int _weeklyGoalCount = 3;
+
+  bool _hasFixedTime = true;
+  List<_Slot> _slots = [
+    (time: const TimeOfDay(hour: 8, minute: 30), duration: null),
   ];
 
-  static String _typeLabel(BuildContext context, String id) {
-    final l10n = context.l10n;
-    return switch (id) {
-      'walk' => l10n.walkActivityName,
-      'workout' => l10n.activityTypeWorkout,
-      'gym' => l10n.activityTypeGym,
-      'yoga' => l10n.activityTypeYoga,
-      'cycling' => l10n.activityTypeCycling,
-      _ => l10n.activityTypeCustom,
-    };
-  }
-
-  static String _dayLabel(BuildContext context, int weekday) {
-    final l10n = context.l10n;
-    return switch (weekday) {
-      1 => l10n.dayMon,
-      2 => l10n.dayTue,
-      3 => l10n.dayWed,
-      4 => l10n.dayThu,
-      5 => l10n.dayFri,
-      6 => l10n.daySat,
-      _ => l10n.daySun,
-    };
-  }
+  List<int> _assigneeIds = [];
+  String _rotationMode = 'fixed';
+  List<String> _steps = [];
 
   @override
   void initState() {
     super.initState();
     final ex = widget.existing;
     _nameController = TextEditingController(text: ex?.name ?? '');
-    _youtubeController = TextEditingController(text: ex?.youtubeUrl ?? '');
     _colorHex = ex?.color;
-    _type = widget.forcedType;
     if (ex != null) {
-      _type = ex.type;
       _sectionId = ex.sectionId;
       _reminder = ex.reminderBeforeMin > 0;
+      _repeatType = ex.repeatType;
+      _dayOfMonth = ex.repeatDayOfMonth ?? DateTime.now().day;
+      _intervalDays = ex.repeatIntervalDays ?? 3;
+      _weeklyGoalCount = ex.weeklyGoalCount ?? 3;
+      _rotationMode = ex.rotationMode;
       try {
         final days = List<int>.from(jsonDecode(ex.repeatDays) as List);
         _weekdays = days.toSet();
       } catch (_) {}
-      _loadSlots(ex.id);
+      try {
+        final steps = jsonDecode(ex.stepsJson ?? '[]') as List;
+        _steps = steps.map((s) => (s as Map)['title'] as String).toList();
+      } catch (_) {}
+      _loadExisting(ex.id);
     } else {
+      _assigneeIds = [widget.memberId];
       _loaded = true;
     }
   }
 
-  Future<void> _loadSlots(int activityId) async {
-    final slots = await ref
-        .read(activitiesRepositoryProvider)
-        .getSlotsForActivity(activityId);
-    if (mounted) {
-      setState(() {
-        if (slots.isNotEmpty) {
-          _slots = slots.map((s) {
-            final parts = s.timeOfDay.split(':');
-            return (
-              time: TimeOfDay(
-                hour: int.parse(parts[0]),
-                minute: int.parse(parts[1]),
-              ),
-              duration: (s.durationMin == 0) ? null : s.durationMin,
-            );
-          }).toList();
-        }
-        _loaded = true;
-      });
-    }
+  Future<void> _loadExisting(int activityId) async {
+    final repo = ref.read(activitiesRepositoryProvider);
+    final slots = await repo.getSlotsForActivity(activityId);
+    final assignees = await repo.getAssignees(activityId);
+    if (!mounted) return;
+    setState(() {
+      if (slots.isNotEmpty) {
+        _slots = slots.map((s) {
+          final parts = s.timeOfDay.split(':');
+          return (
+            time: TimeOfDay(
+              hour: int.parse(parts[0]),
+              minute: int.parse(parts[1]),
+            ),
+            duration: (s.durationMin == 0) ? null : s.durationMin,
+          );
+        }).toList();
+        _hasFixedTime = true;
+      } else {
+        _hasFixedTime = false;
+      }
+      _assigneeIds = assignees.isNotEmpty
+          ? assignees.map((a) => a.memberId).toList()
+          : [widget.existing!.memberId];
+      _loaded = true;
+    });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _youtubeController.dispose();
     super.dispose();
   }
 
@@ -184,22 +177,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     await ref
         .read(activitiesRepositoryProvider)
         .softDelete(widget.existing!.id);
-    // Так само, як після збереження — інакше вже підвантажений "Коротко
-    // про завтра" лишається зі старим логом видаленої активності (назва
-    // при цьому "губиться", бо список активностей для підпису вже
-    // реактивно оновився й перестав містити видалену).
     ref.invalidate(generateTodayActivityLogsProvider);
     ref.invalidate(tomorrowActivityLogsProvider);
     if (mounted) Navigator.pop(context);
   }
 
   Future<void> _save() async {
-    if (_type == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.chooseActivityTypeError)),
-      );
-      return;
-    }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,29 +190,43 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       );
       return;
     }
+    if (_repeatType == 'weekly' && _weekdays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.noDaysSelectedHint)),
+      );
+      return;
+    }
     setState(() => _isSaving = true);
     try {
       final repo = ref.read(activitiesRepositoryProvider);
-      final repeatDays = jsonEncode(_weekdays.toList()..sort());
-      final youtubeUrl = _youtubeController.text.trim();
+      final repeatDaysJson = jsonEncode(_weekdays.toList()..sort());
+      final stepsJsonStr = _steps.isEmpty
+          ? null
+          : jsonEncode(_steps.map((t) => {'title': t}).toList());
+      final showTime = _hasFixedTime && _repeatType != 'weeklyGoal';
+      final activityDuration =
+          showTime && _slots.isNotEmpty ? (_slots.first.duration ?? 0) : 0;
       final int activityId;
-      // Activities.durationMin — окреме поле від ActivitySlots.durationMin
-      // (яке справді редагує користувач через "Тривалість" на слоті). Якщо
-      // тут не задати його явно, БД підставляє свій дефолт (30) незалежно
-      // від того, що обрав користувач на слотах — і Today показує "30 хв"
-      // навіть коли тривалість ніде не вказана. Тож дзеркалимо перший слот.
-      final activityDuration = _slots.isNotEmpty ? (_slots.first.duration ?? 0) : 0;
 
       if (widget.existing != null) {
         await repo.updateActivity(
           ActivitiesCompanion(
             id: Value(widget.existing!.id),
             name: Value(name),
-            type: Value(_type!),
+            type: const Value('routine'),
             durationMin: Value(activityDuration),
-            repeatDays: Value(repeatDays),
+            repeatDays: Value(repeatDaysJson),
+            repeatType: Value(_repeatType),
+            repeatDayOfMonth:
+                Value(_repeatType == 'monthly' ? _dayOfMonth : null),
+            repeatIntervalDays:
+                Value(_repeatType == 'everyNDays' ? _intervalDays : null),
+            weeklyGoalCount:
+                Value(_repeatType == 'weeklyGoal' ? _weeklyGoalCount : null),
+            rotationMode:
+                Value(_assigneeIds.length > 1 ? _rotationMode : 'fixed'),
+            stepsJson: Value(stepsJsonStr),
             reminderBeforeMin: Value(_reminder ? 10 : 0),
-            youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
             color: Value(_colorHex),
             sectionId: Value(_sectionId),
           ),
@@ -240,28 +237,43 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
           ActivitiesCompanion.insert(
             memberId: widget.memberId,
             name: name,
-            type: Value(_type!),
+            type: const Value('routine'),
             durationMin: Value(activityDuration),
-            repeatDays: Value(repeatDays),
+            repeatDays: Value(repeatDaysJson),
+            repeatType: Value(_repeatType),
+            repeatDayOfMonth:
+                Value(_repeatType == 'monthly' ? _dayOfMonth : null),
+            repeatIntervalDays:
+                Value(_repeatType == 'everyNDays' ? _intervalDays : null),
+            weeklyGoalCount:
+                Value(_repeatType == 'weeklyGoal' ? _weeklyGoalCount : null),
+            rotationAnchorDate: Value(DateTime.now()),
+            rotationMode:
+                Value(_assigneeIds.length > 1 ? _rotationMode : 'fixed'),
+            stepsJson: Value(stepsJsonStr),
             reminderBeforeMin: Value(_reminder ? 10 : 0),
-            youtubeUrl: Value(youtubeUrl.isEmpty ? null : youtubeUrl),
             color: Value(_colorHex),
             sectionId: Value(_sectionId),
           ),
         );
       }
 
-      final slots = _slots.asMap().entries.map((e) {
-        final hh = e.value.time.hour.toString().padLeft(2, '0');
-        final mm = e.value.time.minute.toString().padLeft(2, '0');
-        return ActivitySlotsCompanion.insert(
-          activityId: activityId,
-          timeOfDay: '$hh:$mm',
-          durationMin: Value(e.value.duration ?? 0),
-          sortOrder: Value(e.key),
-        );
-      }).toList();
-      await repo.replaceSlots(activityId, slots);
+      final poolIds = _assigneeIds.isEmpty ? [widget.memberId] : _assigneeIds;
+      await repo.replaceAssignees(activityId, poolIds);
+
+      final slotsToSave = showTime
+          ? _slots.asMap().entries.map((e) {
+              final hh = e.value.time.hour.toString().padLeft(2, '0');
+              final mm = e.value.time.minute.toString().padLeft(2, '0');
+              return ActivitySlotsCompanion.insert(
+                activityId: activityId,
+                timeOfDay: '$hh:$mm',
+                durationMin: Value(e.value.duration ?? 0),
+                sortOrder: Value(e.key),
+              );
+            }).toList()
+          : <ActivitySlotsCompanion>[];
+      await repo.replaceSlots(activityId, slotsToSave);
 
       ref.invalidate(generateTodayActivityLogsProvider);
       ref.invalidate(tomorrowActivityLogsProvider);
@@ -278,6 +290,36 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     }
   }
 
+  String _repeatSummary(BuildContext context) {
+    switch (_repeatType) {
+      case 'daily':
+        return context.l10n.reminderRepeatDailyLabel;
+      case 'monthly':
+        return '${context.l10n.reminderRepeatMonthlyLabel} · $_dayOfMonth';
+      case 'everyNDays':
+        return context.l10n.routineIntervalDaysValueLabel(_intervalDays);
+      case 'weeklyGoal':
+        return context.l10n.routineWeeklyGoalValueLabel(_weeklyGoalCount);
+      case 'weekly':
+      default:
+        final sorted = _weekdays.toList()..sort();
+        return sorted.isEmpty
+            ? context.l10n.noDaysSelectedHint
+            : (sorted.length == 7
+                ? context.l10n.repeatDaily
+                : sorted.map((d) => weekdayLabel(context, d)).join(', '));
+    }
+  }
+
+  String _assigneeSummary(BuildContext context, List<Member> members) {
+    if (_assigneeIds.length <= 1) {
+      final id = _assigneeIds.isNotEmpty ? _assigneeIds.first : widget.memberId;
+      final m = members.where((x) => x.id == id).firstOrNull;
+      return m?.name ?? '';
+    }
+    return context.l10n.routineRotationSummary(_assigneeIds.length);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isMemberBlockedByPlan(ref, widget.memberId)) {
@@ -292,14 +334,16 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       );
     }
     final isEdit = widget.existing != null;
+    final members = ref.watch(allMembersProvider).valueOrNull ?? [];
+    final showTime = _hasFixedTime && _repeatType != 'weeklyGoal';
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
           children: [
             _BackHeader(
-              title:
-                  (isEdit
+              title: (isEdit
                       ? context.l10n.editActivityTitle
                       : context.l10n.defaultActivityName) +
                   memberNameSuffix(context, ref, widget.memberId),
@@ -315,77 +359,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Type grid
-                    if (!widget.hideTypePicker) ...[
-                      _Label(context.l10n.activityTypeLabel),
-                      const SizedBox(height: 8),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1.2,
-                        children: _types.map((t) {
-                          final sel = _type != null && _type == t.$1;
-                          final label = _typeLabel(context, t.$1);
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _type = t.$1;
-                                if (t.$1 != 'custom' &&
-                                    _nameController.text.trim().isEmpty) {
-                                  _nameController.text = label;
-                                }
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              decoration: BoxDecoration(
-                                color: sel
-                                    ? const Color(0xFFDCFCE7)
-                                    : AppColors.surface,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: sel
-                                      ? AppColors.success
-                                      : AppColors.border,
-                                  width: sel ? 2 : 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    t.$2,
-                                    size: 22,
-                                    color: sel
-                                        ? const Color(0xFF15803D)
-                                        : AppColors.textMuted,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    label,
-                                    style: AppTextStyles.bodySm.copyWith(
-                                      color: sel
-                                          ? const Color(0xFF15803D)
-                                          : AppColors.textMuted,
-                                      fontWeight: sel
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: AppDimensions.lg),
-                    ],
-
-                    // Name — обов'язкове, завжди видиме
                     _Label(context.l10n.fieldName),
                     const SizedBox(height: 6),
                     _Input(
@@ -393,23 +366,39 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       hint: context.l10n.activityNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-
-                    if (widget.compactMode) ...[
-                      // Компактна форма — решта полів чіпсами
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          FieldChip(
-                            icon: Icons.schedule_rounded,
-                            label: context.l10n.scheduleTitle,
-                            value: _scheduleSummary(context),
-                            onTap: () => showFieldSheet(
-                              context,
-                              title: context.l10n.scheduleTitle,
-                              child: _scheduleFields(context, showLabel: false),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FieldChip(
+                          icon: Icons.repeat_rounded,
+                          label: context.l10n.routineRepeatSectionLabel,
+                          value: _repeatSummary(context),
+                          forceLabel: true,
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.routineRepeatSectionLabel,
+                            child: _ScheduleFieldsSheet(
+                              initialRepeatType: _repeatType,
+                              initialWeekdays: _weekdays,
+                              initialDayOfMonth: _dayOfMonth,
+                              initialIntervalDays: _intervalDays,
+                              initialWeeklyGoalCount: _weeklyGoalCount,
+                              initialHasFixedTime: _hasFixedTime,
+                              initialSlots: _slots,
+                              onChanged: (v) => setState(() {
+                                _repeatType = v.repeatType;
+                                _weekdays = v.weekdays;
+                                _dayOfMonth = v.dayOfMonth;
+                                _intervalDays = v.intervalDays;
+                                _weeklyGoalCount = v.weeklyGoalCount;
+                                _hasFixedTime = v.hasFixedTime;
+                                _slots = v.slots;
+                              }),
                             ),
                           ),
+                        ),
+                        if (showTime)
                           FieldChip(
                             icon: Icons.notifications_outlined,
                             label: context.l10n.reminderLabel,
@@ -417,140 +406,64 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             forceLabel: true,
                             onTap: () => setState(() => _reminder = !_reminder),
                           ),
-                          FieldChip(
-                            icon: Icons.palette_outlined,
-                            label: context.l10n.taskColorPickerLabel,
-                            value: _colorHex,
-                            forceLabel: true,
-                            swatchColor: colorFromHex(_colorHex),
-                            onTap: () => showFieldSheet(
-                              context,
-                              title: context.l10n.taskColorPickerLabel,
-                              child: TaskColorPicker(
-                                selectedHex: _colorHex,
-                                onChanged: (hex) => setState(() => _colorHex = hex),
-                              ),
+                        FieldChip(
+                          icon: Icons.palette_outlined,
+                          label: context.l10n.taskColorPickerLabel,
+                          value: _colorHex,
+                          forceLabel: true,
+                          swatchColor: colorFromHex(_colorHex),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.taskColorPickerLabel,
+                            child: TaskColorPicker(
+                              selectedHex: _colorHex,
+                              onChanged: (hex) =>
+                                  setState(() => _colorHex = hex),
                             ),
                           ),
-                          SpaceChip(
-                            memberId: widget.memberId,
-                            sectionId: _sectionId,
-                            onChanged: (id) => setState(() => _sectionId = id),
-                          ),
-                          FieldChip(
-                            icon: Icons.link_rounded,
-                            label: context.l10n.youtubeLinkLabel,
-                            value: _youtubeController.text.trim().isEmpty ? null : 'on',
-                            forceLabel: true,
-                            onTap: () async {
-                              await showFieldSheet(
-                                context,
-                                title: context.l10n.youtubeLinkLabel,
-                                child: _Input(
-                                  controller: _youtubeController,
-                                  hint: 'https://youtube.com/watch?v=...',
-                                ),
-                              );
-                              if (mounted) setState(() {});
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                    ] else ...[
-                      _scheduleFields(context),
-                      const SizedBox(height: AppDimensions.lg),
-
-                      // Reminder
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.notifications_outlined,
-                              color: AppColors.textSub,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    context.l10n.reminderLabel,
-                                    style: AppTextStyles.labelMd,
-                                  ),
-                                  Text(
-                                    context.l10n.reminderActivityDescription,
-                                    style: AppTextStyles.bodySm,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Switch(
-                              value: _reminder,
-                              onChanged: (v) => setState(() => _reminder = v),
-                              activeThumbColor: AppColors.primary,
-                            ),
-                          ],
+                        SpaceChip(
+                          memberId: widget.memberId,
+                          sectionId: _sectionId,
+                          onChanged: (id) => setState(() => _sectionId = id),
                         ),
-                      ),
-                      const SizedBox(height: AppDimensions.lg),
-
-                      // Необов'язкові — компактними чіпсами внизу картки
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          FieldChip(
-                            icon: Icons.link_rounded,
-                            label: context.l10n.youtubeLinkLabel,
-                            value: _youtubeController.text.trim().isEmpty
-                                ? null
-                                : 'on',
-                            forceLabel: true,
-                            onTap: () async {
-                              await showFieldSheet(
-                                context,
-                                title: context.l10n.youtubeLinkLabel,
-                                child: _Input(
-                                  controller: _youtubeController,
-                                  hint: 'https://youtube.com/watch?v=...',
-                                ),
-                              );
-                              if (mounted) setState(() {});
-                            },
-                          ),
-                          FieldChip(
-                            icon: Icons.palette_outlined,
-                            label: context.l10n.taskColorPickerLabel,
-                            value: _colorHex,
-                            forceLabel: true,
-                            swatchColor: colorFromHex(_colorHex),
-                            onTap: () => showFieldSheet(
-                              context,
-                              title: context.l10n.taskColorPickerLabel,
-                              child: TaskColorPicker(
-                                selectedHex: _colorHex,
-                                onChanged: (hex) => setState(() => _colorHex = hex),
-                              ),
+                        FieldChip(
+                          icon: Icons.people_outline_rounded,
+                          label: context.l10n.routineWhoDoesLabel,
+                          value: _assigneeSummary(context, members),
+                          forceLabel: _assigneeIds.length <= 1,
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.routineWhoDoesLabel,
+                            child: _AssigneesSheet(
+                              members: members,
+                              initialSelected: _assigneeIds,
+                              initialRotationMode: _rotationMode,
+                              onChanged: (ids, mode) => setState(() {
+                                _assigneeIds = ids;
+                                _rotationMode = mode;
+                              }),
                             ),
                           ),
-                          SpaceChip(
-                            memberId: widget.memberId,
-                            sectionId: _sectionId,
-                            onChanged: (id) => setState(() => _sectionId = id),
+                        ),
+                        FieldChip(
+                          icon: Icons.checklist_rounded,
+                          label: context.l10n.routineStepsLabel,
+                          value: _steps.isEmpty ? null : '${_steps.length}',
+                          forceLabel: _steps.isEmpty,
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.routineStepsSheetTitle,
+                            child: _StepsSheet(
+                              initialSteps: _steps,
+                              onChanged: (steps) =>
+                                  setState(() => _steps = steps),
+                            ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -568,8 +481,8 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           _isSaving
                               ? context.l10n.savingLabel
                               : (isEdit
-                                    ? context.l10n.saveChangesAction
-                                    : context.l10n.saveActivityAction),
+                                  ? context.l10n.saveChangesAction
+                                  : context.l10n.saveActivityAction),
                           style: AppTextStyles.labelLg.copyWith(
                             color: Colors.white,
                           ),
@@ -586,6 +499,129 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       ),
     );
   }
+}
+
+// ─── Розклад: тип повтору + залежні поля + час ─────────────────────────────
+
+typedef _ScheduleValues = ({
+  String repeatType,
+  Set<int> weekdays,
+  int dayOfMonth,
+  int intervalDays,
+  int weeklyGoalCount,
+  bool hasFixedTime,
+  List<_Slot> slots,
+});
+
+class _ScheduleFieldsSheet extends StatefulWidget {
+  final String initialRepeatType;
+  final Set<int> initialWeekdays;
+  final int initialDayOfMonth;
+  final int initialIntervalDays;
+  final int initialWeeklyGoalCount;
+  final bool initialHasFixedTime;
+  final List<_Slot> initialSlots;
+  final ValueChanged<_ScheduleValues> onChanged;
+
+  const _ScheduleFieldsSheet({
+    required this.initialRepeatType,
+    required this.initialWeekdays,
+    required this.initialDayOfMonth,
+    required this.initialIntervalDays,
+    required this.initialWeeklyGoalCount,
+    required this.initialHasFixedTime,
+    required this.initialSlots,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ScheduleFieldsSheet> createState() => _ScheduleFieldsSheetState();
+}
+
+class _ScheduleFieldsSheetState extends State<_ScheduleFieldsSheet> {
+  late String _repeatType;
+  late Set<int> _weekdays;
+  late int _dayOfMonth;
+  late int _intervalDays;
+  late int _weeklyGoalCount;
+  late bool _hasFixedTime;
+  late List<_Slot> _slots;
+
+  @override
+  void initState() {
+    super.initState();
+    _repeatType = widget.initialRepeatType;
+    _weekdays = {...widget.initialWeekdays};
+    _dayOfMonth = widget.initialDayOfMonth;
+    _intervalDays = widget.initialIntervalDays;
+    _weeklyGoalCount = widget.initialWeeklyGoalCount;
+    _hasFixedTime = widget.initialHasFixedTime;
+    _slots = [...widget.initialSlots];
+  }
+
+  void _emit() {
+    widget.onChanged((
+      repeatType: _repeatType,
+      weekdays: _weekdays,
+      dayOfMonth: _dayOfMonth,
+      intervalDays: _intervalDays,
+      weeklyGoalCount: _weeklyGoalCount,
+      hasFixedTime: _hasFixedTime,
+      slots: _slots,
+    ));
+  }
+
+  static const _options = [
+    ('daily', Icons.today_rounded),
+    ('weekly', Icons.view_week_rounded),
+    ('monthly', Icons.calendar_month_rounded),
+    ('everyNDays', Icons.repeat_rounded),
+    ('weeklyGoal', Icons.flag_rounded),
+  ];
+
+  String _optionLabel(BuildContext context, String type) {
+    final l10n = context.l10n;
+    return switch (type) {
+      'daily' => l10n.reminderRepeatDailyLabel,
+      'weekly' => l10n.reminderRepeatWeeklyLabel,
+      'monthly' => l10n.reminderRepeatMonthlyLabel,
+      'everyNDays' => l10n.routineRepeatEveryNDaysOption,
+      _ => l10n.routineRepeatWeeklyGoalOption,
+    };
+  }
+
+  Future<void> _openRepeatTypeSheet() async {
+    await showFieldSheet(
+      context,
+      title: context.l10n.routineRepeatSectionLabel,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _options.map((opt) {
+          final sel = _repeatType == opt.$1;
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(opt.$2,
+                size: 22, color: sel ? AppColors.primary : AppColors.textMuted),
+            title: Text(
+              _optionLabel(context, opt.$1),
+              style: AppTextStyles.bodyMd.copyWith(
+                color: sel ? AppColors.primary : AppColors.textMain,
+                fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+            trailing: sel
+                ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                : null,
+            onTap: () {
+              setState(() => _repeatType = opt.$1);
+              _emit();
+              Navigator.pop(context);
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
 
   Future<void> _pickTime(int index) async {
     final picked = await showWheelTimePicker(
@@ -596,6 +632,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       setState(() {
         _slots[index] = (time: picked, duration: _slots[index].duration);
       });
+      _emit();
     }
   }
 
@@ -608,110 +645,525 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       builder: (_) => _DurationPicker(current: current),
     );
     if (!mounted) return;
-    // -1 — sentinel для "Не вказано"
     setState(() {
       _slots[index] = (
         time: _slots[index].time,
         duration: picked == -1 ? null : (picked ?? _slots[index].duration),
       );
     });
+    _emit();
   }
 
-  // Слоти часу + дні тижня — спільний блок для повної форми (Спорт) і
-  // вмісту шторки "Розклад" у компактній формі (Прості завдання/Рутинні
-  // справи).
-  Widget _scheduleFields(BuildContext context, {bool showLabel = true}) {
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showLabel) ...[
-          _Label(context.l10n.scheduleTitle),
-          const SizedBox(height: 8),
-        ],
-        ..._slots.asMap().entries.map(
-          (e) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _ActivitySlot(
-              index: e.key,
-              time: e.value.time,
-              duration: e.value.duration,
-              onTimeTap: () => _pickTime(e.key),
-              onDurationTap: () => _pickDuration(e.key),
-              onRemove: _slots.length > 1
-                  ? () => setState(() => _slots.removeAt(e.key))
-                  : null,
+        GestureDetector(
+          onTap: _openRepeatTypeSheet,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.repeat_rounded,
+                    size: 18, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _optionLabel(context, _repeatType),
+                    style: AppTextStyles.bodyMd
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const Icon(Icons.expand_more_rounded,
+                    size: 18, color: AppColors.textMuted),
+              ],
             ),
           ),
         ),
-        GestureDetector(
-          onTap: () => setState(
-            () => _slots.add((
-              time: TimeOfDay(hour: (8 + _slots.length) % 24, minute: 0),
-              duration: null,
-            )),
-          ),
-          child: _DashedAdd(context.l10n.addAnotherActivityAction),
-        ),
         const SizedBox(height: AppDimensions.lg),
-        _Label(context.l10n.weekdaysLabel),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(7, (i) {
-            final day = i + 1;
-            final sel = _weekdays.contains(day);
-            return GestureDetector(
-              onTap: () => setState(() {
-                if (sel) {
-                  _weekdays.remove(day);
-                } else {
-                  _weekdays.add(day);
-                }
-              }),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 120),
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: sel ? AppColors.primary : AppColors.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: sel ? AppColors.primary : AppColors.border,
+        if (_repeatType == 'weekly') ...[
+          _Label(context.l10n.weekdaysLabel),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (i) {
+              final day = i + 1;
+              final sel = _weekdays.contains(day);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (sel) {
+                      _weekdays.remove(day);
+                    } else {
+                      _weekdays.add(day);
+                    }
+                  });
+                  _emit();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: sel ? AppColors.primary : AppColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: sel ? AppColors.primary : AppColors.border,
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Text(
-                    _dayLabel(context, day),
-                    style: AppTextStyles.labelSm.copyWith(
-                      color: sel ? Colors.white : AppColors.textMuted,
+                  child: Center(
+                    child: Text(
+                      weekdayLabel(context, day),
+                      style: AppTextStyles.labelSm.copyWith(
+                        color: sel ? Colors.white : AppColors.textMuted,
+                      ),
                     ),
                   ),
                 ),
+              );
+            }),
+          ),
+          const SizedBox(height: AppDimensions.lg),
+        ],
+        if (_repeatType == 'monthly') ...[
+          _Label(context.l10n.reminderMonthlyDayFieldLabel),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(31, (i) {
+              final day = i + 1;
+              final sel = _dayOfMonth == day;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _dayOfMonth = day);
+                  _emit();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: sel ? AppColors.primary : AppColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: sel ? AppColors.primary : AppColors.border,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$day',
+                      style: AppTextStyles.labelSm.copyWith(
+                        color: sel ? Colors.white : AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: AppDimensions.lg),
+        ],
+        if (_repeatType == 'everyNDays') ...[
+          _Label(context.l10n.routineIntervalDaysValueLabel(_intervalDays)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _StepperButton(
+                icon: Icons.remove_rounded,
+                onTap: () {
+                  setState(() =>
+                      _intervalDays = (_intervalDays - 1).clamp(1, 90));
+                  _emit();
+                },
               ),
-            );
-          }),
+              Expanded(
+                child: Center(
+                  child: Text('$_intervalDays', style: AppTextStyles.h3),
+                ),
+              ),
+              _StepperButton(
+                icon: Icons.add_rounded,
+                onTap: () {
+                  setState(() =>
+                      _intervalDays = (_intervalDays + 1).clamp(1, 90));
+                  _emit();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.lg),
+        ],
+        if (_repeatType == 'weeklyGoal') ...[
+          _Label(
+              context.l10n.routineWeeklyGoalValueLabel(_weeklyGoalCount)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _StepperButton(
+                icon: Icons.remove_rounded,
+                onTap: () {
+                  setState(() =>
+                      _weeklyGoalCount = (_weeklyGoalCount - 1).clamp(1, 7));
+                  _emit();
+                },
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('$_weeklyGoalCount', style: AppTextStyles.h3),
+                ),
+              ),
+              _StepperButton(
+                icon: Icons.add_rounded,
+                onTap: () {
+                  setState(() =>
+                      _weeklyGoalCount = (_weeklyGoalCount + 1).clamp(1, 7));
+                  _emit();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.lg),
+        ],
+        if (_repeatType != 'weeklyGoal') ...[
+          _Label(context.l10n.routineTimeFieldLabel),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _TimeToggle(
+                  label: context.l10n.routineFixedTimeOption,
+                  selected: _hasFixedTime,
+                  onTap: () {
+                    setState(() {
+                      _hasFixedTime = true;
+                      if (_slots.isEmpty) {
+                        _slots = [
+                          (
+                            time: const TimeOfDay(hour: 8, minute: 30),
+                            duration: null
+                          ),
+                        ];
+                      }
+                    });
+                    _emit();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _TimeToggle(
+                  label: context.l10n.routineNoFixedTimeOption,
+                  selected: !_hasFixedTime,
+                  onTap: () {
+                    setState(() {
+                      _hasFixedTime = false;
+                      _slots = [];
+                    });
+                    _emit();
+                  },
+                ),
+              ),
+            ],
+          ),
+          if (_hasFixedTime) ...[
+            const SizedBox(height: AppDimensions.md),
+            ..._slots.asMap().entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _ActivitySlot(
+                      index: e.key,
+                      time: e.value.time,
+                      duration: e.value.duration,
+                      onTimeTap: () => _pickTime(e.key),
+                      onDurationTap: () => _pickDuration(e.key),
+                      onRemove: _slots.length > 1
+                          ? () {
+                              setState(() => _slots.removeAt(e.key));
+                              _emit();
+                            }
+                          : null,
+                    ),
+                  ),
+                ),
+            GestureDetector(
+              onTap: () {
+                setState(() => _slots.add((
+                      time: TimeOfDay(hour: (8 + _slots.length) % 24, minute: 0),
+                      duration: null,
+                    )));
+                _emit();
+              },
+              child: _DashedAdd(context.l10n.addAnotherActivityAction),
+            ),
+          ],
+          const SizedBox(height: AppDimensions.lg),
+        ],
+      ],
+    );
+  }
+}
+
+class _TimeToggle extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TimeToggle({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryLight : AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.labelMd.copyWith(
+            color: selected ? AppColors.primary : AppColors.textSub,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _StepperButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+      );
+}
+
+// ─── Хто виконує: фіксований виконавець або ротація ────────────────────────
+
+class _AssigneesSheet extends StatefulWidget {
+  final List<Member> members;
+  final List<int> initialSelected;
+  final String initialRotationMode;
+  final void Function(List<int> ids, String rotationMode) onChanged;
+
+  const _AssigneesSheet({
+    required this.members,
+    required this.initialSelected,
+    required this.initialRotationMode,
+    required this.onChanged,
+  });
+
+  @override
+  State<_AssigneesSheet> createState() => _AssigneesSheetState();
+}
+
+class _AssigneesSheetState extends State<_AssigneesSheet> {
+  late List<int> _selected;
+  late String _rotationMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = [...widget.initialSelected];
+    _rotationMode = widget.initialRotationMode;
+  }
+
+  void _emit() => widget.onChanged(_selected, _rotationMode);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...widget.members.map((m) {
+          final sel = _selected.contains(m.id);
+          return CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: AppColors.primary,
+            value: sel,
+            title: Text(m.name, style: AppTextStyles.bodyMd),
+            onChanged: (v) {
+              setState(() {
+                if (v == true) {
+                  if (!_selected.contains(m.id)) _selected.add(m.id);
+                } else {
+                  _selected.remove(m.id);
+                }
+              });
+              _emit();
+            },
+          );
+        }),
+        if (_selected.length > 1) ...[
+          const SizedBox(height: 8),
+          _Label(context.l10n.routineRotationCadenceLabel),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ('perOccurrence', context.l10n.routineRotationCadencePerOccurrence),
+              ('weekly', context.l10n.routineRotationCadenceWeekly),
+              ('monthly', context.l10n.routineRotationCadenceMonthly),
+            ].map((opt) {
+              final sel = _rotationMode == opt.$1;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _rotationMode = opt.$1);
+                  _emit();
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: sel ? AppColors.primaryLight : AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                    border: Border.all(
+                      color: sel ? AppColors.primary : AppColors.border,
+                    ),
+                  ),
+                  child: Text(
+                    opt.$2,
+                    style: AppTextStyles.labelMd.copyWith(
+                      color: sel ? AppColors.primary : AppColors.textSub,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Кроки виконання ────────────────────────────────────────────────────────
+
+class _StepsSheet extends StatefulWidget {
+  final List<String> initialSteps;
+  final ValueChanged<List<String>> onChanged;
+  const _StepsSheet({required this.initialSteps, required this.onChanged});
+
+  @override
+  State<_StepsSheet> createState() => _StepsSheetState();
+}
+
+class _StepsSheetState extends State<_StepsSheet> {
+  late List<String> _steps;
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _steps = [...widget.initialSteps];
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final v = _controller.text.trim();
+    if (v.isEmpty) return;
+    setState(() => _steps.add(v));
+    widget.onChanged(_steps);
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ..._steps.asMap().entries.map((e) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(e.value, style: AppTextStyles.bodyMd),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _steps.removeAt(e.key));
+                      widget.onChanged(_steps);
+                    },
+                    child: const Icon(Icons.close_rounded,
+                        size: 18, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            )),
+        if (_steps.isNotEmpty) const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _Input(
+                controller: _controller,
+                hint: context.l10n.routineAddStepHint,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _add,
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.add_rounded, color: Colors.white),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
-
-  String _scheduleSummary(BuildContext context) {
-    final first = _slots.first;
-    final hh = first.time.hour.toString().padLeft(2, '0');
-    final mm = first.time.minute.toString().padLeft(2, '0');
-    final sortedDays = _weekdays.toList()..sort();
-    final daysLabel = sortedDays.isEmpty
-        ? context.l10n.noDaysSelectedHint
-        : sortedDays.length == 7
-            ? context.l10n.repeatDaily
-            : sortedDays.map((d) => _dayLabel(context, d)).join(', ');
-    final extra = _slots.length > 1 ? ' +${_slots.length - 1}' : '';
-    return '$hh:$mm · $daysLabel$extra';
-  }
 }
 
-// ─── Slot widget ──────────────────────────────────────────────────────────────
+// ─── Слот часу ──────────────────────────────────────────────────────────────
 
 class _ActivitySlot extends StatelessWidget {
   final int index;
@@ -800,10 +1252,10 @@ class _ActivitySlot extends StatelessWidget {
   }
 }
 
-// ─── Duration picker ──────────────────────────────────────────────────────────
+// ─── Тривалість ─────────────────────────────────────────────────────────────
 
 class _DurationPicker extends StatefulWidget {
-  final int? current; // в минутах, null = не вказано
+  final int? current;
   const _DurationPicker({this.current});
 
   @override
@@ -815,7 +1267,7 @@ class _DurationPickerState extends State<_DurationPicker> {
 
   late bool _notSpecified;
   late int _hours;
-  late int _minuteIdx; // индекс в _minuteOptions
+  late int _minuteIdx;
 
   late FixedExtentScrollController _hourCtrl;
   late FixedExtentScrollController _minCtrl;
@@ -827,9 +1279,7 @@ class _DurationPickerState extends State<_DurationPicker> {
     _notSpecified = cur == null || cur == 0;
     _hours = _notSpecified ? 0 : (cur! ~/ 60).clamp(0, 3);
     final rawMin = _notSpecified ? 0 : (cur! % 60);
-    _minuteIdx = (_minuteOptions.indexOf(
-      rawMin,
-    )).clamp(0, _minuteOptions.length - 1);
+    _minuteIdx = (_minuteOptions.indexOf(rawMin)).clamp(0, _minuteOptions.length - 1);
     if (_minuteIdx < 0) _minuteIdx = 0;
     _hourCtrl = FixedExtentScrollController(initialItem: _hours);
     _minCtrl = FixedExtentScrollController(initialItem: _minuteIdx);
@@ -869,7 +1319,6 @@ class _DurationPickerState extends State<_DurationPicker> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             width: 36,
             height: 4,
@@ -888,40 +1337,28 @@ class _DurationPickerState extends State<_DurationPicker> {
                     Text(context.l10n.detailLabelDuration, style: AppTextStyles.h3),
                     Text(
                       context.l10n.optionalLabel,
-                      style: AppTextStyles.bodySm.copyWith(
-                        color: AppColors.textMuted,
-                      ),
+                      style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
                     ),
                   ],
                 ),
               ),
-              // Переключатель "Не вказано"
               GestureDetector(
                 onTap: () => setState(() => _notSpecified = !_notSpecified),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: _notSpecified
-                        ? AppColors.primaryLight
-                        : AppColors.surface,
+                    color: _notSpecified ? AppColors.primaryLight : AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: _notSpecified
-                          ? AppColors.primary
-                          : AppColors.border,
+                      color: _notSpecified ? AppColors.primary : AppColors.border,
                       width: _notSpecified ? 2 : 1.5,
                     ),
                   ),
                   child: Text(
                     context.l10n.notSpecifiedValue,
                     style: AppTextStyles.labelMd.copyWith(
-                      color: _notSpecified
-                          ? AppColors.primary
-                          : AppColors.textSub,
+                      color: _notSpecified ? AppColors.primary : AppColors.textSub,
                     ),
                   ),
                 ),
@@ -929,8 +1366,6 @@ class _DurationPickerState extends State<_DurationPicker> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Барабанный пикер
           AnimatedOpacity(
             opacity: _notSpecified ? 0.3 : 1.0,
             duration: const Duration(milliseconds: 200),
@@ -940,7 +1375,6 @@ class _DurationPickerState extends State<_DurationPicker> {
                 height: 160,
                 child: Row(
                   children: [
-                    // Годинники
                     Expanded(
                       child: Stack(
                         alignment: Alignment.center,
@@ -952,8 +1386,7 @@ class _DurationPickerState extends State<_DurationPicker> {
                             perspective: 0.003,
                             diameterRatio: 1.8,
                             physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (i) =>
-                                setState(() => _hours = i),
+                            onSelectedItemChanged: (i) => setState(() => _hours = i),
                             childDelegate: ListWheelChildBuilderDelegate(
                               childCount: 4,
                               builder: (_, i) => Center(
@@ -961,9 +1394,7 @@ class _DurationPickerState extends State<_DurationPicker> {
                                   context.l10n.hoursCountLabel(i),
                                   style: AppTextStyles.bodyLg.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: _hours == i
-                                        ? AppColors.primary
-                                        : AppColors.textSub,
+                                    color: _hours == i ? AppColors.primary : AppColors.textSub,
                                     fontSize: _hours == i ? 18 : 16,
                                   ),
                                 ),
@@ -973,7 +1404,6 @@ class _DurationPickerState extends State<_DurationPicker> {
                         ],
                       ),
                     ),
-                    // Хвилини
                     Expanded(
                       child: Stack(
                         alignment: Alignment.center,
@@ -985,8 +1415,7 @@ class _DurationPickerState extends State<_DurationPicker> {
                             perspective: 0.003,
                             diameterRatio: 1.8,
                             physics: const FixedExtentScrollPhysics(),
-                            onSelectedItemChanged: (i) =>
-                                setState(() => _minuteIdx = i),
+                            onSelectedItemChanged: (i) => setState(() => _minuteIdx = i),
                             childDelegate: ListWheelChildBuilderDelegate(
                               childCount: _minuteOptions.length,
                               builder: (_, i) {
@@ -998,9 +1427,7 @@ class _DurationPickerState extends State<_DurationPicker> {
                                     ),
                                     style: AppTextStyles.bodyLg.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: sel
-                                          ? AppColors.primary
-                                          : AppColors.textSub,
+                                      color: sel ? AppColors.primary : AppColors.textSub,
                                       fontSize: sel ? 18 : 16,
                                     ),
                                   ),
@@ -1017,7 +1444,6 @@ class _DurationPickerState extends State<_DurationPicker> {
             ),
           ),
           const SizedBox(height: 16),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1026,16 +1452,13 @@ class _DurationPickerState extends State<_DurationPicker> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: Text(
                 _notSpecified
                     ? context.l10n.noDurationLabel
-                    : context.l10n.saveWithDurationLabel(
-                        _formatDuration(context, _totalMin)),
+                    : context.l10n.saveWithDurationLabel(_formatDuration(context, _totalMin)),
                 style: AppTextStyles.labelLg.copyWith(color: Colors.white),
               ),
             ),
@@ -1062,7 +1485,7 @@ class _PickerHighlight extends StatelessWidget {
   }
 }
 
-// ─── Reusable widgets ─────────────────────────────────────────────────────────
+// ─── Спільні дрібні віджети ─────────────────────────────────────────────────
 
 class _BackHeader extends StatelessWidget {
   final String title;
@@ -1132,10 +1555,7 @@ class _Input extends StatelessWidget {
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 13,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         ),
         style: AppTextStyles.bodyMd,
       ),
@@ -1204,10 +1624,7 @@ class _DashedAdd extends StatelessWidget {
         children: [
           Text(
             '＋',
-            style: AppTextStyles.bodyMd.copyWith(
-              fontSize: 16,
-              color: AppColors.textMuted,
-            ),
+            style: AppTextStyles.bodyMd.copyWith(fontSize: 16, color: AppColors.textMuted),
           ),
           const SizedBox(width: 6),
           Text(

@@ -696,6 +696,28 @@
   "profileLimitReachedSubtitle": "Upgrade to Elly Plus — unlimited local profiles",
   "localProfilesTitle": "Local profiles",
   "familyUpgradeSubtitle": "So your family can manage it too — upgrade to Elly Family",
+  "routineTasksLimitBadge": "Routines",
+  "routineTasksLimitTitle": "Routine tasks limit",
+  "routineTasksLimitSubtitle": "Used {used} of {max}. Upgrade to Elly Plus for unlimited",
+  "@routineTasksLimitSubtitle": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "routineTasksLimitDeniedTitle": "Routine tasks limit reached",
+  "routineTasksLimitDeniedSubtitle": "The free plan allows only 1 routine task. Upgrade to Elly Plus for an unlimited amount",
+  "medcardSectionsLimitBadge": "Space",
+  "medcardSectionsLimitTitle": "Sections limit",
+  "medcardSectionsLimitSubtitle": "Used {used} of {max}. Upgrade to Elly Plus for unlimited",
+  "@medcardSectionsLimitSubtitle": {
+    "placeholders": {
+      "used": { "type": "int" },
+      "max": { "type": "int" }
+    }
+  },
+  "medcardSectionsLimitDeniedTitle": "Sections limit reached",
+  "medcardSectionsLimitDeniedSubtitle": "The free plan allows up to 3 Space sections. Upgrade to Elly Plus for an unlimited amount",
   "leaveGroupConfirmTitle": "Leave \"{name}\"?",
   "@leaveGroupConfirmTitle": {
     "placeholders": {
@@ -1005,6 +1027,56 @@
   "reminderYearlyDateFieldLabel": "Date (year ignored)",
   "reminderMonthlyDayFieldLabel": "Day of month",
   "dayOfMonthCapsLabel": "DAY",
+  "routineRepeatSectionLabel": "Repeat",
+  "routineRepeatEveryNDaysOption": "Every N days",
+  "routineRepeatWeeklyGoalOption": "N times a week",
+  "routineIntervalDaysValueLabel": "Every {n} days",
+  "@routineIntervalDaysValueLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineWeeklyGoalValueLabel": "{n}x/week",
+  "@routineWeeklyGoalValueLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineTimeFieldLabel": "Time",
+  "routineFixedTimeOption": "At a set time",
+  "routineNoFixedTimeOption": "Anytime, no set time",
+  "routineWhoDoesLabel": "Who does it",
+  "routineRotationCadenceLabel": "How often the turn changes",
+  "routineRotationCadencePerOccurrence": "Every time",
+  "routineRotationCadenceWeekly": "Weekly",
+  "routineRotationCadenceMonthly": "Monthly",
+  "routineRotationSummary": "Rotating ({n})",
+  "@routineRotationSummary": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineStepsLabel": "Steps",
+  "routineStepsSheetTitle": "Steps to complete",
+  "routineAddStepHint": "Add a step…",
+  "routineWhoseTurnLabel": "Turn: {name}",
+  "@routineWhoseTurnLabel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "routineSwapTurnAction": "Swap",
+  "routineSkipTurnAction": "Skip turn",
+  "routineWeeklyGoalProgressLabel": "{done}/{total} this week",
+  "@routineWeeklyGoalProgressLabel": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "routinePartialStatusLabel": "Partial",
+  "routineStepsProgressLabel": "{done}/{total} steps",
+  "@routineStepsProgressLabel": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "routineAnyTimeTodayLabel": "Anytime today",
+  "routineAllRoutinesScreenTitle": "Family duties",
+  "routineNoAssigneesHint": "No duties yet",
   "defaultNotesSectionName": "Notes",
   "addAnotherTimeAction": "Add another time",
   "addAtLeastOneTimeError": "Add at least one time",

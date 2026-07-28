@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/database_provider.dart';
@@ -6,6 +5,7 @@ import '../providers/notification_settings_provider.dart';
 import '../services/app_logger.dart';
 import '../services/notification_service.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/activities_repository.dart';
 
 class ActivityLogGenerator {
   final AppDatabase _db;
@@ -14,8 +14,8 @@ class ActivityLogGenerator {
 
   Future<void> generateForDay(DateTime date) async {
     final day = DateTime(date.year, date.month, date.day);
-    final weekday = date.weekday; // 1=Пн … 7=Нд
     final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+    final repo = _ref.read(activitiesRepositoryProvider);
 
     final activities = await (_db.select(
       _db.activities,
@@ -23,29 +23,38 @@ class ActivityLogGenerator {
 
     for (final activity in activities) {
       try {
-        final repeatDays = List<int>.from(
-          jsonDecode(activity.repeatDays) as List,
-        );
-        if (!repeatDays.contains(weekday)) continue;
+        // weeklyGoal — без наперед згенерованих логів, "на льоту" при
+        // відмітці (див. today_providers.dart).
+        if (activity.repeatType == 'weeklyGoal') continue;
+        if (!await repo.occursOnDate(activity, day)) continue;
 
+        // "Чия черга" сьогодні — з урахуванням ротації, не завжди
+        // Activities.memberId (той лише власник/розділ).
+        final assigneeId = await repo.assigneeForDate(activity, day);
         final member = await (_db.select(_db.members)
-              ..where((t) => t.id.equals(activity.memberId)))
+              ..where((t) => t.id.equals(assigneeId)))
             .getSingleOrNull();
         final memberName = member?.name ?? '';
 
-        final slots =
-            await (_db.select(_db.activitySlots)
-                  ..where((t) => t.activityId.equals(activity.id))
-                  ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-                .get();
+        final slots = await repo.getSlotsForActivity(activity.id);
+
+        if (slots.isEmpty) {
+          // "Будь-коли сьогодні" — без конкретного часу. Якірний час 09:00
+          // лише для зберігання/сортування; cutoff не застосовуємо, бо
+          // задача лишається актуальною весь день незалежно від того, коли
+          // саме відбулась генерація.
+          await _createLogIfMissing(
+            activity: activity,
+            memberId: assigneeId,
+            memberName: memberName,
+            scheduledAt: DateTime(day.year, day.month, day.day, 9, 0),
+          );
+          continue;
+        }
 
         for (final slot in slots) {
-          // Одна невдала спроба (напр. зіпсований timeOfDay чи виняток
-          // від zonedSchedule — брак дозволу на точні будильники тощо) не
-          // повинна обривати генерацію для решти слотів/активностей —
-          // інакше одна погана активність мовчки "з'їдає" нагадування
-          // для всіх наступних активностей/членів сім'ї в цьому ж виклику
-          // (цикл нижче по списку просто ніколи не виконався б).
+          // Одна невдала спроба не повинна обривати генерацію для решти
+          // слотів/активностей — див. коментар у попередній версії.
           try {
             final parts = slot.timeOfDay.split(':');
             final scheduledAt = DateTime(
@@ -55,46 +64,13 @@ class ActivityLogGenerator {
               int.parse(parts[0]),
               int.parse(parts[1]),
             );
-
-            // Не створюємо записи більш ніж на годину в минулому —
-            // це заважає щойно доданій активності одразу заповнити
-            // сьогоднішній розклад пропущеними слотами.
             if (scheduledAt.isBefore(cutoff)) continue;
-
-            final exists =
-                await (_db.select(_db.activityLogs)..where(
-                      (t) =>
-                          t.activityId.equals(activity.id) &
-                          t.scheduledAt.equals(scheduledAt),
-                    ))
-                    .getSingleOrNull();
-            if (exists != null) continue;
-
-            final logId = await _db
-                .into(_db.activityLogs)
-                .insert(
-                  ActivityLogsCompanion.insert(
-                    activityId: activity.id,
-                    memberId: activity.memberId,
-                    scheduledAt: scheduledAt,
-                  ),
-                );
-
-            final settings = _ref.read(notificationSettingsProvider);
-            final remindAt = settings.adjust(
-              scheduledAt,
-              memberId: activity.memberId,
+            await _createLogIfMissing(
+              activity: activity,
+              memberId: assigneeId,
+              memberName: memberName,
+              scheduledAt: scheduledAt,
             );
-            if (remindAt != null) {
-              await NotificationService.scheduleActivityReminder(
-                logId: logId,
-                memberName: memberName,
-                activityName: activity.name,
-                scheduledAt: remindAt,
-                vibrationEnabled: settings.vibrationEnabled,
-                repeatMinutes: settings.repeatMinutes,
-              );
-            }
           } catch (e, st) {
             AppLogger.logError(
               'ActivityLogGenerator.slot(activityId=${activity.id})',
@@ -110,6 +86,50 @@ class ActivityLogGenerator {
           st,
         );
       }
+    }
+  }
+
+  Future<void> _createLogIfMissing({
+    required Activity activity,
+    required int memberId,
+    required String memberName,
+    required DateTime scheduledAt,
+  }) async {
+    final exists = await (_db.select(_db.activityLogs)..where(
+          (t) =>
+              t.activityId.equals(activity.id) &
+              t.scheduledAt.equals(scheduledAt),
+        ))
+        .getSingleOrNull();
+    if (exists != null) return;
+
+    final logId = await _db
+        .into(_db.activityLogs)
+        .insert(
+          ActivityLogsCompanion.insert(
+            activityId: activity.id,
+            memberId: memberId,
+            scheduledAt: scheduledAt,
+          ),
+        );
+
+    // Налаштування сповіщень (тихі години тощо) завжди беремо для власника
+    // рутини — сповіщення про чергу лунає на ЙОГО пристрої, з іменем
+    // фактичного виконавця в тексті (memberName).
+    final settings = _ref.read(notificationSettingsProvider);
+    final remindAt = settings.adjust(
+      scheduledAt,
+      memberId: activity.memberId,
+    );
+    if (remindAt != null) {
+      await NotificationService.scheduleActivityReminder(
+        logId: logId,
+        memberName: memberName,
+        activityName: activity.name,
+        scheduledAt: remindAt,
+        vibrationEnabled: settings.vibrationEnabled,
+        repeatMinutes: settings.repeatMinutes,
+      );
     }
   }
 }

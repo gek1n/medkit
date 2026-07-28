@@ -5056,6 +5056,84 @@ class $ActivitiesTable extends Activities
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _repeatTypeMeta = const VerificationMeta(
+    'repeatType',
+  );
+  @override
+  late final GeneratedColumn<String> repeatType = GeneratedColumn<String>(
+    'repeat_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('weekly'),
+  );
+  static const VerificationMeta _repeatDayOfMonthMeta = const VerificationMeta(
+    'repeatDayOfMonth',
+  );
+  @override
+  late final GeneratedColumn<int> repeatDayOfMonth = GeneratedColumn<int>(
+    'repeat_day_of_month',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _repeatIntervalDaysMeta =
+      const VerificationMeta('repeatIntervalDays');
+  @override
+  late final GeneratedColumn<int> repeatIntervalDays = GeneratedColumn<int>(
+    'repeat_interval_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _weeklyGoalCountMeta = const VerificationMeta(
+    'weeklyGoalCount',
+  );
+  @override
+  late final GeneratedColumn<int> weeklyGoalCount = GeneratedColumn<int>(
+    'weekly_goal_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rotationAnchorDateMeta =
+      const VerificationMeta('rotationAnchorDate');
+  @override
+  late final GeneratedColumn<DateTime> rotationAnchorDate =
+      GeneratedColumn<DateTime>(
+        'rotation_anchor_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _rotationModeMeta = const VerificationMeta(
+    'rotationMode',
+  );
+  @override
+  late final GeneratedColumn<String> rotationMode = GeneratedColumn<String>(
+    'rotation_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('fixed'),
+  );
+  static const VerificationMeta _stepsJsonMeta = const VerificationMeta(
+    'stepsJson',
+  );
+  @override
+  late final GeneratedColumn<String> stepsJson = GeneratedColumn<String>(
+    'steps_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5072,6 +5150,13 @@ class $ActivitiesTable extends Activities
     createdAt,
     updatedAt,
     syncUuid,
+    repeatType,
+    repeatDayOfMonth,
+    repeatIntervalDays,
+    weeklyGoalCount,
+    rotationAnchorDate,
+    rotationMode,
+    stepsJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5176,6 +5261,63 @@ class $ActivitiesTable extends Activities
         syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
       );
     }
+    if (data.containsKey('repeat_type')) {
+      context.handle(
+        _repeatTypeMeta,
+        repeatType.isAcceptableOrUnknown(data['repeat_type']!, _repeatTypeMeta),
+      );
+    }
+    if (data.containsKey('repeat_day_of_month')) {
+      context.handle(
+        _repeatDayOfMonthMeta,
+        repeatDayOfMonth.isAcceptableOrUnknown(
+          data['repeat_day_of_month']!,
+          _repeatDayOfMonthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('repeat_interval_days')) {
+      context.handle(
+        _repeatIntervalDaysMeta,
+        repeatIntervalDays.isAcceptableOrUnknown(
+          data['repeat_interval_days']!,
+          _repeatIntervalDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weekly_goal_count')) {
+      context.handle(
+        _weeklyGoalCountMeta,
+        weeklyGoalCount.isAcceptableOrUnknown(
+          data['weekly_goal_count']!,
+          _weeklyGoalCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rotation_anchor_date')) {
+      context.handle(
+        _rotationAnchorDateMeta,
+        rotationAnchorDate.isAcceptableOrUnknown(
+          data['rotation_anchor_date']!,
+          _rotationAnchorDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rotation_mode')) {
+      context.handle(
+        _rotationModeMeta,
+        rotationMode.isAcceptableOrUnknown(
+          data['rotation_mode']!,
+          _rotationModeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('steps_json')) {
+      context.handle(
+        _stepsJsonMeta,
+        stepsJson.isAcceptableOrUnknown(data['steps_json']!, _stepsJsonMeta),
+      );
+    }
     return context;
   }
 
@@ -5241,6 +5383,34 @@ class $ActivitiesTable extends Activities
         DriftSqlType.string,
         data['${effectivePrefix}sync_uuid'],
       ),
+      repeatType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_type'],
+      )!,
+      repeatDayOfMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}repeat_day_of_month'],
+      ),
+      repeatIntervalDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}repeat_interval_days'],
+      ),
+      weeklyGoalCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}weekly_goal_count'],
+      ),
+      rotationAnchorDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}rotation_anchor_date'],
+      ),
+      rotationMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rotation_mode'],
+      )!,
+      stepsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}steps_json'],
+      ),
     );
   }
 
@@ -5265,6 +5435,13 @@ class Activity extends DataClass implements Insertable<Activity> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? syncUuid;
+  final String repeatType;
+  final int? repeatDayOfMonth;
+  final int? repeatIntervalDays;
+  final int? weeklyGoalCount;
+  final DateTime? rotationAnchorDate;
+  final String rotationMode;
+  final String? stepsJson;
   const Activity({
     required this.id,
     required this.memberId,
@@ -5280,6 +5457,13 @@ class Activity extends DataClass implements Insertable<Activity> {
     required this.createdAt,
     required this.updatedAt,
     this.syncUuid,
+    required this.repeatType,
+    this.repeatDayOfMonth,
+    this.repeatIntervalDays,
+    this.weeklyGoalCount,
+    this.rotationAnchorDate,
+    required this.rotationMode,
+    this.stepsJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5305,6 +5489,23 @@ class Activity extends DataClass implements Insertable<Activity> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || syncUuid != null) {
       map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    map['repeat_type'] = Variable<String>(repeatType);
+    if (!nullToAbsent || repeatDayOfMonth != null) {
+      map['repeat_day_of_month'] = Variable<int>(repeatDayOfMonth);
+    }
+    if (!nullToAbsent || repeatIntervalDays != null) {
+      map['repeat_interval_days'] = Variable<int>(repeatIntervalDays);
+    }
+    if (!nullToAbsent || weeklyGoalCount != null) {
+      map['weekly_goal_count'] = Variable<int>(weeklyGoalCount);
+    }
+    if (!nullToAbsent || rotationAnchorDate != null) {
+      map['rotation_anchor_date'] = Variable<DateTime>(rotationAnchorDate);
+    }
+    map['rotation_mode'] = Variable<String>(rotationMode);
+    if (!nullToAbsent || stepsJson != null) {
+      map['steps_json'] = Variable<String>(stepsJson);
     }
     return map;
   }
@@ -5333,6 +5534,23 @@ class Activity extends DataClass implements Insertable<Activity> {
       syncUuid: syncUuid == null && nullToAbsent
           ? const Value.absent()
           : Value(syncUuid),
+      repeatType: Value(repeatType),
+      repeatDayOfMonth: repeatDayOfMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(repeatDayOfMonth),
+      repeatIntervalDays: repeatIntervalDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(repeatIntervalDays),
+      weeklyGoalCount: weeklyGoalCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weeklyGoalCount),
+      rotationAnchorDate: rotationAnchorDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rotationAnchorDate),
+      rotationMode: Value(rotationMode),
+      stepsJson: stepsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stepsJson),
     );
   }
 
@@ -5356,6 +5574,15 @@ class Activity extends DataClass implements Insertable<Activity> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      repeatType: serializer.fromJson<String>(json['repeatType']),
+      repeatDayOfMonth: serializer.fromJson<int?>(json['repeatDayOfMonth']),
+      repeatIntervalDays: serializer.fromJson<int?>(json['repeatIntervalDays']),
+      weeklyGoalCount: serializer.fromJson<int?>(json['weeklyGoalCount']),
+      rotationAnchorDate: serializer.fromJson<DateTime?>(
+        json['rotationAnchorDate'],
+      ),
+      rotationMode: serializer.fromJson<String>(json['rotationMode']),
+      stepsJson: serializer.fromJson<String?>(json['stepsJson']),
     );
   }
   @override
@@ -5376,6 +5603,13 @@ class Activity extends DataClass implements Insertable<Activity> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
+      'repeatType': serializer.toJson<String>(repeatType),
+      'repeatDayOfMonth': serializer.toJson<int?>(repeatDayOfMonth),
+      'repeatIntervalDays': serializer.toJson<int?>(repeatIntervalDays),
+      'weeklyGoalCount': serializer.toJson<int?>(weeklyGoalCount),
+      'rotationAnchorDate': serializer.toJson<DateTime?>(rotationAnchorDate),
+      'rotationMode': serializer.toJson<String>(rotationMode),
+      'stepsJson': serializer.toJson<String?>(stepsJson),
     };
   }
 
@@ -5394,6 +5628,13 @@ class Activity extends DataClass implements Insertable<Activity> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
+    String? repeatType,
+    Value<int?> repeatDayOfMonth = const Value.absent(),
+    Value<int?> repeatIntervalDays = const Value.absent(),
+    Value<int?> weeklyGoalCount = const Value.absent(),
+    Value<DateTime?> rotationAnchorDate = const Value.absent(),
+    String? rotationMode,
+    Value<String?> stepsJson = const Value.absent(),
   }) => Activity(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -5409,6 +5650,21 @@ class Activity extends DataClass implements Insertable<Activity> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    repeatType: repeatType ?? this.repeatType,
+    repeatDayOfMonth: repeatDayOfMonth.present
+        ? repeatDayOfMonth.value
+        : this.repeatDayOfMonth,
+    repeatIntervalDays: repeatIntervalDays.present
+        ? repeatIntervalDays.value
+        : this.repeatIntervalDays,
+    weeklyGoalCount: weeklyGoalCount.present
+        ? weeklyGoalCount.value
+        : this.weeklyGoalCount,
+    rotationAnchorDate: rotationAnchorDate.present
+        ? rotationAnchorDate.value
+        : this.rotationAnchorDate,
+    rotationMode: rotationMode ?? this.rotationMode,
+    stepsJson: stepsJson.present ? stepsJson.value : this.stepsJson,
   );
   Activity copyWithCompanion(ActivitiesCompanion data) {
     return Activity(
@@ -5434,6 +5690,25 @@ class Activity extends DataClass implements Insertable<Activity> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      repeatType: data.repeatType.present
+          ? data.repeatType.value
+          : this.repeatType,
+      repeatDayOfMonth: data.repeatDayOfMonth.present
+          ? data.repeatDayOfMonth.value
+          : this.repeatDayOfMonth,
+      repeatIntervalDays: data.repeatIntervalDays.present
+          ? data.repeatIntervalDays.value
+          : this.repeatIntervalDays,
+      weeklyGoalCount: data.weeklyGoalCount.present
+          ? data.weeklyGoalCount.value
+          : this.weeklyGoalCount,
+      rotationAnchorDate: data.rotationAnchorDate.present
+          ? data.rotationAnchorDate.value
+          : this.rotationAnchorDate,
+      rotationMode: data.rotationMode.present
+          ? data.rotationMode.value
+          : this.rotationMode,
+      stepsJson: data.stepsJson.present ? data.stepsJson.value : this.stepsJson,
     );
   }
 
@@ -5453,13 +5728,20 @@ class Activity extends DataClass implements Insertable<Activity> {
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('repeatType: $repeatType, ')
+          ..write('repeatDayOfMonth: $repeatDayOfMonth, ')
+          ..write('repeatIntervalDays: $repeatIntervalDays, ')
+          ..write('weeklyGoalCount: $weeklyGoalCount, ')
+          ..write('rotationAnchorDate: $rotationAnchorDate, ')
+          ..write('rotationMode: $rotationMode, ')
+          ..write('stepsJson: $stepsJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     memberId,
     sectionId,
@@ -5474,7 +5756,14 @@ class Activity extends DataClass implements Insertable<Activity> {
     createdAt,
     updatedAt,
     syncUuid,
-  );
+    repeatType,
+    repeatDayOfMonth,
+    repeatIntervalDays,
+    weeklyGoalCount,
+    rotationAnchorDate,
+    rotationMode,
+    stepsJson,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5492,7 +5781,14 @@ class Activity extends DataClass implements Insertable<Activity> {
           other.isActive == this.isActive &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.syncUuid == this.syncUuid);
+          other.syncUuid == this.syncUuid &&
+          other.repeatType == this.repeatType &&
+          other.repeatDayOfMonth == this.repeatDayOfMonth &&
+          other.repeatIntervalDays == this.repeatIntervalDays &&
+          other.weeklyGoalCount == this.weeklyGoalCount &&
+          other.rotationAnchorDate == this.rotationAnchorDate &&
+          other.rotationMode == this.rotationMode &&
+          other.stepsJson == this.stepsJson);
 }
 
 class ActivitiesCompanion extends UpdateCompanion<Activity> {
@@ -5510,6 +5806,13 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
+  final Value<String> repeatType;
+  final Value<int?> repeatDayOfMonth;
+  final Value<int?> repeatIntervalDays;
+  final Value<int?> weeklyGoalCount;
+  final Value<DateTime?> rotationAnchorDate;
+  final Value<String> rotationMode;
+  final Value<String?> stepsJson;
   const ActivitiesCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -5525,6 +5828,13 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.repeatType = const Value.absent(),
+    this.repeatDayOfMonth = const Value.absent(),
+    this.repeatIntervalDays = const Value.absent(),
+    this.weeklyGoalCount = const Value.absent(),
+    this.rotationAnchorDate = const Value.absent(),
+    this.rotationMode = const Value.absent(),
+    this.stepsJson = const Value.absent(),
   });
   ActivitiesCompanion.insert({
     this.id = const Value.absent(),
@@ -5541,6 +5851,13 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.repeatType = const Value.absent(),
+    this.repeatDayOfMonth = const Value.absent(),
+    this.repeatIntervalDays = const Value.absent(),
+    this.weeklyGoalCount = const Value.absent(),
+    this.rotationAnchorDate = const Value.absent(),
+    this.rotationMode = const Value.absent(),
+    this.stepsJson = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name);
   static Insertable<Activity> custom({
@@ -5558,6 +5875,13 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
+    Expression<String>? repeatType,
+    Expression<int>? repeatDayOfMonth,
+    Expression<int>? repeatIntervalDays,
+    Expression<int>? weeklyGoalCount,
+    Expression<DateTime>? rotationAnchorDate,
+    Expression<String>? rotationMode,
+    Expression<String>? stepsJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5574,6 +5898,15 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (repeatType != null) 'repeat_type': repeatType,
+      if (repeatDayOfMonth != null) 'repeat_day_of_month': repeatDayOfMonth,
+      if (repeatIntervalDays != null)
+        'repeat_interval_days': repeatIntervalDays,
+      if (weeklyGoalCount != null) 'weekly_goal_count': weeklyGoalCount,
+      if (rotationAnchorDate != null)
+        'rotation_anchor_date': rotationAnchorDate,
+      if (rotationMode != null) 'rotation_mode': rotationMode,
+      if (stepsJson != null) 'steps_json': stepsJson,
     });
   }
 
@@ -5592,6 +5925,13 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
+    Value<String>? repeatType,
+    Value<int?>? repeatDayOfMonth,
+    Value<int?>? repeatIntervalDays,
+    Value<int?>? weeklyGoalCount,
+    Value<DateTime?>? rotationAnchorDate,
+    Value<String>? rotationMode,
+    Value<String?>? stepsJson,
   }) {
     return ActivitiesCompanion(
       id: id ?? this.id,
@@ -5608,6 +5948,13 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
+      repeatType: repeatType ?? this.repeatType,
+      repeatDayOfMonth: repeatDayOfMonth ?? this.repeatDayOfMonth,
+      repeatIntervalDays: repeatIntervalDays ?? this.repeatIntervalDays,
+      weeklyGoalCount: weeklyGoalCount ?? this.weeklyGoalCount,
+      rotationAnchorDate: rotationAnchorDate ?? this.rotationAnchorDate,
+      rotationMode: rotationMode ?? this.rotationMode,
+      stepsJson: stepsJson ?? this.stepsJson,
     );
   }
 
@@ -5656,6 +6003,29 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     if (syncUuid.present) {
       map['sync_uuid'] = Variable<String>(syncUuid.value);
     }
+    if (repeatType.present) {
+      map['repeat_type'] = Variable<String>(repeatType.value);
+    }
+    if (repeatDayOfMonth.present) {
+      map['repeat_day_of_month'] = Variable<int>(repeatDayOfMonth.value);
+    }
+    if (repeatIntervalDays.present) {
+      map['repeat_interval_days'] = Variable<int>(repeatIntervalDays.value);
+    }
+    if (weeklyGoalCount.present) {
+      map['weekly_goal_count'] = Variable<int>(weeklyGoalCount.value);
+    }
+    if (rotationAnchorDate.present) {
+      map['rotation_anchor_date'] = Variable<DateTime>(
+        rotationAnchorDate.value,
+      );
+    }
+    if (rotationMode.present) {
+      map['rotation_mode'] = Variable<String>(rotationMode.value);
+    }
+    if (stepsJson.present) {
+      map['steps_json'] = Variable<String>(stepsJson.value);
+    }
     return map;
   }
 
@@ -5675,7 +6045,14 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('repeatType: $repeatType, ')
+          ..write('repeatDayOfMonth: $repeatDayOfMonth, ')
+          ..write('repeatIntervalDays: $repeatIntervalDays, ')
+          ..write('weeklyGoalCount: $weeklyGoalCount, ')
+          ..write('rotationAnchorDate: $rotationAnchorDate, ')
+          ..write('rotationMode: $rotationMode, ')
+          ..write('stepsJson: $stepsJson')
           ..write(')'))
         .toString();
   }
@@ -6222,6 +6599,27 @@ class $ActivityLogsTable extends ActivityLogs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _completedByMemberIdMeta =
+      const VerificationMeta('completedByMemberId');
+  @override
+  late final GeneratedColumn<int> completedByMemberId = GeneratedColumn<int>(
+    'completed_by_member_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _completedStepsJsonMeta =
+      const VerificationMeta('completedStepsJson');
+  @override
+  late final GeneratedColumn<String> completedStepsJson =
+      GeneratedColumn<String>(
+        'completed_steps_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6231,6 +6629,8 @@ class $ActivityLogsTable extends ActivityLogs
     status,
     updatedAt,
     syncUuid,
+    completedByMemberId,
+    completedStepsJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6292,6 +6692,24 @@ class $ActivityLogsTable extends ActivityLogs
         syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
       );
     }
+    if (data.containsKey('completed_by_member_id')) {
+      context.handle(
+        _completedByMemberIdMeta,
+        completedByMemberId.isAcceptableOrUnknown(
+          data['completed_by_member_id']!,
+          _completedByMemberIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('completed_steps_json')) {
+      context.handle(
+        _completedStepsJsonMeta,
+        completedStepsJson.isAcceptableOrUnknown(
+          data['completed_steps_json']!,
+          _completedStepsJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6329,6 +6747,14 @@ class $ActivityLogsTable extends ActivityLogs
         DriftSqlType.string,
         data['${effectivePrefix}sync_uuid'],
       ),
+      completedByMemberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}completed_by_member_id'],
+      ),
+      completedStepsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}completed_steps_json'],
+      ),
     );
   }
 
@@ -6346,6 +6772,8 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
   final String status;
   final DateTime updatedAt;
   final String? syncUuid;
+  final int? completedByMemberId;
+  final String? completedStepsJson;
   const ActivityLog({
     required this.id,
     required this.activityId,
@@ -6354,6 +6782,8 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     required this.status,
     required this.updatedAt,
     this.syncUuid,
+    this.completedByMemberId,
+    this.completedStepsJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6366,6 +6796,12 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || syncUuid != null) {
       map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    if (!nullToAbsent || completedByMemberId != null) {
+      map['completed_by_member_id'] = Variable<int>(completedByMemberId);
+    }
+    if (!nullToAbsent || completedStepsJson != null) {
+      map['completed_steps_json'] = Variable<String>(completedStepsJson);
     }
     return map;
   }
@@ -6381,6 +6817,12 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       syncUuid: syncUuid == null && nullToAbsent
           ? const Value.absent()
           : Value(syncUuid),
+      completedByMemberId: completedByMemberId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedByMemberId),
+      completedStepsJson: completedStepsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedStepsJson),
     );
   }
 
@@ -6397,6 +6839,12 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       status: serializer.fromJson<String>(json['status']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+      completedByMemberId: serializer.fromJson<int?>(
+        json['completedByMemberId'],
+      ),
+      completedStepsJson: serializer.fromJson<String?>(
+        json['completedStepsJson'],
+      ),
     );
   }
   @override
@@ -6410,6 +6858,8 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       'status': serializer.toJson<String>(status),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
+      'completedByMemberId': serializer.toJson<int?>(completedByMemberId),
+      'completedStepsJson': serializer.toJson<String?>(completedStepsJson),
     };
   }
 
@@ -6421,6 +6871,8 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     String? status,
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
+    Value<int?> completedByMemberId = const Value.absent(),
+    Value<String?> completedStepsJson = const Value.absent(),
   }) => ActivityLog(
     id: id ?? this.id,
     activityId: activityId ?? this.activityId,
@@ -6429,6 +6881,12 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     status: status ?? this.status,
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+    completedByMemberId: completedByMemberId.present
+        ? completedByMemberId.value
+        : this.completedByMemberId,
+    completedStepsJson: completedStepsJson.present
+        ? completedStepsJson.value
+        : this.completedStepsJson,
   );
   ActivityLog copyWithCompanion(ActivityLogsCompanion data) {
     return ActivityLog(
@@ -6443,6 +6901,12 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
       status: data.status.present ? data.status.value : this.status,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+      completedByMemberId: data.completedByMemberId.present
+          ? data.completedByMemberId.value
+          : this.completedByMemberId,
+      completedStepsJson: data.completedStepsJson.present
+          ? data.completedStepsJson.value
+          : this.completedStepsJson,
     );
   }
 
@@ -6455,7 +6919,9 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
           ..write('scheduledAt: $scheduledAt, ')
           ..write('status: $status, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('completedByMemberId: $completedByMemberId, ')
+          ..write('completedStepsJson: $completedStepsJson')
           ..write(')'))
         .toString();
   }
@@ -6469,6 +6935,8 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
     status,
     updatedAt,
     syncUuid,
+    completedByMemberId,
+    completedStepsJson,
   );
   @override
   bool operator ==(Object other) =>
@@ -6480,7 +6948,9 @@ class ActivityLog extends DataClass implements Insertable<ActivityLog> {
           other.scheduledAt == this.scheduledAt &&
           other.status == this.status &&
           other.updatedAt == this.updatedAt &&
-          other.syncUuid == this.syncUuid);
+          other.syncUuid == this.syncUuid &&
+          other.completedByMemberId == this.completedByMemberId &&
+          other.completedStepsJson == this.completedStepsJson);
 }
 
 class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
@@ -6491,6 +6961,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
   final Value<String> status;
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
+  final Value<int?> completedByMemberId;
+  final Value<String?> completedStepsJson;
   const ActivityLogsCompanion({
     this.id = const Value.absent(),
     this.activityId = const Value.absent(),
@@ -6499,6 +6971,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     this.status = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.completedByMemberId = const Value.absent(),
+    this.completedStepsJson = const Value.absent(),
   });
   ActivityLogsCompanion.insert({
     this.id = const Value.absent(),
@@ -6508,6 +6982,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     this.status = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
+    this.completedByMemberId = const Value.absent(),
+    this.completedStepsJson = const Value.absent(),
   }) : activityId = Value(activityId),
        memberId = Value(memberId),
        scheduledAt = Value(scheduledAt);
@@ -6519,6 +6995,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     Expression<String>? status,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
+    Expression<int>? completedByMemberId,
+    Expression<String>? completedStepsJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -6528,6 +7006,10 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
       if (status != null) 'status': status,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
+      if (completedByMemberId != null)
+        'completed_by_member_id': completedByMemberId,
+      if (completedStepsJson != null)
+        'completed_steps_json': completedStepsJson,
     });
   }
 
@@ -6539,6 +7021,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     Value<String>? status,
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
+    Value<int?>? completedByMemberId,
+    Value<String?>? completedStepsJson,
   }) {
     return ActivityLogsCompanion(
       id: id ?? this.id,
@@ -6548,6 +7032,8 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
       status: status ?? this.status,
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
+      completedByMemberId: completedByMemberId ?? this.completedByMemberId,
+      completedStepsJson: completedStepsJson ?? this.completedStepsJson,
     );
   }
 
@@ -6575,6 +7061,12 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
     if (syncUuid.present) {
       map['sync_uuid'] = Variable<String>(syncUuid.value);
     }
+    if (completedByMemberId.present) {
+      map['completed_by_member_id'] = Variable<int>(completedByMemberId.value);
+    }
+    if (completedStepsJson.present) {
+      map['completed_steps_json'] = Variable<String>(completedStepsJson.value);
+    }
     return map;
   }
 
@@ -6587,7 +7079,310 @@ class ActivityLogsCompanion extends UpdateCompanion<ActivityLog> {
           ..write('scheduledAt: $scheduledAt, ')
           ..write('status: $status, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncUuid: $syncUuid')
+          ..write('syncUuid: $syncUuid, ')
+          ..write('completedByMemberId: $completedByMemberId, ')
+          ..write('completedStepsJson: $completedStepsJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ActivityAssigneesTable extends ActivityAssignees
+    with TableInfo<$ActivityAssigneesTable, ActivityAssignee> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ActivityAssigneesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _activityIdMeta = const VerificationMeta(
+    'activityId',
+  );
+  @override
+  late final GeneratedColumn<int> activityId = GeneratedColumn<int>(
+    'activity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, activityId, memberId, sortOrder];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'activity_assignees';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ActivityAssignee> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('activity_id')) {
+      context.handle(
+        _activityIdMeta,
+        activityId.isAcceptableOrUnknown(data['activity_id']!, _activityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_activityIdMeta);
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ActivityAssignee map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ActivityAssignee(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      activityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}activity_id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $ActivityAssigneesTable createAlias(String alias) {
+    return $ActivityAssigneesTable(attachedDatabase, alias);
+  }
+}
+
+class ActivityAssignee extends DataClass
+    implements Insertable<ActivityAssignee> {
+  final int id;
+  final int activityId;
+  final int memberId;
+  final int sortOrder;
+  const ActivityAssignee({
+    required this.id,
+    required this.activityId,
+    required this.memberId,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['activity_id'] = Variable<int>(activityId);
+    map['member_id'] = Variable<int>(memberId);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  ActivityAssigneesCompanion toCompanion(bool nullToAbsent) {
+    return ActivityAssigneesCompanion(
+      id: Value(id),
+      activityId: Value(activityId),
+      memberId: Value(memberId),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory ActivityAssignee.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ActivityAssignee(
+      id: serializer.fromJson<int>(json['id']),
+      activityId: serializer.fromJson<int>(json['activityId']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'activityId': serializer.toJson<int>(activityId),
+      'memberId': serializer.toJson<int>(memberId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  ActivityAssignee copyWith({
+    int? id,
+    int? activityId,
+    int? memberId,
+    int? sortOrder,
+  }) => ActivityAssignee(
+    id: id ?? this.id,
+    activityId: activityId ?? this.activityId,
+    memberId: memberId ?? this.memberId,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  ActivityAssignee copyWithCompanion(ActivityAssigneesCompanion data) {
+    return ActivityAssignee(
+      id: data.id.present ? data.id.value : this.id,
+      activityId: data.activityId.present
+          ? data.activityId.value
+          : this.activityId,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityAssignee(')
+          ..write('id: $id, ')
+          ..write('activityId: $activityId, ')
+          ..write('memberId: $memberId, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, activityId, memberId, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ActivityAssignee &&
+          other.id == this.id &&
+          other.activityId == this.activityId &&
+          other.memberId == this.memberId &&
+          other.sortOrder == this.sortOrder);
+}
+
+class ActivityAssigneesCompanion extends UpdateCompanion<ActivityAssignee> {
+  final Value<int> id;
+  final Value<int> activityId;
+  final Value<int> memberId;
+  final Value<int> sortOrder;
+  const ActivityAssigneesCompanion({
+    this.id = const Value.absent(),
+    this.activityId = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  });
+  ActivityAssigneesCompanion.insert({
+    this.id = const Value.absent(),
+    required int activityId,
+    required int memberId,
+    this.sortOrder = const Value.absent(),
+  }) : activityId = Value(activityId),
+       memberId = Value(memberId);
+  static Insertable<ActivityAssignee> custom({
+    Expression<int>? id,
+    Expression<int>? activityId,
+    Expression<int>? memberId,
+    Expression<int>? sortOrder,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (activityId != null) 'activity_id': activityId,
+      if (memberId != null) 'member_id': memberId,
+      if (sortOrder != null) 'sort_order': sortOrder,
+    });
+  }
+
+  ActivityAssigneesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? activityId,
+    Value<int>? memberId,
+    Value<int>? sortOrder,
+  }) {
+    return ActivityAssigneesCompanion(
+      id: id ?? this.id,
+      activityId: activityId ?? this.activityId,
+      memberId: memberId ?? this.memberId,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (activityId.present) {
+      map['activity_id'] = Variable<int>(activityId.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ActivityAssigneesCompanion(')
+          ..write('id: $id, ')
+          ..write('activityId: $activityId, ')
+          ..write('memberId: $memberId, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -8765,6 +9560,516 @@ class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
           ..write('reminderId: $reminderId, ')
           ..write('timeOfDay: $timeOfDay, ')
           ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReminderLogsTable extends ReminderLogs
+    with TableInfo<$ReminderLogsTable, ReminderLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReminderLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _reminderIdMeta = const VerificationMeta(
+    'reminderId',
+  );
+  @override
+  late final GeneratedColumn<int> reminderId = GeneratedColumn<int>(
+    'reminder_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _memberIdMeta = const VerificationMeta(
+    'memberId',
+  );
+  @override
+  late final GeneratedColumn<int> memberId = GeneratedColumn<int>(
+    'member_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scheduledAtMeta = const VerificationMeta(
+    'scheduledAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> scheduledAt = GeneratedColumn<DateTime>(
+    'scheduled_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _snoozedUntilMeta = const VerificationMeta(
+    'snoozedUntil',
+  );
+  @override
+  late final GeneratedColumn<DateTime> snoozedUntil = GeneratedColumn<DateTime>(
+    'snoozed_until',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    reminderId,
+    memberId,
+    scheduledAt,
+    status,
+    snoozedUntil,
+    updatedAt,
+    syncUuid,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminder_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReminderLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('reminder_id')) {
+      context.handle(
+        _reminderIdMeta,
+        reminderId.isAcceptableOrUnknown(data['reminder_id']!, _reminderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reminderIdMeta);
+    }
+    if (data.containsKey('member_id')) {
+      context.handle(
+        _memberIdMeta,
+        memberId.isAcceptableOrUnknown(data['member_id']!, _memberIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_memberIdMeta);
+    }
+    if (data.containsKey('scheduled_at')) {
+      context.handle(
+        _scheduledAtMeta,
+        scheduledAt.isAcceptableOrUnknown(
+          data['scheduled_at']!,
+          _scheduledAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_scheduledAtMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('snoozed_until')) {
+      context.handle(
+        _snoozedUntilMeta,
+        snoozedUntil.isAcceptableOrUnknown(
+          data['snoozed_until']!,
+          _snoozedUntilMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReminderLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReminderLog(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      reminderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_id'],
+      )!,
+      memberId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}member_id'],
+      )!,
+      scheduledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}scheduled_at'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      snoozedUntil: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}snoozed_until'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
+    );
+  }
+
+  @override
+  $ReminderLogsTable createAlias(String alias) {
+    return $ReminderLogsTable(attachedDatabase, alias);
+  }
+}
+
+class ReminderLog extends DataClass implements Insertable<ReminderLog> {
+  final int id;
+  final int reminderId;
+  final int memberId;
+  final DateTime scheduledAt;
+  final String status;
+  final DateTime? snoozedUntil;
+  final DateTime updatedAt;
+  final String? syncUuid;
+  const ReminderLog({
+    required this.id,
+    required this.reminderId,
+    required this.memberId,
+    required this.scheduledAt,
+    required this.status,
+    this.snoozedUntil,
+    required this.updatedAt,
+    this.syncUuid,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['reminder_id'] = Variable<int>(reminderId);
+    map['member_id'] = Variable<int>(memberId);
+    map['scheduled_at'] = Variable<DateTime>(scheduledAt);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || snoozedUntil != null) {
+      map['snoozed_until'] = Variable<DateTime>(snoozedUntil);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
+    return map;
+  }
+
+  ReminderLogsCompanion toCompanion(bool nullToAbsent) {
+    return ReminderLogsCompanion(
+      id: Value(id),
+      reminderId: Value(reminderId),
+      memberId: Value(memberId),
+      scheduledAt: Value(scheduledAt),
+      status: Value(status),
+      snoozedUntil: snoozedUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snoozedUntil),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
+    );
+  }
+
+  factory ReminderLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReminderLog(
+      id: serializer.fromJson<int>(json['id']),
+      reminderId: serializer.fromJson<int>(json['reminderId']),
+      memberId: serializer.fromJson<int>(json['memberId']),
+      scheduledAt: serializer.fromJson<DateTime>(json['scheduledAt']),
+      status: serializer.fromJson<String>(json['status']),
+      snoozedUntil: serializer.fromJson<DateTime?>(json['snoozedUntil']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'reminderId': serializer.toJson<int>(reminderId),
+      'memberId': serializer.toJson<int>(memberId),
+      'scheduledAt': serializer.toJson<DateTime>(scheduledAt),
+      'status': serializer.toJson<String>(status),
+      'snoozedUntil': serializer.toJson<DateTime?>(snoozedUntil),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
+    };
+  }
+
+  ReminderLog copyWith({
+    int? id,
+    int? reminderId,
+    int? memberId,
+    DateTime? scheduledAt,
+    String? status,
+    Value<DateTime?> snoozedUntil = const Value.absent(),
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
+  }) => ReminderLog(
+    id: id ?? this.id,
+    reminderId: reminderId ?? this.reminderId,
+    memberId: memberId ?? this.memberId,
+    scheduledAt: scheduledAt ?? this.scheduledAt,
+    status: status ?? this.status,
+    snoozedUntil: snoozedUntil.present ? snoozedUntil.value : this.snoozedUntil,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
+  );
+  ReminderLog copyWithCompanion(ReminderLogsCompanion data) {
+    return ReminderLog(
+      id: data.id.present ? data.id.value : this.id,
+      reminderId: data.reminderId.present
+          ? data.reminderId.value
+          : this.reminderId,
+      memberId: data.memberId.present ? data.memberId.value : this.memberId,
+      scheduledAt: data.scheduledAt.present
+          ? data.scheduledAt.value
+          : this.scheduledAt,
+      status: data.status.present ? data.status.value : this.status,
+      snoozedUntil: data.snoozedUntil.present
+          ? data.snoozedUntil.value
+          : this.snoozedUntil,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderLog(')
+          ..write('id: $id, ')
+          ..write('reminderId: $reminderId, ')
+          ..write('memberId: $memberId, ')
+          ..write('scheduledAt: $scheduledAt, ')
+          ..write('status: $status, ')
+          ..write('snoozedUntil: $snoozedUntil, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    reminderId,
+    memberId,
+    scheduledAt,
+    status,
+    snoozedUntil,
+    updatedAt,
+    syncUuid,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReminderLog &&
+          other.id == this.id &&
+          other.reminderId == this.reminderId &&
+          other.memberId == this.memberId &&
+          other.scheduledAt == this.scheduledAt &&
+          other.status == this.status &&
+          other.snoozedUntil == this.snoozedUntil &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
+}
+
+class ReminderLogsCompanion extends UpdateCompanion<ReminderLog> {
+  final Value<int> id;
+  final Value<int> reminderId;
+  final Value<int> memberId;
+  final Value<DateTime> scheduledAt;
+  final Value<String> status;
+  final Value<DateTime?> snoozedUntil;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
+  const ReminderLogsCompanion({
+    this.id = const Value.absent(),
+    this.reminderId = const Value.absent(),
+    this.memberId = const Value.absent(),
+    this.scheduledAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.snoozedUntil = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  });
+  ReminderLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required int reminderId,
+    required int memberId,
+    required DateTime scheduledAt,
+    this.status = const Value.absent(),
+    this.snoozedUntil = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
+  }) : reminderId = Value(reminderId),
+       memberId = Value(memberId),
+       scheduledAt = Value(scheduledAt);
+  static Insertable<ReminderLog> custom({
+    Expression<int>? id,
+    Expression<int>? reminderId,
+    Expression<int>? memberId,
+    Expression<DateTime>? scheduledAt,
+    Expression<String>? status,
+    Expression<DateTime>? snoozedUntil,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (reminderId != null) 'reminder_id': reminderId,
+      if (memberId != null) 'member_id': memberId,
+      if (scheduledAt != null) 'scheduled_at': scheduledAt,
+      if (status != null) 'status': status,
+      if (snoozedUntil != null) 'snoozed_until': snoozedUntil,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
+    });
+  }
+
+  ReminderLogsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? reminderId,
+    Value<int>? memberId,
+    Value<DateTime>? scheduledAt,
+    Value<String>? status,
+    Value<DateTime?>? snoozedUntil,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
+  }) {
+    return ReminderLogsCompanion(
+      id: id ?? this.id,
+      reminderId: reminderId ?? this.reminderId,
+      memberId: memberId ?? this.memberId,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      status: status ?? this.status,
+      snoozedUntil: snoozedUntil ?? this.snoozedUntil,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (reminderId.present) {
+      map['reminder_id'] = Variable<int>(reminderId.value);
+    }
+    if (memberId.present) {
+      map['member_id'] = Variable<int>(memberId.value);
+    }
+    if (scheduledAt.present) {
+      map['scheduled_at'] = Variable<DateTime>(scheduledAt.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (snoozedUntil.present) {
+      map['snoozed_until'] = Variable<DateTime>(snoozedUntil.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('reminderId: $reminderId, ')
+          ..write('memberId: $memberId, ')
+          ..write('scheduledAt: $scheduledAt, ')
+          ..write('status: $status, ')
+          ..write('snoozedUntil: $snoozedUntil, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
@@ -16293,10 +17598,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ActivitiesTable activities = $ActivitiesTable(this);
   late final $ActivitySlotsTable activitySlots = $ActivitySlotsTable(this);
   late final $ActivityLogsTable activityLogs = $ActivityLogsTable(this);
+  late final $ActivityAssigneesTable activityAssignees =
+      $ActivityAssigneesTable(this);
   late final $DoctorAppointmentsTable doctorAppointments =
       $DoctorAppointmentsTable(this);
   late final $RemindersTable reminders = $RemindersTable(this);
   late final $ReminderSlotsTable reminderSlots = $ReminderSlotsTable(this);
+  late final $ReminderLogsTable reminderLogs = $ReminderLogsTable(this);
   late final $SharedChannelsTable sharedChannels = $SharedChannelsTable(this);
   late final $LabResultsTable labResults = $LabResultsTable(this);
   late final $AllergiesTable allergies = $AllergiesTable(this);
@@ -16332,9 +17640,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     activities,
     activitySlots,
     activityLogs,
+    activityAssignees,
     doctorAppointments,
     reminders,
     reminderSlots,
+    reminderLogs,
     sharedChannels,
     labResults,
     allergies,

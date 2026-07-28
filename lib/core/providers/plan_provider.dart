@@ -12,12 +12,18 @@ class PlanLimits {
   final int maxAutonomousMembers;
   final bool serverSync;
   final double price;
+  /// 0 = необмежено. Рутинні справи (Activities, type=='routine') на профіль.
+  final int maxRoutineTasks;
+  /// 0 = необмежено. Розділи Простору (MedcardSections) на профіль.
+  final int maxMedcardSections;
 
   const PlanLimits({
     required this.maxLocalMembers,
     required this.maxAutonomousMembers,
     required this.serverSync,
     required this.price,
+    required this.maxRoutineTasks,
+    required this.maxMedcardSections,
   });
 }
 
@@ -27,18 +33,24 @@ const planLimits = {
     maxAutonomousMembers: 0,
     serverSync: false,
     price: 0,
+    maxRoutineTasks: 1,
+    maxMedcardSections: 3,
   ),
   AppPlan.plus: PlanLimits(
     maxLocalMembers: 0,
     maxAutonomousMembers: 0,
     serverSync: true,
     price: 2.99,
+    maxRoutineTasks: 0,
+    maxMedcardSections: 0,
   ),
   AppPlan.family: PlanLimits(
     maxLocalMembers: 0,
     maxAutonomousMembers: 8,
     serverSync: true,
     price: 5.99,
+    maxRoutineTasks: 0,
+    maxMedcardSections: 0,
   ),
 };
 
