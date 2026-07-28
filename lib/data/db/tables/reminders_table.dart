@@ -40,10 +40,28 @@ class Reminders extends Table {
       text().withDefault(const Constant('pending'))();
   // pending/attended/skipped — на відміну від Intake/ActivityLog, з'явилось
   // пізніше, тому за замовчуванням 'pending', а не окрема таблиця логів
+  TextColumn get repeatType => text().withDefault(const Constant('none'))();
+  // none/daily/weekly/yearly — об'єднана форма "Нагадування" (замінила
+  // окремі Зустрічі/Спорт/Прості завдання): none — разова подія, дата й час
+  // беруться з scheduledAt як є; yearly — теж scheduledAt, але рік
+  // ігнорується нативним повтором (matchDateTimeComponents.dateAndTime);
+  // daily/weekly — час(и) беруться з дочірньої таблиці RemindersSlots
+  // (можливо декілька на день), а для weekly ще й дні тижня з repeatConfig.
+  TextColumn get repeatConfig => text().withDefault(const Constant('{}'))();
+  // json: weekly -> {"days":[1,2,3]} (1=Пн..7=Нд); none/daily/yearly -> {}
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   // для синхронізації — коли рядок востаннє змінювався локально
   TextColumn get syncUuid => text().nullable().unique()();
   // глобально унікальний ідентифікатор для family_sync — null, поки рядок
   // ще не синхронізований жодного разу
+}
+
+class ReminderSlots extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get reminderId =>
+      integer().references(Reminders, #id, onDelete: KeyAction.cascade)();
+  TextColumn get timeOfDay => text()();
+  // "08:30" — застосовується лише коли Reminders.repeatType == daily/weekly
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }

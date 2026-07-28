@@ -14,6 +14,10 @@ class MedcardSectionsRepository {
         .watch();
   }
 
+  Future<MedcardSection?> getById(int id) =>
+      (_db.select(_db.medcardSections)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
   Future<int> insert(MedcardSectionsCompanion section) =>
       _db.into(_db.medcardSections).insert(section);
 

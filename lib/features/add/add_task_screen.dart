@@ -4,16 +4,19 @@ import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../data/repositories/medcard_sections_repository.dart';
 import '../../features/today/providers/today_providers.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/space_picker.dart';
 import '../appointments/add_appointment_screen.dart';
+import '../medcard/add_medcard_entry_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/elly_denied_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import 'add_activity_screen.dart';
 
 /// Відкриває екран створення завдання одразу (без проміжного меню-шторки):
-/// перший елемент екрана — пікер із 6 пунктів, вибір одразу веде до
+/// перший елемент екрана — пікер із 5 пунктів, вибір одразу веде до
 /// відповідної стандартної форми створення.
 void openAddTaskScreen(BuildContext context, {int? memberId}) {
   final container = ProviderScope.containerOf(context);
@@ -47,7 +50,7 @@ void openAddTaskScreen(BuildContext context, {int? memberId}) {
   );
 }
 
-enum _TaskType { meds, sport, meeting, simple, routine, wellbeing }
+enum _TaskType { reminder, routine, meds, note, wellbeing }
 
 class AddTaskScreen extends ConsumerWidget {
   final int? memberId;
@@ -65,28 +68,42 @@ class AddTaskScreen extends ConsumerWidget {
     // Розкладі, а не знову на екрані вибору типу.
     Future<void> openType(_TaskType type) async {
       if (resolvedMemberId == null) return;
+
+      if (type == _TaskType.note) {
+        // Нотатка завжди належить конкретному Простору — спершу пікер
+        // розділу (з можливістю створити новий), лише потім форма запису.
+        final sectionId = await showSpacePicker(
+          context,
+          memberId: resolvedMemberId,
+          current: null,
+        );
+        if (sectionId == null || !context.mounted) return;
+        final section = await ref
+            .read(medcardSectionsRepositoryProvider)
+            .getById(sectionId);
+        if (section == null || !context.mounted) return;
+        final saved = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddMedcardEntryScreen(section: section),
+          ),
+        );
+        if (saved == true && context.mounted) Navigator.pop(context, true);
+        return;
+      }
+
       final Widget screen = switch (type) {
-        _TaskType.meds => AddMedicationScreen(memberId: resolvedMemberId),
-        _TaskType.sport => AddActivityScreen(
-            memberId: resolvedMemberId,
-            hideTypePicker: true,
-            forcedType: 'general_sport',
-          ),
-        _TaskType.meeting => AddAppointmentScreen(memberId: resolvedMemberId),
-        _TaskType.simple => AddActivityScreen(
-            memberId: resolvedMemberId,
-            hideTypePicker: true,
-            forcedType: 'simple_task',
-            compactMode: true,
-          ),
+        _TaskType.reminder => AddAppointmentScreen(memberId: resolvedMemberId),
         _TaskType.routine => AddActivityScreen(
             memberId: resolvedMemberId,
             hideTypePicker: true,
             forcedType: 'routine',
             compactMode: true,
           ),
+        _TaskType.meds => AddMedicationScreen(memberId: resolvedMemberId),
         _TaskType.wellbeing =>
           AddWellbeingScheduleScreen(memberId: resolvedMemberId),
+        _TaskType.note => throw StateError('handled above'),
       };
       final saved = await Navigator.push<bool>(
         context,
@@ -125,31 +142,10 @@ class AddTaskScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
                   _TypeCard(
-                    icon: Icons.medication_rounded,
-                    title: context.l10n.categoryMeds,
-                    sub: context.l10n.addTypeMedsSub,
-                    onTap: () => openType(_TaskType.meds),
-                  ),
-                  const SizedBox(height: 10),
-                  _TypeCard(
-                    icon: Icons.directions_walk_rounded,
-                    title: context.l10n.taskTypeSport,
-                    sub: context.l10n.taskTypeSportSub,
-                    onTap: () => openType(_TaskType.sport),
-                  ),
-                  const SizedBox(height: 10),
-                  _TypeCard(
                     icon: Icons.notifications_active_rounded,
-                    title: context.l10n.taskTypeMeeting,
-                    sub: context.l10n.taskTypeMeetingSub,
-                    onTap: () => openType(_TaskType.meeting),
-                  ),
-                  const SizedBox(height: 10),
-                  _TypeCard(
-                    icon: Icons.checklist_rounded,
-                    title: context.l10n.taskTypeSimple,
-                    sub: context.l10n.taskTypeSimpleSub,
-                    onTap: () => openType(_TaskType.simple),
+                    title: context.l10n.reminderCategoryTitle,
+                    sub: context.l10n.reminderCategorySub,
+                    onTap: () => openType(_TaskType.reminder),
                   ),
                   const SizedBox(height: 10),
                   _TypeCard(
@@ -157,6 +153,20 @@ class AddTaskScreen extends ConsumerWidget {
                     title: context.l10n.taskTypeRoutine,
                     sub: context.l10n.taskTypeRoutineSub,
                     onTap: () => openType(_TaskType.routine),
+                  ),
+                  const SizedBox(height: 10),
+                  _TypeCard(
+                    icon: Icons.medication_rounded,
+                    title: context.l10n.categoryMeds,
+                    sub: context.l10n.addTypeMedsSub,
+                    onTap: () => openType(_TaskType.meds),
+                  ),
+                  const SizedBox(height: 10),
+                  _TypeCard(
+                    icon: Icons.edit_note_rounded,
+                    title: context.l10n.noteCategoryTitle,
+                    sub: context.l10n.noteCategorySub,
+                    onTap: () => openType(_TaskType.note),
                   ),
                   const SizedBox(height: 10),
                   _TypeCard(

@@ -140,7 +140,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
               ),
             );
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

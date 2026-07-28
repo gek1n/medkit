@@ -19,7 +19,6 @@ import '../add/add_activity_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
-const _kActivityTypeSimple = 'simple_task';
 const _kActivityTypeRoutine = 'routine';
 
 List<String> _parseTags(String raw) {
@@ -42,7 +41,7 @@ final _allTaskActivitiesProvider = StreamProvider<List<Activity>>((ref) {
 
 // ────────────────────────────── archive item (unified) ─────────────────
 
-enum _ArchiveKind { meeting, simpleTask, routine }
+enum _ArchiveKind { reminder, routine }
 
 class _ArchiveItem {
   final _ArchiveKind kind;
@@ -145,26 +144,22 @@ class _AppointmentsHistoryScreenState
                           .where((a) => widget.memberId == null || a.memberId == widget.memberId)
                           .where((a) => _tag == null || _parseTags(a.tags).contains(_tag))
                           .map((a) => _ArchiveItem(
-                                kind: _ArchiveKind.meeting,
+                                kind: _ArchiveKind.reminder,
                                 effectiveDate: a.scheduledAt,
                                 memberId: a.memberId,
                                 reminder: a,
                               ));
 
-                      // Активності без тегів — коли фільтр за тегом активний,
-                      // вони не мають чому відповідати, тож ховаються.
+                      // Рутинні справи не мають тегів — коли фільтр за тегом
+                      // активний, вони не мають чому відповідати, тож ховаються.
                       final activityItems = hasFilter
                           ? const Iterable<_ArchiveItem>.empty()
                           : allActivities
                               .where((a) =>
                                   widget.memberId == null || a.memberId == widget.memberId)
-                              .where((a) =>
-                                  a.type == _kActivityTypeSimple ||
-                                  a.type == _kActivityTypeRoutine)
+                              .where((a) => a.type == _kActivityTypeRoutine)
                               .map((a) => _ArchiveItem(
-                                    kind: a.type == _kActivityTypeRoutine
-                                        ? _ArchiveKind.routine
-                                        : _ArchiveKind.simpleTask,
+                                    kind: _ArchiveKind.routine,
                                     effectiveDate: a.createdAt,
                                     memberId: a.memberId,
                                     activity: a,
@@ -372,10 +367,32 @@ class _ArchiveCard extends StatelessWidget {
         : sorted.map((d) => _dayLabel(context, d)).join(', ');
   }
 
+  // scheduledAt — лише якір для daily/weekly/yearly (не буквальна дата
+  // конкретного випадку), тож замість дати показуємо тип повтору; для
+  // weekly — конкретні дні тижня з repeatConfig.
+  String _reminderScheduleSummary(BuildContext context, Reminder r) {
+    switch (r.repeatType) {
+      case 'daily':
+        return context.l10n.reminderRepeatDailyLabel;
+      case 'weekly':
+        try {
+          final cfg = jsonDecode(r.repeatConfig) as Map<String, dynamic>;
+          final days = List<int>.from(cfg['days'] as List)..sort();
+          return days.map((d) => _dayLabel(context, d)).join(', ');
+        } catch (_) {
+          return context.l10n.reminderRepeatWeeklyLabel;
+        }
+      case 'yearly':
+        return '${context.l10n.reminderRepeatYearlyLabel} · ${_fmtDate(r.scheduledAt).substring(0, 5)}';
+      default:
+        return '${_fmtDate(r.scheduledAt)} · ${_fmtTime(r.scheduledAt)}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (item.kind) {
-      case _ArchiveKind.meeting:
+      case _ArchiveKind.reminder:
         final r = item.reminder!;
         final tags = _parseTags(r.tags);
         final photos = () {
@@ -386,12 +403,13 @@ class _ArchiveCard extends StatelessWidget {
           }
         }();
         final color = colorFromHex(r.color) ?? AppColors.primary;
-        final isPast = r.scheduledAt.isBefore(DateTime.now());
+        final isPast = r.repeatType == 'none' &&
+            r.scheduledAt.isBefore(DateTime.now());
         return FeedPostCard(
           icon: medcardIconFor(r.iconKey),
           color: color,
           title: r.doctorType,
-          dateLabel: '${_fmtDate(r.scheduledAt)} · ${_fmtTime(r.scheduledAt)}',
+          dateLabel: _reminderScheduleSummary(context, r),
           subtitle: isPast
               ? context.l10n.visitPassedLabel
               : (r.location != null && r.location!.isNotEmpty ? r.location : null),
@@ -405,20 +423,15 @@ class _ArchiveCard extends StatelessWidget {
             ),
           ),
         );
-      case _ArchiveKind.simpleTask:
       case _ArchiveKind.routine:
         final a = item.activity!;
         final color = colorFromHex(a.color) ?? AppColors.primary;
         return FeedPostCard(
-          icon: item.kind == _ArchiveKind.routine
-              ? Icons.home_repair_service_rounded
-              : Icons.checklist_rounded,
+          icon: Icons.home_repair_service_rounded,
           color: color,
           title: a.name,
           dateLabel: _scheduleSummary(context, a),
-          subtitle: item.kind == _ArchiveKind.routine
-              ? context.l10n.taskTypeRoutine
-              : context.l10n.taskTypeSimple,
+          subtitle: context.l10n.taskTypeRoutine,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
