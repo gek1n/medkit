@@ -1699,7 +1699,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get deleteAppointmentBody => 'Нагадування буде видалено.';
 
   @override
-  String get newAppointmentTitle => 'Нова зустріч';
+  String get newAppointmentTitle => 'Нове нагадування';
 
   @override
   String get fieldWhere => 'Де';
@@ -1736,6 +1736,33 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get enterReminderTitleError => 'Введіть назву';
+
+  @override
+  String get reminderRepeatSectionLabel => 'Коли нагадати';
+
+  @override
+  String get reminderRepeatOnceLabel => 'Одноразово';
+
+  @override
+  String get reminderRepeatDailyLabel => 'Щодня';
+
+  @override
+  String get reminderRepeatWeeklyLabel => 'Певні дні тижня';
+
+  @override
+  String get reminderRepeatYearlyLabel => 'Щороку';
+
+  @override
+  String get reminderYearlyDateFieldLabel => 'Дата (без року)';
+
+  @override
+  String get addAnotherTimeAction => 'Додати ще один час';
+
+  @override
+  String get addAtLeastOneTimeError => 'Додайте хоча б один час';
+
+  @override
+  String get chooseAtLeastOneDayError => 'Оберіть хоча б один день тижня';
 
   @override
   String get reminderTagsFieldLabel => 'Теги';
@@ -1807,6 +1834,14 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String wellbeingSlotNumberLabel(int index) {
     return 'Зріз $index';
+  }
+
+  @override
+  String get reminderTimesFieldLabel => 'ЧАС НАГАДУВАННЯ';
+
+  @override
+  String timeSlotNumberLabel(int index) {
+    return 'Час $index';
   }
 
   @override
@@ -2553,6 +2588,19 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get taskTypeRoutineSub => 'Щоденні справи по дому';
+
+  @override
+  String get reminderCategoryTitle => 'Нагадування';
+
+  @override
+  String get reminderCategorySub =>
+      'Подія чи справа з датою — разова або повторювана';
+
+  @override
+  String get noteCategoryTitle => 'Нотатка';
+
+  @override
+  String get noteCategorySub => 'Просто запис — без нагадувань';
 
   @override
   String get faqGroupPrivacyTitle => 'Приватність і дані';

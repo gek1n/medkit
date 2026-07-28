@@ -2583,23 +2583,38 @@ class _ActiveAppointmentCard extends StatelessWidget {
               ],
             ),
           ),
-          _ActionRow(
-            doneColor: AppColors.primary,
-            onDone: () => ref
-                .read(remindersRepositoryProvider)
-                .markAttended(appointment.id),
-            onSkip: () => ref
-                .read(remindersRepositoryProvider)
-                .markSkipped(appointment.id),
-            onSnooze: (min) => ref
-                .read(remindersRepositoryProvider)
-                .reschedule(
-                  appointment.id,
-                  _snoozeFrom(
-                    appointment.scheduledAt,
-                  ).add(Duration(minutes: min)),
-                ),
-          ),
+          // "Виконати"/"Пропустити"/"Перенести" міняють спільний для всіх
+          // повторів status/scheduledAt у Reminders — коректно лише для
+          // одноразового (repeatType == 'none'). Для daily/weekly/yearly
+          // немає окремого стану "сьогоднішнього" відпрацювання (свідомо не
+          // будували Activities-подібну генерацію по днях), тож замість дій
+          // просто показуємо, яке це повторення.
+          if (appointment.repeatType == 'none')
+            _ActionRow(
+              doneColor: AppColors.primary,
+              onDone: () => ref
+                  .read(remindersRepositoryProvider)
+                  .markAttended(appointment.id),
+              onSkip: () => ref
+                  .read(remindersRepositoryProvider)
+                  .markSkipped(appointment.id),
+              onSnooze: (min) => ref
+                  .read(remindersRepositoryProvider)
+                  .reschedule(
+                    appointment.id,
+                    _snoozeFrom(
+                      appointment.scheduledAt,
+                    ).add(Duration(minutes: min)),
+                  ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 2, 14, 14),
+              child: _InfoChip(
+                icon: Icons.repeat_rounded,
+                label: _repeatLabel(context, appointment),
+              ),
+            ),
         ],
       ),
     );
@@ -2607,6 +2622,39 @@ class _ActiveAppointmentCard extends StatelessWidget {
 
   String _fmt(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+  static String _dayLabel(BuildContext context, int weekday) {
+    final l10n = context.l10n;
+    return switch (weekday) {
+      1 => l10n.dayMon,
+      2 => l10n.dayTue,
+      3 => l10n.dayWed,
+      4 => l10n.dayThu,
+      5 => l10n.dayFri,
+      6 => l10n.daySat,
+      _ => l10n.daySun,
+    };
+  }
+
+  static String _repeatLabel(BuildContext context, Reminder appointment) {
+    switch (appointment.repeatType) {
+      case 'daily':
+        return context.l10n.reminderRepeatDailyLabel;
+      case 'weekly':
+        try {
+          final cfg =
+              jsonDecode(appointment.repeatConfig) as Map<String, dynamic>;
+          final days = List<int>.from(cfg['days'] as List);
+          return days.map((d) => _dayLabel(context, d)).join(', ');
+        } catch (_) {
+          return context.l10n.reminderRepeatWeeklyLabel;
+        }
+      case 'yearly':
+        return context.l10n.reminderRepeatYearlyLabel;
+      default:
+        return '';
+    }
+  }
 }
 
 // ─── Action Row ───────────────────────────────────────────────────────────────

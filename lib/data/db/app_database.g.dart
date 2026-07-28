@@ -7594,6 +7594,30 @@ class $RemindersTable extends Reminders
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
+  static const VerificationMeta _repeatTypeMeta = const VerificationMeta(
+    'repeatType',
+  );
+  @override
+  late final GeneratedColumn<String> repeatType = GeneratedColumn<String>(
+    'repeat_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _repeatConfigMeta = const VerificationMeta(
+    'repeatConfig',
+  );
+  @override
+  late final GeneratedColumn<String> repeatConfig = GeneratedColumn<String>(
+    'repeat_config',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -7646,6 +7670,8 @@ class $RemindersTable extends Reminders
     color,
     iconKey,
     status,
+    repeatType,
+    repeatConfig,
     createdAt,
     updatedAt,
     syncUuid,
@@ -7758,6 +7784,21 @@ class $RemindersTable extends Reminders
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
+    if (data.containsKey('repeat_type')) {
+      context.handle(
+        _repeatTypeMeta,
+        repeatType.isAcceptableOrUnknown(data['repeat_type']!, _repeatTypeMeta),
+      );
+    }
+    if (data.containsKey('repeat_config')) {
+      context.handle(
+        _repeatConfigMeta,
+        repeatConfig.isAcceptableOrUnknown(
+          data['repeat_config']!,
+          _repeatConfigMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -7841,6 +7882,14 @@ class $RemindersTable extends Reminders
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      repeatType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_type'],
+      )!,
+      repeatConfig: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_config'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -7877,6 +7926,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   final String? color;
   final String iconKey;
   final String status;
+  final String repeatType;
+  final String repeatConfig;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? syncUuid;
@@ -7895,6 +7946,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     this.color,
     required this.iconKey,
     required this.status,
+    required this.repeatType,
+    required this.repeatConfig,
     required this.createdAt,
     required this.updatedAt,
     this.syncUuid,
@@ -7926,6 +7979,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     }
     map['icon_key'] = Variable<String>(iconKey);
     map['status'] = Variable<String>(status);
+    map['repeat_type'] = Variable<String>(repeatType);
+    map['repeat_config'] = Variable<String>(repeatConfig);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || syncUuid != null) {
@@ -7960,6 +8015,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           : Value(color),
       iconKey: Value(iconKey),
       status: Value(status),
+      repeatType: Value(repeatType),
+      repeatConfig: Value(repeatConfig),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncUuid: syncUuid == null && nullToAbsent
@@ -7988,6 +8045,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       color: serializer.fromJson<String?>(json['color']),
       iconKey: serializer.fromJson<String>(json['iconKey']),
       status: serializer.fromJson<String>(json['status']),
+      repeatType: serializer.fromJson<String>(json['repeatType']),
+      repeatConfig: serializer.fromJson<String>(json['repeatConfig']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
@@ -8011,6 +8070,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       'color': serializer.toJson<String?>(color),
       'iconKey': serializer.toJson<String>(iconKey),
       'status': serializer.toJson<String>(status),
+      'repeatType': serializer.toJson<String>(repeatType),
+      'repeatConfig': serializer.toJson<String>(repeatConfig),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
@@ -8032,6 +8093,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     Value<String?> color = const Value.absent(),
     String? iconKey,
     String? status,
+    String? repeatType,
+    String? repeatConfig,
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
@@ -8050,6 +8113,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     color: color.present ? color.value : this.color,
     iconKey: iconKey ?? this.iconKey,
     status: status ?? this.status,
+    repeatType: repeatType ?? this.repeatType,
+    repeatConfig: repeatConfig ?? this.repeatConfig,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
@@ -8078,6 +8143,12 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       color: data.color.present ? data.color.value : this.color,
       iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
       status: data.status.present ? data.status.value : this.status,
+      repeatType: data.repeatType.present
+          ? data.repeatType.value
+          : this.repeatType,
+      repeatConfig: data.repeatConfig.present
+          ? data.repeatConfig.value
+          : this.repeatConfig,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
@@ -8101,6 +8172,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ..write('color: $color, ')
           ..write('iconKey: $iconKey, ')
           ..write('status: $status, ')
+          ..write('repeatType: $repeatType, ')
+          ..write('repeatConfig: $repeatConfig, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncUuid: $syncUuid')
@@ -8124,6 +8197,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     color,
     iconKey,
     status,
+    repeatType,
+    repeatConfig,
     createdAt,
     updatedAt,
     syncUuid,
@@ -8146,6 +8221,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           other.color == this.color &&
           other.iconKey == this.iconKey &&
           other.status == this.status &&
+          other.repeatType == this.repeatType &&
+          other.repeatConfig == this.repeatConfig &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncUuid == this.syncUuid);
@@ -8166,6 +8243,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<String?> color;
   final Value<String> iconKey;
   final Value<String> status;
+  final Value<String> repeatType;
+  final Value<String> repeatConfig;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
@@ -8184,6 +8263,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.color = const Value.absent(),
     this.iconKey = const Value.absent(),
     this.status = const Value.absent(),
+    this.repeatType = const Value.absent(),
+    this.repeatConfig = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
@@ -8203,6 +8284,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.color = const Value.absent(),
     this.iconKey = const Value.absent(),
     this.status = const Value.absent(),
+    this.repeatType = const Value.absent(),
+    this.repeatConfig = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
@@ -8224,6 +8307,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Expression<String>? color,
     Expression<String>? iconKey,
     Expression<String>? status,
+    Expression<String>? repeatType,
+    Expression<String>? repeatConfig,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
@@ -8243,6 +8328,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       if (color != null) 'color': color,
       if (iconKey != null) 'icon_key': iconKey,
       if (status != null) 'status': status,
+      if (repeatType != null) 'repeat_type': repeatType,
+      if (repeatConfig != null) 'repeat_config': repeatConfig,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
@@ -8264,6 +8351,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Value<String?>? color,
     Value<String>? iconKey,
     Value<String>? status,
+    Value<String>? repeatType,
+    Value<String>? repeatConfig,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
@@ -8283,6 +8372,8 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       color: color ?? this.color,
       iconKey: iconKey ?? this.iconKey,
       status: status ?? this.status,
+      repeatType: repeatType ?? this.repeatType,
+      repeatConfig: repeatConfig ?? this.repeatConfig,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
@@ -8334,6 +8425,12 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (repeatType.present) {
+      map['repeat_type'] = Variable<String>(repeatType.value);
+    }
+    if (repeatConfig.present) {
+      map['repeat_config'] = Variable<String>(repeatConfig.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -8363,9 +8460,311 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
           ..write('color: $color, ')
           ..write('iconKey: $iconKey, ')
           ..write('status: $status, ')
+          ..write('repeatType: $repeatType, ')
+          ..write('repeatConfig: $repeatConfig, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncUuid: $syncUuid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReminderSlotsTable extends ReminderSlots
+    with TableInfo<$ReminderSlotsTable, ReminderSlot> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReminderSlotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _reminderIdMeta = const VerificationMeta(
+    'reminderId',
+  );
+  @override
+  late final GeneratedColumn<int> reminderId = GeneratedColumn<int>(
+    'reminder_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timeOfDayMeta = const VerificationMeta(
+    'timeOfDay',
+  );
+  @override
+  late final GeneratedColumn<String> timeOfDay = GeneratedColumn<String>(
+    'time_of_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, reminderId, timeOfDay, sortOrder];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminder_slots';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReminderSlot> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('reminder_id')) {
+      context.handle(
+        _reminderIdMeta,
+        reminderId.isAcceptableOrUnknown(data['reminder_id']!, _reminderIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reminderIdMeta);
+    }
+    if (data.containsKey('time_of_day')) {
+      context.handle(
+        _timeOfDayMeta,
+        timeOfDay.isAcceptableOrUnknown(data['time_of_day']!, _timeOfDayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timeOfDayMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReminderSlot map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReminderSlot(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      reminderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_id'],
+      )!,
+      timeOfDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_of_day'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $ReminderSlotsTable createAlias(String alias) {
+    return $ReminderSlotsTable(attachedDatabase, alias);
+  }
+}
+
+class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
+  final int id;
+  final int reminderId;
+  final String timeOfDay;
+  final int sortOrder;
+  const ReminderSlot({
+    required this.id,
+    required this.reminderId,
+    required this.timeOfDay,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['reminder_id'] = Variable<int>(reminderId);
+    map['time_of_day'] = Variable<String>(timeOfDay);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  ReminderSlotsCompanion toCompanion(bool nullToAbsent) {
+    return ReminderSlotsCompanion(
+      id: Value(id),
+      reminderId: Value(reminderId),
+      timeOfDay: Value(timeOfDay),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory ReminderSlot.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReminderSlot(
+      id: serializer.fromJson<int>(json['id']),
+      reminderId: serializer.fromJson<int>(json['reminderId']),
+      timeOfDay: serializer.fromJson<String>(json['timeOfDay']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'reminderId': serializer.toJson<int>(reminderId),
+      'timeOfDay': serializer.toJson<String>(timeOfDay),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  ReminderSlot copyWith({
+    int? id,
+    int? reminderId,
+    String? timeOfDay,
+    int? sortOrder,
+  }) => ReminderSlot(
+    id: id ?? this.id,
+    reminderId: reminderId ?? this.reminderId,
+    timeOfDay: timeOfDay ?? this.timeOfDay,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  ReminderSlot copyWithCompanion(ReminderSlotsCompanion data) {
+    return ReminderSlot(
+      id: data.id.present ? data.id.value : this.id,
+      reminderId: data.reminderId.present
+          ? data.reminderId.value
+          : this.reminderId,
+      timeOfDay: data.timeOfDay.present ? data.timeOfDay.value : this.timeOfDay,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderSlot(')
+          ..write('id: $id, ')
+          ..write('reminderId: $reminderId, ')
+          ..write('timeOfDay: $timeOfDay, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, reminderId, timeOfDay, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReminderSlot &&
+          other.id == this.id &&
+          other.reminderId == this.reminderId &&
+          other.timeOfDay == this.timeOfDay &&
+          other.sortOrder == this.sortOrder);
+}
+
+class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
+  final Value<int> id;
+  final Value<int> reminderId;
+  final Value<String> timeOfDay;
+  final Value<int> sortOrder;
+  const ReminderSlotsCompanion({
+    this.id = const Value.absent(),
+    this.reminderId = const Value.absent(),
+    this.timeOfDay = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  });
+  ReminderSlotsCompanion.insert({
+    this.id = const Value.absent(),
+    required int reminderId,
+    required String timeOfDay,
+    this.sortOrder = const Value.absent(),
+  }) : reminderId = Value(reminderId),
+       timeOfDay = Value(timeOfDay);
+  static Insertable<ReminderSlot> custom({
+    Expression<int>? id,
+    Expression<int>? reminderId,
+    Expression<String>? timeOfDay,
+    Expression<int>? sortOrder,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (reminderId != null) 'reminder_id': reminderId,
+      if (timeOfDay != null) 'time_of_day': timeOfDay,
+      if (sortOrder != null) 'sort_order': sortOrder,
+    });
+  }
+
+  ReminderSlotsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? reminderId,
+    Value<String>? timeOfDay,
+    Value<int>? sortOrder,
+  }) {
+    return ReminderSlotsCompanion(
+      id: id ?? this.id,
+      reminderId: reminderId ?? this.reminderId,
+      timeOfDay: timeOfDay ?? this.timeOfDay,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (reminderId.present) {
+      map['reminder_id'] = Variable<int>(reminderId.value);
+    }
+    if (timeOfDay.present) {
+      map['time_of_day'] = Variable<String>(timeOfDay.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderSlotsCompanion(')
+          ..write('id: $id, ')
+          ..write('reminderId: $reminderId, ')
+          ..write('timeOfDay: $timeOfDay, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -15843,6 +16242,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DoctorAppointmentsTable doctorAppointments =
       $DoctorAppointmentsTable(this);
   late final $RemindersTable reminders = $RemindersTable(this);
+  late final $ReminderSlotsTable reminderSlots = $ReminderSlotsTable(this);
   late final $SharedChannelsTable sharedChannels = $SharedChannelsTable(this);
   late final $LabResultsTable labResults = $LabResultsTable(this);
   late final $AllergiesTable allergies = $AllergiesTable(this);
@@ -15880,6 +16280,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     activityLogs,
     doctorAppointments,
     reminders,
+    reminderSlots,
     sharedChannels,
     labResults,
     allergies,

@@ -144,17 +144,21 @@ final tomorrowActivityLogsProvider =
   return ref.read(activitiesRepositoryProvider).getLogsByMemberAndDate(memberId, tomorrow);
 });
 
-// Завтра: прийоми лікарів
+// Завтра: нагадування (включно з daily/weekly/yearly повторами, активними
+// саме завтра — не лише тими, чий якір scheduledAt буквально завтра)
 final tomorrowAppointmentsProvider =
     FutureProvider.family<List<Reminder>, int>((ref, memberId) async {
   final tomorrow = DateTime.now().add(const Duration(days: 1));
-  return ref.read(remindersRepositoryProvider).watchByDate(memberId, tomorrow).first;
+  return ref
+      .read(remindersRepositoryProvider)
+      .watchActiveOnDate(memberId, tomorrow)
+      .first;
 });
 
-// Прийоми лікаря на сьогодні
+// Нагадування на сьогодні (включно з daily/weekly/yearly повторами)
 final todayAppointmentsProvider =
     StreamProvider.family<List<Reminder>, int>((ref, memberId) {
   return ref
       .watch(remindersRepositoryProvider)
-      .watchByDate(memberId, DateTime.now());
+      .watchActiveOnDate(memberId, DateTime.now());
 });

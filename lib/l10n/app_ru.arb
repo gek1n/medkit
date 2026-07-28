@@ -979,7 +979,7 @@
   "remindBefore1Day": "За день",
   "remindBefore2Days": "За 2 дня",
   "deleteAppointmentBody": "Напоминание будет удалено.",
-  "newAppointmentTitle": "Новая встреча",
+  "newAppointmentTitle": "Новое напоминание",
   "fieldWhere": "Где",
   "locationHint": "Укажите адрес или название",
   "fieldDateTime": "Дата и время",
@@ -992,6 +992,15 @@
   "reminderTitleFieldLabel": "Название",
   "reminderTitleHint": "Укажите, о чём напомнить",
   "enterReminderTitleError": "Введите название",
+  "reminderRepeatSectionLabel": "Когда напомнить",
+  "reminderRepeatOnceLabel": "Разово",
+  "reminderRepeatDailyLabel": "Ежедневно",
+  "reminderRepeatWeeklyLabel": "Определённые дни недели",
+  "reminderRepeatYearlyLabel": "Ежегодно",
+  "reminderYearlyDateFieldLabel": "Дата (год не важен)",
+  "addAnotherTimeAction": "Добавить ещё одно время",
+  "addAtLeastOneTimeError": "Добавьте хотя бы одно время",
+  "chooseAtLeastOneDayError": "Выберите хотя бы один день недели",
   "reminderTagsFieldLabel": "Теги",
   "reminderTagsHint": "Теги для структурирования, через запятую",
   "reminderTagsPickerTitle": "Выберите теги",
@@ -1016,6 +1025,15 @@
   "collectionTimeLabel": "ВРЕМЯ СБОРА",
   "wellbeingSlotNumberLabel": "Чек-ин {index}",
   "@wellbeingSlotNumberLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "reminderTimesFieldLabel": "ВРЕМЯ НАПОМИНАНИЯ",
+  "timeSlotNumberLabel": "Время {index}",
+  "@timeSlotNumberLabel": {
     "placeholders": {
       "index": {
         "type": "int"
@@ -1347,6 +1365,10 @@
   "taskTypeSimpleSub": "Разовое или простое напоминание",
   "taskTypeRoutine": "Рутинные дела",
   "taskTypeRoutineSub": "Ежедневные дела по дому",
+  "reminderCategoryTitle": "Напоминание",
+  "reminderCategorySub": "Событие или дело с датой — разово или с повтором",
+  "noteCategoryTitle": "Заметка",
+  "noteCategorySub": "Просто запись — без напоминаний",
   "faqGroupPrivacyTitle": "Приватность и данные",
   "faqPrivacyQ1": "Кто видит мои данные?",
   "faqPrivacyA1": "Никто, кроме вас. Всё хранится зашифрованным на вашем устройстве (SQLCipher, AES-256). Сервер Elly намеренно \"слепой\": регистрации через email или пароль нет, а то, что всё же проходит через сервер (приглашения в семью, синхронизация, подтверждение подписки), видит только зашифрованные блоки и технические идентификаторы — без ключа расшифровать их невозможно.",

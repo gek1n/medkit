@@ -352,6 +352,117 @@ class NotificationService {
     await cancel(appointmentRepeatNotificationId(appointmentId));
   }
 
+  // ── Нагадування: щоденний/щотижневий/щорічний повтор ────────────────────
+  // Об'єднана форма "Нагадування" (заміна окремих Зустрічі/Спорт/Прості
+  // завдання) — на відміну від разового (scheduleAppointmentReminder вище),
+  // тут повтор нативний (matchDateTimeComponents), без фонового
+  // перегенерування на кшталт ActivityLogGenerator: ОС сама повторює
+  // сповіщення, доки його явно не скасовано.
+
+  static int recurringReminderNotificationId(int reminderId, int variant) =>
+      5000000 + reminderId * 1000 + variant;
+
+  // Скасовує всі можливі варіанти (дні тижня × слоти) одного нагадування —
+  // викликається перед кожним новим плануванням, щоб не лишати "хвостів"
+  // від попередньої конфігурації повтору.
+  static Future<void> cancelRecurringReminder(
+    int reminderId, {
+    int maxVariants = 80,
+  }) async {
+    for (var i = 0; i < maxVariants; i++) {
+      await cancel(recurringReminderNotificationId(reminderId, i));
+    }
+  }
+
+  static Future<void> scheduleYearlyReminder({
+    required int reminderId,
+    required String memberName,
+    required String title,
+    String? location,
+    required DateTime date,
+    int remindBeforeMin = 0,
+    bool vibrationEnabled = true,
+  }) async {
+    var at = date.subtract(Duration(minutes: remindBeforeMin));
+    final now = DateTime.now();
+    // Як і в scheduleDailyReminderSlots/scheduleWeeklyReminderSlots — явно
+    // рахуємо найближче МАЙБУТНЄ входження (рік у даті-джерелі не важливий,
+    // matchDateTimeComponents.dateAndTime все одно ігнорує рік при
+    // повторному спрацюванні), а не покладаємось на неявний rollover плагіна.
+    at = DateTime(now.year, at.month, at.day, at.hour, at.minute);
+    if (at.isBefore(now)) {
+      at = DateTime(now.year + 1, at.month, at.day, at.hour, at.minute);
+    }
+    final body =
+        (location != null && location.isNotEmpty) ? '$title · $location' : title;
+    final l10n = await _l10n();
+    await _zonedSchedule(
+      id: recurringReminderNotificationId(reminderId, 0),
+      title: '$memberName · ${l10n.notifAppointmentTitle}',
+      body: body,
+      at: at,
+      matchDateTimeComponents: DateTimeComponents.dateAndTime,
+      vibrationEnabled: vibrationEnabled,
+    );
+  }
+
+  // Один слот = один час доби, що повторюється щодня.
+  static Future<void> scheduleDailyReminderSlots({
+    required int reminderId,
+    required String memberName,
+    required String title,
+    required List<(int hour, int minute)> slots,
+    bool vibrationEnabled = true,
+  }) async {
+    final l10n = await _l10n();
+    final now = DateTime.now();
+    for (var i = 0; i < slots.length; i++) {
+      final (hour, minute) = slots[i];
+      var at = DateTime(now.year, now.month, now.day, hour, minute);
+      if (at.isBefore(now)) at = at.add(const Duration(days: 1));
+      await _zonedSchedule(
+        id: recurringReminderNotificationId(reminderId, i),
+        title: '$memberName · ${l10n.notifAppointmentTitle}',
+        body: title,
+        at: at,
+        matchDateTimeComponents: DateTimeComponents.time,
+        vibrationEnabled: vibrationEnabled,
+      );
+    }
+  }
+
+  // Дні тижня (1=Пн..7=Нд, як DateTime.weekday) × слоти — кожна пара
+  // отримує власний ідентифікатор сповіщення, що повторюється щотижня.
+  static Future<void> scheduleWeeklyReminderSlots({
+    required int reminderId,
+    required String memberName,
+    required String title,
+    required List<int> weekdays,
+    required List<(int hour, int minute)> slots,
+    bool vibrationEnabled = true,
+  }) async {
+    final l10n = await _l10n();
+    final now = DateTime.now();
+    var variant = 0;
+    for (final weekday in weekdays) {
+      for (final (hour, minute) in slots) {
+        var at = DateTime(now.year, now.month, now.day, hour, minute);
+        final daysAhead = (weekday - at.weekday + 7) % 7;
+        at = at.add(Duration(days: daysAhead));
+        if (at.isBefore(now)) at = at.add(const Duration(days: 7));
+        await _zonedSchedule(
+          id: recurringReminderNotificationId(reminderId, variant),
+          title: '$memberName · ${l10n.notifAppointmentTitle}',
+          body: title,
+          at: at,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          vibrationEnabled: vibrationEnabled,
+        );
+        variant++;
+      }
+    }
+  }
+
   // ── Самопочуття (щоденний повтор за часом) ───────────────────────────
 
   static int wellbeingNotificationId(int memberId, int slotIndex) =>
