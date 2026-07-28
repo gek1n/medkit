@@ -19,6 +19,7 @@ class ReminderLogGenerator {
 
   Future<void> generateForDay(DateTime date) async {
     final day = DateTime(date.year, date.month, date.day);
+    final cutoff = DateTime.now().subtract(const Duration(hours: 1));
     final remindersRepo = _ref.read(remindersRepositoryProvider);
     final reminders = await (_db.select(_db.reminders)).get();
 
@@ -27,6 +28,11 @@ class ReminderLogGenerator {
       try {
         final occurrences = await remindersRepo.occurrencesOnDate(r, day);
         for (final at in occurrences) {
+          // Не створюємо записи більш ніж на годину в минулому — інакше
+          // щойно додане нагадування одразу заповнило б сьогоднішній
+          // розклад пропущеними слотами (той самий принцип, що й в
+          // ActivityLogGenerator/IntakesRepository).
+          if (at.isBefore(cutoff)) continue;
           // Одна невдала спроба не повинна обривати генерацію для решти
           // нагадувань — див. аналогічний коментар у ActivityLogGenerator.
           try {

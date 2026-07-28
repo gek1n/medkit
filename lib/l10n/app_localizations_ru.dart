@@ -27,7 +27,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navProfile => 'Профиль';
 
   @override
-  String get navMedCard => 'Пространство';
+  String get navMedCard => 'Полки';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -349,7 +349,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get allTagsFilter => 'Все теги';
 
   @override
-  String get medCardTitle => 'Пространство';
+  String get medCardTitle => 'Полки';
 
   @override
   String get medCardArchiveTitle => 'Архив лекарств';
@@ -415,13 +415,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Здесь пусто. Добавьте первую запись через плюсик';
 
   @override
-  String get spaceFieldLabel => 'Пространство';
+  String get spaceFieldLabel => 'Полка';
 
   @override
-  String get spacePickerTitle => 'Выберите пространство';
+  String get spacePickerTitle => 'Выберите полку';
 
   @override
-  String get noSpaceOption => 'Без пространства';
+  String get noSpaceOption => 'Без полки';
 
   @override
   String get createNewSpaceAction => 'Создать новый раздел';
@@ -1207,10 +1207,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'На бесплатном тарифе доступно только 1 рутинное дело. Перейдите на Elly Plus для неограниченного количества';
 
   @override
-  String get medcardSectionsLimitBadge => 'Пространство';
+  String get medcardSectionsLimitBadge => 'Полки';
 
   @override
-  String get medcardSectionsLimitTitle => 'Лимит разделов Пространства';
+  String get medcardSectionsLimitTitle => 'Лимит полок';
 
   @override
   String medcardSectionsLimitSubtitle(int used, int max) {
@@ -1218,11 +1218,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get medcardSectionsLimitDeniedTitle => 'Лимит разделов достигнут';
+  String get medcardSectionsLimitDeniedTitle => 'Лимит полок достигнут';
 
   @override
   String get medcardSectionsLimitDeniedSubtitle =>
-      'На бесплатном тарифе доступно до 3 разделов Пространства. Перейдите на Elly Plus для неограниченного количества';
+      'На бесплатном тарифе доступно до 3 полок. Перейдите на Elly Plus для неограниченного количества';
 
   @override
   String leaveGroupConfirmTitle(String name) {
@@ -1789,7 +1789,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get enterReminderTitleError => 'Введите название';
 
   @override
-  String get reminderRepeatSectionLabel => 'Когда напомнить';
+  String get reminderRepeatSectionLabel => 'Повторение';
 
   @override
   String get reminderRepeatOnceLabel => 'Не повторять';
@@ -1898,6 +1898,18 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get routineAnyTimeTodayLabel => 'Когда-нибудь сегодня';
+
+  @override
+  String get routineFormExplainer =>
+      'Рутина повторяется и считает выполнение — для привычек и семейных обязанностей, в отличие от разового напоминания';
+
+  @override
+  String routineStreakDaysLabel(int n) {
+    return '$n дней подряд';
+  }
+
+  @override
+  String get routineNoStreakYetLabel => 'Пока нет серии — начните сегодня';
 
   @override
   String get routineAllRoutinesScreenTitle => 'Обязанности семьи';
@@ -2349,6 +2361,13 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get addMedsHint =>
       'Скан фото рецепта или название, доза и расписание вручную';
+
+  @override
+  String get onboardingAddItemAction => 'Добавить';
+
+  @override
+  String get onboardingAddItemHint =>
+      'Напоминание или лекарство — выберите вариант';
 
   @override
   String get addMedsLaterInfo =>
@@ -2964,7 +2983,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get enterActivityNameError => 'Введите название активности';
 
   @override
-  String get editActivityTitle => 'Редактировать активность';
+  String get editActivityTitle => 'Редактировать рутину';
+
+  @override
+  String get newRoutineTitle => 'Рутина';
 
   @override
   String get activityTypeLabel => 'Тип активности';

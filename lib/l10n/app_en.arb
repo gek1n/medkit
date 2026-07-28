@@ -6,7 +6,7 @@
   "navMeds": "Schedule",
   "navFamily": "Family",
   "navProfile": "Profile",
-  "navMedCard": "Space",
+  "navMedCard": "Shelves",
   "todayProgressTitle": "{taken} of {total}",
   "@todayProgressTitle": {
     "placeholders": {
@@ -162,7 +162,7 @@
   "dayTomorrow": "Tomorrow",
   "dayYesterday": "Yesterday",
   "allTagsFilter": "All tags",
-  "medCardTitle": "Space",
+  "medCardTitle": "Shelves",
   "medCardArchiveTitle": "Medication archive",
   "medCardArchiveSubtitle": "All medications and their treatment status",
   "medCardAppointmentsTitle": "Reminders archive",
@@ -183,9 +183,9 @@
   "deleteSectionConfirmTitle": "Delete this section?",
   "deleteSectionConfirmBody": "The section and all its entries will be deleted.",
   "sectionEmptyHint": "Nothing here yet. Add your first entry with the plus button",
-  "spaceFieldLabel": "Space",
-  "spacePickerTitle": "Choose a space",
-  "noSpaceOption": "No space",
+  "spaceFieldLabel": "Shelf",
+  "spacePickerTitle": "Choose a shelf",
+  "noSpaceOption": "No shelf",
   "createNewSpaceAction": "Create a new section",
   "newEntryTitle": "New entry",
   "editEntryTitle": "Edit entry",
@@ -707,8 +707,8 @@
   },
   "routineTasksLimitDeniedTitle": "Routine tasks limit reached",
   "routineTasksLimitDeniedSubtitle": "The free plan allows only 1 routine task. Upgrade to Elly Plus for an unlimited amount",
-  "medcardSectionsLimitBadge": "Space",
-  "medcardSectionsLimitTitle": "Sections limit",
+  "medcardSectionsLimitBadge": "Shelves",
+  "medcardSectionsLimitTitle": "Shelves limit",
   "medcardSectionsLimitSubtitle": "Used {used} of {max}. Upgrade to Elly Plus for unlimited",
   "@medcardSectionsLimitSubtitle": {
     "placeholders": {
@@ -716,8 +716,8 @@
       "max": { "type": "int" }
     }
   },
-  "medcardSectionsLimitDeniedTitle": "Sections limit reached",
-  "medcardSectionsLimitDeniedSubtitle": "The free plan allows up to 3 Space sections. Upgrade to Elly Plus for an unlimited amount",
+  "medcardSectionsLimitDeniedTitle": "Shelves limit reached",
+  "medcardSectionsLimitDeniedSubtitle": "The free plan allows up to 3 shelves. Upgrade to Elly Plus for an unlimited amount",
   "leaveGroupConfirmTitle": "Leave \"{name}\"?",
   "@leaveGroupConfirmTitle": {
     "placeholders": {
@@ -1018,7 +1018,7 @@
   "reminderTitleFieldLabel": "Title",
   "reminderTitleHint": "What's this reminder about?",
   "enterReminderTitleError": "Enter a title",
-  "reminderRepeatSectionLabel": "When to remind",
+  "reminderRepeatSectionLabel": "Repeat",
   "reminderRepeatOnceLabel": "Don't repeat",
   "reminderRepeatDailyLabel": "Daily",
   "reminderRepeatWeeklyLabel": "Specific weekdays",
@@ -1075,6 +1075,12 @@
     }
   },
   "routineAnyTimeTodayLabel": "Anytime today",
+  "routineFormExplainer": "A routine repeats and tracks completion — for habits and family duties, unlike a one-off reminder",
+  "routineStreakDaysLabel": "{n}-day streak",
+  "@routineStreakDaysLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "routineNoStreakYetLabel": "No streak yet — start today",
   "routineAllRoutinesScreenTitle": "Family duties",
   "routineNoAssigneesHint": "No duties yet",
   "defaultNotesSectionName": "Notes",
@@ -1271,6 +1277,8 @@
   "addMedsShortAction": "Add medications",
   "addMoreMedsAction": "Add more medications",
   "addMedsHint": "Scan a prescription photo, or enter name, dose, and schedule manually",
+  "onboardingAddItemAction": "Add",
+  "onboardingAddItemHint": "A reminder or a medication — pick one",
   "addMedsLaterInfo": "You can add medications later from the \"Medications\" section in the main menu",
   "nextAction": "Next →",
   "skipAddLaterAction": "Skip — I'll add later",
@@ -1523,7 +1531,8 @@
   "noDaysSelectedHint": "No days selected",
   "chooseActivityTypeError": "Choose an activity type",
   "enterActivityNameError": "Enter the activity name",
-  "editActivityTitle": "Edit activity",
+  "editActivityTitle": "Edit routine",
+  "newRoutineTitle": "Routine",
   "activityTypeLabel": "Activity type",
   "activityTypeWorkout": "Exercise",
   "activityTypeGym": "Workout",

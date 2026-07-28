@@ -27,7 +27,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navProfile => 'Profile';
 
   @override
-  String get navMedCard => 'Space';
+  String get navMedCard => 'Shelves';
 
   @override
   String todayProgressTitle(int taken, int total) {
@@ -347,7 +347,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allTagsFilter => 'All tags';
 
   @override
-  String get medCardTitle => 'Space';
+  String get medCardTitle => 'Shelves';
 
   @override
   String get medCardArchiveTitle => 'Medication archive';
@@ -414,13 +414,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing here yet. Add your first entry with the plus button';
 
   @override
-  String get spaceFieldLabel => 'Space';
+  String get spaceFieldLabel => 'Shelf';
 
   @override
-  String get spacePickerTitle => 'Choose a space';
+  String get spacePickerTitle => 'Choose a shelf';
 
   @override
-  String get noSpaceOption => 'No space';
+  String get noSpaceOption => 'No shelf';
 
   @override
   String get createNewSpaceAction => 'Create a new section';
@@ -1200,10 +1200,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The free plan allows only 1 routine task. Upgrade to Elly Plus for an unlimited amount';
 
   @override
-  String get medcardSectionsLimitBadge => 'Space';
+  String get medcardSectionsLimitBadge => 'Shelves';
 
   @override
-  String get medcardSectionsLimitTitle => 'Sections limit';
+  String get medcardSectionsLimitTitle => 'Shelves limit';
 
   @override
   String medcardSectionsLimitSubtitle(int used, int max) {
@@ -1211,11 +1211,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get medcardSectionsLimitDeniedTitle => 'Sections limit reached';
+  String get medcardSectionsLimitDeniedTitle => 'Shelves limit reached';
 
   @override
   String get medcardSectionsLimitDeniedSubtitle =>
-      'The free plan allows up to 3 Space sections. Upgrade to Elly Plus for an unlimited amount';
+      'The free plan allows up to 3 shelves. Upgrade to Elly Plus for an unlimited amount';
 
   @override
   String leaveGroupConfirmTitle(String name) {
@@ -1779,7 +1779,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterReminderTitleError => 'Enter a title';
 
   @override
-  String get reminderRepeatSectionLabel => 'When to remind';
+  String get reminderRepeatSectionLabel => 'Repeat';
 
   @override
   String get reminderRepeatOnceLabel => 'Don\'t repeat';
@@ -1888,6 +1888,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineAnyTimeTodayLabel => 'Anytime today';
+
+  @override
+  String get routineFormExplainer =>
+      'A routine repeats and tracks completion — for habits and family duties, unlike a one-off reminder';
+
+  @override
+  String routineStreakDaysLabel(int n) {
+    return '$n-day streak';
+  }
+
+  @override
+  String get routineNoStreakYetLabel => 'No streak yet — start today';
 
   @override
   String get routineAllRoutinesScreenTitle => 'Family duties';
@@ -2340,6 +2352,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addMedsHint =>
       'Scan a prescription photo, or enter name, dose, and schedule manually';
+
+  @override
+  String get onboardingAddItemAction => 'Add';
+
+  @override
+  String get onboardingAddItemHint => 'A reminder or a medication — pick one';
 
   @override
   String get addMedsLaterInfo =>
@@ -2951,7 +2969,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterActivityNameError => 'Enter the activity name';
 
   @override
-  String get editActivityTitle => 'Edit activity';
+  String get editActivityTitle => 'Edit routine';
+
+  @override
+  String get newRoutineTitle => 'Routine';
 
   @override
   String get activityTypeLabel => 'Activity type';

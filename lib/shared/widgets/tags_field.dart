@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -5,11 +6,13 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
 
-/// Поле довільних тегів — вводяться через кому в текстовому полі, або
-/// обираються декілька одразу зі списку раніше вживаних (шторка з
-/// чекбоксами). Необов'язкове. [loadHistory] визначає, з якого джерела
-/// підтягується історія — різні фічі (нагадування, самопочуття) тримають
-/// свої окремі, не пов'язані одна з одною історії тегів.
+/// Поле довільних тегів — чипси вже доданих тегів + інпут з живими
+/// підказками з історії (як почнеш вводити — знизу з'являються відповідні
+/// раніше вживані теги, тап одразу додає). Кнопка праворуч відкриває повний
+/// список для перегляду/мультивибору й додавання абсолютно нового тега.
+/// Необов'язкове поле. [loadHistory] визначає джерело історії — різні фічі
+/// (нагадування/нотатки, самопочуття) тримають свої окремі, не пов'язані
+/// одна з одною історії тегів.
 class TagsField extends StatefulWidget {
   final List<String> tags;
   final void Function(List<String>) onChanged;
@@ -29,7 +32,32 @@ class TagsField extends StatefulWidget {
 }
 
 class _TagsFieldState extends State<TagsField> {
+  // Локальна копія — а не пряме читання widget.tags — інакше чипси не
+  // оновлювались би одразу, коли це поле показане всередині showFieldSheet:
+  // той child будується один раз у момент відкриття шторки, а setState
+  // батьківського екрана не перебудовує вже відкритий bottom sheet (окремий
+  // route в Overlay). Кожна зміна тут одразу викликає власний setState
+  // (миттєвий візуальний фідбек) І widget.onChanged (щоб батько теж знав).
+  late List<String> _tags;
   final _inputController = TextEditingController();
+  List<String> _history = [];
+  List<String> _suggestions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tags = [...widget.tags];
+    _inputController.addListener(_updateSuggestions);
+    _loadHistory();
+  }
+
+  @override
+  void didUpdateWidget(covariant TagsField old) {
+    super.didUpdateWidget(old);
+    if (!listEquals(old.tags, widget.tags)) {
+      _tags = [...widget.tags];
+    }
+  }
 
   @override
   void dispose() {
@@ -37,35 +65,72 @@ class _TagsFieldState extends State<TagsField> {
     super.dispose();
   }
 
+  Future<void> _loadHistory() async {
+    final h = await widget.loadHistory();
+    if (!mounted) return;
+    setState(() => _history = h);
+    _updateSuggestions();
+  }
+
+  void _updateSuggestions() {
+    final query = _inputController.text.trim().toLowerCase();
+    final used = _tags.map((t) => t.toLowerCase()).toSet();
+    setState(() {
+      _suggestions = _history
+          .where((t) =>
+              !used.contains(t.toLowerCase()) &&
+              (query.isEmpty || t.toLowerCase().contains(query)))
+          .toList();
+    });
+  }
+
+  void _addTag(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return;
+    if (_tags.any((e) => e.toLowerCase() == v.toLowerCase())) return;
+    setState(() => _tags = [..._tags, v]);
+    widget.onChanged(_tags);
+    _updateSuggestions();
+  }
+
+  // Кома як роздільник — дозволяє вставити чи ввести декілька тегів разом.
   void _commitTyped() {
     final raw = _inputController.text;
     if (raw.trim().isEmpty) return;
     final parts = raw.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty);
-    final next = [...widget.tags];
     for (final p in parts) {
-      if (!next.any((e) => e.toLowerCase() == p.toLowerCase())) next.add(p);
+      if (!_tags.any((e) => e.toLowerCase() == p.toLowerCase())) {
+        _tags = [..._tags, p];
+      }
     }
     _inputController.clear();
-    widget.onChanged(next);
+    setState(() {});
+    widget.onChanged(_tags);
+    _updateSuggestions();
   }
 
   void _remove(String tag) {
-    widget.onChanged(widget.tags.where((t) => t != tag).toList());
+    setState(() => _tags = _tags.where((t) => t != tag).toList());
+    widget.onChanged(_tags);
+    _updateSuggestions();
   }
 
   Future<void> _openHistoryPicker() async {
-    final history = await widget.loadHistory();
-    if (!mounted) return;
-    final selected = Set<String>.from(widget.tags);
     final result = await showModalBottomSheet<Set<String>>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusXl)),
       ),
-      builder: (ctx) => _TagsHistorySheet(history: history, initiallySelected: selected),
+      builder: (_) => _TagsHistorySheet(
+        history: _history,
+        initiallySelected: Set<String>.from(_tags),
+      ),
     );
-    if (result != null) widget.onChanged(result.toList());
+    if (result == null) return;
+    setState(() => _tags = result.toList());
+    widget.onChanged(_tags);
+    await _loadHistory();
   }
 
   @override
@@ -73,11 +138,11 @@ class _TagsFieldState extends State<TagsField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.tags.isNotEmpty) ...[
+        if (_tags.isNotEmpty) ...[
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: widget.tags
+            children: _tags
                 .map((t) => Chip(
                       label: Text(t, style: AppTextStyles.bodySm),
                       backgroundColor: AppColors.primaryLight,
@@ -134,6 +199,43 @@ class _TagsFieldState extends State<TagsField> {
             ),
           ],
         ),
+        // Живі підказки — почав вводити (або порожній інпут одразу показує
+        // невикористані теги з історії) — тап миттєво додає без ретайпінгу.
+        if (_suggestions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _suggestions
+                .map((t) => GestureDetector(
+                      onTap: () {
+                        _addTag(t);
+                        _inputController.clear();
+                      },
+                      child: Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.bgPage,
+                          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.add_rounded,
+                                size: 13, color: AppColors.textMuted),
+                            const SizedBox(width: 3),
+                            Text(t,
+                                style: AppTextStyles.bodySm
+                                    .copyWith(color: AppColors.textSub)),
+                          ],
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
       ],
     );
   }
@@ -152,6 +254,7 @@ class _TagsHistorySheetState extends State<_TagsHistorySheet> {
   late Set<String> _selected;
   final _newTagController = TextEditingController();
   late List<String> _allTags;
+  String _query = '';
 
   @override
   void initState() {
@@ -176,11 +279,15 @@ class _TagsHistorySheetState extends State<_TagsHistorySheet> {
       if (!_allTags.any((e) => e.toLowerCase() == raw.toLowerCase())) _allTags.add(raw);
       _selected.add(raw);
       _newTagController.clear();
+      _query = '';
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final visible = _query.isEmpty
+        ? _allTags
+        : _allTags.where((t) => t.toLowerCase().contains(_query.toLowerCase())).toList();
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -215,6 +322,7 @@ class _TagsHistorySheetState extends State<_TagsHistorySheet> {
                         child: TextField(
                           controller: _newTagController,
                           onSubmitted: (_) => _addNew(),
+                          onChanged: (v) => setState(() => _query = v),
                           decoration: InputDecoration(
                             hintText: context.l10n.addNewTagHint,
                             hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
@@ -243,7 +351,7 @@ class _TagsHistorySheetState extends State<_TagsHistorySheet> {
               ),
               const SizedBox(height: 8),
               Expanded(
-                child: _allTags.isEmpty
+                child: visible.isEmpty
                     ? Center(
                         child: Text(
                           context.l10n.noTagsYetLabel,
@@ -252,9 +360,9 @@ class _TagsHistorySheetState extends State<_TagsHistorySheet> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        itemCount: _allTags.length,
+                        itemCount: visible.length,
                         itemBuilder: (context, index) {
-                          final t = _allTags[index];
+                          final t = visible[index];
                           final checked = _selected.contains(t);
                           return CheckboxListTile(
                             value: checked,

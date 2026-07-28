@@ -13,6 +13,7 @@ import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
 import 'add_medcard_entry_screen.dart';
 
@@ -102,29 +103,25 @@ class _ViewBody extends StatelessWidget {
             children: [
               MkBackButton(onTap: () => Navigator.pop(context)),
               const SizedBox(width: 12),
-              Expanded(child: Text(entry.title, style: AppTextStyles.h3, maxLines: 1, overflow: TextOverflow.ellipsis)),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddMedcardEntryScreen(section: section, existing: entry),
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.edit_outlined, size: 15, color: AppColors.textSub),
-                      const SizedBox(width: 6),
-                      Text(context.l10n.editAction, style: AppTextStyles.labelMd.copyWith(color: AppColors.textSub)),
-                    ],
-                  ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(entry.title,
+                          style: AppTextStyles.h3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    MkEditIconButton(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AddMedcardEntryScreen(section: section, existing: entry),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

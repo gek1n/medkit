@@ -1,15 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
+import '../../core/services/notification_service.dart';
 
 class WellbeingRepository {
   final AppDatabase _db;
-  WellbeingRepository(this._db);
+  final Ref _ref;
+  WellbeingRepository(this._db, this._ref);
 
   void _triggerFamilySync(int memberId) {
     unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
@@ -97,8 +101,44 @@ class WellbeingRepository {
         .write(WellbeingSchedulesCompanion(isActive: Value(active)));
     _triggerFamilySync(memberId);
   }
+
+  // Планує щоденні сповіщення для вже збереженого розкладу — спільна логіка
+  // для форми створення й фіналізації онбординг-чернетки (де сповіщення
+  // відкладені до появи реального профілю), щоб не дублювати цикл у двох
+  // місцях.
+  Future<void> scheduleNotificationsForSchedule(
+    WellbeingSchedule schedule,
+  ) async {
+    final settings = _ref.read(notificationSettingsProvider);
+    final member = await (_db.select(_db.members)
+          ..where((t) => t.id.equals(schedule.memberId)))
+        .getSingleOrNull();
+    final memberName = member?.name ?? '';
+    final times = List<String>.from(jsonDecode(schedule.times) as List);
+    for (var i = 0; i < times.length; i++) {
+      final parts = times[i].split(':');
+      final now = DateTime.now();
+      final raw = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+      );
+      final at = settings.adjust(raw, memberId: schedule.memberId);
+      if (at == null) continue;
+      await NotificationService.scheduleWellbeingDaily(
+        memberId: schedule.memberId,
+        memberName: memberName,
+        slotIndex: i,
+        hour: at.hour,
+        minute: at.minute,
+        vibrationEnabled: settings.vibrationEnabled,
+      );
+    }
+  }
 }
 
 final wellbeingRepositoryProvider = Provider<WellbeingRepository>((ref) {
-  return WellbeingRepository(ref.watch(databaseProvider));
+  return WellbeingRepository(ref.watch(databaseProvider), ref);
 });

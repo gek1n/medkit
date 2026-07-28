@@ -146,6 +146,8 @@ class _TodayContent extends ConsumerWidget {
     final activityLogsAsync = ref.watch(todayActivityLogsProvider(member.id));
     final medsAsync = ref.watch(todayMedicationsProvider(member.id));
     final activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
+    final noFixedTimeIdsAsync =
+        ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
     final appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
     final reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
     final membersAsync = ref.watch(allMembersProvider);
@@ -175,30 +177,37 @@ class _TodayContent extends ConsumerWidget {
           final members = membersAsync.valueOrNull ?? [];
 
           // Для repeatType=='none' — status/scheduledAt з самого Reminder
-          // (як і раніше). Для повторюваних — з відповідного ReminderLog за
-          // ЦЕЙ день (генерується generateTodayReminderLogsProvider вище),
-          // з урахуванням snoozedUntil; поки лог іще не згенерувався (напр.
-          // щойно відкрили екран) — трактуємо як 'pending' без logId, кнопки
-          // дій просто не покажуться для цього єдиного кадру.
-          ReminderLog? logFor(Reminder r) => reminderLogs
-              .where((l) => l.reminderId == r.id && l.scheduledAt == r.scheduledAt)
-              .firstOrNull;
-          final appointments = (appointmentsAsync.valueOrNull ?? []).map((r) {
+          // (як і раніше). Для повторюваних — з ВІДПОВІДНИХ ReminderLog за
+          // ЦЕЙ день (генеруються generateTodayReminderLogsProvider вище):
+          // один запис на кожен слот, тож нагадування з кількома слотами на
+          // день дає кілька окремих карток. r.scheduledAt для daily/weekly —
+          // це лише вихідний "якір" створення (не пов'язаний зі слотами), і
+          // РАНІШЕ тут шукався ReminderLog з точним співпадінням часу з цим
+          // якорем — що спрацьовувало лише випадково (коли якір збігався з
+          // одним із слотів), а інакше показувало сам якір (часто 00:00) без
+          // logId — картка "зависала" без кнопок і з неправильним часом.
+          // Поки логи ще не згенерувались (напр. щойно відкрили екран) —
+          // нагадування просто не показується цей єдиний кадр, а не
+          // підміняється фейковим записом з якоря.
+          final appointments = (appointmentsAsync.valueOrNull ?? []).expand((r) {
             if (r.repeatType == 'none') {
-              return _ApptOccurrence(
-                reminder: r,
-                logId: null,
-                status: r.status,
-                scheduledAt: r.scheduledAt,
-              );
+              return [
+                _ApptOccurrence(
+                  reminder: r,
+                  logId: null,
+                  status: r.status,
+                  scheduledAt: r.scheduledAt,
+                ),
+              ];
             }
-            final log = logFor(r);
-            return _ApptOccurrence(
-              reminder: r,
-              logId: log?.id,
-              status: log?.status ?? 'pending',
-              scheduledAt: log?.snoozedUntil ?? r.scheduledAt,
-            );
+            return reminderLogs.where((l) => l.reminderId == r.id).map(
+                  (log) => _ApptOccurrence(
+                    reminder: r,
+                    logId: log.id,
+                    status: log.status,
+                    scheduledAt: log.snoozedUntil ?? log.scheduledAt,
+                  ),
+                );
           }).toList();
 
           final taken = intakes.where((i) => i.status == 'taken').length;
@@ -297,8 +306,21 @@ class _TodayContent extends ConsumerWidget {
               .toList();
 
           // ── Activity log buckets ─────────────────────────────────────────
-          final pendingLogs = activityLogs
+          // Рутини без фіксованого часу (ActivitySlots порожній) генеруються
+          // з якорем 09:00 лише для зберігання/сортування (див.
+          // ActivityLogGenerator) — тут виключаємо їх зі звичайного
+          // пропущено/зараз/незабаром бакетингу за часом, інакше вони
+          // виглядали б "пропущеними" одразу після 9:15 ранку. Вони
+          // показуються окремо в _AnytimeRoutinesSection.
+          final noFixedTimeIds = noFixedTimeIdsAsync.valueOrNull ?? {};
+          final allPendingLogs = activityLogs
               .where((l) => l.status == 'pending')
+              .toList();
+          final anytimeActivities = allPendingLogs
+              .where((l) => noFixedTimeIds.contains(l.activityId))
+              .toList();
+          final pendingLogs = allPendingLogs
+              .where((l) => !noFixedTimeIds.contains(l.activityId))
               .toList();
           final missedActivities = pendingLogs
               .where((l) => l.scheduledAt.isBefore(activeWindowStart))
@@ -392,6 +414,7 @@ class _TodayContent extends ConsumerWidget {
           final allDoneToday =
               !hasMissed &&
               !hasActive &&
+              anytimeActivities.isEmpty &&
               scheduleItems.isEmpty &&
               doneItems.isNotEmpty;
 
@@ -452,6 +475,19 @@ class _TodayContent extends ConsumerWidget {
               // Все виконано на сьогодні
               if (allDoneToday)
                 const SliverToBoxAdapter(child: _AllDoneBanner()),
+
+              // Рутини без фіксованого часу — над "Пропущено", ніколи не
+              // потрапляють у пропущені (див. коментар при обчисленні
+              // anytimeActivities вище).
+              if (anytimeActivities.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _AnytimeRoutinesSection(
+                    activityLogs: anytimeActivities,
+                    activities: activities,
+                    activeMemberId: member.id,
+                    ref: ref,
+                  ),
+                ),
 
               // 2. Ви пропустили
               if (hasMissed)
@@ -821,6 +857,70 @@ class _CompactHero extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Anytime Routines Section ───────────────────────────────────────────────
+
+// Рутини без фіксованого часу — над "Пропущено", своя картка з написом
+// "Будь-коли сьогодні" замість годинника, ніколи не потрапляють у
+// пропущено/зараз/незабаром (див. today_screen.dart build()).
+class _AnytimeRoutinesSection extends StatelessWidget {
+  final List<ActivityLog> activityLogs;
+  final List<Activity> activities;
+  final int activeMemberId;
+  final WidgetRef ref;
+
+  const _AnytimeRoutinesSection({
+    required this.activityLogs,
+    required this.activities,
+    required this.activeMemberId,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionPad(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                context.l10n.routineAnyTimeTodayLabel,
+                style: AppTextStyles.bodyMd.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+              _CountBadge(count: activityLogs.length, color: AppColors.primary),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...activityLogs.map((l) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ActiveActivityCard(
+                  log: l,
+                  ref: ref,
+                  activity:
+                      activities.where((a) => a.id == l.activityId).firstOrNull,
+                  activeMemberId: activeMemberId,
+                  anytime: true,
+                ),
+              )),
+        ],
       ),
     );
   }
@@ -1407,7 +1507,12 @@ class _ScheduleCard extends StatelessWidget {
         MedcardIcon(item.appointment!.iconKey, size: 24),
       );
     case _ItemType.wellbeing:
-      return (Icons.favorite_rounded, context.l10n.wellbeingTitle, null, null);
+      return (
+        Icons.favorite_rounded,
+        context.l10n.wellbeingTitle,
+        null,
+        const AssetIcon('task_wellbeing', size: 24),
+      );
   }
 }
 
@@ -2431,6 +2536,9 @@ class _ActiveActivityCard extends StatefulWidget {
   final WidgetRef ref;
   final int activeMemberId;
   final bool missed;
+  // Рутина без фіксованого часу — показує "Будь-коли сьогодні" замість
+  // конкретного часу й ігнорує [missed] (див. _AnytimeRoutinesSection).
+  final bool anytime;
 
   const _ActiveActivityCard({
     required this.log,
@@ -2438,6 +2546,7 @@ class _ActiveActivityCard extends StatefulWidget {
     required this.ref,
     required this.activeMemberId,
     this.missed = false,
+    this.anytime = false,
   });
 
   @override
@@ -2525,8 +2634,10 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                     ),
                     const SizedBox(width: 8),
                     _TimeStamp(
-                      time: _fmt(widget.log.scheduledAt),
-                      missed: widget.missed,
+                      time: widget.anytime
+                          ? context.l10n.routineAnyTimeTodayLabel
+                          : _fmt(widget.log.scheduledAt),
+                      missed: !widget.anytime && widget.missed,
                     ),
                   ],
                 ),
@@ -2550,6 +2661,14 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                   ...steps.asMap().entries.map((e) {
                     final done = completedSteps.contains(e.key);
                     return GestureDetector(
+                      // opaque — інакше тап у порожній проміжок SizedBox між
+                      // іконкою й текстом (не hit-testable сам по собі) не
+                      // реєструється цим GestureDetector (deferToChild за
+                      // замовчуванням) і "провалюється" крізь картку нижче,
+                      // де випадково влучає у кнопку "Виконано" _ActionRow —
+                      // саме тому чекбокс здавався "неможливо натиснути", а
+                      // рутина одразу позначалась виконаною.
+                      behavior: HitTestBehavior.opaque,
                       onTap: () => widget.ref
                           .read(activitiesRepositoryProvider)
                           .toggleLogStep(
@@ -2559,7 +2678,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                             actingMemberId: widget.activeMemberId,
                           ),
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
                           children: [
                             Icon(
@@ -2588,6 +2707,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                       ),
                     );
                   }),
+                  const SizedBox(height: 6),
                 ],
               ],
             ),

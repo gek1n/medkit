@@ -197,6 +197,8 @@ class _ScheduleBody extends ConsumerWidget {
     final appointmentsAsync = ref.watch(_scheduleAppointmentsProvider(selectedMemberId));
     final wellbeingScheduleAsync = ref.watch(_scheduleWellbeingScheduleProvider(selectedMemberId));
     final limits = ref.watch(planProvider).limits;
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
     final routineCount = activitiesAsync.valueOrNull?.length ?? 0;
     final routineLimitReached =
         limits.maxRoutineTasks != 0 && routineCount >= limits.maxRoutineTasks;
@@ -348,7 +350,15 @@ class _ScheduleBody extends ConsumerWidget {
                   medsAsync.when(
                     loading: () => const _SectionLoading(),
                     error: (e, _) => Text(context.l10n.errorGeneric('$e')),
-                    data: (meds) {
+                    data: (allMeds) {
+                      // Курс, що вже завершився (endDate у минулому), не
+                      // потребує дії й лише захаращує Розклад — лишається
+                      // видимим в Архіві ліків зі статусом "завершено".
+                      final meds = allMeds
+                          .where((m) =>
+                              m.endDate == null ||
+                              !m.endDate!.isBefore(startOfToday))
+                          .toList();
                       if (meds.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noActiveMeds,
@@ -403,7 +413,19 @@ class _ScheduleBody extends ConsumerWidget {
                   appointmentsAsync.when(
                     loading: () => const _SectionLoading(),
                     error: (e, _) => Text(context.l10n.errorGeneric('$e')),
-                    data: (appointments) {
+                    data: (allAppointments) {
+                      // Розове нагадування (repeatType=='none'), що вже
+                      // минуло й ніколи не позначене відвіданим/пропущеним
+                      // (лишається status=='pending' назавжди — див.
+                      // watchActiveByMember) — не потребує дії й лише
+                      // захаращує Розклад, ховаємо. Повторювані завжди
+                      // лишаються видимими (їм властивий той самий 'pending'
+                      // status незалежно від дати).
+                      final appointments = allAppointments
+                          .where((a) =>
+                              a.repeatType != 'none' ||
+                              !a.scheduledAt.isBefore(startOfToday))
+                          .toList();
                       if (appointments.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noScheduledAppointments,

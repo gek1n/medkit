@@ -134,6 +134,16 @@ final todayActivitiesProvider =
   return ref.watch(activitiesRepositoryProvider).watchByMember(memberId);
 });
 
+// Id рутин без фіксованого часу — див. ActivitiesRepository.
+// watchNoFixedTimeActivityIds. Такі ActivityLog виводяться в окрему секцію
+// "будь-коли сьогодні" замість пропущено/зараз/незабаром.
+final todayNoFixedTimeActivityIdsProvider =
+    StreamProvider.family<Set<int>, int>((ref, memberId) {
+  return ref
+      .watch(activitiesRepositoryProvider)
+      .watchNoFixedTimeActivityIds(memberId);
+});
+
 // Завтра: прийоми
 final tomorrowIntakesProvider =
     FutureProvider.family<List<Intake>, int>((ref, memberId) async {
