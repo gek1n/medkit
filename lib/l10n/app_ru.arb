@@ -70,7 +70,7 @@
   "dayPartNight": "Ночь",
   "defaultMedName": "Лекарство",
   "defaultActivityName": "Активность",
-  "wellbeingTitle": "Самочувствие",
+  "wellbeingTitle": "Настроение",
   "detailLabelTime": "Время",
   "detailLabelDuration": "Длительность",
   "durationMinutes": "{minutes} мин",
@@ -96,7 +96,7 @@
   "videoPlaybackError": "Не удалось воспроизвести видео здесь",
   "openInYoutube": "Открыть в YouTube",
   "missedWellbeingSlot": "Пропущенный чек-ин",
-  "wellbeingTimeToCheck": "Время проверить самочувствие",
+  "wellbeingTimeToCheck": "Время проверить настроение",
   "wellbeingCommentHint": "Оцените настроение и, при желании, добавьте заметку",
   "skipGenericAction": "Пропустить",
   "snooze10": "Отложить на 10 мин",
@@ -108,7 +108,7 @@
   "categoryAll": "Все",
   "categoryMeds": "Лекарства",
   "categoryActivities": "Активности",
-  "categoryWellbeing": "Самочувствие",
+  "categoryWellbeing": "Настроение",
   "categoryDoctors": "Напоминания",
   "scheduleTitle": "Расписание",
   "searchAllSections": "Поиск по всем разделам",
@@ -120,7 +120,7 @@
   "noActiveActivities": "Нет активных занятий",
   "noSimpleTasksHint": "Нет простых задач",
   "noRoutineTasksHint": "Нет рутинных дел",
-  "sectionWellbeing": "Самочувствие",
+  "sectionWellbeing": "Настроение",
   "wellbeingScheduleNotSet": "Расписание не настроено",
   "nothingFound": "Ничего не найдено",
   "repeatDaily": "ежедневно",
@@ -167,7 +167,7 @@
   "medCardArchiveSubtitle": "Все препараты и статус лечения",
   "medCardAppointmentsTitle": "Архив напоминаний",
   "medCardAppointmentsSubtitle": "Встречи, простые задачи, рутинные дела",
-  "medCardWellbeingHistoryTitle": "История самочувствия",
+  "medCardWellbeingHistoryTitle": "История настроения",
   "medCardWellbeingHistorySubtitle": "Настроение за всё время",
   "customSectionsHeader": "Ваши разделы",
   "addSectionAction": "Добавить раздел",
@@ -619,7 +619,7 @@
       }
     }
   },
-  "noMedsTodayLabel": "Нет лекарств на сегодня",
+  "noMedsTodayLabel": "Нет задач на сегодня",
   "allDoneTodayLabel": "Всё выполнено сегодня",
   "takenOfTotalIntakesLabel": "{taken} из {total} приёмов",
   "@takenOfTotalIntakesLabel": {
@@ -683,7 +683,7 @@
       }
     }
   },
-  "careSummaryLabel": "Вы заботитесь о {count, plural, one{{count} близком человеке} few{{count} близких людях} other{{count} близких людях}}. Элли пришлёт уведомление, если кто-то пропустит приём.",
+  "careSummaryLabel": "Вы заботитесь о {count, plural, one{{count} близком человеке} few{{count} близких людях} other{{count} близких людях}}. Элли пришлёт уведомление, если кто-то пропустит напоминание.",
   "@careSummaryLabel": {
     "placeholders": {
       "count": {
@@ -798,7 +798,7 @@
       }
     }
   },
-  "reminderWellbeingBody": "Не забудьте отметить самочувствие",
+  "reminderWellbeingBody": "Не забудьте отметить настроение",
   "reminderGenericBody": "Проверьте расписание",
   "reminderSentSnackbar": "Напоминание для {name} отправлено",
   "@reminderSentSnackbar": {
@@ -949,7 +949,7 @@
   "groundingSkipStepAction": "Пропустить этот шаг",
   "groundingCompletedTitle": "Упражнение завершено",
   "groundingCompletedSubtitle": "Отличная работа. Возвращайся к этому упражнению, когда понадобится.",
-  "healthSectionHeader": "Здоровье и упражнения",
+  "healthSectionHeader": "Мини-игры",
   "appSettingsSectionHeader": "Настройки приложения",
   "accountSectionHeader": "Аккаунт",
   "otherSectionHeader": "Другое",
@@ -1107,7 +1107,7 @@
   "monthGenNov": "ноября",
   "monthGenDec": "декабря",
   "historyLabel": "История",
-  "wellbeingScheduleInfoText": "Настройте расписание чек-инов самочувствия. В назначенное время на главном экране появится карточка для заполнения.",
+  "wellbeingScheduleInfoText": "Настройте расписание чек-инов настроения. В назначенное время на главном экране появится карточка для заполнения.",
   "frequencyPerDayLabel": "ЧАСТОТА В ДЕНЬ",
   "collectionTimeLabel": "ВРЕМЯ СБОРА",
   "wellbeingSlotNumberLabel": "Чек-ин {index}",
@@ -1136,7 +1136,7 @@
     }
   },
   "saveScheduleAction": "Сохранить расписание",
-  "wellbeingByDaySubtitle": "самочувствие по дням",
+  "wellbeingByDaySubtitle": "настроение по дням",
   "addWellbeingSlotAction": "+ Чек-ин",
   "moodChartTitle": "Настроение — {month}",
   "@moodChartTitle": {
@@ -1176,26 +1176,26 @@
     }
   },
   "noWellbeingLogsTitle": "Чек-инов ещё нет",
-  "noWellbeingLogsHint": "Здесь будет храниться история самочувствия. Нажмите «+ Чек-ин», чтобы добавить первую запись",
+  "noWellbeingLogsHint": "Здесь будет храниться история настроения. Нажмите «+ Чек-ин», чтобы добавить первую запись",
   "comingSoonEllipsis": "Скоро...",
   "sendDiaryToDoctorLabel": "Поделиться итогом",
-  "diarySummaryHint": "Чек-ины самочувствия и приёмы за месяц",
+  "diarySummaryHint": "Чек-ины настроения и приёмы за месяц",
   "moodBadLabel": "Плохо",
   "moodMehLabel": "Так себе",
   "moodOkLabel": "Норм",
   "moodGoodLabel": "Хорошо",
   "moodGreatLabel": "Отлично",
-  "chooseWellbeingErrorSnackbar": "Выберите самочувствие",
+  "chooseWellbeingErrorSnackbar": "Выберите настроение",
   "wellbeingSlotMorning": "утренний чек-ин",
   "wellbeingSlotAfternoon": "дневной чек-ин",
   "wellbeingSlotEvening": "вечерний чек-ин",
-  "howAreYouFeelingLabel": "Как вы себя чувствуете?",
+  "howAreYouFeelingLabel": "Какое у вас настроение?",
   "anySymptomsLabel": "Теги",
   "chooseFromListOrAddLabel": "Добавьте свои теги (необязательно)",
   "commentLabel": "Комментарий",
   "optionalSuffixLabel": "· необязательно",
   "orTypeTextLabel": "или введите текстом",
-  "describeFeelingHint": "Опишите, как себя чувствуете…",
+  "describeFeelingHint": "Опишите своё настроение…",
   "saveWellbeingCheckAction": "Сохранить чек-ин",
   "voiceTranscriptLabel": "Расшифровка голоса",
   "editableTextBelowHint": "Текст можно редактировать ниже в поле",
@@ -1252,7 +1252,7 @@
     }
   },
   "welcomeGreeting": "Привет! 👋",
-  "welcomeDescription": "Elly поможет не забыть о лекарствах,\nактивности и самочувствии — для вас\nи всей семьи",
+  "welcomeDescription": "Elly поможет не забыть о лекарствах,\nактивности и настроении — для вас\nи всей семьи",
   "onboardingStepLabel": "Шаг {step} из {total}",
   "@onboardingStepLabel": {
     "placeholders": {
@@ -1283,13 +1283,13 @@
   "addMedsLaterInfo": "Лекарства можно добавить позже через раздел «Лекарства» в главном меню",
   "nextAction": "Далее →",
   "skipAddLaterAction": "Пропустить — добавлю позже",
-  "activityWellbeingTitle": "Активность и самочувствие",
+  "activityWellbeingTitle": "Активность и настроение",
   "activityWellbeingSubtitle": "Включите одним переключателем — настройки можно изменить позже",
   "activitySectionLabel": "Активность",
   "walkActivitySub": "30 мин · ежедневно · 08:30",
-  "wellbeingDiaryLabel": "Дневник самочувствия",
-  "wellbeingDiaryDescription": "Короткие отметки самочувствия помогут увидеть связь между приёмом лекарств и тем, как вы себя чувствуете",
-  "wellbeingSlotsTitle": "Чек-ины самочувствия",
+  "wellbeingDiaryLabel": "Дневник настроения",
+  "wellbeingDiaryDescription": "Короткие отметки настроения помогут увидеть связь между приёмом лекарств и тем, какое у вас настроение",
+  "wellbeingSlotsTitle": "Чек-ины настроения",
   "wellbeingSlotsSub": "2–3 раза в день · 08:00, 14:00, 20:00",
   "almostDoneAction": "Почти готово →",
   "foodOptBefore": "До еды",
@@ -1433,7 +1433,7 @@
   "planFreeShortLabel": "Бесплатный",
   "exportShareSubject": "Elly — экспорт данных",
   "exportCopyTitle": "Копия всех ваших данных",
-  "exportDescriptionBody": "Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, самочувствием и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.",
+  "exportDescriptionBody": "Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, настроением и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.",
   "exportAction": "Экспортировать",
   "appLockedTitle": "Elly заблокирован",
   "authFailedRetryBody": "Не удалось подтвердить личность — попробуйте ещё раз",
@@ -1526,7 +1526,7 @@
   },
   "deleteActivityConfirmTitle": "Удалить активность?",
   "deleteActivityConfirmBody": "Активность будет удалена из расписания.",
-  "disableWellbeingConfirmTitle": "Выключить сбор самочувствия?",
+  "disableWellbeingConfirmTitle": "Выключить сбор настроения?",
   "disableWellbeingConfirmBody": "Напоминания исчезнут из Расписания и Сегодня. Настройки сохранятся — можно включить снова позже.",
   "applyAction": "Готово",
   "noDaysSelectedHint": "Дни не выбраны",
@@ -1628,7 +1628,7 @@
   "addPhotoOrPdfLabel": "Добавить фото или PDF",
   "documentsPrivacyHint": "Хранится только на устройстве (и в облаке, если включена резервная копия) — приложение не просматривает и не анализирует эти файлы.",
   "notifChannelName": "Напоминания Elly",
-  "notifChannelDesc": "Напоминания о лекарствах, активностях, визитах и самочувствии",
+  "notifChannelDesc": "Напоминания о лекарствах, активностях, визитах и настроении",
   "notifTakeMedTitle": "💊 Время принять лекарство",
   "notifIntakeNoResponseTitle": "🔔 Вы ещё не отметили приём",
   "notifBackupReminderTitle": "Защитите свои данные",
@@ -1652,8 +1652,8 @@
   "notifActivityNoResponseTitle": "🔔 Вы ещё не отметили активность",
   "notifAppointmentTitle": "🔔 Напоминание",
   "notifAppointmentNoResponseTitle": "🔔 Не забудьте про напоминание",
-  "notifWellbeingTitle": "💜 Чек-ин самочувствия",
-  "notifWellbeingBody": "Как вы себя чувствуете?",
+  "notifWellbeingTitle": "💜 Чек-ин настроения",
+  "notifWellbeingBody": "Какое у вас настроение?",
   "notifPeerCheckTitle": "🔔 Проверьте {subjectName}",
   "@notifPeerCheckTitle": {
     "placeholders": {
@@ -1698,7 +1698,7 @@
       }
     }
   },
-  "notifPeerWellbeingCheckBody": "Сделан ли чек-ин самочувствия в {timeStr}? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.",
+  "notifPeerWellbeingCheckBody": "Сделан ли чек-ин настроения в {timeStr}? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.",
   "@notifPeerWellbeingCheckBody": {
     "placeholders": {
       "timeStr": {

@@ -134,7 +134,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get defaultActivityName => 'Активність';
 
   @override
-  String get wellbeingTitle => 'Самопочуття';
+  String get wellbeingTitle => 'Настрій';
 
   @override
   String get detailLabelTime => 'Час';
@@ -174,7 +174,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get missedWellbeingSlot => 'Пропущений зріз';
 
   @override
-  String get wellbeingTimeToCheck => 'Час перевірити самопочуття';
+  String get wellbeingTimeToCheck => 'Час перевірити настрій';
 
   @override
   String get wellbeingCommentHint =>
@@ -211,7 +211,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get categoryActivities => 'Активності';
 
   @override
-  String get categoryWellbeing => 'Самопочуття';
+  String get categoryWellbeing => 'Настрій';
 
   @override
   String get categoryDoctors => 'Нагадування';
@@ -247,7 +247,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get noRoutineTasksHint => 'Немає рутинних справ';
 
   @override
-  String get sectionWellbeing => 'Самопочуття';
+  String get sectionWellbeing => 'Настрій';
 
   @override
   String get wellbeingScheduleNotSet => 'Розклад не налаштовано';
@@ -365,7 +365,7 @@ class AppLocalizationsUk extends AppLocalizations {
       'Зустрічі, прості завдання, рутинні справи';
 
   @override
-  String get medCardWellbeingHistoryTitle => 'Історія самопочуття';
+  String get medCardWellbeingHistoryTitle => 'Історія настрою';
 
   @override
   String get medCardWellbeingHistorySubtitle => 'Настрій за весь час';
@@ -1092,7 +1092,7 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get noMedsTodayLabel => 'Немає ліків на сьогодні';
+  String get noMedsTodayLabel => 'Немає завдань на сьогодні';
 
   @override
   String get allDoneTodayLabel => 'Усе виконано сьогодні';
@@ -1168,7 +1168,7 @@ class AppLocalizationsUk extends AppLocalizations {
       few: '$count близьких',
       one: '$count близького',
     );
-    return 'Ви піклуєтесь про $_temp0. Еллі надішле сповіщення, якщо хтось пропустить прийом.';
+    return 'Ви піклуєтесь про $_temp0. Еллі надішле сповіщення, якщо хтось пропустить нагадування.';
   }
 
   @override
@@ -1290,7 +1290,7 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String get reminderWellbeingBody => 'Не забудьте відмітити самопочуття';
+  String get reminderWellbeingBody => 'Не забудьте відмітити настрій';
 
   @override
   String get reminderGenericBody => 'Перевірте розклад';
@@ -1576,7 +1576,7 @@ class AppLocalizationsUk extends AppLocalizations {
       'Чудова робота. Повертайся до цієї вправи, коли знадобиться.';
 
   @override
-  String get healthSectionHeader => 'Здоров\'я та вправи';
+  String get healthSectionHeader => 'Міні-ігри';
 
   @override
   String get appSettingsSectionHeader => 'Налаштування додатку';
@@ -1990,7 +1990,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get wellbeingScheduleInfoText =>
-      'Налаштуйте розклад збору зрізів самопочуття. У призначений час на головному екрані з\'явиться картка для заповнення.';
+      'Налаштуйте розклад збору зрізів настрою. У призначений час на головному екрані з\'явиться картка для заповнення.';
 
   @override
   String get frequencyPerDayLabel => 'ЧАСТОТА НА ДЕНЬ';
@@ -2027,7 +2027,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get saveScheduleAction => 'Зберегти розклад';
 
   @override
-  String get wellbeingByDaySubtitle => 'самопочуття по днях';
+  String get wellbeingByDaySubtitle => 'настрій по днях';
 
   @override
   String get addWellbeingSlotAction => '+ Зріз';
@@ -2110,7 +2110,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get noWellbeingLogsHint =>
-      'Тут зберігатиметься історія самопочуття. Натисніть «+ Зріз», щоб додати перший запис';
+      'Тут зберігатиметься історія настрою. Натисніть «+ Зріз», щоб додати перший запис';
 
   @override
   String get comingSoonEllipsis => 'Скоро...';
@@ -2119,7 +2119,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get sendDiaryToDoctorLabel => 'Поділитися підсумком';
 
   @override
-  String get diarySummaryHint => 'Зрізи самопочуття та прийоми за місяць';
+  String get diarySummaryHint => 'Зрізи настрою та прийоми за місяць';
 
   @override
   String get moodBadLabel => 'Погано';
@@ -2137,7 +2137,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get moodGreatLabel => 'Відмінно';
 
   @override
-  String get chooseWellbeingErrorSnackbar => 'Оберіть самопочуття';
+  String get chooseWellbeingErrorSnackbar => 'Оберіть настрій';
 
   @override
   String get wellbeingSlotMorning => 'ранковий зріз';
@@ -2149,7 +2149,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get wellbeingSlotEvening => 'вечірній зріз';
 
   @override
-  String get howAreYouFeelingLabel => 'Як ви себе почуваєте?';
+  String get howAreYouFeelingLabel => 'Який у вас настрій?';
 
   @override
   String get anySymptomsLabel => 'Теги';
@@ -2167,7 +2167,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get orTypeTextLabel => 'або введіть текстом';
 
   @override
-  String get describeFeelingHint => 'Опишіть як себе почуваєте…';
+  String get describeFeelingHint => 'Опишіть свій настрій…';
 
   @override
   String get saveWellbeingCheckAction => 'Зберегти зріз';
@@ -2311,7 +2311,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get welcomeDescription =>
-      'Elly допоможе не забути про ліки,\nактивність і самопочуття — для вас\nі всієї родини';
+      'Elly допоможе не забути про ліки,\nактивність і настрій — для вас\nі всієї родини';
 
   @override
   String onboardingStepLabel(int step, int total) {
@@ -2380,7 +2380,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get skipAddLaterAction => 'Пропустити — додам пізніше';
 
   @override
-  String get activityWellbeingTitle => 'Активність та самопочуття';
+  String get activityWellbeingTitle => 'Активність та настрій';
 
   @override
   String get activityWellbeingSubtitle =>
@@ -2393,14 +2393,14 @@ class AppLocalizationsUk extends AppLocalizations {
   String get walkActivitySub => '30 хв · щодня · 08:30';
 
   @override
-  String get wellbeingDiaryLabel => 'Щоденник самопочуття';
+  String get wellbeingDiaryLabel => 'Щоденник настрою';
 
   @override
   String get wellbeingDiaryDescription =>
-      'Короткі відмітки самопочуття допоможуть побачити звʼязок між прийомом ліків і тим, як ви почуваєтесь';
+      'Короткі відмітки настрою допоможуть побачити звʼязок між прийомом ліків і тим, який у вас настрій';
 
   @override
-  String get wellbeingSlotsTitle => 'Зрізи самопочуття';
+  String get wellbeingSlotsTitle => 'Зрізи настрою';
 
   @override
   String get wellbeingSlotsSub => '2–3 рази на день · 08:00, 14:00, 20:00';
@@ -2699,7 +2699,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get exportDescriptionBody =>
-      'Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, самопочуттям і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.';
+      'Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.';
 
   @override
   String get exportAction => 'Експортувати';
@@ -2962,7 +2962,7 @@ class AppLocalizationsUk extends AppLocalizations {
       'Активність буде вилучена з розкладу.';
 
   @override
-  String get disableWellbeingConfirmTitle => 'Вимкнути збір самопочуття?';
+  String get disableWellbeingConfirmTitle => 'Вимкнути збір настрою?';
 
   @override
   String get disableWellbeingConfirmBody =>
@@ -3171,7 +3171,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get notifChannelDesc =>
-      'Нагадування про ліки, активності, візити та самопочуття';
+      'Нагадування про ліки, активності, візити та настрій';
 
   @override
   String get notifTakeMedTitle => '💊 Час прийняти ліки';
@@ -3208,10 +3208,10 @@ class AppLocalizationsUk extends AppLocalizations {
       '🔔 Не забудьте про нагадування';
 
   @override
-  String get notifWellbeingTitle => '💜 Зріз самопочуття';
+  String get notifWellbeingTitle => '💜 Зріз настрою';
 
   @override
-  String get notifWellbeingBody => 'Як ви себе почуваєте?';
+  String get notifWellbeingBody => 'Який у вас настрій?';
 
   @override
   String notifPeerCheckTitle(String subjectName) {
@@ -3235,7 +3235,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String notifPeerWellbeingCheckBody(String timeStr) {
-    return 'Чи зроблено зріз самопочуття о $timeStr? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.';
+    return 'Чи зроблено зріз настрою о $timeStr? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.';
   }
 
   @override

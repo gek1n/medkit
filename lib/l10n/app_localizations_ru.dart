@@ -134,7 +134,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get defaultActivityName => 'Активность';
 
   @override
-  String get wellbeingTitle => 'Самочувствие';
+  String get wellbeingTitle => 'Настроение';
 
   @override
   String get detailLabelTime => 'Время';
@@ -174,7 +174,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get missedWellbeingSlot => 'Пропущенный чек-ин';
 
   @override
-  String get wellbeingTimeToCheck => 'Время проверить самочувствие';
+  String get wellbeingTimeToCheck => 'Время проверить настроение';
 
   @override
   String get wellbeingCommentHint =>
@@ -211,7 +211,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get categoryActivities => 'Активности';
 
   @override
-  String get categoryWellbeing => 'Самочувствие';
+  String get categoryWellbeing => 'Настроение';
 
   @override
   String get categoryDoctors => 'Напоминания';
@@ -247,7 +247,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noRoutineTasksHint => 'Нет рутинных дел';
 
   @override
-  String get sectionWellbeing => 'Самочувствие';
+  String get sectionWellbeing => 'Настроение';
 
   @override
   String get wellbeingScheduleNotSet => 'Расписание не настроено';
@@ -365,7 +365,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Встречи, простые задачи, рутинные дела';
 
   @override
-  String get medCardWellbeingHistoryTitle => 'История самочувствия';
+  String get medCardWellbeingHistoryTitle => 'История настроения';
 
   @override
   String get medCardWellbeingHistorySubtitle => 'Настроение за всё время';
@@ -1093,7 +1093,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get noMedsTodayLabel => 'Нет лекарств на сегодня';
+  String get noMedsTodayLabel => 'Нет задач на сегодня';
 
   @override
   String get allDoneTodayLabel => 'Всё выполнено сегодня';
@@ -1169,7 +1169,7 @@ class AppLocalizationsRu extends AppLocalizations {
       few: '$count близких людях',
       one: '$count близком человеке',
     );
-    return 'Вы заботитесь о $_temp0. Элли пришлёт уведомление, если кто-то пропустит приём.';
+    return 'Вы заботитесь о $_temp0. Элли пришлёт уведомление, если кто-то пропустит напоминание.';
   }
 
   @override
@@ -1291,7 +1291,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get reminderWellbeingBody => 'Не забудьте отметить самочувствие';
+  String get reminderWellbeingBody => 'Не забудьте отметить настроение';
 
   @override
   String get reminderGenericBody => 'Проверьте расписание';
@@ -1578,7 +1578,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Отличная работа. Возвращайся к этому упражнению, когда понадобится.';
 
   @override
-  String get healthSectionHeader => 'Здоровье и упражнения';
+  String get healthSectionHeader => 'Мини-игры';
 
   @override
   String get appSettingsSectionHeader => 'Настройки приложения';
@@ -1992,7 +1992,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get wellbeingScheduleInfoText =>
-      'Настройте расписание чек-инов самочувствия. В назначенное время на главном экране появится карточка для заполнения.';
+      'Настройте расписание чек-инов настроения. В назначенное время на главном экране появится карточка для заполнения.';
 
   @override
   String get frequencyPerDayLabel => 'ЧАСТОТА В ДЕНЬ';
@@ -2029,7 +2029,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get saveScheduleAction => 'Сохранить расписание';
 
   @override
-  String get wellbeingByDaySubtitle => 'самочувствие по дням';
+  String get wellbeingByDaySubtitle => 'настроение по дням';
 
   @override
   String get addWellbeingSlotAction => '+ Чек-ин';
@@ -2112,7 +2112,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get noWellbeingLogsHint =>
-      'Здесь будет храниться история самочувствия. Нажмите «+ Чек-ин», чтобы добавить первую запись';
+      'Здесь будет храниться история настроения. Нажмите «+ Чек-ин», чтобы добавить первую запись';
 
   @override
   String get comingSoonEllipsis => 'Скоро...';
@@ -2121,7 +2121,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sendDiaryToDoctorLabel => 'Поделиться итогом';
 
   @override
-  String get diarySummaryHint => 'Чек-ины самочувствия и приёмы за месяц';
+  String get diarySummaryHint => 'Чек-ины настроения и приёмы за месяц';
 
   @override
   String get moodBadLabel => 'Плохо';
@@ -2139,7 +2139,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get moodGreatLabel => 'Отлично';
 
   @override
-  String get chooseWellbeingErrorSnackbar => 'Выберите самочувствие';
+  String get chooseWellbeingErrorSnackbar => 'Выберите настроение';
 
   @override
   String get wellbeingSlotMorning => 'утренний чек-ин';
@@ -2151,7 +2151,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get wellbeingSlotEvening => 'вечерний чек-ин';
 
   @override
-  String get howAreYouFeelingLabel => 'Как вы себя чувствуете?';
+  String get howAreYouFeelingLabel => 'Какое у вас настроение?';
 
   @override
   String get anySymptomsLabel => 'Теги';
@@ -2169,7 +2169,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get orTypeTextLabel => 'или введите текстом';
 
   @override
-  String get describeFeelingHint => 'Опишите, как себя чувствуете…';
+  String get describeFeelingHint => 'Опишите своё настроение…';
 
   @override
   String get saveWellbeingCheckAction => 'Сохранить чек-ин';
@@ -2313,7 +2313,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get welcomeDescription =>
-      'Elly поможет не забыть о лекарствах,\nактивности и самочувствии — для вас\nи всей семьи';
+      'Elly поможет не забыть о лекарствах,\nактивности и настроении — для вас\nи всей семьи';
 
   @override
   String onboardingStepLabel(int step, int total) {
@@ -2384,7 +2384,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get skipAddLaterAction => 'Пропустить — добавлю позже';
 
   @override
-  String get activityWellbeingTitle => 'Активность и самочувствие';
+  String get activityWellbeingTitle => 'Активность и настроение';
 
   @override
   String get activityWellbeingSubtitle =>
@@ -2397,14 +2397,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get walkActivitySub => '30 мин · ежедневно · 08:30';
 
   @override
-  String get wellbeingDiaryLabel => 'Дневник самочувствия';
+  String get wellbeingDiaryLabel => 'Дневник настроения';
 
   @override
   String get wellbeingDiaryDescription =>
-      'Короткие отметки самочувствия помогут увидеть связь между приёмом лекарств и тем, как вы себя чувствуете';
+      'Короткие отметки настроения помогут увидеть связь между приёмом лекарств и тем, какое у вас настроение';
 
   @override
-  String get wellbeingSlotsTitle => 'Чек-ины самочувствия';
+  String get wellbeingSlotsTitle => 'Чек-ины настроения';
 
   @override
   String get wellbeingSlotsSub => '2–3 раза в день · 08:00, 14:00, 20:00';
@@ -2704,7 +2704,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get exportDescriptionBody =>
-      'Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, самочувствием и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.';
+      'Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, настроением и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.';
 
   @override
   String get exportAction => 'Экспортировать';
@@ -2968,7 +2968,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Активность будет удалена из расписания.';
 
   @override
-  String get disableWellbeingConfirmTitle => 'Выключить сбор самочувствия?';
+  String get disableWellbeingConfirmTitle => 'Выключить сбор настроения?';
 
   @override
   String get disableWellbeingConfirmBody =>
@@ -3177,7 +3177,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notifChannelDesc =>
-      'Напоминания о лекарствах, активностях, визитах и самочувствии';
+      'Напоминания о лекарствах, активностях, визитах и настроении';
 
   @override
   String get notifTakeMedTitle => '💊 Время принять лекарство';
@@ -3214,10 +3214,10 @@ class AppLocalizationsRu extends AppLocalizations {
       '🔔 Не забудьте про напоминание';
 
   @override
-  String get notifWellbeingTitle => '💜 Чек-ин самочувствия';
+  String get notifWellbeingTitle => '💜 Чек-ин настроения';
 
   @override
-  String get notifWellbeingBody => 'Как вы себя чувствуете?';
+  String get notifWellbeingBody => 'Какое у вас настроение?';
 
   @override
   String notifPeerCheckTitle(String subjectName) {
@@ -3241,7 +3241,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String notifPeerWellbeingCheckBody(String timeStr) {
-    return 'Сделан ли чек-ин самочувствия в $timeStr? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.';
+    return 'Сделан ли чек-ин настроения в $timeStr? Откройте приложение и дождитесь синхронизации, чтобы увидеть актуальное состояние.';
   }
 
   @override
