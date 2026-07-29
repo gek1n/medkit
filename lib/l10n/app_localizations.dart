@@ -4648,6 +4648,18 @@ abstract class AppLocalizations {
   /// **'Необмежена кількість профілів родини — керуєте тільки ви'**
   String get plusFeatureUnlimitedProfiles;
 
+  /// No description provided for @planFeatureUnlimitedRoutines.
+  ///
+  /// In uk, this message translates to:
+  /// **'Необмежена кількість рутинних справ'**
+  String get planFeatureUnlimitedRoutines;
+
+  /// No description provided for @planFeatureUnlimitedShelves.
+  ///
+  /// In uk, this message translates to:
+  /// **'Необмежена кількість поличок'**
+  String get planFeatureUnlimitedShelves;
+
   /// No description provided for @selectPlusAction.
   ///
   /// In uk, this message translates to:

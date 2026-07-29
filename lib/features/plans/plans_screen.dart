@@ -354,6 +354,8 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             features: [
                               context.l10n.plusFeatureAllFree,
                               context.l10n.plusFeatureUnlimitedProfiles,
+                              context.l10n.planFeatureUnlimitedRoutines,
+                              context.l10n.planFeatureUnlimitedShelves,
                             ],
                             isCurrent: currentPlan == AppPlan.plus,
                             selectLabel: context.l10n.selectPlusAction,
@@ -375,6 +377,8 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                               context.l10n.familyFeatureAllPlus,
                               context.l10n.familyFeatureAutonomousProfiles,
                               context.l10n.familyFeatureSelfManaged,
+                              context.l10n.planFeatureUnlimitedRoutines,
+                              context.l10n.planFeatureUnlimitedShelves,
                             ],
                             isCurrent: currentPlan == AppPlan.family,
                             selectLabel: context.l10n.selectFamilyAction,
