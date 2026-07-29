@@ -1496,7 +1496,7 @@ class _ScheduleCard extends StatelessWidget {
         med != null
             ? '${med.doseAmount.toStringAsFixed(med.doseAmount == med.doseAmount.roundToDouble() ? 0 : 1)} ${med.doseUnit}'
             : null,
-        AssetIcon(medFormIconAsset(med?.form ?? 'tablet'), size: 24),
+        MedcardIcon(med?.iconKey ?? 'form_cream', size: 24),
       );
     case _ItemType.activity:
       return (
@@ -1952,7 +1952,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                     children: [
                       _InfoChip(
                         icon: medFormIcon(med!.form),
-                        iconWidget: AssetIcon(medFormIconAsset(med!.form), size: 18),
+                        iconWidget: MedcardIcon(med!.iconKey ?? 'form_cream', size: 18),
                         label:
                             '${med!.doseAmount.toStringAsFixed(med!.doseAmount == med!.doseAmount.roundToDouble() ? 0 : 1)} ${med!.doseUnit}',
                       ),

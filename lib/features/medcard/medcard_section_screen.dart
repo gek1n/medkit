@@ -8,7 +8,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
@@ -353,7 +352,7 @@ class _FeedCard extends StatelessWidget {
         final m = item.medication!;
         return FeedPostCard(
           icon: Icons.medication_liquid_rounded,
-          iconWidget: AssetIcon(medFormIconAsset(m.form), size: 22),
+          iconWidget: MedcardIcon(m.iconKey ?? 'form_cream', size: 22),
           color: color,
           title: m.name,
           dateLabel: _formatDate(m.startDate),

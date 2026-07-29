@@ -6,10 +6,9 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
-import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/form_chips.dart';
@@ -200,7 +199,7 @@ class _ArchiveCard extends StatelessWidget {
                 color: AppColors.bgPage,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
               ),
-              child: AssetIcon(medFormIconAsset(med.form), size: 24),
+              child: MedcardIcon(med.iconKey ?? 'form_cream', size: 24),
             ),
             const SizedBox(width: AppDimensions.md),
             Expanded(

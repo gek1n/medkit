@@ -50,6 +50,18 @@ const List<String> medcardIconKeys = [
   'sleep',
   'task_routine',
   'task_note',
+  // Колишні "форми випуску ліків" — приєднані після стандартного набору
+  // (той самий assets/icons/form_*.png), щоб один спільний пікер
+  // (showMedcardIconPicker) працював і для карток Полички/рутин, і для
+  // Інвентарю.
+  'form_tablet',
+  'form_suppository',
+  'form_vial',
+  'form_syrup',
+  'form_drops',
+  'form_cream',
+  'form_inhaler',
+  'form_injection',
 ];
 
 const String defaultMedcardIconKey = 'folder';
