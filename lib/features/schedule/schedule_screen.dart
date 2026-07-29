@@ -800,6 +800,7 @@ class _SearchFieldState extends State<_SearchField> {
                   child: const Icon(Icons.close_rounded,
                       color: AppColors.textMuted, size: 18),
                 ),
+          filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,

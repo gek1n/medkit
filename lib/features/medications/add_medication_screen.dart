@@ -751,6 +751,7 @@ class _TextField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+          filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -1964,6 +1965,7 @@ class _DurationSectionState extends State<_DurationSection> {
                           : AppColors.textMain,
                     ),
                     decoration: InputDecoration(
+                      filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,

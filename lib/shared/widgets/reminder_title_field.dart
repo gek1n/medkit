@@ -63,6 +63,7 @@ class _ReminderTitleFieldState extends State<ReminderTitleField> {
             decoration: InputDecoration(
               hintText: widget.hint,
               hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+              filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,

@@ -1048,6 +1048,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                   hintText: context.l10n.yourNameHint,
                   hintStyle: AppTextStyles.bodyMd
                       .copyWith(color: AppColors.textMuted),
+                  filled: false,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,

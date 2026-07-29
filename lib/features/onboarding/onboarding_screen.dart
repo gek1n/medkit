@@ -576,6 +576,7 @@ class _StepName extends StatelessWidget {
                     hintStyle: AppTextStyles.bodyMd.copyWith(
                       color: AppColors.textMuted,
                     ),
+                    filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,

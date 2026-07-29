@@ -175,6 +175,7 @@ class _TagsFieldState extends State<TagsField> {
                   decoration: InputDecoration(
                     hintText: widget.hint,
                     hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+                    filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
@@ -328,6 +329,7 @@ class _TagsHistorySheetState extends State<_TagsHistorySheet> {
                           decoration: InputDecoration(
                             hintText: context.l10n.addNewTagHint,
                             hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+                            filled: false,
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,

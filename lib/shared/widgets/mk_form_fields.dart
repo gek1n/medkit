@@ -64,6 +64,12 @@ class MkTextField extends StatelessWidget {
           // глобальної InputDecorationTheme (app_theme.dart) — без явного
           // занулення обох при фокусі поверх зовнішньої рамки Container
           // з'являється друга, вкладена рамка (focusedBorder переможе).
+          // filled:false — theme.inputDecorationTheme.filled=true у поєднанні
+          // з InputBorder.none малює власну КВАДРАТНУ заливку TextField
+          // (_NoInputBorder.getOuterPath ігнорує borderRadius), що
+          // перекриває скруглені кути зовнішнього Container — без цього
+          // поле візуально виглядало прямокутним попри borderRadius: 12.
+          filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,

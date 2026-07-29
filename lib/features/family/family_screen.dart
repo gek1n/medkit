@@ -1593,6 +1593,7 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                           hintText: context.l10n.memberNameHint,
                           hintStyle: AppTextStyles.bodyMd
                               .copyWith(color: AppColors.textMuted),
+                          filled: false,
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
