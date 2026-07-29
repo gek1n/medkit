@@ -4723,7 +4723,7 @@ abstract class AppLocalizations {
   /// No description provided for @addTypeMedsSub.
   ///
   /// In uk, this message translates to:
-  /// **'Розклад, залишок, повторення'**
+  /// **'Витратний запас за розкладом — облік залишку, коли докупити'**
   String get addTypeMedsSub;
 
   /// No description provided for @addTypeActivitySub.
@@ -4789,7 +4789,7 @@ abstract class AppLocalizations {
   /// No description provided for @taskTypeRoutineSub.
   ///
   /// In uk, this message translates to:
-  /// **'Щоденні справи по дому'**
+  /// **'Звичка чи обов\'язок з гнучким повтором — чек-лист і черга виконання'**
   String get taskTypeRoutineSub;
 
   /// No description provided for @reminderCategoryTitle.

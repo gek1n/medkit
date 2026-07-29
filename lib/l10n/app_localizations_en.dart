@@ -2638,7 +2638,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addTypeSheetSubtitle => 'Choose a type — the form will adjust';
 
   @override
-  String get addTypeMedsSub => 'Schedule, stock, repeats';
+  String get addTypeMedsSub =>
+      'A consumable stock on a schedule — tracks what\'s left, when to restock';
 
   @override
   String get addTypeActivitySub => 'Walk, exercise, workout, physical therapy';
@@ -2671,7 +2672,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskTypeRoutine => 'Routine chores';
 
   @override
-  String get taskTypeRoutineSub => 'Everyday household tasks';
+  String get taskTypeRoutineSub =>
+      'A habit or duty with a flexible repeat — checklist and turn-taking';
 
   @override
   String get reminderCategoryTitle => 'Reminder';

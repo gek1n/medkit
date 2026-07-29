@@ -2653,7 +2653,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addTypeSheetSubtitle => 'Выберите тип — форма подстроится';
 
   @override
-  String get addTypeMedsSub => 'Расписание, остаток, повторение';
+  String get addTypeMedsSub =>
+      'Расходный запас по расписанию — учёт остатка, когда докупить';
 
   @override
   String get addTypeActivitySub => 'Прогулка, зарядка, упражнения, ЛФК';
@@ -2687,7 +2688,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get taskTypeRoutine => 'Рутинные дела';
 
   @override
-  String get taskTypeRoutineSub => 'Ежедневные дела по дому';
+  String get taskTypeRoutineSub =>
+      'Привычка или обязанность с гибким повтором — чек-лист и очередь выполнения';
 
   @override
   String get reminderCategoryTitle => 'Напоминание';
