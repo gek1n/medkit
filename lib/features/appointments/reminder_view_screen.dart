@@ -176,7 +176,11 @@ class _ViewBody extends ConsumerWidget {
     await NotificationService.cancelAppointmentReminder(reminder.id);
     await NotificationService.cancelRecurringReminder(reminder.id);
     ref.invalidate(tomorrowAppointmentsProvider);
-    if (context.mounted) Navigator.pop(context);
+    // НЕ викликаємо Navigator.pop тут — щойно рядок реально видалиться з
+    // БД, watchById(id) реактивно віддасть null, і сам екран вище
+    // (data: (reminder) => if (reminder == null) ...) закриється через
+    // addPostFrameCallback. Виклик pop і тут, і там — подвійний pop на
+    // одному навігаторі (чорний екран, що "лікується" лише перезапуском).
   }
 
   @override
