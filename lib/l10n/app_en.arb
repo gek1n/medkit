@@ -70,7 +70,7 @@
   "dayPartNight": "Night",
   "defaultMedName": "Medication",
   "defaultActivityName": "Activity",
-  "wellbeingTitle": "Wellbeing",
+  "wellbeingTitle": "Mood",
   "detailLabelTime": "Time",
   "detailLabelDuration": "Duration",
   "durationMinutes": "{minutes} min",
@@ -96,7 +96,7 @@
   "videoPlaybackError": "Couldn't play video here",
   "openInYoutube": "Open in YouTube",
   "missedWellbeingSlot": "Missed check-in",
-  "wellbeingTimeToCheck": "Time for a wellbeing check-in",
+  "wellbeingTimeToCheck": "Time for a mood check-in",
   "wellbeingCommentHint": "Rate your mood and, if you'd like, add a note",
   "skipGenericAction": "Skip",
   "snooze10": "Snooze 10 min",
@@ -108,7 +108,7 @@
   "categoryAll": "All",
   "categoryMeds": "Medications",
   "categoryActivities": "Activities",
-  "categoryWellbeing": "Wellbeing",
+  "categoryWellbeing": "Mood",
   "categoryDoctors": "Reminders",
   "scheduleTitle": "Schedule",
   "searchAllSections": "Search all sections",
@@ -120,7 +120,7 @@
   "noActiveActivities": "No active activities",
   "noSimpleTasksHint": "No simple tasks",
   "noRoutineTasksHint": "No routine chores",
-  "sectionWellbeing": "Wellbeing",
+  "sectionWellbeing": "Mood",
   "wellbeingScheduleNotSet": "Schedule not set up",
   "nothingFound": "Nothing found",
   "repeatDaily": "daily",
@@ -167,7 +167,7 @@
   "medCardArchiveSubtitle": "All medications and their treatment status",
   "medCardAppointmentsTitle": "Reminders archive",
   "medCardAppointmentsSubtitle": "Meetings, simple tasks, routine chores",
-  "medCardWellbeingHistoryTitle": "Wellbeing history",
+  "medCardWellbeingHistoryTitle": "Mood history",
   "medCardWellbeingHistorySubtitle": "Mood over time",
   "customSectionsHeader": "Your sections",
   "addSectionAction": "Add section",
@@ -619,7 +619,7 @@
       }
     }
   },
-  "noMedsTodayLabel": "No medications today",
+  "noMedsTodayLabel": "No tasks today",
   "allDoneTodayLabel": "All done for today",
   "takenOfTotalIntakesLabel": "{taken} of {total} doses taken",
   "@takenOfTotalIntakesLabel": {
@@ -683,7 +683,7 @@
       }
     }
   },
-  "careSummaryLabel": "{count, plural, one{You're caring for {count} loved one} other{You're caring for {count} loved ones}}. Elly will notify you if someone misses a dose.",
+  "careSummaryLabel": "{count, plural, one{You're caring for {count} loved one} other{You're caring for {count} loved ones}}. Elly will notify you if someone misses a reminder.",
   "@careSummaryLabel": {
     "placeholders": {
       "count": {
@@ -798,7 +798,7 @@
       }
     }
   },
-  "reminderWellbeingBody": "Don't forget to log your wellbeing",
+  "reminderWellbeingBody": "Don't forget to log your mood",
   "reminderGenericBody": "Check your schedule",
   "reminderSentSnackbar": "Reminder sent to {name}",
   "@reminderSentSnackbar": {
@@ -949,7 +949,7 @@
   "groundingSkipStepAction": "Skip this step",
   "groundingCompletedTitle": "Exercise complete",
   "groundingCompletedSubtitle": "Great work. Come back to this exercise whenever you need it.",
-  "healthSectionHeader": "Health & exercises",
+  "healthSectionHeader": "Mini-games",
   "appSettingsSectionHeader": "App settings",
   "accountSectionHeader": "Account",
   "otherSectionHeader": "Other",
@@ -1107,7 +1107,7 @@
   "monthGenNov": "November",
   "monthGenDec": "December",
   "historyLabel": "History",
-  "wellbeingScheduleInfoText": "Set up a schedule for wellbeing check-ins. A card to fill in will appear on the home screen at the scheduled time.",
+  "wellbeingScheduleInfoText": "Set up a schedule for mood check-ins. A card to fill in will appear on the home screen at the scheduled time.",
   "frequencyPerDayLabel": "FREQUENCY PER DAY",
   "collectionTimeLabel": "CHECK-IN TIME",
   "wellbeingSlotNumberLabel": "Check-in {index}",
@@ -1136,7 +1136,7 @@
     }
   },
   "saveScheduleAction": "Save schedule",
-  "wellbeingByDaySubtitle": "wellbeing by day",
+  "wellbeingByDaySubtitle": "mood by day",
   "addWellbeingSlotAction": "+ Check-in",
   "moodChartTitle": "Mood — {month}",
   "@moodChartTitle": {
@@ -1176,26 +1176,26 @@
     }
   },
   "noWellbeingLogsTitle": "No check-ins yet",
-  "noWellbeingLogsHint": "Your wellbeing history will show up here. Tap \"+ Check-in\" to add your first entry",
+  "noWellbeingLogsHint": "Your mood history will show up here. Tap \"+ Check-in\" to add your first entry",
   "comingSoonEllipsis": "Coming soon...",
   "sendDiaryToDoctorLabel": "Share summary",
-  "diarySummaryHint": "Wellbeing check-ins and doses for the month",
+  "diarySummaryHint": "Mood check-ins and doses for the month",
   "moodBadLabel": "Bad",
   "moodMehLabel": "Meh",
   "moodOkLabel": "OK",
   "moodGoodLabel": "Good",
   "moodGreatLabel": "Great",
-  "chooseWellbeingErrorSnackbar": "Please select how you're feeling",
+  "chooseWellbeingErrorSnackbar": "Please select your mood",
   "wellbeingSlotMorning": "morning check-in",
   "wellbeingSlotAfternoon": "afternoon check-in",
   "wellbeingSlotEvening": "evening check-in",
-  "howAreYouFeelingLabel": "How are you feeling?",
+  "howAreYouFeelingLabel": "What's your mood?",
   "anySymptomsLabel": "Tags",
   "chooseFromListOrAddLabel": "Add your own tags (optional)",
   "commentLabel": "Comment",
   "optionalSuffixLabel": "· optional",
   "orTypeTextLabel": "or type it out",
-  "describeFeelingHint": "Describe how you're feeling…",
+  "describeFeelingHint": "Describe your mood…",
   "saveWellbeingCheckAction": "Save check-in",
   "voiceTranscriptLabel": "Voice transcript",
   "editableTextBelowHint": "You can edit the text in the field below",
@@ -1252,7 +1252,7 @@
     }
   },
   "welcomeGreeting": "Hi there! 👋",
-  "welcomeDescription": "Elly helps you keep track of medications,\nactivities, and wellbeing — for you\nand your whole family",
+  "welcomeDescription": "Elly helps you keep track of medications,\nactivities, and mood — for you\nand your whole family",
   "onboardingStepLabel": "Step {step} of {total}",
   "@onboardingStepLabel": {
     "placeholders": {
@@ -1283,13 +1283,13 @@
   "addMedsLaterInfo": "You can add medications later from the \"Medications\" section in the main menu",
   "nextAction": "Next →",
   "skipAddLaterAction": "Skip — I'll add later",
-  "activityWellbeingTitle": "Activity & wellbeing",
+  "activityWellbeingTitle": "Activity & mood",
   "activityWellbeingSubtitle": "Turn it on with one switch — you can change the settings later",
   "activitySectionLabel": "Activity",
   "walkActivitySub": "30 min · daily · 8:30 AM",
-  "wellbeingDiaryLabel": "Wellbeing diary",
-  "wellbeingDiaryDescription": "Quick wellbeing notes help you see the connection between taking your medication and how you feel",
-  "wellbeingSlotsTitle": "Wellbeing check-ins",
+  "wellbeingDiaryLabel": "Mood diary",
+  "wellbeingDiaryDescription": "Quick mood notes help you see the connection between taking your medication and how you feel",
+  "wellbeingSlotsTitle": "Mood check-ins",
   "wellbeingSlotsSub": "2–3 times a day · 8:00 AM, 2:00 PM, 8:00 PM",
   "almostDoneAction": "Almost done →",
   "foodOptBefore": "Before food",
@@ -1433,7 +1433,7 @@
   "planFreeShortLabel": "Free",
   "exportShareSubject": "Elly — data export",
   "exportCopyTitle": "A copy of all your data",
-  "exportDescriptionBody": "A JSON file with all profiles, medications, schedule, doses, wellbeing logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they're already in your \"Backup\") — text data only.",
+  "exportDescriptionBody": "A JSON file with all profiles, medications, schedule, doses, mood logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they're already in your \"Backup\") — text data only.",
   "exportAction": "Export",
   "appLockedTitle": "Elly is locked",
   "authFailedRetryBody": "Couldn't verify your identity — try again",
@@ -1526,7 +1526,7 @@
   },
   "deleteActivityConfirmTitle": "Delete this activity?",
   "deleteActivityConfirmBody": "The activity will be removed from your schedule.",
-  "disableWellbeingConfirmTitle": "Turn off wellbeing check-ins?",
+  "disableWellbeingConfirmTitle": "Turn off mood check-ins?",
   "disableWellbeingConfirmBody": "Reminders will disappear from Schedule and Today. Your settings are kept — you can turn it back on later.",
   "applyAction": "Done",
   "noDaysSelectedHint": "No days selected",
@@ -1628,7 +1628,7 @@
   "addPhotoOrPdfLabel": "Add photo or PDF",
   "documentsPrivacyHint": "Stored only on your device (and in the cloud if backup is enabled) — the app never views or analyzes these files.",
   "notifChannelName": "Elly reminders",
-  "notifChannelDesc": "Reminders for medications, activities, visits, and wellbeing check-ins",
+  "notifChannelDesc": "Reminders for medications, activities, visits, and mood check-ins",
   "notifTakeMedTitle": "💊 Time to take your medication",
   "notifIntakeNoResponseTitle": "🔔 You haven't marked this dose yet",
   "notifBackupReminderTitle": "Protect your data",
@@ -1652,8 +1652,8 @@
   "notifActivityNoResponseTitle": "🔔 You haven't marked this activity yet",
   "notifAppointmentTitle": "🔔 Reminder",
   "notifAppointmentNoResponseTitle": "🔔 Don't forget your reminder",
-  "notifWellbeingTitle": "💜 Wellbeing check-in",
-  "notifWellbeingBody": "How are you feeling?",
+  "notifWellbeingTitle": "💜 Mood check-in",
+  "notifWellbeingBody": "What's your mood?",
   "notifPeerCheckTitle": "🔔 Check on {subjectName}",
   "@notifPeerCheckTitle": {
     "placeholders": {
@@ -1698,7 +1698,7 @@
       }
     }
   },
-  "notifPeerWellbeingCheckBody": "Was the wellbeing check-in at {timeStr} done? Open the app and wait for sync to see the current status.",
+  "notifPeerWellbeingCheckBody": "Was the mood check-in at {timeStr} done? Open the app and wait for sync to see the current status.",
   "@notifPeerWellbeingCheckBody": {
     "placeholders": {
       "timeStr": {

@@ -534,6 +534,35 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                                 color: Colors.white),
                           ),
                         ),
+                        if (showTime)
+                          FieldChip(
+                            icon: Icons.notifications_outlined,
+                            label: context.l10n.reminderLabel,
+                            value: _reminder ? 'on' : null,
+                            forceLabel: true,
+                            onTap: () => setState(() => _reminder = !_reminder),
+                          ),
+                        FieldChip(
+                          icon: Icons.palette_outlined,
+                          label: context.l10n.taskColorPickerLabel,
+                          value: _colorHex,
+                          forceLabel: true,
+                          swatchColor: colorFromHex(_colorHex),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.taskColorPickerLabel,
+                            child: TaskColorPicker(
+                              selectedHex: _colorHex,
+                              onChanged: (hex) =>
+                                  setState(() => _colorHex = hex),
+                            ),
+                          ),
+                        ),
+                        SpaceChip(
+                          memberId: widget.memberId,
+                          sectionId: _sectionId,
+                          onChanged: (id) => setState(() => _sectionId = id),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 32),

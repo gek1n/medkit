@@ -337,7 +337,7 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Самопочуття'**
+  /// **'Настрій'**
   String get wellbeingTitle;
 
   /// No description provided for @detailLabelTime.
@@ -409,7 +409,7 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingTimeToCheck.
   ///
   /// In uk, this message translates to:
-  /// **'Час перевірити самопочуття'**
+  /// **'Час перевірити настрій'**
   String get wellbeingTimeToCheck;
 
   /// No description provided for @wellbeingCommentHint.
@@ -481,7 +481,7 @@ abstract class AppLocalizations {
   /// No description provided for @categoryWellbeing.
   ///
   /// In uk, this message translates to:
-  /// **'Самопочуття'**
+  /// **'Настрій'**
   String get categoryWellbeing;
 
   /// No description provided for @categoryDoctors.
@@ -553,7 +553,7 @@ abstract class AppLocalizations {
   /// No description provided for @sectionWellbeing.
   ///
   /// In uk, this message translates to:
-  /// **'Самопочуття'**
+  /// **'Настрій'**
   String get sectionWellbeing;
 
   /// No description provided for @wellbeingScheduleNotSet.
@@ -751,7 +751,7 @@ abstract class AppLocalizations {
   /// No description provided for @medCardWellbeingHistoryTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Історія самопочуття'**
+  /// **'Історія настрою'**
   String get medCardWellbeingHistoryTitle;
 
   /// No description provided for @medCardWellbeingHistorySubtitle.
@@ -2005,7 +2005,7 @@ abstract class AppLocalizations {
   /// No description provided for @noMedsTodayLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Немає ліків на сьогодні'**
+  /// **'Немає завдань на сьогодні'**
   String get noMedsTodayLabel;
 
   /// No description provided for @allDoneTodayLabel.
@@ -2101,7 +2101,7 @@ abstract class AppLocalizations {
   /// No description provided for @careSummaryLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Ви піклуєтесь про {count, plural, one{{count} близького} few{{count} близьких} other{{count} близьких}}. Еллі надішле сповіщення, якщо хтось пропустить прийом.'**
+  /// **'Ви піклуєтесь про {count, plural, one{{count} близького} few{{count} близьких} other{{count} близьких}}. Еллі надішле сповіщення, якщо хтось пропустить нагадування.'**
   String careSummaryLabel(int count);
 
   /// No description provided for @addFamilyMemberLabel.
@@ -2293,7 +2293,7 @@ abstract class AppLocalizations {
   /// No description provided for @reminderWellbeingBody.
   ///
   /// In uk, this message translates to:
-  /// **'Не забудьте відмітити самопочуття'**
+  /// **'Не забудьте відмітити настрій'**
   String get reminderWellbeingBody;
 
   /// No description provided for @reminderGenericBody.
@@ -2785,7 +2785,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthSectionHeader.
   ///
   /// In uk, this message translates to:
-  /// **'Здоров\'я та вправи'**
+  /// **'Міні-ігри'**
   String get healthSectionHeader;
 
   /// No description provided for @appSettingsSectionHeader.
@@ -3571,7 +3571,7 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingScheduleInfoText.
   ///
   /// In uk, this message translates to:
-  /// **'Налаштуйте розклад збору зрізів самопочуття. У призначений час на головному екрані з\'явиться картка для заповнення.'**
+  /// **'Налаштуйте розклад збору зрізів настрою. У призначений час на головному екрані з\'явиться картка для заповнення.'**
   String get wellbeingScheduleInfoText;
 
   /// No description provided for @frequencyPerDayLabel.
@@ -3619,7 +3619,7 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingByDaySubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'самопочуття по днях'**
+  /// **'настрій по днях'**
   String get wellbeingByDaySubtitle;
 
   /// No description provided for @addWellbeingSlotAction.
@@ -3775,7 +3775,7 @@ abstract class AppLocalizations {
   /// No description provided for @noWellbeingLogsHint.
   ///
   /// In uk, this message translates to:
-  /// **'Тут зберігатиметься історія самопочуття. Натисніть «+ Зріз», щоб додати перший запис'**
+  /// **'Тут зберігатиметься історія настрою. Натисніть «+ Зріз», щоб додати перший запис'**
   String get noWellbeingLogsHint;
 
   /// No description provided for @comingSoonEllipsis.
@@ -3793,7 +3793,7 @@ abstract class AppLocalizations {
   /// No description provided for @diarySummaryHint.
   ///
   /// In uk, this message translates to:
-  /// **'Зрізи самопочуття та прийоми за місяць'**
+  /// **'Зрізи настрою та прийоми за місяць'**
   String get diarySummaryHint;
 
   /// No description provided for @moodBadLabel.
@@ -3829,7 +3829,7 @@ abstract class AppLocalizations {
   /// No description provided for @chooseWellbeingErrorSnackbar.
   ///
   /// In uk, this message translates to:
-  /// **'Оберіть самопочуття'**
+  /// **'Оберіть настрій'**
   String get chooseWellbeingErrorSnackbar;
 
   /// No description provided for @wellbeingSlotMorning.
@@ -3853,7 +3853,7 @@ abstract class AppLocalizations {
   /// No description provided for @howAreYouFeelingLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Як ви себе почуваєте?'**
+  /// **'Який у вас настрій?'**
   String get howAreYouFeelingLabel;
 
   /// No description provided for @anySymptomsLabel.
@@ -3889,7 +3889,7 @@ abstract class AppLocalizations {
   /// No description provided for @describeFeelingHint.
   ///
   /// In uk, this message translates to:
-  /// **'Опишіть як себе почуваєте…'**
+  /// **'Опишіть свій настрій…'**
   String get describeFeelingHint;
 
   /// No description provided for @saveWellbeingCheckAction.
@@ -4147,7 +4147,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Elly допоможе не забути про ліки,\nактивність і самопочуття — для вас\nі всієї родини'**
+  /// **'Elly допоможе не забути про ліки,\nактивність і настрій — для вас\nі всієї родини'**
   String get welcomeDescription;
 
   /// No description provided for @onboardingStepLabel.
@@ -4273,7 +4273,7 @@ abstract class AppLocalizations {
   /// No description provided for @activityWellbeingTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Активність та самопочуття'**
+  /// **'Активність та настрій'**
   String get activityWellbeingTitle;
 
   /// No description provided for @activityWellbeingSubtitle.
@@ -4297,19 +4297,19 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingDiaryLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Щоденник самопочуття'**
+  /// **'Щоденник настрою'**
   String get wellbeingDiaryLabel;
 
   /// No description provided for @wellbeingDiaryDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Короткі відмітки самопочуття допоможуть побачити звʼязок між прийомом ліків і тим, як ви почуваєтесь'**
+  /// **'Короткі відмітки настрою допоможуть побачити звʼязок між прийомом ліків і тим, який у вас настрій'**
   String get wellbeingDiaryDescription;
 
   /// No description provided for @wellbeingSlotsTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Зрізи самопочуття'**
+  /// **'Зрізи настрою'**
   String get wellbeingSlotsTitle;
 
   /// No description provided for @wellbeingSlotsSub.
@@ -4795,7 +4795,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportDescriptionBody.
   ///
   /// In uk, this message translates to:
-  /// **'Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, самопочуттям і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.'**
+  /// **'Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.'**
   String get exportDescriptionBody;
 
   /// No description provided for @exportAction.
@@ -5269,7 +5269,7 @@ abstract class AppLocalizations {
   /// No description provided for @disableWellbeingConfirmTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Вимкнути збір самопочуття?'**
+  /// **'Вимкнути збір настрою?'**
   String get disableWellbeingConfirmTitle;
 
   /// No description provided for @disableWellbeingConfirmBody.
@@ -5653,7 +5653,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifChannelDesc.
   ///
   /// In uk, this message translates to:
-  /// **'Нагадування про ліки, активності, візити та самопочуття'**
+  /// **'Нагадування про ліки, активності, візити та настрій'**
   String get notifChannelDesc;
 
   /// No description provided for @notifTakeMedTitle.
@@ -5719,13 +5719,13 @@ abstract class AppLocalizations {
   /// No description provided for @notifWellbeingTitle.
   ///
   /// In uk, this message translates to:
-  /// **'💜 Зріз самопочуття'**
+  /// **'💜 Зріз настрою'**
   String get notifWellbeingTitle;
 
   /// No description provided for @notifWellbeingBody.
   ///
   /// In uk, this message translates to:
-  /// **'Як ви себе почуваєте?'**
+  /// **'Який у вас настрій?'**
   String get notifWellbeingBody;
 
   /// No description provided for @notifPeerCheckTitle.
@@ -5755,7 +5755,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifPeerWellbeingCheckBody.
   ///
   /// In uk, this message translates to:
-  /// **'Чи зроблено зріз самопочуття о {timeStr}? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.'**
+  /// **'Чи зроблено зріз настрою о {timeStr}? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.'**
   String notifPeerWellbeingCheckBody(String timeStr);
 
   /// No description provided for @forMemberSuffix.

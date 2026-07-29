@@ -70,7 +70,7 @@
   "dayPartNight": "Ніч",
   "defaultMedName": "Ліки",
   "defaultActivityName": "Активність",
-  "wellbeingTitle": "Самопочуття",
+  "wellbeingTitle": "Настрій",
   "detailLabelTime": "Час",
   "detailLabelDuration": "Тривалість",
   "durationMinutes": "{minutes} хв",
@@ -96,7 +96,7 @@
   "videoPlaybackError": "Не вдалося відтворити відео тут",
   "openInYoutube": "Відкрити в YouTube",
   "missedWellbeingSlot": "Пропущений зріз",
-  "wellbeingTimeToCheck": "Час перевірити самопочуття",
+  "wellbeingTimeToCheck": "Час перевірити настрій",
   "wellbeingCommentHint": "Оцініть настрій і, за бажанням, додайте нотатку",
   "skipGenericAction": "Пропустити",
   "snooze10": "Перенести на 10 хв",
@@ -108,7 +108,7 @@
   "categoryAll": "Усі",
   "categoryMeds": "Ліки",
   "categoryActivities": "Активності",
-  "categoryWellbeing": "Самопочуття",
+  "categoryWellbeing": "Настрій",
   "categoryDoctors": "Нагадування",
   "scheduleTitle": "Розклад",
   "searchAllSections": "Пошук по всіх розділах",
@@ -120,7 +120,7 @@
   "noActiveActivities": "Немає активних занять",
   "noSimpleTasksHint": "Немає простих завдань",
   "noRoutineTasksHint": "Немає рутинних справ",
-  "sectionWellbeing": "Самопочуття",
+  "sectionWellbeing": "Настрій",
   "wellbeingScheduleNotSet": "Розклад не налаштовано",
   "nothingFound": "Нічого не знайдено",
   "repeatDaily": "щодня",
@@ -167,7 +167,7 @@
   "medCardArchiveSubtitle": "Усі препарати й статус лікування",
   "medCardAppointmentsTitle": "Архів нагадувань",
   "medCardAppointmentsSubtitle": "Зустрічі, прості завдання, рутинні справи",
-  "medCardWellbeingHistoryTitle": "Історія самопочуття",
+  "medCardWellbeingHistoryTitle": "Історія настрою",
   "medCardWellbeingHistorySubtitle": "Настрій за весь час",
   "customSectionsHeader": "Ваші розділи",
   "addSectionAction": "Додати розділ",
@@ -619,7 +619,7 @@
       }
     }
   },
-  "noMedsTodayLabel": "Немає ліків на сьогодні",
+  "noMedsTodayLabel": "Немає завдань на сьогодні",
   "allDoneTodayLabel": "Усе виконано сьогодні",
   "takenOfTotalIntakesLabel": "{taken} з {total} прийомів",
   "@takenOfTotalIntakesLabel": {
@@ -683,7 +683,7 @@
       }
     }
   },
-  "careSummaryLabel": "Ви піклуєтесь про {count, plural, one{{count} близького} few{{count} близьких} other{{count} близьких}}. Еллі надішле сповіщення, якщо хтось пропустить прийом.",
+  "careSummaryLabel": "Ви піклуєтесь про {count, plural, one{{count} близького} few{{count} близьких} other{{count} близьких}}. Еллі надішле сповіщення, якщо хтось пропустить нагадування.",
   "@careSummaryLabel": {
     "placeholders": {
       "count": {
@@ -798,7 +798,7 @@
       }
     }
   },
-  "reminderWellbeingBody": "Не забудьте відмітити самопочуття",
+  "reminderWellbeingBody": "Не забудьте відмітити настрій",
   "reminderGenericBody": "Перевірте розклад",
   "reminderSentSnackbar": "Нагадування для {name} надіслано",
   "@reminderSentSnackbar": {
@@ -949,7 +949,7 @@
   "groundingSkipStepAction": "Пропустити цей крок",
   "groundingCompletedTitle": "Вправу завершено",
   "groundingCompletedSubtitle": "Чудова робота. Повертайся до цієї вправи, коли знадобиться.",
-  "healthSectionHeader": "Здоров'я та вправи",
+  "healthSectionHeader": "Міні-ігри",
   "appSettingsSectionHeader": "Налаштування додатку",
   "accountSectionHeader": "Акаунт",
   "otherSectionHeader": "Інше",
@@ -1107,7 +1107,7 @@
   "monthGenNov": "листопада",
   "monthGenDec": "грудня",
   "historyLabel": "Історія",
-  "wellbeingScheduleInfoText": "Налаштуйте розклад збору зрізів самопочуття. У призначений час на головному екрані з'явиться картка для заповнення.",
+  "wellbeingScheduleInfoText": "Налаштуйте розклад збору зрізів настрою. У призначений час на головному екрані з'явиться картка для заповнення.",
   "frequencyPerDayLabel": "ЧАСТОТА НА ДЕНЬ",
   "collectionTimeLabel": "ЧАС ЗБОРУ",
   "wellbeingSlotNumberLabel": "Зріз {index}",
@@ -1136,7 +1136,7 @@
     }
   },
   "saveScheduleAction": "Зберегти розклад",
-  "wellbeingByDaySubtitle": "самопочуття по днях",
+  "wellbeingByDaySubtitle": "настрій по днях",
   "addWellbeingSlotAction": "+ Зріз",
   "moodChartTitle": "Настрій — {month}",
   "@moodChartTitle": {
@@ -1176,26 +1176,26 @@
     }
   },
   "noWellbeingLogsTitle": "Зрізів ще немає",
-  "noWellbeingLogsHint": "Тут зберігатиметься історія самопочуття. Натисніть «+ Зріз», щоб додати перший запис",
+  "noWellbeingLogsHint": "Тут зберігатиметься історія настрою. Натисніть «+ Зріз», щоб додати перший запис",
   "comingSoonEllipsis": "Скоро...",
   "sendDiaryToDoctorLabel": "Поділитися підсумком",
-  "diarySummaryHint": "Зрізи самопочуття та прийоми за місяць",
+  "diarySummaryHint": "Зрізи настрою та прийоми за місяць",
   "moodBadLabel": "Погано",
   "moodMehLabel": "Так собі",
   "moodOkLabel": "Норм",
   "moodGoodLabel": "Добре",
   "moodGreatLabel": "Відмінно",
-  "chooseWellbeingErrorSnackbar": "Оберіть самопочуття",
+  "chooseWellbeingErrorSnackbar": "Оберіть настрій",
   "wellbeingSlotMorning": "ранковий зріз",
   "wellbeingSlotAfternoon": "денний зріз",
   "wellbeingSlotEvening": "вечірній зріз",
-  "howAreYouFeelingLabel": "Як ви себе почуваєте?",
+  "howAreYouFeelingLabel": "Який у вас настрій?",
   "anySymptomsLabel": "Теги",
   "chooseFromListOrAddLabel": "Додайте власні теги (необов'язково)",
   "commentLabel": "Коментар",
   "optionalSuffixLabel": "· необов'язково",
   "orTypeTextLabel": "або введіть текстом",
-  "describeFeelingHint": "Опишіть як себе почуваєте…",
+  "describeFeelingHint": "Опишіть свій настрій…",
   "saveWellbeingCheckAction": "Зберегти зріз",
   "voiceTranscriptLabel": "Розшифровка голосу",
   "editableTextBelowHint": "Текст можна редагувати нижче в полі",
@@ -1252,7 +1252,7 @@
     }
   },
   "welcomeGreeting": "Привіт! 👋",
-  "welcomeDescription": "Elly допоможе не забути про ліки,\nактивність і самопочуття — для вас\nі всієї родини",
+  "welcomeDescription": "Elly допоможе не забути про ліки,\nактивність і настрій — для вас\nі всієї родини",
   "onboardingStepLabel": "Крок {step} з {total}",
   "@onboardingStepLabel": {
     "placeholders": {
@@ -1283,13 +1283,13 @@
   "addMedsLaterInfo": "Ліки можна додати пізніше через розділ «Ліки» в головному меню",
   "nextAction": "Далі →",
   "skipAddLaterAction": "Пропустити — додам пізніше",
-  "activityWellbeingTitle": "Активність та самопочуття",
+  "activityWellbeingTitle": "Активність та настрій",
   "activityWellbeingSubtitle": "Увімкніть одним перемикачем — налаштування можна змінити пізніше",
   "activitySectionLabel": "Активність",
   "walkActivitySub": "30 хв · щодня · 08:30",
-  "wellbeingDiaryLabel": "Щоденник самопочуття",
-  "wellbeingDiaryDescription": "Короткі відмітки самопочуття допоможуть побачити звʼязок між прийомом ліків і тим, як ви почуваєтесь",
-  "wellbeingSlotsTitle": "Зрізи самопочуття",
+  "wellbeingDiaryLabel": "Щоденник настрою",
+  "wellbeingDiaryDescription": "Короткі відмітки настрою допоможуть побачити звʼязок між прийомом ліків і тим, який у вас настрій",
+  "wellbeingSlotsTitle": "Зрізи настрою",
   "wellbeingSlotsSub": "2–3 рази на день · 08:00, 14:00, 20:00",
   "almostDoneAction": "Майже готово →",
   "foodOptBefore": "До їжі",
@@ -1433,7 +1433,7 @@
   "planFreeShortLabel": "Безкоштовний",
   "exportShareSubject": "Elly — експорт даних",
   "exportCopyTitle": "Копія всіх ваших даних",
-  "exportDescriptionBody": "Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, самопочуттям і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.",
+  "exportDescriptionBody": "Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.",
   "exportAction": "Експортувати",
   "appLockedTitle": "Elly заблоковано",
   "authFailedRetryBody": "Не вдалося підтвердити особу — спробуйте ще раз",
@@ -1526,7 +1526,7 @@
   },
   "deleteActivityConfirmTitle": "Видалити активність?",
   "deleteActivityConfirmBody": "Активність буде вилучена з розкладу.",
-  "disableWellbeingConfirmTitle": "Вимкнути збір самопочуття?",
+  "disableWellbeingConfirmTitle": "Вимкнути збір настрою?",
   "disableWellbeingConfirmBody": "Нагадування зникнуть з Розкладу і Сьогодні. Налаштування збережуться — можна ввімкнути знову пізніше.",
   "applyAction": "Готово",
   "noDaysSelectedHint": "Дні не обрані",
@@ -1628,7 +1628,7 @@
   "addPhotoOrPdfLabel": "Додати фото чи PDF",
   "documentsPrivacyHint": "Зберігається лише на пристрої (і в хмарі, якщо ввімкнено резервну копію) — застосунок не переглядає й не аналізує ці файли.",
   "notifChannelName": "Нагадування Elly",
-  "notifChannelDesc": "Нагадування про ліки, активності, візити та самопочуття",
+  "notifChannelDesc": "Нагадування про ліки, активності, візити та настрій",
   "notifTakeMedTitle": "💊 Час прийняти ліки",
   "notifIntakeNoResponseTitle": "🔔 Ви ще не відмітили прийом",
   "notifBackupReminderTitle": "Захистіть свої дані",
@@ -1652,8 +1652,8 @@
   "notifActivityNoResponseTitle": "🔔 Ви ще не відмітили активність",
   "notifAppointmentTitle": "🔔 Нагадування",
   "notifAppointmentNoResponseTitle": "🔔 Не забудьте про нагадування",
-  "notifWellbeingTitle": "💜 Зріз самопочуття",
-  "notifWellbeingBody": "Як ви себе почуваєте?",
+  "notifWellbeingTitle": "💜 Зріз настрою",
+  "notifWellbeingBody": "Який у вас настрій?",
   "notifPeerCheckTitle": "🔔 Перевірте {subjectName}",
   "@notifPeerCheckTitle": {
     "placeholders": {
@@ -1698,7 +1698,7 @@
       }
     }
   },
-  "notifPeerWellbeingCheckBody": "Чи зроблено зріз самопочуття о {timeStr}? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.",
+  "notifPeerWellbeingCheckBody": "Чи зроблено зріз настрою о {timeStr}? Відкрийте застосунок і зачекайте на синхронізацію, щоб побачити актуальний стан.",
   "@notifPeerWellbeingCheckBody": {
     "placeholders": {
       "timeStr": {

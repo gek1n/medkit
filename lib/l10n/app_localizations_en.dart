@@ -134,7 +134,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get defaultActivityName => 'Activity';
 
   @override
-  String get wellbeingTitle => 'Wellbeing';
+  String get wellbeingTitle => 'Mood';
 
   @override
   String get detailLabelTime => 'Time';
@@ -174,7 +174,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missedWellbeingSlot => 'Missed check-in';
 
   @override
-  String get wellbeingTimeToCheck => 'Time for a wellbeing check-in';
+  String get wellbeingTimeToCheck => 'Time for a mood check-in';
 
   @override
   String get wellbeingCommentHint =>
@@ -211,7 +211,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryActivities => 'Activities';
 
   @override
-  String get categoryWellbeing => 'Wellbeing';
+  String get categoryWellbeing => 'Mood';
 
   @override
   String get categoryDoctors => 'Reminders';
@@ -247,7 +247,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRoutineTasksHint => 'No routine chores';
 
   @override
-  String get sectionWellbeing => 'Wellbeing';
+  String get sectionWellbeing => 'Mood';
 
   @override
   String get wellbeingScheduleNotSet => 'Schedule not set up';
@@ -364,7 +364,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Meetings, simple tasks, routine chores';
 
   @override
-  String get medCardWellbeingHistoryTitle => 'Wellbeing history';
+  String get medCardWellbeingHistoryTitle => 'Mood history';
 
   @override
   String get medCardWellbeingHistorySubtitle => 'Mood over time';
@@ -1088,7 +1088,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get noMedsTodayLabel => 'No medications today';
+  String get noMedsTodayLabel => 'No tasks today';
 
   @override
   String get allDoneTodayLabel => 'All done for today';
@@ -1162,7 +1162,7 @@ class AppLocalizationsEn extends AppLocalizations {
       other: 'You\'re caring for $count loved ones',
       one: 'You\'re caring for $count loved one',
     );
-    return '$_temp0. Elly will notify you if someone misses a dose.';
+    return '$_temp0. Elly will notify you if someone misses a reminder.';
   }
 
   @override
@@ -1283,7 +1283,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reminderWellbeingBody => 'Don\'t forget to log your wellbeing';
+  String get reminderWellbeingBody => 'Don\'t forget to log your mood';
 
   @override
   String get reminderGenericBody => 'Check your schedule';
@@ -1568,7 +1568,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Great work. Come back to this exercise whenever you need it.';
 
   @override
-  String get healthSectionHeader => 'Health & exercises';
+  String get healthSectionHeader => 'Mini-games';
 
   @override
   String get appSettingsSectionHeader => 'App settings';
@@ -1983,7 +1983,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wellbeingScheduleInfoText =>
-      'Set up a schedule for wellbeing check-ins. A card to fill in will appear on the home screen at the scheduled time.';
+      'Set up a schedule for mood check-ins. A card to fill in will appear on the home screen at the scheduled time.';
 
   @override
   String get frequencyPerDayLabel => 'FREQUENCY PER DAY';
@@ -2019,7 +2019,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveScheduleAction => 'Save schedule';
 
   @override
-  String get wellbeingByDaySubtitle => 'wellbeing by day';
+  String get wellbeingByDaySubtitle => 'mood by day';
 
   @override
   String get addWellbeingSlotAction => '+ Check-in';
@@ -2102,7 +2102,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noWellbeingLogsHint =>
-      'Your wellbeing history will show up here. Tap \"+ Check-in\" to add your first entry';
+      'Your mood history will show up here. Tap \"+ Check-in\" to add your first entry';
 
   @override
   String get comingSoonEllipsis => 'Coming soon...';
@@ -2111,7 +2111,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendDiaryToDoctorLabel => 'Share summary';
 
   @override
-  String get diarySummaryHint => 'Wellbeing check-ins and doses for the month';
+  String get diarySummaryHint => 'Mood check-ins and doses for the month';
 
   @override
   String get moodBadLabel => 'Bad';
@@ -2129,8 +2129,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moodGreatLabel => 'Great';
 
   @override
-  String get chooseWellbeingErrorSnackbar =>
-      'Please select how you\'re feeling';
+  String get chooseWellbeingErrorSnackbar => 'Please select your mood';
 
   @override
   String get wellbeingSlotMorning => 'morning check-in';
@@ -2142,7 +2141,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wellbeingSlotEvening => 'evening check-in';
 
   @override
-  String get howAreYouFeelingLabel => 'How are you feeling?';
+  String get howAreYouFeelingLabel => 'What\'s your mood?';
 
   @override
   String get anySymptomsLabel => 'Tags';
@@ -2160,7 +2159,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orTypeTextLabel => 'or type it out';
 
   @override
-  String get describeFeelingHint => 'Describe how you\'re feeling…';
+  String get describeFeelingHint => 'Describe your mood…';
 
   @override
   String get saveWellbeingCheckAction => 'Save check-in';
@@ -2304,7 +2303,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeDescription =>
-      'Elly helps you keep track of medications,\nactivities, and wellbeing — for you\nand your whole family';
+      'Elly helps you keep track of medications,\nactivities, and mood — for you\nand your whole family';
 
   @override
   String onboardingStepLabel(int step, int total) {
@@ -2374,7 +2373,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skipAddLaterAction => 'Skip — I\'ll add later';
 
   @override
-  String get activityWellbeingTitle => 'Activity & wellbeing';
+  String get activityWellbeingTitle => 'Activity & mood';
 
   @override
   String get activityWellbeingSubtitle =>
@@ -2387,14 +2386,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get walkActivitySub => '30 min · daily · 8:30 AM';
 
   @override
-  String get wellbeingDiaryLabel => 'Wellbeing diary';
+  String get wellbeingDiaryLabel => 'Mood diary';
 
   @override
   String get wellbeingDiaryDescription =>
-      'Quick wellbeing notes help you see the connection between taking your medication and how you feel';
+      'Quick mood notes help you see the connection between taking your medication and how you feel';
 
   @override
-  String get wellbeingSlotsTitle => 'Wellbeing check-ins';
+  String get wellbeingSlotsTitle => 'Mood check-ins';
 
   @override
   String get wellbeingSlotsSub => '2–3 times a day · 8:00 AM, 2:00 PM, 8:00 PM';
@@ -2689,7 +2688,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportDescriptionBody =>
-      'A JSON file with all profiles, medications, schedule, doses, wellbeing logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they\'re already in your \"Backup\") — text data only.';
+      'A JSON file with all profiles, medications, schedule, doses, mood logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they\'re already in your \"Backup\") — text data only.';
 
   @override
   String get exportAction => 'Export';
@@ -2954,7 +2953,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The activity will be removed from your schedule.';
 
   @override
-  String get disableWellbeingConfirmTitle => 'Turn off wellbeing check-ins?';
+  String get disableWellbeingConfirmTitle => 'Turn off mood check-ins?';
 
   @override
   String get disableWellbeingConfirmBody =>
@@ -3163,7 +3162,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifChannelDesc =>
-      'Reminders for medications, activities, visits, and wellbeing check-ins';
+      'Reminders for medications, activities, visits, and mood check-ins';
 
   @override
   String get notifTakeMedTitle => '💊 Time to take your medication';
@@ -3202,10 +3201,10 @@ class AppLocalizationsEn extends AppLocalizations {
       '🔔 Don\'t forget your reminder';
 
   @override
-  String get notifWellbeingTitle => '💜 Wellbeing check-in';
+  String get notifWellbeingTitle => '💜 Mood check-in';
 
   @override
-  String get notifWellbeingBody => 'How are you feeling?';
+  String get notifWellbeingBody => 'What\'s your mood?';
 
   @override
   String notifPeerCheckTitle(String subjectName) {
@@ -3229,7 +3228,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String notifPeerWellbeingCheckBody(String timeStr) {
-    return 'Was the wellbeing check-in at $timeStr done? Open the app and wait for sync to see the current status.';
+    return 'Was the mood check-in at $timeStr done? Open the app and wait for sync to see the current status.';
   }
 
   @override
