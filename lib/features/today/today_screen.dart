@@ -1321,22 +1321,11 @@ class _ScheduleCard extends StatelessWidget {
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    // Нагадування (item.type == appointment) — замість
-                    // довільної обраної іконки тут завжди дружня ілюстрація
-                    // Еллі, щоб картка на Сьогодні лишалась впізнаваною й
-                    // "неклінічною" незалежно від того, яку іконку користувач
-                    // обрав при створенні (та іконка видна в Розкладі/
-                    // деталях). Рутинні справи — власна task_routine-іконка
-                    // (iconWidget з _scheduleItemInfo), не ілюстрація.
-                    child: item.type == _ItemType.appointment
-                        ? Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: Image.asset(
-                              'assets/illustrations/elly-calendar.png',
-                              fit: BoxFit.contain,
-                            ),
-                          )
-                        : Center(child: iconWidget ?? Icon(icon, size: 20, color: color)),
+                    // Незабаром — обрана (чи дефолтна) іконка, як і для
+                    // ліків/рутин/самопочуття; ілюстрація Еллі показується
+                    // лише коли завдання переходить у активну фазу (зараз/
+                    // пропущено), див. _ActiveAppointmentCard/_IconHeader.
+                    child: Center(child: iconWidget ?? Icon(icon, size: 20, color: color)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

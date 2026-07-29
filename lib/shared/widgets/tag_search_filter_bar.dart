@@ -5,8 +5,8 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
 
-/// Рядок під заголовком розділу Полички/архіву: пошук зліва (~1/4 ширини) +
-/// фільтр тегів з мультивибором справа (~3/4 ширини), з хрестиком скидання,
+/// Рядок під заголовком розділу Полички/архіву: пошук зліва (більший) +
+/// фільтр тегів з мультивибором справа (менший), з хрестиком скидання,
 /// коли обрано хоч один тег. [tagsLoader] викликається щоразу при відкритті
 /// шторки вибору — той самий лінивий патерн, що й одиночний
 /// _TagFilterChip/_TagFilterSheet, які цей віджет замінює.
@@ -60,41 +60,45 @@ class _TagSearchFilterBarState extends State<TagSearchFilterBar> {
   Widget build(BuildContext context) {
     final active = widget.selectedTags.isNotEmpty;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          flex: 1,
-          child: Container(
+          flex: 3,
+          child: SizedBox(
             height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: widget.onSearchChanged,
-                    style: AppTextStyles.bodySm,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      hintText: widget.searchHint,
-                      hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                    ),
-                  ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: widget.onSearchChanged,
+              style: AppTextStyles.bodySm,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                  borderSide: const BorderSide(color: AppColors.border),
                 ),
-              ],
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 18),
+                hintText: widget.searchHint,
+                hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+              ),
             ),
           ),
         ),
         const SizedBox(width: AppDimensions.sm),
         Expanded(
-          flex: 3,
+          flex: 2,
           child: InkWell(
             borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
             onTap: _openTagPicker,
