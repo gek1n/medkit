@@ -117,8 +117,10 @@ class ActivityLogGenerator {
     // рутини — сповіщення про чергу лунає на ЙОГО пристрої, з іменем
     // фактичного виконавця в тексті (memberName).
     final settings = _ref.read(notificationSettingsProvider);
+    final rawReminderAt =
+        scheduledAt.subtract(Duration(minutes: activity.reminderBeforeMin));
     final remindAt = settings.adjust(
-      scheduledAt,
+      rawReminderAt,
       memberId: activity.memberId,
     );
     if (remindAt != null) {

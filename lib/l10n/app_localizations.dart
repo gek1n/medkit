@@ -5068,6 +5068,30 @@ abstract class AppLocalizations {
   /// **'Налаштовується в Профіль → Видимість для сім\'ї — окремо для кожного профілю.'**
   String get faqFamilyA3;
 
+  /// No description provided for @faqFamilyQ4.
+  ///
+  /// In uk, this message translates to:
+  /// **'Чи можу я бути одночасно в кількох сімейних групах?'**
+  String get faqFamilyQ4;
+
+  /// No description provided for @faqFamilyA4.
+  ///
+  /// In uk, this message translates to:
+  /// **'Так. Наприклад, ви можете бути учасником сім\'ї батьків і водночас власної сім\'ї, яку створили самі, — це дві незалежні групи. Вихід з однієї не впливає на іншу, а дані різних сімей ніколи не змішуються.'**
+  String get faqFamilyA4;
+
+  /// No description provided for @faqFamilyQ5.
+  ///
+  /// In uk, this message translates to:
+  /// **'Як працює черга виконання рутинних справ між кількома виконавцями?'**
+  String get faqFamilyQ5;
+
+  /// No description provided for @faqFamilyA5.
+  ///
+  /// In uk, this message translates to:
+  /// **'Коли в рутині вказано кількох виконавців, застосунок сам визначає, чия зараз черга, за обраним кадансом: \"кожного разу\" — черга переходить після кожного виконання; \"раз на тиждень\" — той самий виконавець виконує всі входження впродовж календарного тижня, потім черга переходить далі; \"раз на місяць\" — так само, але на цілий календарний місяць, навіть якщо рутина повторюється кілька разів на тиждень. Картку рутини на екрані \"Сьогодні\" бачить лише той, чия зараз черга; передати чергу вручну можна кнопкою \"Пропустити чергу\".'**
+  String get faqFamilyA5;
+
   /// No description provided for @faqNotificationsQ1.
   ///
   /// In uk, this message translates to:
@@ -5103,6 +5127,30 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Elly (безкоштовний) — базові функції з обмеженнями. Elly Plus і Elly Family знімають ліміти й додають розширені можливості. Деталі — Профіль → Тарифи.'**
   String get faqPlansA1;
+
+  /// No description provided for @faqPlansQ2.
+  ///
+  /// In uk, this message translates to:
+  /// **'Які саме обмеження має безкоштовний тариф?'**
+  String get faqPlansQ2;
+
+  /// No description provided for @faqPlansA2.
+  ///
+  /// In uk, this message translates to:
+  /// **'1 локальний профіль, 1 активна рутинна справа, 3 розділи Полички. Нагадування, ліки та самопочуття — без обмежень на всіх тарифах. Перевищення ліміту нічого не видаляє: старі записи лишаються доступними для перегляду, редагування чи створення нових — заблоковано, доки не оновите тариф.'**
+  String get faqPlansA2;
+
+  /// No description provided for @faqPlansQ3.
+  ///
+  /// In uk, this message translates to:
+  /// **'Скільки людей можна додати до сімейної групи?'**
+  String get faqPlansQ3;
+
+  /// No description provided for @faqPlansA3.
+  ///
+  /// In uk, this message translates to:
+  /// **'На тарифі Elly Family — до 8 автономних учасників. Запрошувати нових людей може лише той, хто оплачує підписку; прийняти запрошення можна безкоштовно на будь-якому тарифі. Запрошений отримує усі можливості Family, окрім права запрошувати інших у ЦЮ саму сім\'ю.'**
+  String get faqPlansA3;
 
   /// No description provided for @faqGroupTechTitle.
   ///

@@ -1,19 +1,22 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
-import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
+import '../../shared/widgets/photo_gallery_viewer.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_activity_screen.dart';
@@ -86,6 +89,22 @@ class _ViewBody extends ConsumerWidget {
     try {
       final list = jsonDecode(activity.stepsJson ?? '[]') as List;
       return list.map((s) => (s as Map)['title'] as String).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  List<String> get _tags {
+    try {
+      return List<String>.from(jsonDecode(activity.tags) as List);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  List<String> get _photos {
+    try {
+      return List<String>.from(jsonDecode(activity.documentPaths) as List);
     } catch (_) {
       return const [];
     }
@@ -182,6 +201,10 @@ class _ViewBody extends ConsumerWidget {
         ref.watch(_routineCountProvider(activity.memberId)).valueOrNull ?? 0;
     final editBlocked = isRoutineOverLimit(ref, routineCount);
     final streak = ref.watch(_streakProvider(activity.id)).valueOrNull ?? 0;
+    final tags = _tags;
+    final photos = _photos;
+    final hasLocation =
+        activity.location != null && activity.location!.trim().isNotEmpty;
 
     return Column(
       children: [
@@ -250,7 +273,7 @@ class _ViewBody extends ConsumerWidget {
                         color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                       ),
-                      child: const AssetIcon('task_routine', size: 22),
+                      child: MedcardIcon(activity.iconKey, size: 22),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -349,6 +372,74 @@ class _ViewBody extends ConsumerWidget {
                           ],
                         ),
                       )),
+                ],
+                if (hasLocation) ...[
+                  const SizedBox(height: 18),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.location_on_outlined, size: 15, color: color),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(activity.location!,
+                            style: AppTextStyles.bodyMd
+                                .copyWith(color: AppColors.textSub)),
+                      ),
+                    ],
+                  ),
+                ],
+                if (tags.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: tags
+                        .map((t) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.12),
+                                borderRadius:
+                                    BorderRadius.circular(AppDimensions.radiusFull),
+                              ),
+                              child: Text(t,
+                                  style: AppTextStyles.labelSm.copyWith(
+                                      color: color, fontWeight: FontWeight.w600)),
+                            ))
+                        .toList(),
+                  ),
+                ],
+                if (photos.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Text(context.l10n.reminderPhotoLabel.toUpperCase(),
+                      style: AppTextStyles.labelSm),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: photos.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemBuilder: (context, i) => GestureDetector(
+                      onTap: () => showPhotoGalleryViewer(
+                          context, imagePaths: photos, initialIndex: i),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                        child: FutureBuilder<Uint8List>(
+                          future: PhotoService.decryptedBytes(photos[i]),
+                          builder: (context, snap) {
+                            if (!snap.hasData) {
+                              return Container(color: AppColors.surface);
+                            }
+                            return Image.memory(snap.data!, fit: BoxFit.cover);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),

@@ -5134,6 +5134,51 @@ class $ActivitiesTable extends Activities
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+    'tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _documentPathsMeta = const VerificationMeta(
+    'documentPaths',
+  );
+  @override
+  late final GeneratedColumn<String> documentPaths = GeneratedColumn<String>(
+    'document_paths',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _iconKeyMeta = const VerificationMeta(
+    'iconKey',
+  );
+  @override
+  late final GeneratedColumn<String> iconKey = GeneratedColumn<String>(
+    'icon_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('task_routine'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5157,6 +5202,10 @@ class $ActivitiesTable extends Activities
     rotationAnchorDate,
     rotationMode,
     stepsJson,
+    tags,
+    documentPaths,
+    location,
+    iconKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5318,6 +5367,33 @@ class $ActivitiesTable extends Activities
         stepsJson.isAcceptableOrUnknown(data['steps_json']!, _stepsJsonMeta),
       );
     }
+    if (data.containsKey('tags')) {
+      context.handle(
+        _tagsMeta,
+        tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta),
+      );
+    }
+    if (data.containsKey('document_paths')) {
+      context.handle(
+        _documentPathsMeta,
+        documentPaths.isAcceptableOrUnknown(
+          data['document_paths']!,
+          _documentPathsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('icon_key')) {
+      context.handle(
+        _iconKeyMeta,
+        iconKey.isAcceptableOrUnknown(data['icon_key']!, _iconKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -5411,6 +5487,22 @@ class $ActivitiesTable extends Activities
         DriftSqlType.string,
         data['${effectivePrefix}steps_json'],
       ),
+      tags: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tags'],
+      )!,
+      documentPaths: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_paths'],
+      )!,
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      iconKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_key'],
+      )!,
     );
   }
 
@@ -5442,6 +5534,10 @@ class Activity extends DataClass implements Insertable<Activity> {
   final DateTime? rotationAnchorDate;
   final String rotationMode;
   final String? stepsJson;
+  final String tags;
+  final String documentPaths;
+  final String? location;
+  final String iconKey;
   const Activity({
     required this.id,
     required this.memberId,
@@ -5464,6 +5560,10 @@ class Activity extends DataClass implements Insertable<Activity> {
     this.rotationAnchorDate,
     required this.rotationMode,
     this.stepsJson,
+    required this.tags,
+    required this.documentPaths,
+    this.location,
+    required this.iconKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5507,6 +5607,12 @@ class Activity extends DataClass implements Insertable<Activity> {
     if (!nullToAbsent || stepsJson != null) {
       map['steps_json'] = Variable<String>(stepsJson);
     }
+    map['tags'] = Variable<String>(tags);
+    map['document_paths'] = Variable<String>(documentPaths);
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    map['icon_key'] = Variable<String>(iconKey);
     return map;
   }
 
@@ -5551,6 +5657,12 @@ class Activity extends DataClass implements Insertable<Activity> {
       stepsJson: stepsJson == null && nullToAbsent
           ? const Value.absent()
           : Value(stepsJson),
+      tags: Value(tags),
+      documentPaths: Value(documentPaths),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      iconKey: Value(iconKey),
     );
   }
 
@@ -5583,6 +5695,10 @@ class Activity extends DataClass implements Insertable<Activity> {
       ),
       rotationMode: serializer.fromJson<String>(json['rotationMode']),
       stepsJson: serializer.fromJson<String?>(json['stepsJson']),
+      tags: serializer.fromJson<String>(json['tags']),
+      documentPaths: serializer.fromJson<String>(json['documentPaths']),
+      location: serializer.fromJson<String?>(json['location']),
+      iconKey: serializer.fromJson<String>(json['iconKey']),
     );
   }
   @override
@@ -5610,6 +5726,10 @@ class Activity extends DataClass implements Insertable<Activity> {
       'rotationAnchorDate': serializer.toJson<DateTime?>(rotationAnchorDate),
       'rotationMode': serializer.toJson<String>(rotationMode),
       'stepsJson': serializer.toJson<String?>(stepsJson),
+      'tags': serializer.toJson<String>(tags),
+      'documentPaths': serializer.toJson<String>(documentPaths),
+      'location': serializer.toJson<String?>(location),
+      'iconKey': serializer.toJson<String>(iconKey),
     };
   }
 
@@ -5635,6 +5755,10 @@ class Activity extends DataClass implements Insertable<Activity> {
     Value<DateTime?> rotationAnchorDate = const Value.absent(),
     String? rotationMode,
     Value<String?> stepsJson = const Value.absent(),
+    String? tags,
+    String? documentPaths,
+    Value<String?> location = const Value.absent(),
+    String? iconKey,
   }) => Activity(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -5665,6 +5789,10 @@ class Activity extends DataClass implements Insertable<Activity> {
         : this.rotationAnchorDate,
     rotationMode: rotationMode ?? this.rotationMode,
     stepsJson: stepsJson.present ? stepsJson.value : this.stepsJson,
+    tags: tags ?? this.tags,
+    documentPaths: documentPaths ?? this.documentPaths,
+    location: location.present ? location.value : this.location,
+    iconKey: iconKey ?? this.iconKey,
   );
   Activity copyWithCompanion(ActivitiesCompanion data) {
     return Activity(
@@ -5709,6 +5837,12 @@ class Activity extends DataClass implements Insertable<Activity> {
           ? data.rotationMode.value
           : this.rotationMode,
       stepsJson: data.stepsJson.present ? data.stepsJson.value : this.stepsJson,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      documentPaths: data.documentPaths.present
+          ? data.documentPaths.value
+          : this.documentPaths,
+      location: data.location.present ? data.location.value : this.location,
+      iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
     );
   }
 
@@ -5735,7 +5869,11 @@ class Activity extends DataClass implements Insertable<Activity> {
           ..write('weeklyGoalCount: $weeklyGoalCount, ')
           ..write('rotationAnchorDate: $rotationAnchorDate, ')
           ..write('rotationMode: $rotationMode, ')
-          ..write('stepsJson: $stepsJson')
+          ..write('stepsJson: $stepsJson, ')
+          ..write('tags: $tags, ')
+          ..write('documentPaths: $documentPaths, ')
+          ..write('location: $location, ')
+          ..write('iconKey: $iconKey')
           ..write(')'))
         .toString();
   }
@@ -5763,6 +5901,10 @@ class Activity extends DataClass implements Insertable<Activity> {
     rotationAnchorDate,
     rotationMode,
     stepsJson,
+    tags,
+    documentPaths,
+    location,
+    iconKey,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -5788,7 +5930,11 @@ class Activity extends DataClass implements Insertable<Activity> {
           other.weeklyGoalCount == this.weeklyGoalCount &&
           other.rotationAnchorDate == this.rotationAnchorDate &&
           other.rotationMode == this.rotationMode &&
-          other.stepsJson == this.stepsJson);
+          other.stepsJson == this.stepsJson &&
+          other.tags == this.tags &&
+          other.documentPaths == this.documentPaths &&
+          other.location == this.location &&
+          other.iconKey == this.iconKey);
 }
 
 class ActivitiesCompanion extends UpdateCompanion<Activity> {
@@ -5813,6 +5959,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
   final Value<DateTime?> rotationAnchorDate;
   final Value<String> rotationMode;
   final Value<String?> stepsJson;
+  final Value<String> tags;
+  final Value<String> documentPaths;
+  final Value<String?> location;
+  final Value<String> iconKey;
   const ActivitiesCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -5835,6 +5985,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.rotationAnchorDate = const Value.absent(),
     this.rotationMode = const Value.absent(),
     this.stepsJson = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.documentPaths = const Value.absent(),
+    this.location = const Value.absent(),
+    this.iconKey = const Value.absent(),
   });
   ActivitiesCompanion.insert({
     this.id = const Value.absent(),
@@ -5858,6 +6012,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     this.rotationAnchorDate = const Value.absent(),
     this.rotationMode = const Value.absent(),
     this.stepsJson = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.documentPaths = const Value.absent(),
+    this.location = const Value.absent(),
+    this.iconKey = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name);
   static Insertable<Activity> custom({
@@ -5882,6 +6040,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Expression<DateTime>? rotationAnchorDate,
     Expression<String>? rotationMode,
     Expression<String>? stepsJson,
+    Expression<String>? tags,
+    Expression<String>? documentPaths,
+    Expression<String>? location,
+    Expression<String>? iconKey,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5907,6 +6069,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
         'rotation_anchor_date': rotationAnchorDate,
       if (rotationMode != null) 'rotation_mode': rotationMode,
       if (stepsJson != null) 'steps_json': stepsJson,
+      if (tags != null) 'tags': tags,
+      if (documentPaths != null) 'document_paths': documentPaths,
+      if (location != null) 'location': location,
+      if (iconKey != null) 'icon_key': iconKey,
     });
   }
 
@@ -5932,6 +6098,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     Value<DateTime?>? rotationAnchorDate,
     Value<String>? rotationMode,
     Value<String?>? stepsJson,
+    Value<String>? tags,
+    Value<String>? documentPaths,
+    Value<String?>? location,
+    Value<String>? iconKey,
   }) {
     return ActivitiesCompanion(
       id: id ?? this.id,
@@ -5955,6 +6125,10 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
       rotationAnchorDate: rotationAnchorDate ?? this.rotationAnchorDate,
       rotationMode: rotationMode ?? this.rotationMode,
       stepsJson: stepsJson ?? this.stepsJson,
+      tags: tags ?? this.tags,
+      documentPaths: documentPaths ?? this.documentPaths,
+      location: location ?? this.location,
+      iconKey: iconKey ?? this.iconKey,
     );
   }
 
@@ -6026,6 +6200,18 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
     if (stepsJson.present) {
       map['steps_json'] = Variable<String>(stepsJson.value);
     }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (documentPaths.present) {
+      map['document_paths'] = Variable<String>(documentPaths.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (iconKey.present) {
+      map['icon_key'] = Variable<String>(iconKey.value);
+    }
     return map;
   }
 
@@ -6052,7 +6238,11 @@ class ActivitiesCompanion extends UpdateCompanion<Activity> {
           ..write('weeklyGoalCount: $weeklyGoalCount, ')
           ..write('rotationAnchorDate: $rotationAnchorDate, ')
           ..write('rotationMode: $rotationMode, ')
-          ..write('stepsJson: $stepsJson')
+          ..write('stepsJson: $stepsJson, ')
+          ..write('tags: $tags, ')
+          ..write('documentPaths: $documentPaths, ')
+          ..write('location: $location, ')
+          ..write('iconKey: $iconKey')
           ..write(')'))
         .toString();
   }

@@ -57,6 +57,13 @@ class Activities extends Table {
   TextColumn get stepsJson => text().nullable()();
   // json: [{"title": "..."}] — шаблон підкроків (чек-лист), вільний порядок
   // виконання. null/[] — звичайна рутина без розбивки (одна дія = один тогл).
+
+  // ── Поля, вирівняні з формою Нагадування (той самий порядок у UI) ────────
+  TextColumn get tags => text().withDefault(const Constant('[]'))();
+  TextColumn get documentPaths => text().withDefault(const Constant('[]'))();
+  TextColumn get location => text().nullable()();
+  TextColumn get iconKey => text().withDefault(const Constant('task_routine'))();
+  // ключ для MedcardIcon — пара до color, як і в Reminders.
 }
 
 class ActivityAssignees extends Table {

@@ -2841,6 +2841,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'This is configured in Profile → Family visibility — separately for each profile.';
 
   @override
+  String get faqFamilyQ4 => 'Can I belong to several family groups at once?';
+
+  @override
+  String get faqFamilyA4 =>
+      'Yes. For example, you can be a member of your parents\' family while also having your own family that you created — these are two independent groups. Leaving one doesn\'t affect the other, and data from different families is never mixed.';
+
+  @override
+  String get faqFamilyQ5 =>
+      'How does the turn order work for routines with several people?';
+
+  @override
+  String get faqFamilyA5 =>
+      'When a routine has several assignees, the app works out whose turn it is based on the chosen cadence: \"every time\" — the turn moves on after each completion; \"weekly\" — the same person handles every occurrence for the whole calendar week, then the turn moves on; \"monthly\" — the same, but for a whole calendar month, even if the routine repeats several times a week. Only the person whose turn it currently is sees the routine\'s card on their own Today screen; you can hand the turn off manually with the \"Skip turn\" button.';
+
+  @override
   String get faqNotificationsQ1 => 'Why aren\'t reminders arriving?';
 
   @override
@@ -2861,6 +2876,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get faqPlansA1 =>
       'Elly (free) — basic features with limits. Elly Plus and Elly Family remove the limits and add extra features. Details — Profile → Plans.';
+
+  @override
+  String get faqPlansQ2 => 'What exactly does the free plan limit?';
+
+  @override
+  String get faqPlansA2 =>
+      '1 local profile, 1 active routine, 3 Shelf sections. Reminders, medications, and mood tracking are unlimited on every plan. Going over a limit never deletes anything: older entries stay viewable, only editing or creating new ones is blocked until you upgrade.';
+
+  @override
+  String get faqPlansQ3 => 'How many people can I add to a family group?';
+
+  @override
+  String get faqPlansA3 =>
+      'On Elly Family — up to 8 independent members. Only the person paying for the subscription can invite new people; accepting an invitation is free on any plan. The invited person gets every Family perk except the right to invite others into that same family.';
 
   @override
   String get faqGroupTechTitle => 'Technical issues';
