@@ -168,7 +168,7 @@ final familyMemberTodayProgressProvider =
       .length;
   missed += activityLogs
       .where((l) =>
-          l.status == 'pending' &&
+          (l.status == 'pending' || l.status == 'partial') &&
           !noFixedTimeIds.contains(l.activityId) &&
           l.scheduledAt.isBefore(activeWindowStart))
       .length;

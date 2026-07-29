@@ -302,7 +302,7 @@ class _MemberCard extends ConsumerWidget {
       }
     }
     for (final l in activityLogs) {
-      if (l.status == 'pending' &&
+      if ((l.status == 'pending' || l.status == 'partial') &&
           !noFixedTimeIds.contains(l.activityId) &&
           l.scheduledAt.isBefore(activeWindowStart)) {
         missedItems.add(_MissedItem(

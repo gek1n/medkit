@@ -330,8 +330,13 @@ class _TodayContent extends ConsumerWidget {
           // виглядали б "пропущеними" одразу після 9:15 ранку. Вони
           // показуються окремо в _AnytimeRoutinesSection.
           final noFixedTimeIds = noFixedTimeIdsAsync.valueOrNull ?? {};
+          // 'partial' (частина кроків чек-листа відмічена, але не всі) —
+          // рутина ще не виконана, тож лишається видимою тут само, як і
+          // 'pending', інакше картка просто зникала б з усіх секцій
+          // Сьогодні (не активна, не пропущена, не виконана) одразу після
+          // першої відмітки кроку в чек-листі з кількома пунктами.
           final allPendingLogs = activityLogs
-              .where((l) => l.status == 'pending')
+              .where((l) => l.status == 'pending' || l.status == 'partial')
               .toList();
           final anytimeActivities = allPendingLogs
               .where((l) => noFixedTimeIds.contains(l.activityId))
