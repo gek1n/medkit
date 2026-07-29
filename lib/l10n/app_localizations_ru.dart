@@ -2585,7 +2585,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get planPerMonthPeriod => 'ежемесячно';
 
   @override
-  String get freeFeatureAllSections => 'Все разделы без ограничений';
+  String get freeFeatureAllSections => '1 рутинное дело, 3 раздела Полочки';
 
   @override
   String get freeFeatureUnlimitedMeds => 'Неограниченно напоминаний';
