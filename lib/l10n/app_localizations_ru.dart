@@ -35,7 +35,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get todayProgressSubtitle => 'лекарств принято сегодня';
+  String get todayProgressSubtitle => 'позиций инвентаря использовано сегодня';
 
   @override
   String todayProgressPercent(int percent) {
@@ -128,7 +128,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get dayPartNight => 'Ночь';
 
   @override
-  String get defaultMedName => 'Лекарство';
+  String get defaultMedName => 'Инвентарь';
 
   @override
   String get defaultActivityName => 'Активность';
@@ -205,7 +205,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get categoryAll => 'Все';
 
   @override
-  String get categoryMeds => 'Лекарства';
+  String get categoryMeds => 'Инвентарь';
 
   @override
   String get categoryActivities => 'Активности';
@@ -229,10 +229,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noResultsFoundHint => 'Ничего не найдено';
 
   @override
-  String get sectionMeds => 'Лекарства';
+  String get sectionMeds => 'Инвентарь';
 
   @override
-  String get noActiveMeds => 'Нет активных лекарств';
+  String get noActiveMeds => 'Нет активного инвентаря';
 
   @override
   String get sectionAppointments => 'Напоминания';
@@ -277,19 +277,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get repeatCycle => 'циклом';
 
   @override
-  String get courseOngoing => 'постоянный курс';
+  String get courseOngoing => 'используется постоянно';
 
   @override
-  String get courseFinished => 'курс завершён';
+  String get courseFinished => 'завершено';
 
   @override
   String courseDaysLeft(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count дней курса',
-      few: '$count дня курса',
-      one: '$count день курса',
+      other: '$count дней осталось',
+      few: '$count дня осталось',
+      one: '$count день осталось',
     );
     return '$_temp0';
   }
@@ -364,10 +364,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get medCardTitle => 'Полки';
 
   @override
-  String get medCardArchiveTitle => 'Архив лекарств';
+  String get medCardArchiveTitle => 'Архив инвентаря';
 
   @override
-  String get medCardArchiveSubtitle => 'Все препараты и статус лечения';
+  String get medCardArchiveSubtitle => 'Весь инвентарь и его статус';
 
   @override
   String get medCardAppointmentsTitle => 'Архив напоминаний';
@@ -464,7 +464,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get medicationArchiveEmptyHint =>
-      'Здесь появятся все лекарства, которые вы когда-либо добавляли';
+      'Здесь появится весь инвентарь, который вы когда-либо добавляли';
 
   @override
   String get medStatusOngoing => 'Продолжается';
@@ -508,7 +508,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get removeAction => 'Убрать';
 
   @override
-  String get medsTitle => 'Лекарства';
+  String get medsTitle => 'Инвентарь';
 
   @override
   String activeMedsCountSection(int count) {
@@ -521,43 +521,16 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get noMedsYetTitle => 'Лекарств ещё нет';
+  String get noMedsYetTitle => 'Инвентаря ещё нет';
 
   @override
-  String get noMedsYetHint => 'Нажмите +, чтобы добавить первое лекарство';
+  String get noMedsYetHint => 'Нажмите +, чтобы добавить первую запись';
 
   @override
-  String get addMedicationAction => 'Добавить лекарство';
+  String get addMedicationAction => 'Добавить в инвентарь';
 
   @override
   String get errorGenericShort => 'Ошибка';
-
-  @override
-  String get stockUnitTabletsCapsules => 'ТАБЛЕТКИ / КАПСУЛЫ';
-
-  @override
-  String get stockUnitSyrup => 'СИРОП';
-
-  @override
-  String get stockUnitDrops => 'КАПЛИ';
-
-  @override
-  String get stockUnitInjections => 'ИНЪЕКЦИИ';
-
-  @override
-  String get stockUnitSuppositories => 'СВЕЧИ';
-
-  @override
-  String get stockUnitVial => 'ФЛАКОН';
-
-  @override
-  String get stockUnitCream => 'КРЕМ';
-
-  @override
-  String get stockUnitInhaler => 'ИНГАЛЯТОР';
-
-  @override
-  String get stockUnitGeneric => 'ОСТАТОК';
 
   @override
   String perDoseLabel(String dose, String unit) {
@@ -580,7 +553,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get stockSectionLabel => 'Остаток';
 
   @override
-  String get untilCourseEndLabel => 'до конца курса';
+  String get untilCourseEndLabel => 'до окончания';
 
   @override
   String get next30DaysLabel => 'на ближайшие 30 дней';
@@ -609,37 +582,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get okAction => 'OK';
 
   @override
-  String remainingApproxPercent(int percent) {
-    return 'Осталось ~$percent%';
-  }
-
-  @override
-  String daysLeftAtCurrentRate(String days) {
-    return '~$days дней при текущем расходе';
-  }
-
-  @override
-  String get updateStockEstimateLabel => 'Обновить оценку остатка:';
-
-  @override
-  String get openedNewContainerAction => '+ Открыл новый флакон';
-
-  @override
-  String get openedTodayLabel => 'Открыто сегодня';
-
-  @override
-  String openedDaysAgoLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count дней назад',
-      few: '$count дня назад',
-      one: '$count день назад',
-    );
-    return 'Открыто $_temp0';
-  }
-
-  @override
   String phaseNumberLabel(int number) {
     return 'Этап $number';
   }
@@ -653,7 +595,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get courseStagesLabel => 'Этапы курса';
+  String get courseStagesLabel => 'Этапы';
 
   @override
   String get foodBeforeLabel => '🕐 До еды';
@@ -679,13 +621,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get detailsLabel => 'Детали';
 
   @override
-  String get intakeLabel => 'Приём';
+  String get intakeLabel => 'Расписание';
 
   @override
   String get withFoodLabel => 'С едой';
 
   @override
-  String get courseNounLabel => 'Курс';
+  String get courseNounLabel => 'Период';
 
   @override
   String get noteLabel => 'Примечание';
@@ -715,34 +657,34 @@ class AppLocalizationsRu extends AppLocalizations {
   String get stopAction => 'Остановить';
 
   @override
-  String get stopCourseConfirmTitle => 'Остановить курс?';
+  String get stopCourseConfirmTitle => 'Остановить?';
 
   @override
   String stopCourseConfirmBody(String name) {
-    return '«$name» будет удалено из списка активных лекарств.';
+    return '«$name» будет удалено из списка активного инвентаря.';
   }
 
   @override
-  String get enterMedicationNameError => 'Введите название лекарства';
+  String get enterMedicationNameError => 'Введите название';
 
   @override
-  String get deleteMedicationConfirmTitle => 'Удалить лекарство?';
+  String get deleteMedicationConfirmTitle => 'Удалить запись?';
 
   @override
   String get deleteMedicationConfirmBody =>
-      'Лекарство будет удалено из расписания.';
+      'Запись будет удалена из расписания.';
 
   @override
-  String get editMedicationTitle => 'Редактировать лекарство';
+  String get editMedicationTitle => 'Редактировать запись';
 
   @override
-  String get medicationNameHint => 'Название препарата';
+  String get medicationNameHint => 'Название';
 
   @override
   String get medicationFormLabel => 'Форма выпуска';
 
   @override
-  String get coursePhasesLabel => 'Фазы курса';
+  String get coursePhasesLabel => 'Фазы';
 
   @override
   String get addPhaseAction => 'Добавить фазу';
@@ -763,10 +705,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get saveAndViewScheduleAction => 'Сохранить и посмотреть расписание →';
 
   @override
-  String get medicalDisclaimerText =>
-      'Elly — инструмент для напоминаний и организации, не медицинская консультация. Для постановки диагноза, назначения или изменения лечения всегда обращайтесь к врачу.';
-
-  @override
   String phaseCardTitle(int number) {
     return 'Фаза $number';
   }
@@ -775,7 +713,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get removePhaseAction => 'удалить';
 
   @override
-  String get doseAmountLabel => 'КОЛИЧЕСТВО НА ПРИЁМ';
+  String get doseAmountLabel => 'КОЛИЧЕСТВО ЗА РАЗ';
 
   @override
   String get foodRelationSectionLabel => 'ОТНОСИТЕЛЬНО ЕДЫ';
@@ -833,10 +771,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get hoursSuffix => 'ч.';
 
   @override
-  String get doseCommentHint => 'Комментарий к дозе (необязательно)';
+  String get doseCommentHint => 'Комментарий (необязательно)';
 
   @override
-  String get doseAmountDialogTitle => 'Количество на приём';
+  String get doseAmountDialogTitle => 'Количество за раз';
 
   @override
   String get doseAmountExampleHint => 'например 2.5';
@@ -881,13 +819,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get trackStockLabel => 'Отслеживать и напоминать об остатке';
 
   @override
-  String get vialPackageLabel => 'Флакон / упаковка';
-
-  @override
-  String get markAsOpenedHint =>
-      'Отметим как только что открытую (100%) — обновить оценку остатка можно будет в карточке лекарства';
-
-  @override
   String get inStockLabel => 'В наличии';
 
   @override
@@ -896,12 +827,7 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String courseAvailableLabel(int needed, int available) {
-    return ' (курс: $needed, есть: $available)';
-  }
-
-  @override
-  String get enoughForCourseLabel => 'Хватит на весь курс';
+  String get enoughForCourseLabel => 'Хватит на весь период';
 
   @override
   String get noCameraAccessError =>
@@ -917,7 +843,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addPhotoAction => 'Добавить фото';
 
   @override
-  String get addPhotoHint => 'чтобы не перепутать лекарства';
+  String get addPhotoHint => 'чтобы не перепутать позиции инвентаря';
 
   @override
   String inviteMemberTitle(String name) {
@@ -1479,7 +1405,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get medcardSyncDescription =>
-      'Если выключено, напоминания этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Лекарства и расписание приёма синхронизируются независимо от этого переключателя.';
+      'Если выключено, напоминания этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Инвентарь и расписание использования синхронизируются независимо от этого переключателя.';
 
   @override
   String get pendingConnectionLabel => 'Ожидаем соединения';
@@ -2261,7 +2187,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get setupMedsToActivateLabel =>
-      'Настройте лекарства, чтобы активировать напоминания';
+      'Добавьте что-нибудь в инвентарь, чтобы активировать напоминания';
 
   @override
   String get privacyConsentPrefix => 'Я ознакомлен(-а) и согласен(-на) с ';
@@ -2291,7 +2217,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String scheduleSetByInviterBody(String name) {
-    return '$name уже составил(-а) для вас расписание приёма лекарств. Вы сможете отредактировать его в любой момент после подключения.';
+    return '$name уже составил(-а) для вас расписание использования инвентаря. Вы сможете отредактировать его в любой момент после подключения.';
   }
 
   @override
@@ -2330,7 +2256,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get welcomeDescription =>
-      'Elly поможет не забыть о лекарствах,\nактивности и настроении — для вас\nи всей семьи';
+      'Elly поможет не забыть об инвентаре,\nактивности и настроении — для вас\nи всей семьи';
 
   @override
   String onboardingStepLabel(int step, int total) {
@@ -2347,7 +2273,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get createAccountTitle => 'Создать аккаунт';
 
   @override
-  String get createAccountSubtitle => 'Настрою лекарства и расписание для себя';
+  String get createAccountSubtitle => 'Настрою инвентарь и расписание для себя';
 
   @override
   String get joinFamilyChoiceTitle => 'Подключиться к семье';
@@ -2367,32 +2293,27 @@ class AppLocalizationsRu extends AppLocalizations {
       'Укажите своё имя и выберите аватар профиля';
 
   @override
-  String get nextToMedsAction => 'Далее — лекарства →';
+  String get nextToMedsAction => 'Далее — инвентарь →';
 
   @override
-  String get scanOrEnterManuallyHint =>
-      'Добавьте лекарства, которые принимаете сейчас';
+  String get scanOrEnterManuallyHint => 'Добавьте то, что используете сейчас';
 
   @override
-  String get addMedsShortAction => 'Добавить лекарства';
+  String get addMedsShortAction => 'Добавить в инвентарь';
 
   @override
-  String get addMoreMedsAction => 'Добавить ещё лекарства';
-
-  @override
-  String get addMedsHint =>
-      'Скан фото рецепта или название, доза и расписание вручную';
+  String get addMoreMedsAction => 'Добавить ещё';
 
   @override
   String get onboardingAddItemAction => 'Добавить';
 
   @override
   String get onboardingAddItemHint =>
-      'Напоминание или лекарство — выберите вариант';
+      'Напоминание или инвентарь — выберите вариант';
 
   @override
   String get addMedsLaterInfo =>
-      'Лекарства можно добавить позже через раздел «Лекарства» в главном меню';
+      'Инвентарь можно добавить позже через раздел «Инвентарь» в главном меню';
 
   @override
   String get nextAction => 'Далее →';
@@ -2418,7 +2339,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get wellbeingDiaryDescription =>
-      'Короткие отметки настроения помогут увидеть связь между приёмом лекарств и тем, какое у вас настроение';
+      'Короткие отметки настроения помогут увидеть связь между инвентарём и тем, какое у вас настроение';
 
   @override
   String get wellbeingSlotsTitle => 'Чек-ины настроения';
@@ -2443,7 +2364,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get backupIntroBody =>
-      'Лекарства, расписание, архив (фото) и все остальные данные — выбирайте, где хранить резервную копию.';
+      'Инвентарь, расписание, архив (фото) и все остальные данные — выбирайте, где хранить резервную копию.';
 
   @override
   String get backupModeLocalTitle => 'Только на устройстве';
@@ -2728,7 +2649,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get exportDescriptionBody =>
-      'Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, настроением и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.';
+      'Файл в формате JSON со всеми профилями, инвентарём, расписанием, приёмами, настроением и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото инвентаря в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.';
 
   @override
   String get exportAction => 'Экспортировать';
@@ -2756,7 +2677,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addTypeSheetSubtitle => 'Выберите тип — форма подстроится';
 
   @override
-  String get addTypeMedsSub => 'Расписание, дозировка, повторение';
+  String get addTypeMedsSub => 'Расписание, остаток, повторение';
 
   @override
   String get addTypeActivitySub => 'Прогулка, зарядка, упражнения, ЛФК';
@@ -2905,7 +2826,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get faqPlansA2 =>
-      '1 локальный профиль, 1 активное рутинное дело, 3 раздела Полочки. Напоминания, лекарства и самочувствие — без ограничений на всех тарифах. Превышение лимита ничего не удаляет: старые записи остаются доступными для просмотра, редактирование или создание новых — заблокировано, пока не обновите тариф.';
+      '1 локальный профиль, 1 активное рутинное дело, 3 раздела Полочки. Напоминания, инвентарь и самочувствие — без ограничений на всех тарифах. Превышение лимита ничего не удаляет: старые записи остаются доступными для просмотра, редактирование или создание новых — заблокировано, пока не обновите тариф.';
 
   @override
   String get faqPlansQ3 => 'Сколько человек можно добавить в семейную группу?';
@@ -2954,7 +2875,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pushNotificationsLabel => 'Push-уведомления';
 
   @override
-  String get pushNotificationsSub => 'Напоминания о приёме лекарств';
+  String get pushNotificationsSub => 'Напоминания об использовании инвентаря';
 
   @override
   String get vibrationLabel => 'Вибрация';
@@ -3264,13 +3185,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notifChannelDesc =>
-      'Напоминания о лекарствах, активностях, визитах и настроении';
+      'Напоминания об инвентаре, активностях, визитах и настроении';
 
   @override
-  String get notifTakeMedTitle => '💊 Время принять лекарство';
+  String notifTakeMedTitle(String name) {
+    return '⏰ Время для $name';
+  }
 
   @override
-  String get notifIntakeNoResponseTitle => '🔔 Вы ещё не отметили приём';
+  String notifIntakeNoResponseTitle(String name) {
+    return '🔔 Вы ещё не отметили: $name';
+  }
 
   @override
   String get notifBackupReminderTitle => 'Защитите свои данные';
@@ -3280,7 +3205,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Резервная копия отключена — данные хранятся только на этом устройстве. Включите в Профиле, чтобы не потерять их.';
 
   @override
-  String get notifLowStockTitle => '⚠️ Заканчиваются лекарства';
+  String get notifLowStockTitle => '⚠️ Запас заканчивается';
 
   @override
   String notifLowStockBody(String medName, int remaining, String unit) {
@@ -3394,7 +3319,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get resetLocalDbConfirmBody =>
-      'Это удалит все данные на этом устройстве (лекарства, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.';
+      'Это удалит все данные на этом устройстве (инвентарь, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.';
 
   @override
   String get resetAction => 'Сбросить';

@@ -18,7 +18,7 @@
       }
     }
   },
-  "todayProgressSubtitle": "лекарств принято сегодня",
+  "todayProgressSubtitle": "позиций инвентаря использовано сегодня",
   "todayProgressPercent": "{percent}%",
   "@todayProgressPercent": {
     "placeholders": {
@@ -68,7 +68,7 @@
   "dayPartAfternoon": "День",
   "dayPartEvening": "Вечер",
   "dayPartNight": "Ночь",
-  "defaultMedName": "Лекарство",
+  "defaultMedName": "Инвентарь",
   "defaultActivityName": "Активность",
   "wellbeingTitle": "Настроение",
   "detailLabelTime": "Время",
@@ -106,7 +106,7 @@
   "welcomeTitle": "Добро пожаловать в Elly",
   "welcomeSubtitle": "Добавьте свой профиль, чтобы начать",
   "categoryAll": "Все",
-  "categoryMeds": "Лекарства",
+  "categoryMeds": "Инвентарь",
   "categoryActivities": "Активности",
   "categoryWellbeing": "Настроение",
   "categoryDoctors": "Напоминания",
@@ -114,8 +114,8 @@
   "searchAllSections": "Поиск по всем разделам",
   "searchHint": "Поиск",
   "noResultsFoundHint": "Ничего не найдено",
-  "sectionMeds": "Лекарства",
-  "noActiveMeds": "Нет активных лекарств",
+  "sectionMeds": "Инвентарь",
+  "noActiveMeds": "Нет активного инвентаря",
   "sectionAppointments": "Напоминания",
   "noScheduledAppointments": "Нет запланированных приёмов",
   "sectionActivities": "Активности",
@@ -130,9 +130,9 @@
   "repeatWeekdays": "определённые дни",
   "repeatEveryN": "каждые N дней",
   "repeatCycle": "циклом",
-  "courseOngoing": "постоянный курс",
-  "courseFinished": "курс завершён",
-  "courseDaysLeft": "{count, plural, one{{count} день курса} few{{count} дня курса} other{{count} дней курса}}",
+  "courseOngoing": "используется постоянно",
+  "courseFinished": "завершено",
+  "courseDaysLeft": "{count, plural, one{{count} день осталось} few{{count} дня осталось} other{{count} дней осталось}}",
   "@courseDaysLeft": {
     "placeholders": {
       "count": {
@@ -167,8 +167,8 @@
   "allStatusesFilter": "Все статусы",
   "medStatusFilterPickerTitle": "Выберите статус",
   "medCardTitle": "Полки",
-  "medCardArchiveTitle": "Архив лекарств",
-  "medCardArchiveSubtitle": "Все препараты и статус лечения",
+  "medCardArchiveTitle": "Архив инвентаря",
+  "medCardArchiveSubtitle": "Весь инвентарь и его статус",
   "medCardAppointmentsTitle": "Архив напоминаний",
   "medCardAppointmentsSubtitle": "Встречи, простые задачи, рутинные дела",
   "medCardWellbeingHistoryTitle": "История настроения",
@@ -199,7 +199,7 @@
   "entryDateFieldLabel": "Дата записи",
   "entryNotesHint": "Произвольные заметки…",
   "deleteEntryConfirmBody": "Запись будет удалена.",
-  "medicationArchiveEmptyHint": "Здесь появятся все лекарства, которые вы когда-либо добавляли",
+  "medicationArchiveEmptyHint": "Здесь появится весь инвентарь, который вы когда-либо добавляли",
   "medStatusOngoing": "Продолжается",
   "medStatusFinished": "Завершено",
   "medStatusCancelled": "Отменено",
@@ -220,7 +220,7 @@
   "deleteSurgeryConfirmTitle": "Удалить запись?",
   "editSurgeryTitle": "Редактировать запись",
   "removeAction": "Убрать",
-  "medsTitle": "Лекарства",
+  "medsTitle": "Инвентарь",
   "activeMedsCountSection": "Активные ({count})",
   "@activeMedsCountSection": {
     "placeholders": {
@@ -237,19 +237,10 @@
       }
     }
   },
-  "noMedsYetTitle": "Лекарств ещё нет",
-  "noMedsYetHint": "Нажмите +, чтобы добавить первое лекарство",
-  "addMedicationAction": "Добавить лекарство",
+  "noMedsYetTitle": "Инвентаря ещё нет",
+  "noMedsYetHint": "Нажмите +, чтобы добавить первую запись",
+  "addMedicationAction": "Добавить в инвентарь",
   "errorGenericShort": "Ошибка",
-  "stockUnitTabletsCapsules": "ТАБЛЕТКИ / КАПСУЛЫ",
-  "stockUnitSyrup": "СИРОП",
-  "stockUnitDrops": "КАПЛИ",
-  "stockUnitInjections": "ИНЪЕКЦИИ",
-  "stockUnitSuppositories": "СВЕЧИ",
-  "stockUnitVial": "ФЛАКОН",
-  "stockUnitCream": "КРЕМ",
-  "stockUnitInhaler": "ИНГАЛЯТОР",
-  "stockUnitGeneric": "ОСТАТОК",
   "perDoseLabel": "{dose} {unit} на приём",
   "@perDoseLabel": {
     "placeholders": {
@@ -270,7 +261,7 @@
     }
   },
   "stockSectionLabel": "Остаток",
-  "untilCourseEndLabel": "до конца курса",
+  "untilCourseEndLabel": "до окончания",
   "next30DaysLabel": "на ближайшие 30 дней",
   "remainingColonLabel": "Осталось: ",
   "daysLeftShortLabel": "на {days} дн.",
@@ -286,33 +277,6 @@
   "refillPackageTitle": "Пополнить упаковку",
   "quantityHint": "Количество",
   "okAction": "OK",
-  "remainingApproxPercent": "Осталось ~{percent}%",
-  "@remainingApproxPercent": {
-    "placeholders": {
-      "percent": {
-        "type": "int"
-      }
-    }
-  },
-  "daysLeftAtCurrentRate": "~{days} дней при текущем расходе",
-  "@daysLeftAtCurrentRate": {
-    "placeholders": {
-      "days": {
-        "type": "String"
-      }
-    }
-  },
-  "updateStockEstimateLabel": "Обновить оценку остатка:",
-  "openedNewContainerAction": "+ Открыл новый флакон",
-  "openedTodayLabel": "Открыто сегодня",
-  "openedDaysAgoLabel": "Открыто {count, plural, one{{count} день назад} few{{count} дня назад} other{{count} дней назад}}",
-  "@openedDaysAgoLabel": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "phaseNumberLabel": "Этап {number}",
   "@phaseNumberLabel": {
     "placeholders": {
@@ -330,7 +294,7 @@
       }
     }
   },
-  "courseStagesLabel": "Этапы курса",
+  "courseStagesLabel": "Этапы",
   "foodBeforeLabel": "🕐 До еды",
   "foodAfterLabel": "🍽 После еды",
   "foodWithLabel": "🥗 Во время еды",
@@ -345,9 +309,9 @@
   },
   "ongoingLabel": "постоянно",
   "detailsLabel": "Детали",
-  "intakeLabel": "Приём",
+  "intakeLabel": "Расписание",
   "withFoodLabel": "С едой",
-  "courseNounLabel": "Курс",
+  "courseNounLabel": "Период",
   "noteLabel": "Примечание",
   "courseRangeLabel": "с {start} {endPart}",
   "@courseRangeLabel": {
@@ -382,8 +346,8 @@
     }
   },
   "stopAction": "Остановить",
-  "stopCourseConfirmTitle": "Остановить курс?",
-  "stopCourseConfirmBody": "«{name}» будет удалено из списка активных лекарств.",
+  "stopCourseConfirmTitle": "Остановить?",
+  "stopCourseConfirmBody": "«{name}» будет удалено из списка активного инвентаря.",
   "@stopCourseConfirmBody": {
     "placeholders": {
       "name": {
@@ -391,20 +355,19 @@
       }
     }
   },
-  "enterMedicationNameError": "Введите название лекарства",
-  "deleteMedicationConfirmTitle": "Удалить лекарство?",
-  "deleteMedicationConfirmBody": "Лекарство будет удалено из расписания.",
-  "editMedicationTitle": "Редактировать лекарство",
-  "medicationNameHint": "Название препарата",
+  "enterMedicationNameError": "Введите название",
+  "deleteMedicationConfirmTitle": "Удалить запись?",
+  "deleteMedicationConfirmBody": "Запись будет удалена из расписания.",
+  "editMedicationTitle": "Редактировать запись",
+  "medicationNameHint": "Название",
   "medicationFormLabel": "Форма выпуска",
-  "coursePhasesLabel": "Фазы курса",
+  "coursePhasesLabel": "Фазы",
   "addPhaseAction": "Добавить фазу",
   "repeatSectionLabel": "Повтор",
   "savingLabel": "Сохраняем...",
   "saveChangesAction": "Сохранить изменения",
   "saveAndContinueAction": "Сохранить и продолжить →",
   "saveAndViewScheduleAction": "Сохранить и посмотреть расписание →",
-  "medicalDisclaimerText": "Elly — инструмент для напоминаний и организации, не медицинская консультация. Для постановки диагноза, назначения или изменения лечения всегда обращайтесь к врачу.",
   "phaseCardTitle": "Фаза {number}",
   "@phaseCardTitle": {
     "placeholders": {
@@ -414,7 +377,7 @@
     }
   },
   "removePhaseAction": "удалить",
-  "doseAmountLabel": "КОЛИЧЕСТВО НА ПРИЁМ",
+  "doseAmountLabel": "КОЛИЧЕСТВО ЗА РАЗ",
   "foodRelationSectionLabel": "ОТНОСИТЕЛЬНО ЕДЫ",
   "durationSectionLabel": "ДЛИТЕЛЬНОСТЬ",
   "daysCountDashLabel": "— дн.",
@@ -446,8 +409,8 @@
   "daysSuffix": "дн.",
   "intervalDialogTitle": "Интервал",
   "hoursSuffix": "ч.",
-  "doseCommentHint": "Комментарий к дозе (необязательно)",
-  "doseAmountDialogTitle": "Количество на приём",
+  "doseCommentHint": "Комментарий (необязательно)",
+  "doseAmountDialogTitle": "Количество за раз",
   "doseAmountExampleHint": "например 2.5",
   "weekdayExampleLabel": "Пн, Ср, Пт, Вс…",
   "weekdaysOptionLabel": "Определённые дни недели",
@@ -462,8 +425,6 @@
   "optionalParamsLabel": "Дополнительные параметры",
   "optionalLabel": "Необязательно",
   "trackStockLabel": "Отслеживать и напоминать об остатке",
-  "vialPackageLabel": "Флакон / упаковка",
-  "markAsOpenedHint": "Отметим как только что открытую (100%) — обновить оценку остатка можно будет в карточке лекарства",
   "inStockLabel": "В наличии",
   "howManyNowLabel": "Сколько {unit} есть сейчас",
   "@howManyNowLabel": {
@@ -473,23 +434,12 @@
       }
     }
   },
-  "courseAvailableLabel": " (курс: {needed}, есть: {available})",
-  "@courseAvailableLabel": {
-    "placeholders": {
-      "needed": {
-        "type": "int"
-      },
-      "available": {
-        "type": "int"
-      }
-    }
-  },
-  "enoughForCourseLabel": "Хватит на весь курс",
+  "enoughForCourseLabel": "Хватит на весь период",
   "noCameraAccessError": "Нет доступа к камере. Разрешите его в настройках телефона.",
   "cameraOpenError": "Не удалось открыть камеру",
   "packagePhotoLabel": "Фото упаковки",
   "addPhotoAction": "Добавить фото",
-  "addPhotoHint": "чтобы не перепутать лекарства",
+  "addPhotoHint": "чтобы не перепутать позиции инвентаря",
   "inviteMemberTitle": "Пригласить {name}",
   "@inviteMemberTitle": {
     "placeholders": {
@@ -717,8 +667,12 @@
   "routineTasksLimitSubtitle": "Использовано {used} из {max}. Перейдите на Elly Plus — неограниченное количество",
   "@routineTasksLimitSubtitle": {
     "placeholders": {
-      "used": { "type": "int" },
-      "max": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "routineTasksLimitDeniedTitle": "Лимит рутинных дел достигнут",
@@ -728,8 +682,12 @@
   "medcardSectionsLimitSubtitle": "Использовано {used} из {max}. Перейдите на Elly Plus — неограниченное количество",
   "@medcardSectionsLimitSubtitle": {
     "placeholders": {
-      "used": { "type": "int" },
-      "max": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "medcardSectionsLimitDeniedTitle": "Лимит полок достигнут",
@@ -889,7 +847,7 @@
   "familyVisibilityEmptyBody": "Если к вашей семейной группе присоединятся автономные участники (со своим аккаунтом), здесь можно будет управлять их доступом к вашему профилю",
   "familyVisibilityIntro": "Что видят и могут делать другие члены семьи с вашим профилем",
   "medcardSyncToggleLabel": "Синхронизировать медкарту на другие устройства",
-  "medcardSyncDescription": "Если выключено, напоминания этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Лекарства и расписание приёма синхронизируются независимо от этого переключателя.",
+  "medcardSyncDescription": "Если выключено, напоминания этого профиля (вместе с вложениями) не передаются на другие устройства семьи, подключённые через пейринг. Инвентарь и расписание использования синхронизируются независимо от этого переключателя.",
   "pendingConnectionLabel": "Ожидаем соединения",
   "viewerNotifyPermissionLabel": "Получает уведомления",
   "viewerEditPermissionLabel": "Может редактировать профиль",
@@ -1048,11 +1006,19 @@
   "routineRepeatWeeklyGoalOption": "N раз в неделю",
   "routineIntervalDaysValueLabel": "Каждые {n} дн.",
   "@routineIntervalDaysValueLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineWeeklyGoalValueLabel": "{n} р./неделю",
   "@routineWeeklyGoalValueLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineTimeFieldLabel": "Время",
   "routineFixedTimeOption": "В определённое время",
@@ -1064,37 +1030,57 @@
   "routineRotationCadenceMonthly": "Ежемесячно",
   "routineRotationSummary": "По очереди ({n})",
   "@routineRotationSummary": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineStepsLabel": "Шаги",
   "routineStepsSheetTitle": "Шаги выполнения",
   "routineAddStepHint": "Добавить шаг…",
   "routineWhoseTurnLabel": "Очередь: {name}",
   "@routineWhoseTurnLabel": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "routineSwapTurnAction": "Поменяться",
   "routineSkipTurnAction": "Пропустить очередь",
   "routineWeeklyGoalProgressLabel": "{done}/{total} на этой неделе",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "routinePartialStatusLabel": "Частично",
   "routineStepsProgressLabel": "{done}/{total} шагов",
   "@routineStepsProgressLabel": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "routineAnyTimeTodayLabel": "Когда-нибудь сегодня",
   "routineFormExplainer": "Рутина повторяется и считает выполнение — для привычек и семейных обязанностей, в отличие от разового напоминания",
   "routineStreakDaysLabel": "{n} дней подряд",
   "@routineStreakDaysLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineNoStreakYetLabel": "Пока нет серии — начните сегодня",
   "routineAllRoutinesScreenTitle": "Обязанности семьи",
@@ -1233,7 +1219,7 @@
   "firstReminderTodayLabel": "Первое напоминание — сегодня",
   "noRemindersYetLabel": "Напоминаний пока нет",
   "reminderWillArriveLabel": "Напоминание придёт по расписанию, которое вы только что добавили",
-  "setupMedsToActivateLabel": "Настройте лекарства, чтобы активировать напоминания",
+  "setupMedsToActivateLabel": "Добавьте что-нибудь в инвентарь, чтобы активировать напоминания",
   "privacyConsentPrefix": "Я ознакомлен(-а) и согласен(-на) с ",
   "privacyConsentSuffix": " приложения",
   "openDashboardAction": "Открыть дашборд →",
@@ -1242,7 +1228,7 @@
   "enterAccessCodeHint": "Введите код доступа, который вам прислали родные",
   "checkingEllipsisLabel": "Проверка...",
   "scheduleAlreadyReadyTitle": "Расписание уже готово",
-  "scheduleSetByInviterBody": "{name} уже составил(-а) для вас расписание приёма лекарств. Вы сможете отредактировать его в любой момент после подключения.",
+  "scheduleSetByInviterBody": "{name} уже составил(-а) для вас расписание использования инвентаря. Вы сможете отредактировать его в любой момент после подключения.",
   "@scheduleSetByInviterBody": {
     "placeholders": {
       "name": {
@@ -1267,7 +1253,7 @@
     }
   },
   "welcomeGreeting": "Привет! 👋",
-  "welcomeDescription": "Elly поможет не забыть о лекарствах,\nактивности и настроении — для вас\nи всей семьи",
+  "welcomeDescription": "Elly поможет не забыть об инвентаре,\nактивности и настроении — для вас\nи всей семьи",
   "onboardingStepLabel": "Шаг {step} из {total}",
   "@onboardingStepLabel": {
     "placeholders": {
@@ -1282,20 +1268,19 @@
   "accountChoiceTitle": "Как начнём?",
   "accountChoiceSubtitle": "Выберите вариант, который вам подходит",
   "createAccountTitle": "Создать аккаунт",
-  "createAccountSubtitle": "Настрою лекарства и расписание для себя",
+  "createAccountSubtitle": "Настрою инвентарь и расписание для себя",
   "joinFamilyChoiceTitle": "Подключиться к семье",
   "joinFamilyChoiceSubtitle": "У меня есть код доступа от родных",
   "restoreAccountChoiceSubtitle": "Я уже пользовался(-лась) Elly раньше",
   "tellAboutYourselfTitle": "Расскажите о себе",
   "tellAboutYourselfSubtitle": "Укажите своё имя и выберите аватар профиля",
-  "nextToMedsAction": "Далее — лекарства →",
-  "scanOrEnterManuallyHint": "Добавьте лекарства, которые принимаете сейчас",
-  "addMedsShortAction": "Добавить лекарства",
-  "addMoreMedsAction": "Добавить ещё лекарства",
-  "addMedsHint": "Скан фото рецепта или название, доза и расписание вручную",
+  "nextToMedsAction": "Далее — инвентарь →",
+  "scanOrEnterManuallyHint": "Добавьте то, что используете сейчас",
+  "addMedsShortAction": "Добавить в инвентарь",
+  "addMoreMedsAction": "Добавить ещё",
   "onboardingAddItemAction": "Добавить",
-  "onboardingAddItemHint": "Напоминание или лекарство — выберите вариант",
-  "addMedsLaterInfo": "Лекарства можно добавить позже через раздел «Лекарства» в главном меню",
+  "onboardingAddItemHint": "Напоминание или инвентарь — выберите вариант",
+  "addMedsLaterInfo": "Инвентарь можно добавить позже через раздел «Инвентарь» в главном меню",
   "nextAction": "Далее →",
   "skipAddLaterAction": "Пропустить — добавлю позже",
   "activityWellbeingTitle": "Активность и настроение",
@@ -1303,7 +1288,7 @@
   "activitySectionLabel": "Активность",
   "walkActivitySub": "30 мин · ежедневно · 08:30",
   "wellbeingDiaryLabel": "Дневник настроения",
-  "wellbeingDiaryDescription": "Короткие отметки настроения помогут увидеть связь между приёмом лекарств и тем, какое у вас настроение",
+  "wellbeingDiaryDescription": "Короткие отметки настроения помогут увидеть связь между инвентарём и тем, какое у вас настроение",
   "wellbeingSlotsTitle": "Чек-ины настроения",
   "wellbeingSlotsSub": "2–3 раза в день · 08:00, 14:00, 20:00",
   "almostDoneAction": "Почти готово →",
@@ -1311,7 +1296,7 @@
   "foodOptAfter": "После еды",
   "refFoodAnyLabel": "Независимо от еды",
   "backupScreenTitle": "Резервная копия",
-  "backupIntroBody": "Лекарства, расписание, архив (фото) и все остальные данные — выбирайте, где хранить резервную копию.",
+  "backupIntroBody": "Инвентарь, расписание, архив (фото) и все остальные данные — выбирайте, где хранить резервную копию.",
   "backupModeLocalTitle": "Только на устройстве",
   "backupModeLocalSubtitle": "При переустановке приложения все данные будут потеряны",
   "backupModeGoogleDriveSubtitle": "Зашифровано на устройстве — Elly и Google не видят ваши данные",
@@ -1450,7 +1435,7 @@
   "planFreeShortLabel": "Бесплатный",
   "exportShareSubject": "Elly — экспорт данных",
   "exportCopyTitle": "Копия всех ваших данных",
-  "exportDescriptionBody": "Файл в формате JSON со всеми профилями, лекарствами, расписанием, приёмами, настроением и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото лекарств в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.",
+  "exportDescriptionBody": "Файл в формате JSON со всеми профилями, инвентарём, расписанием, приёмами, настроением и записями к врачам — всё, что хранится на этом устройстве. Вы можете открыть его где угодно или передать кому угодно.\n\nФото инвентаря в файл не входят (они уже есть в «Резервной копии») — только текстовые данные.",
   "exportAction": "Экспортировать",
   "appLockedTitle": "Elly заблокирован",
   "authFailedRetryBody": "Не удалось подтвердить личность — попробуйте ещё раз",
@@ -1459,7 +1444,7 @@
   "unlockAction": "Разблокировать",
   "addTypeSheetTitle": "Что хотите добавить?",
   "addTypeSheetSubtitle": "Выберите тип — форма подстроится",
-  "addTypeMedsSub": "Расписание, дозировка, повторение",
+  "addTypeMedsSub": "Расписание, остаток, повторение",
   "addTypeActivitySub": "Прогулка, зарядка, упражнения, ЛФК",
   "addTypeAppointmentSub": "Дата, время и напоминание о чём угодно",
   "addTypeWellbeingSub": "Сделать чек-ин — настроение, теги, комментарий",
@@ -1502,7 +1487,7 @@
   "faqPlansQ1": "Чем отличаются тарифы?",
   "faqPlansA1": "Elly (бесплатный) — базовые функции с ограничениями. Elly Plus и Elly Family снимают лимиты и добавляют расширенные возможности. Подробности — Профиль → Тарифы.",
   "faqPlansQ2": "Какие именно ограничения у бесплатного тарифа?",
-  "faqPlansA2": "1 локальный профиль, 1 активное рутинное дело, 3 раздела Полочки. Напоминания, лекарства и самочувствие — без ограничений на всех тарифах. Превышение лимита ничего не удаляет: старые записи остаются доступными для просмотра, редактирование или создание новых — заблокировано, пока не обновите тариф.",
+  "faqPlansA2": "1 локальный профиль, 1 активное рутинное дело, 3 раздела Полочки. Напоминания, инвентарь и самочувствие — без ограничений на всех тарифах. Превышение лимита ничего не удаляет: старые записи остаются доступными для просмотра, редактирование или создание новых — заблокировано, пока не обновите тариф.",
   "faqPlansQ3": "Сколько человек можно добавить в семейную группу?",
   "faqPlansA3": "На тарифе Elly Family — до 8 автономных участников. Приглашать новых людей может только тот, кто оплачивает подписку; принять приглашение можно бесплатно на любом тарифе. Приглашённый получает все возможности Family, кроме права приглашать других в ЭТУ же семью.",
   "faqGroupTechTitle": "Технические проблемы",
@@ -1517,7 +1502,7 @@
   "soonLabel": "Скоро",
   "notificationsMainSectionTitle": "Основные",
   "pushNotificationsLabel": "Push-уведомления",
-  "pushNotificationsSub": "Напоминания о приёме лекарств",
+  "pushNotificationsSub": "Напоминания об использовании инвентаря",
   "vibrationLabel": "Вибрация",
   "vibrationSub": "Вместе со звуком",
   "reminderTimeSectionTitle": "Время напоминаний",
@@ -1664,12 +1649,26 @@
   "addPhotoOrPdfLabel": "Добавить фото или PDF",
   "documentsPrivacyHint": "Хранится только на устройстве (и в облаке, если включена резервная копия) — приложение не просматривает и не анализирует эти файлы.",
   "notifChannelName": "Напоминания Elly",
-  "notifChannelDesc": "Напоминания о лекарствах, активностях, визитах и настроении",
-  "notifTakeMedTitle": "💊 Время принять лекарство",
-  "notifIntakeNoResponseTitle": "🔔 Вы ещё не отметили приём",
+  "notifChannelDesc": "Напоминания об инвентаре, активностях, визитах и настроении",
+  "notifTakeMedTitle": "⏰ Время для {name}",
+  "@notifTakeMedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifIntakeNoResponseTitle": "🔔 Вы ещё не отметили: {name}",
+  "@notifIntakeNoResponseTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifBackupReminderTitle": "Защитите свои данные",
   "notifBackupReminderBody": "Резервная копия отключена — данные хранятся только на этом устройстве. Включите в Профиле, чтобы не потерять их.",
-  "notifLowStockTitle": "⚠️ Заканчиваются лекарства",
+  "notifLowStockTitle": "⚠️ Запас заканчивается",
   "notifLowStockBody": "{medName} — осталось {remaining} {unit}",
   "@notifLowStockBody": {
     "placeholders": {
@@ -1773,7 +1772,7 @@
   "todayScheduleForMedLabel": "Расписание на сегодня",
   "intakeSnoozed": "Перенесено",
   "resetLocalDbConfirmTitle": "Сбросить локальную базу данных?",
-  "resetLocalDbConfirmBody": "Это удалит все данные на этом устройстве (лекарства, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.",
+  "resetLocalDbConfirmBody": "Это удалит все данные на этом устройстве (инвентарь, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.",
   "resetAction": "Сбросить",
   "resetLocalDbAction": "Сбросить локальную БД",
   "petAvatarsSectionLabel": "Домашние питомцы"

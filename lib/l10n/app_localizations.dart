@@ -151,7 +151,7 @@ abstract class AppLocalizations {
   /// No description provided for @todayProgressSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'ліків прийнято сьогодні'**
+  /// **'інвентарю використано сьогодні'**
   String get todayProgressSubtitle;
 
   /// No description provided for @todayProgressPercent.
@@ -325,7 +325,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultMedName.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки'**
+  /// **'Інвентар'**
   String get defaultMedName;
 
   /// No description provided for @defaultActivityName.
@@ -469,7 +469,7 @@ abstract class AppLocalizations {
   /// No description provided for @categoryMeds.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки'**
+  /// **'Інвентар'**
   String get categoryMeds;
 
   /// No description provided for @categoryActivities.
@@ -517,13 +517,13 @@ abstract class AppLocalizations {
   /// No description provided for @sectionMeds.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки'**
+  /// **'Інвентар'**
   String get sectionMeds;
 
   /// No description provided for @noActiveMeds.
   ///
   /// In uk, this message translates to:
-  /// **'Немає активних ліків'**
+  /// **'Немає активного інвентарю'**
   String get noActiveMeds;
 
   /// No description provided for @sectionAppointments.
@@ -613,19 +613,19 @@ abstract class AppLocalizations {
   /// No description provided for @courseOngoing.
   ///
   /// In uk, this message translates to:
-  /// **'постійний курс'**
+  /// **'використовується постійно'**
   String get courseOngoing;
 
   /// No description provided for @courseFinished.
   ///
   /// In uk, this message translates to:
-  /// **'курс завершено'**
+  /// **'завершено'**
   String get courseFinished;
 
   /// No description provided for @courseDaysLeft.
   ///
   /// In uk, this message translates to:
-  /// **'{count, plural, one{{count} день курсу} few{{count} дні курсу} other{{count} днів курсу}}'**
+  /// **'{count, plural, one{{count} день лишилось} few{{count} дні лишилось} other{{count} днів лишилось}}'**
   String courseDaysLeft(int count);
 
   /// No description provided for @noLocation.
@@ -751,13 +751,13 @@ abstract class AppLocalizations {
   /// No description provided for @medCardArchiveTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Архів ліків'**
+  /// **'Архів інвентарю'**
   String get medCardArchiveTitle;
 
   /// No description provided for @medCardArchiveSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Усі препарати й статус лікування'**
+  /// **'Весь інвентар та його статус'**
   String get medCardArchiveSubtitle;
 
   /// No description provided for @medCardAppointmentsTitle.
@@ -943,7 +943,7 @@ abstract class AppLocalizations {
   /// No description provided for @medicationArchiveEmptyHint.
   ///
   /// In uk, this message translates to:
-  /// **'Тут з\'являться всі ліки, які ви колись додавали'**
+  /// **'Тут з\'явиться весь інвентар, який ви колись додавали'**
   String get medicationArchiveEmptyHint;
 
   /// No description provided for @medStatusOngoing.
@@ -1027,7 +1027,7 @@ abstract class AppLocalizations {
   /// No description provided for @medsTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки'**
+  /// **'Інвентар'**
   String get medsTitle;
 
   /// No description provided for @activeMedsCountSection.
@@ -1045,19 +1045,19 @@ abstract class AppLocalizations {
   /// No description provided for @noMedsYetTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Ліків ще немає'**
+  /// **'Інвентарю ще немає'**
   String get noMedsYetTitle;
 
   /// No description provided for @noMedsYetHint.
   ///
   /// In uk, this message translates to:
-  /// **'Натисніть + щоб додати перше лікарство'**
+  /// **'Натисніть + щоб додати перший запис'**
   String get noMedsYetHint;
 
   /// No description provided for @addMedicationAction.
   ///
   /// In uk, this message translates to:
-  /// **'Додати лікарство'**
+  /// **'Додати до інвентарю'**
   String get addMedicationAction;
 
   /// No description provided for @errorGenericShort.
@@ -1065,60 +1065,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Помилка'**
   String get errorGenericShort;
-
-  /// No description provided for @stockUnitTabletsCapsules.
-  ///
-  /// In uk, this message translates to:
-  /// **'ТАБЛЕТКИ / КАПСУЛИ'**
-  String get stockUnitTabletsCapsules;
-
-  /// No description provided for @stockUnitSyrup.
-  ///
-  /// In uk, this message translates to:
-  /// **'СИРОП'**
-  String get stockUnitSyrup;
-
-  /// No description provided for @stockUnitDrops.
-  ///
-  /// In uk, this message translates to:
-  /// **'КРАПЛІ'**
-  String get stockUnitDrops;
-
-  /// No description provided for @stockUnitInjections.
-  ///
-  /// In uk, this message translates to:
-  /// **'ІН\'ЄКЦІЇ'**
-  String get stockUnitInjections;
-
-  /// No description provided for @stockUnitSuppositories.
-  ///
-  /// In uk, this message translates to:
-  /// **'СВІЧКИ'**
-  String get stockUnitSuppositories;
-
-  /// No description provided for @stockUnitVial.
-  ///
-  /// In uk, this message translates to:
-  /// **'ФЛАКОН'**
-  String get stockUnitVial;
-
-  /// No description provided for @stockUnitCream.
-  ///
-  /// In uk, this message translates to:
-  /// **'КРЕМ'**
-  String get stockUnitCream;
-
-  /// No description provided for @stockUnitInhaler.
-  ///
-  /// In uk, this message translates to:
-  /// **'ІНГАЛЯТОР'**
-  String get stockUnitInhaler;
-
-  /// No description provided for @stockUnitGeneric.
-  ///
-  /// In uk, this message translates to:
-  /// **'ЗАЛИШОК'**
-  String get stockUnitGeneric;
 
   /// No description provided for @perDoseLabel.
   ///
@@ -1141,7 +1087,7 @@ abstract class AppLocalizations {
   /// No description provided for @untilCourseEndLabel.
   ///
   /// In uk, this message translates to:
-  /// **'до кінця курсу'**
+  /// **'до завершення'**
   String get untilCourseEndLabel;
 
   /// No description provided for @next30DaysLabel.
@@ -1192,42 +1138,6 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get okAction;
 
-  /// No description provided for @remainingApproxPercent.
-  ///
-  /// In uk, this message translates to:
-  /// **'Залишилось ~{percent}%'**
-  String remainingApproxPercent(int percent);
-
-  /// No description provided for @daysLeftAtCurrentRate.
-  ///
-  /// In uk, this message translates to:
-  /// **'~{days} днів при поточній витраті'**
-  String daysLeftAtCurrentRate(String days);
-
-  /// No description provided for @updateStockEstimateLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Оновити оцінку залишку:'**
-  String get updateStockEstimateLabel;
-
-  /// No description provided for @openedNewContainerAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'+ Відкрив новий флакон'**
-  String get openedNewContainerAction;
-
-  /// No description provided for @openedTodayLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Відкрито сьогодні'**
-  String get openedTodayLabel;
-
-  /// No description provided for @openedDaysAgoLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Відкрито {count, plural, one{{count} день тому} few{{count} дні тому} other{{count} днів тому}}'**
-  String openedDaysAgoLabel(int count);
-
   /// No description provided for @phaseNumberLabel.
   ///
   /// In uk, this message translates to:
@@ -1249,7 +1159,7 @@ abstract class AppLocalizations {
   /// No description provided for @courseStagesLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Етапи курсу'**
+  /// **'Етапи'**
   String get courseStagesLabel;
 
   /// No description provided for @foodBeforeLabel.
@@ -1297,7 +1207,7 @@ abstract class AppLocalizations {
   /// No description provided for @intakeLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Прийом'**
+  /// **'Розклад'**
   String get intakeLabel;
 
   /// No description provided for @withFoodLabel.
@@ -1309,7 +1219,7 @@ abstract class AppLocalizations {
   /// No description provided for @courseNounLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Курс'**
+  /// **'Період'**
   String get courseNounLabel;
 
   /// No description provided for @noteLabel.
@@ -1357,43 +1267,43 @@ abstract class AppLocalizations {
   /// No description provided for @stopCourseConfirmTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Зупинити курс?'**
+  /// **'Зупинити?'**
   String get stopCourseConfirmTitle;
 
   /// No description provided for @stopCourseConfirmBody.
   ///
   /// In uk, this message translates to:
-  /// **'«{name}» буде видалено зі списку активних ліків.'**
+  /// **'«{name}» буде видалено зі списку активного інвентарю.'**
   String stopCourseConfirmBody(String name);
 
   /// No description provided for @enterMedicationNameError.
   ///
   /// In uk, this message translates to:
-  /// **'Введіть назву ліків'**
+  /// **'Введіть назву'**
   String get enterMedicationNameError;
 
   /// No description provided for @deleteMedicationConfirmTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Видалити ліки?'**
+  /// **'Видалити запис?'**
   String get deleteMedicationConfirmTitle;
 
   /// No description provided for @deleteMedicationConfirmBody.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки будуть вилучені з розкладу.'**
+  /// **'Запис буде вилучено з розкладу.'**
   String get deleteMedicationConfirmBody;
 
   /// No description provided for @editMedicationTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Редагувати ліки'**
+  /// **'Редагувати запис'**
   String get editMedicationTitle;
 
   /// No description provided for @medicationNameHint.
   ///
   /// In uk, this message translates to:
-  /// **'Назва препарату'**
+  /// **'Назва'**
   String get medicationNameHint;
 
   /// No description provided for @medicationFormLabel.
@@ -1405,7 +1315,7 @@ abstract class AppLocalizations {
   /// No description provided for @coursePhasesLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Фази курсу'**
+  /// **'Фази'**
   String get coursePhasesLabel;
 
   /// No description provided for @addPhaseAction.
@@ -1444,12 +1354,6 @@ abstract class AppLocalizations {
   /// **'Зберегти та переглянути розклад →'**
   String get saveAndViewScheduleAction;
 
-  /// No description provided for @medicalDisclaimerText.
-  ///
-  /// In uk, this message translates to:
-  /// **'Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.'**
-  String get medicalDisclaimerText;
-
   /// No description provided for @phaseCardTitle.
   ///
   /// In uk, this message translates to:
@@ -1465,7 +1369,7 @@ abstract class AppLocalizations {
   /// No description provided for @doseAmountLabel.
   ///
   /// In uk, this message translates to:
-  /// **'КІЛЬКІСТЬ НА ПРИЙОМ'**
+  /// **'КІЛЬКІСТЬ ЗА РАЗ'**
   String get doseAmountLabel;
 
   /// No description provided for @foodRelationSectionLabel.
@@ -1573,13 +1477,13 @@ abstract class AppLocalizations {
   /// No description provided for @doseCommentHint.
   ///
   /// In uk, this message translates to:
-  /// **'Коментар до дози (необов\'язково)'**
+  /// **'Коментар (необов\'язково)'**
   String get doseCommentHint;
 
   /// No description provided for @doseAmountDialogTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Кількість на прийом'**
+  /// **'Кількість за раз'**
   String get doseAmountDialogTitle;
 
   /// No description provided for @doseAmountExampleHint.
@@ -1666,18 +1570,6 @@ abstract class AppLocalizations {
   /// **'Відстежувати та нагадувати про залишок'**
   String get trackStockLabel;
 
-  /// No description provided for @vialPackageLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Флакон / упаковка'**
-  String get vialPackageLabel;
-
-  /// No description provided for @markAsOpenedHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Позначимо як щойно відкриту (100%) — оновити оцінку залишку можна буде в картці ліків'**
-  String get markAsOpenedHint;
-
   /// No description provided for @inStockLabel.
   ///
   /// In uk, this message translates to:
@@ -1690,16 +1582,10 @@ abstract class AppLocalizations {
   /// **'Скільки {unit} є зараз'**
   String howManyNowLabel(String unit);
 
-  /// No description provided for @courseAvailableLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **' (курс: {needed}, є: {available})'**
-  String courseAvailableLabel(int needed, int available);
-
   /// No description provided for @enoughForCourseLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Вистачить на весь курс'**
+  /// **'Вистачить на весь період'**
   String get enoughForCourseLabel;
 
   /// No description provided for @noCameraAccessError.
@@ -1729,7 +1615,7 @@ abstract class AppLocalizations {
   /// No description provided for @addPhotoHint.
   ///
   /// In uk, this message translates to:
-  /// **'щоб не переплутати ліки'**
+  /// **'щоб не переплутати позиції інвентарю'**
   String get addPhotoHint;
 
   /// No description provided for @inviteMemberTitle.
@@ -2611,7 +2497,7 @@ abstract class AppLocalizations {
   /// No description provided for @medcardSyncDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Якщо вимкнено, нагадування цього профілю (разом із вкладеннями) не передаються на інші пристрої сім\'ї, підключені через пейринг. Ліки й розклад прийому синхронізуються незалежно від цього перемикача.'**
+  /// **'Якщо вимкнено, нагадування цього профілю (разом із вкладеннями) не передаються на інші пристрої сім\'ї, підключені через пейринг. Інвентар і розклад використання синхронізуються незалежно від цього перемикача.'**
   String get medcardSyncDescription;
 
   /// No description provided for @pendingConnectionLabel.
@@ -4057,7 +3943,7 @@ abstract class AppLocalizations {
   /// No description provided for @setupMedsToActivateLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Налаштуйте ліки щоб активувати нагадування'**
+  /// **'Додайте щось в інвентар щоб активувати нагадування'**
   String get setupMedsToActivateLabel;
 
   /// No description provided for @privacyConsentPrefix.
@@ -4111,7 +3997,7 @@ abstract class AppLocalizations {
   /// No description provided for @scheduleSetByInviterBody.
   ///
   /// In uk, this message translates to:
-  /// **'{name} уже склав(-ла) для вас розклад прийому ліків. Ви зможете відредагувати його будь-коли після підключення.'**
+  /// **'{name} уже склав(-ла) для вас розклад використання інвентарю. Ви зможете відредагувати його будь-коли після підключення.'**
   String scheduleSetByInviterBody(String name);
 
   /// No description provided for @agreeUseFamilyScheduleCheckbox.
@@ -4177,7 +4063,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Elly допоможе не забути про ліки,\nактивність і настрій — для вас\nі всієї родини'**
+  /// **'Elly допоможе не забути про інвентар,\nактивність і настрій — для вас\nі всієї родини'**
   String get welcomeDescription;
 
   /// No description provided for @onboardingStepLabel.
@@ -4207,7 +4093,7 @@ abstract class AppLocalizations {
   /// No description provided for @createAccountSubtitle.
   ///
   /// In uk, this message translates to:
-  /// **'Налаштую ліки та розклад для себе'**
+  /// **'Налаштую інвентар та розклад для себе'**
   String get createAccountSubtitle;
 
   /// No description provided for @joinFamilyChoiceTitle.
@@ -4243,32 +4129,26 @@ abstract class AppLocalizations {
   /// No description provided for @nextToMedsAction.
   ///
   /// In uk, this message translates to:
-  /// **'Далі — ліки →'**
+  /// **'Далі — інвентар →'**
   String get nextToMedsAction;
 
   /// No description provided for @scanOrEnterManuallyHint.
   ///
   /// In uk, this message translates to:
-  /// **'Додайте ліки, які приймаєте зараз'**
+  /// **'Додайте те, що використовуєте зараз'**
   String get scanOrEnterManuallyHint;
 
   /// No description provided for @addMedsShortAction.
   ///
   /// In uk, this message translates to:
-  /// **'Додати ліки'**
+  /// **'Додати до інвентарю'**
   String get addMedsShortAction;
 
   /// No description provided for @addMoreMedsAction.
   ///
   /// In uk, this message translates to:
-  /// **'Додати ще ліки'**
+  /// **'Додати ще'**
   String get addMoreMedsAction;
-
-  /// No description provided for @addMedsHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Скан фото рецепта або назва, доза і розклад вручну'**
-  String get addMedsHint;
 
   /// No description provided for @onboardingAddItemAction.
   ///
@@ -4279,13 +4159,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingAddItemHint.
   ///
   /// In uk, this message translates to:
-  /// **'Нагадування або ліки — оберіть варіант'**
+  /// **'Нагадування чи інвентар — оберіть варіант'**
   String get onboardingAddItemHint;
 
   /// No description provided for @addMedsLaterInfo.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки можна додати пізніше через розділ «Ліки» в головному меню'**
+  /// **'Інвентар можна додати пізніше через розділ «Інвентар» в головному меню'**
   String get addMedsLaterInfo;
 
   /// No description provided for @nextAction.
@@ -4333,7 +4213,7 @@ abstract class AppLocalizations {
   /// No description provided for @wellbeingDiaryDescription.
   ///
   /// In uk, this message translates to:
-  /// **'Короткі відмітки настрою допоможуть побачити звʼязок між прийомом ліків і тим, який у вас настрій'**
+  /// **'Короткі відмітки настрою допоможуть побачити звʼязок між інвентарем і тим, який у вас настрій'**
   String get wellbeingDiaryDescription;
 
   /// No description provided for @wellbeingSlotsTitle.
@@ -4381,7 +4261,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupIntroBody.
   ///
   /// In uk, this message translates to:
-  /// **'Ліки, розклад, архів (фото) і всі інші дані — обирайте, де зберігати резервну копію.'**
+  /// **'Інвентар, розклад, архів (фото) і всі інші дані — обирайте, де зберігати резервну копію.'**
   String get backupIntroBody;
 
   /// No description provided for @backupModeLocalTitle.
@@ -4837,7 +4717,7 @@ abstract class AppLocalizations {
   /// No description provided for @exportDescriptionBody.
   ///
   /// In uk, this message translates to:
-  /// **'Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.'**
+  /// **'Файл у форматі JSON з усіма профілями, інвентарем, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото інвентарю у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.'**
   String get exportDescriptionBody;
 
   /// No description provided for @exportAction.
@@ -4891,7 +4771,7 @@ abstract class AppLocalizations {
   /// No description provided for @addTypeMedsSub.
   ///
   /// In uk, this message translates to:
-  /// **'Розклад, дозування, повторення'**
+  /// **'Розклад, залишок, повторення'**
   String get addTypeMedsSub;
 
   /// No description provided for @addTypeActivitySub.
@@ -5149,7 +5029,7 @@ abstract class AppLocalizations {
   /// No description provided for @faqPlansA2.
   ///
   /// In uk, this message translates to:
-  /// **'1 локальний профіль, 1 активна рутинна справа, 3 розділи Полички. Нагадування, ліки та самопочуття — без обмежень на всіх тарифах. Перевищення ліміту нічого не видаляє: старі записи лишаються доступними для перегляду, редагування чи створення нових — заблоковано, доки не оновите тариф.'**
+  /// **'1 локальний профіль, 1 активна рутинна справа, 3 розділи Полички. Нагадування, інвентар та самопочуття — без обмежень на всіх тарифах. Перевищення ліміту нічого не видаляє: старі записи лишаються доступними для перегляду, редагування чи створення нових — заблоковано, доки не оновите тариф.'**
   String get faqPlansA2;
 
   /// No description provided for @faqPlansQ3.
@@ -5239,7 +5119,7 @@ abstract class AppLocalizations {
   /// No description provided for @pushNotificationsSub.
   ///
   /// In uk, this message translates to:
-  /// **'Нагадування про прийом ліків'**
+  /// **'Нагадування про використання інвентарю'**
   String get pushNotificationsSub;
 
   /// No description provided for @vibrationLabel.
@@ -5809,20 +5689,20 @@ abstract class AppLocalizations {
   /// No description provided for @notifChannelDesc.
   ///
   /// In uk, this message translates to:
-  /// **'Нагадування про ліки, активності, візити та настрій'**
+  /// **'Нагадування про інвентар, активності, візити та настрій'**
   String get notifChannelDesc;
 
   /// No description provided for @notifTakeMedTitle.
   ///
   /// In uk, this message translates to:
-  /// **'💊 Час прийняти ліки'**
-  String get notifTakeMedTitle;
+  /// **'⏰ Час для {name}'**
+  String notifTakeMedTitle(String name);
 
   /// No description provided for @notifIntakeNoResponseTitle.
   ///
   /// In uk, this message translates to:
-  /// **'🔔 Ви ще не відмітили прийом'**
-  String get notifIntakeNoResponseTitle;
+  /// **'🔔 Ви ще не відмітили: {name}'**
+  String notifIntakeNoResponseTitle(String name);
 
   /// No description provided for @notifBackupReminderTitle.
   ///
@@ -5839,7 +5719,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifLowStockTitle.
   ///
   /// In uk, this message translates to:
-  /// **'⚠️ Закінчуються ліки'**
+  /// **'⚠️ Запас закінчується'**
   String get notifLowStockTitle;
 
   /// No description provided for @notifLowStockBody.
@@ -6019,7 +5899,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetLocalDbConfirmBody.
   ///
   /// In uk, this message translates to:
-  /// **'Це видалить усі дані на цьому пристрої (ліки, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.'**
+  /// **'Це видалить усі дані на цьому пристрої (інвентар, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.'**
   String get resetLocalDbConfirmBody;
 
   /// No description provided for @resetAction.

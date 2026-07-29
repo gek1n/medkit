@@ -18,7 +18,7 @@
       }
     }
   },
-  "todayProgressSubtitle": "ліків прийнято сьогодні",
+  "todayProgressSubtitle": "інвентарю використано сьогодні",
   "todayProgressPercent": "{percent}%",
   "@todayProgressPercent": {
     "placeholders": {
@@ -68,7 +68,7 @@
   "dayPartAfternoon": "День",
   "dayPartEvening": "Вечір",
   "dayPartNight": "Ніч",
-  "defaultMedName": "Ліки",
+  "defaultMedName": "Інвентар",
   "defaultActivityName": "Активність",
   "wellbeingTitle": "Настрій",
   "detailLabelTime": "Час",
@@ -106,7 +106,7 @@
   "welcomeTitle": "Ласкаво просимо до Elly",
   "welcomeSubtitle": "Додайте свій профіль щоб розпочати",
   "categoryAll": "Усі",
-  "categoryMeds": "Ліки",
+  "categoryMeds": "Інвентар",
   "categoryActivities": "Активності",
   "categoryWellbeing": "Настрій",
   "categoryDoctors": "Нагадування",
@@ -114,8 +114,8 @@
   "searchAllSections": "Пошук по всіх розділах",
   "searchHint": "Пошук",
   "noResultsFoundHint": "Нічого не знайдено",
-  "sectionMeds": "Ліки",
-  "noActiveMeds": "Немає активних ліків",
+  "sectionMeds": "Інвентар",
+  "noActiveMeds": "Немає активного інвентарю",
   "sectionAppointments": "Нагадування",
   "noScheduledAppointments": "Немає запланованих прийомів",
   "sectionActivities": "Активності",
@@ -130,9 +130,9 @@
   "repeatWeekdays": "певні дні",
   "repeatEveryN": "кожні N днів",
   "repeatCycle": "циклом",
-  "courseOngoing": "постійний курс",
-  "courseFinished": "курс завершено",
-  "courseDaysLeft": "{count, plural, one{{count} день курсу} few{{count} дні курсу} other{{count} днів курсу}}",
+  "courseOngoing": "використовується постійно",
+  "courseFinished": "завершено",
+  "courseDaysLeft": "{count, plural, one{{count} день лишилось} few{{count} дні лишилось} other{{count} днів лишилось}}",
   "@courseDaysLeft": {
     "placeholders": {
       "count": {
@@ -167,8 +167,8 @@
   "allStatusesFilter": "Усі статуси",
   "medStatusFilterPickerTitle": "Оберіть статус",
   "medCardTitle": "Полички",
-  "medCardArchiveTitle": "Архів ліків",
-  "medCardArchiveSubtitle": "Усі препарати й статус лікування",
+  "medCardArchiveTitle": "Архів інвентарю",
+  "medCardArchiveSubtitle": "Весь інвентар та його статус",
   "medCardAppointmentsTitle": "Архів нагадувань",
   "medCardAppointmentsSubtitle": "Зустрічі, прості завдання, рутинні справи",
   "medCardWellbeingHistoryTitle": "Історія настрою",
@@ -199,7 +199,7 @@
   "entryDateFieldLabel": "Дата запису",
   "entryNotesHint": "Довільні нотатки…",
   "deleteEntryConfirmBody": "Запис буде видалено.",
-  "medicationArchiveEmptyHint": "Тут з'являться всі ліки, які ви колись додавали",
+  "medicationArchiveEmptyHint": "Тут з'явиться весь інвентар, який ви колись додавали",
   "medStatusOngoing": "Триває",
   "medStatusFinished": "Завершено",
   "medStatusCancelled": "Відмінено",
@@ -220,7 +220,7 @@
   "deleteSurgeryConfirmTitle": "Видалити запис?",
   "editSurgeryTitle": "Редагувати запис",
   "removeAction": "Прибрати",
-  "medsTitle": "Ліки",
+  "medsTitle": "Інвентар",
   "activeMedsCountSection": "Активні ({count})",
   "@activeMedsCountSection": {
     "placeholders": {
@@ -237,19 +237,10 @@
       }
     }
   },
-  "noMedsYetTitle": "Ліків ще немає",
-  "noMedsYetHint": "Натисніть + щоб додати перше лікарство",
-  "addMedicationAction": "Додати лікарство",
+  "noMedsYetTitle": "Інвентарю ще немає",
+  "noMedsYetHint": "Натисніть + щоб додати перший запис",
+  "addMedicationAction": "Додати до інвентарю",
   "errorGenericShort": "Помилка",
-  "stockUnitTabletsCapsules": "ТАБЛЕТКИ / КАПСУЛИ",
-  "stockUnitSyrup": "СИРОП",
-  "stockUnitDrops": "КРАПЛІ",
-  "stockUnitInjections": "ІН'ЄКЦІЇ",
-  "stockUnitSuppositories": "СВІЧКИ",
-  "stockUnitVial": "ФЛАКОН",
-  "stockUnitCream": "КРЕМ",
-  "stockUnitInhaler": "ІНГАЛЯТОР",
-  "stockUnitGeneric": "ЗАЛИШОК",
   "perDoseLabel": "{dose} {unit} на прийом",
   "@perDoseLabel": {
     "placeholders": {
@@ -270,7 +261,7 @@
     }
   },
   "stockSectionLabel": "Залишок",
-  "untilCourseEndLabel": "до кінця курсу",
+  "untilCourseEndLabel": "до завершення",
   "next30DaysLabel": "на найближчі 30 днів",
   "remainingColonLabel": "Залишилось: ",
   "daysLeftShortLabel": "на {days} дн.",
@@ -286,33 +277,6 @@
   "refillPackageTitle": "Поповнити упаковку",
   "quantityHint": "Кількість",
   "okAction": "OK",
-  "remainingApproxPercent": "Залишилось ~{percent}%",
-  "@remainingApproxPercent": {
-    "placeholders": {
-      "percent": {
-        "type": "int"
-      }
-    }
-  },
-  "daysLeftAtCurrentRate": "~{days} днів при поточній витраті",
-  "@daysLeftAtCurrentRate": {
-    "placeholders": {
-      "days": {
-        "type": "String"
-      }
-    }
-  },
-  "updateStockEstimateLabel": "Оновити оцінку залишку:",
-  "openedNewContainerAction": "+ Відкрив новий флакон",
-  "openedTodayLabel": "Відкрито сьогодні",
-  "openedDaysAgoLabel": "Відкрито {count, plural, one{{count} день тому} few{{count} дні тому} other{{count} днів тому}}",
-  "@openedDaysAgoLabel": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "phaseNumberLabel": "Етап {number}",
   "@phaseNumberLabel": {
     "placeholders": {
@@ -330,7 +294,7 @@
       }
     }
   },
-  "courseStagesLabel": "Етапи курсу",
+  "courseStagesLabel": "Етапи",
   "foodBeforeLabel": "🕐 До їжі",
   "foodAfterLabel": "🍽 Після їжі",
   "foodWithLabel": "🥗 Під час їжі",
@@ -345,9 +309,9 @@
   },
   "ongoingLabel": "постійно",
   "detailsLabel": "Деталі",
-  "intakeLabel": "Прийом",
+  "intakeLabel": "Розклад",
   "withFoodLabel": "З їжею",
-  "courseNounLabel": "Курс",
+  "courseNounLabel": "Період",
   "noteLabel": "Примітка",
   "courseRangeLabel": "з {start} {endPart}",
   "@courseRangeLabel": {
@@ -382,8 +346,8 @@
     }
   },
   "stopAction": "Зупинити",
-  "stopCourseConfirmTitle": "Зупинити курс?",
-  "stopCourseConfirmBody": "«{name}» буде видалено зі списку активних ліків.",
+  "stopCourseConfirmTitle": "Зупинити?",
+  "stopCourseConfirmBody": "«{name}» буде видалено зі списку активного інвентарю.",
   "@stopCourseConfirmBody": {
     "placeholders": {
       "name": {
@@ -391,20 +355,19 @@
       }
     }
   },
-  "enterMedicationNameError": "Введіть назву ліків",
-  "deleteMedicationConfirmTitle": "Видалити ліки?",
-  "deleteMedicationConfirmBody": "Ліки будуть вилучені з розкладу.",
-  "editMedicationTitle": "Редагувати ліки",
-  "medicationNameHint": "Назва препарату",
+  "enterMedicationNameError": "Введіть назву",
+  "deleteMedicationConfirmTitle": "Видалити запис?",
+  "deleteMedicationConfirmBody": "Запис буде вилучено з розкладу.",
+  "editMedicationTitle": "Редагувати запис",
+  "medicationNameHint": "Назва",
   "medicationFormLabel": "Форма випуску",
-  "coursePhasesLabel": "Фази курсу",
+  "coursePhasesLabel": "Фази",
   "addPhaseAction": "Додати фазу",
   "repeatSectionLabel": "Повтор",
   "savingLabel": "Зберігаємо...",
   "saveChangesAction": "Зберегти зміни",
   "saveAndContinueAction": "Зберегти і продовжити →",
   "saveAndViewScheduleAction": "Зберегти та переглянути розклад →",
-  "medicalDisclaimerText": "Elly — інструмент для нагадувань і організації, не медична консультація. Для встановлення діагнозу, призначення чи зміни лікування завжди звертайтесь до лікаря.",
   "phaseCardTitle": "Фаза {number}",
   "@phaseCardTitle": {
     "placeholders": {
@@ -414,7 +377,7 @@
     }
   },
   "removePhaseAction": "видалити",
-  "doseAmountLabel": "КІЛЬКІСТЬ НА ПРИЙОМ",
+  "doseAmountLabel": "КІЛЬКІСТЬ ЗА РАЗ",
   "foodRelationSectionLabel": "ВІДНОСНО ЇЖІ",
   "durationSectionLabel": "ТРИВАЛІСТЬ",
   "daysCountDashLabel": "— дн.",
@@ -446,8 +409,8 @@
   "daysSuffix": "дн.",
   "intervalDialogTitle": "Інтервал",
   "hoursSuffix": "год",
-  "doseCommentHint": "Коментар до дози (необов'язково)",
-  "doseAmountDialogTitle": "Кількість на прийом",
+  "doseCommentHint": "Коментар (необов'язково)",
+  "doseAmountDialogTitle": "Кількість за раз",
   "doseAmountExampleHint": "наприклад 2.5",
   "weekdayExampleLabel": "Пн, Ср, Пт, Нд…",
   "weekdaysOptionLabel": "Певні дні тижня",
@@ -462,8 +425,6 @@
   "optionalParamsLabel": "Додаткові параметри",
   "optionalLabel": "Необов'язково",
   "trackStockLabel": "Відстежувати та нагадувати про залишок",
-  "vialPackageLabel": "Флакон / упаковка",
-  "markAsOpenedHint": "Позначимо як щойно відкриту (100%) — оновити оцінку залишку можна буде в картці ліків",
   "inStockLabel": "В наявності",
   "howManyNowLabel": "Скільки {unit} є зараз",
   "@howManyNowLabel": {
@@ -473,23 +434,12 @@
       }
     }
   },
-  "courseAvailableLabel": " (курс: {needed}, є: {available})",
-  "@courseAvailableLabel": {
-    "placeholders": {
-      "needed": {
-        "type": "int"
-      },
-      "available": {
-        "type": "int"
-      }
-    }
-  },
-  "enoughForCourseLabel": "Вистачить на весь курс",
+  "enoughForCourseLabel": "Вистачить на весь період",
   "noCameraAccessError": "Немає доступу до камери. Дозвольте його в налаштуваннях телефону.",
   "cameraOpenError": "Не вдалося відкрити камеру",
   "packagePhotoLabel": "Фото упаковки",
   "addPhotoAction": "Додати фото",
-  "addPhotoHint": "щоб не переплутати ліки",
+  "addPhotoHint": "щоб не переплутати позиції інвентарю",
   "inviteMemberTitle": "Запросити {name}",
   "@inviteMemberTitle": {
     "placeholders": {
@@ -717,8 +667,12 @@
   "routineTasksLimitSubtitle": "Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість",
   "@routineTasksLimitSubtitle": {
     "placeholders": {
-      "used": { "type": "int" },
-      "max": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "routineTasksLimitDeniedTitle": "Ліміт рутинних справ досягнуто",
@@ -728,8 +682,12 @@
   "medcardSectionsLimitSubtitle": "Використано {used} з {max}. Перейдіть на Elly Plus — необмежена кількість",
   "@medcardSectionsLimitSubtitle": {
     "placeholders": {
-      "used": { "type": "int" },
-      "max": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "medcardSectionsLimitDeniedTitle": "Ліміт поличок досягнуто",
@@ -889,7 +847,7 @@
   "familyVisibilityEmptyBody": "Якщо до вашої сімейної групи приєднаються автономні учасники (зі своїм акаунтом), тут можна буде керувати їхнім доступом до вашого профілю",
   "familyVisibilityIntro": "Що бачать і можуть робити інші члени сім'ї з вашим профілем",
   "medcardSyncToggleLabel": "Синхронізувати медкартку на інші пристрої",
-  "medcardSyncDescription": "Якщо вимкнено, нагадування цього профілю (разом із вкладеннями) не передаються на інші пристрої сім'ї, підключені через пейринг. Ліки й розклад прийому синхронізуються незалежно від цього перемикача.",
+  "medcardSyncDescription": "Якщо вимкнено, нагадування цього профілю (разом із вкладеннями) не передаються на інші пристрої сім'ї, підключені через пейринг. Інвентар і розклад використання синхронізуються незалежно від цього перемикача.",
   "pendingConnectionLabel": "Очікуємо з'єднання",
   "viewerNotifyPermissionLabel": "Отримує сповіщення",
   "viewerEditPermissionLabel": "Може редагувати профіль",
@@ -1048,11 +1006,19 @@
   "routineRepeatWeeklyGoalOption": "N разів на тиждень",
   "routineIntervalDaysValueLabel": "Кожні {n} дн.",
   "@routineIntervalDaysValueLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineWeeklyGoalValueLabel": "{n} р./тиждень",
   "@routineWeeklyGoalValueLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineTimeFieldLabel": "Час",
   "routineFixedTimeOption": "У певний час",
@@ -1064,37 +1030,57 @@
   "routineRotationCadenceMonthly": "Щомісяця",
   "routineRotationSummary": "По черзі ({n})",
   "@routineRotationSummary": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineStepsLabel": "Кроки",
   "routineStepsSheetTitle": "Кроки виконання",
   "routineAddStepHint": "Додати крок…",
   "routineWhoseTurnLabel": "Черга: {name}",
   "@routineWhoseTurnLabel": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "routineSwapTurnAction": "Поміняти",
   "routineSkipTurnAction": "Пропустити чергу",
   "routineWeeklyGoalProgressLabel": "{done}/{total} цього тижня",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "routinePartialStatusLabel": "Частково",
   "routineStepsProgressLabel": "{done}/{total} кроків",
   "@routineStepsProgressLabel": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "routineAnyTimeTodayLabel": "Будь-коли сьогодні",
   "routineFormExplainer": "Рутина повторюється й рахує виконання — для звичок і сімейних обов'язків, на відміну від разового нагадування",
   "routineStreakDaysLabel": "{n} днів поспіль",
   "@routineStreakDaysLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineNoStreakYetLabel": "Ще немає серії — почніть сьогодні",
   "routineAllRoutinesScreenTitle": "Обов'язки сім'ї",
@@ -1233,7 +1219,7 @@
   "firstReminderTodayLabel": "Перше нагадування — сьогодні",
   "noRemindersYetLabel": "Нагадувань поки немає",
   "reminderWillArriveLabel": "Нагадування прийде за розкладом, який ви щойно додали",
-  "setupMedsToActivateLabel": "Налаштуйте ліки щоб активувати нагадування",
+  "setupMedsToActivateLabel": "Додайте щось в інвентар щоб активувати нагадування",
   "privacyConsentPrefix": "Я ознайомлений(-а) і згоден(-а) з ",
   "privacyConsentSuffix": " застосунку",
   "openDashboardAction": "Відкрити дашборд →",
@@ -1242,7 +1228,7 @@
   "enterAccessCodeHint": "Введіть код доступу, який вам надіслали рідні",
   "checkingEllipsisLabel": "Перевірка...",
   "scheduleAlreadyReadyTitle": "Розклад уже готовий",
-  "scheduleSetByInviterBody": "{name} уже склав(-ла) для вас розклад прийому ліків. Ви зможете відредагувати його будь-коли після підключення.",
+  "scheduleSetByInviterBody": "{name} уже склав(-ла) для вас розклад використання інвентарю. Ви зможете відредагувати його будь-коли після підключення.",
   "@scheduleSetByInviterBody": {
     "placeholders": {
       "name": {
@@ -1267,7 +1253,7 @@
     }
   },
   "welcomeGreeting": "Привіт! 👋",
-  "welcomeDescription": "Elly допоможе не забути про ліки,\nактивність і настрій — для вас\nі всієї родини",
+  "welcomeDescription": "Elly допоможе не забути про інвентар,\nактивність і настрій — для вас\nі всієї родини",
   "onboardingStepLabel": "Крок {step} з {total}",
   "@onboardingStepLabel": {
     "placeholders": {
@@ -1282,20 +1268,19 @@
   "accountChoiceTitle": "Як почнемо?",
   "accountChoiceSubtitle": "Оберіть варіант, який вам підходить",
   "createAccountTitle": "Створити акаунт",
-  "createAccountSubtitle": "Налаштую ліки та розклад для себе",
+  "createAccountSubtitle": "Налаштую інвентар та розклад для себе",
   "joinFamilyChoiceTitle": "Підключитися до сім'ї",
   "joinFamilyChoiceSubtitle": "У мене є код доступу від рідних",
   "restoreAccountChoiceSubtitle": "Я вже користувався(-лась) Elly раніше",
   "tellAboutYourselfTitle": "Розкажіть про себе",
   "tellAboutYourselfSubtitle": "Вкажіть своє ім'я та оберіть аватар профілю",
-  "nextToMedsAction": "Далі — ліки →",
-  "scanOrEnterManuallyHint": "Додайте ліки, які приймаєте зараз",
-  "addMedsShortAction": "Додати ліки",
-  "addMoreMedsAction": "Додати ще ліки",
-  "addMedsHint": "Скан фото рецепта або назва, доза і розклад вручну",
+  "nextToMedsAction": "Далі — інвентар →",
+  "scanOrEnterManuallyHint": "Додайте те, що використовуєте зараз",
+  "addMedsShortAction": "Додати до інвентарю",
+  "addMoreMedsAction": "Додати ще",
   "onboardingAddItemAction": "Додати",
-  "onboardingAddItemHint": "Нагадування або ліки — оберіть варіант",
-  "addMedsLaterInfo": "Ліки можна додати пізніше через розділ «Ліки» в головному меню",
+  "onboardingAddItemHint": "Нагадування чи інвентар — оберіть варіант",
+  "addMedsLaterInfo": "Інвентар можна додати пізніше через розділ «Інвентар» в головному меню",
   "nextAction": "Далі →",
   "skipAddLaterAction": "Пропустити — додам пізніше",
   "activityWellbeingTitle": "Активність та настрій",
@@ -1303,7 +1288,7 @@
   "activitySectionLabel": "Активність",
   "walkActivitySub": "30 хв · щодня · 08:30",
   "wellbeingDiaryLabel": "Щоденник настрою",
-  "wellbeingDiaryDescription": "Короткі відмітки настрою допоможуть побачити звʼязок між прийомом ліків і тим, який у вас настрій",
+  "wellbeingDiaryDescription": "Короткі відмітки настрою допоможуть побачити звʼязок між інвентарем і тим, який у вас настрій",
   "wellbeingSlotsTitle": "Зрізи настрою",
   "wellbeingSlotsSub": "2–3 рази на день · 08:00, 14:00, 20:00",
   "almostDoneAction": "Майже готово →",
@@ -1311,7 +1296,7 @@
   "foodOptAfter": "Після їжі",
   "refFoodAnyLabel": "Незалежно від їжі",
   "backupScreenTitle": "Резервна копія",
-  "backupIntroBody": "Ліки, розклад, архів (фото) і всі інші дані — обирайте, де зберігати резервну копію.",
+  "backupIntroBody": "Інвентар, розклад, архів (фото) і всі інші дані — обирайте, де зберігати резервну копію.",
   "backupModeLocalTitle": "Тільки на пристрої",
   "backupModeLocalSubtitle": "При перевстановленні застосунку всі дані буде втрачено",
   "backupModeGoogleDriveSubtitle": "Зашифровано на пристрої — Elly і Google не бачать ваші дані",
@@ -1450,7 +1435,7 @@
   "planFreeShortLabel": "Безкоштовний",
   "exportShareSubject": "Elly — експорт даних",
   "exportCopyTitle": "Копія всіх ваших даних",
-  "exportDescriptionBody": "Файл у форматі JSON з усіма профілями, ліками, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото ліків у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.",
+  "exportDescriptionBody": "Файл у форматі JSON з усіма профілями, інвентарем, розкладом, прийомами, настроєм і записами до лікарів — усе, що зберігається на цьому пристрої. Ви можете відкрити його будь-де або передати кому завгодно.\n\nФото інвентарю у файл не входять (вони вже є у «Резервній копії») — лише текстові дані.",
   "exportAction": "Експортувати",
   "appLockedTitle": "Elly заблоковано",
   "authFailedRetryBody": "Не вдалося підтвердити особу — спробуйте ще раз",
@@ -1459,7 +1444,7 @@
   "unlockAction": "Розблокувати",
   "addTypeSheetTitle": "Що хочете додати?",
   "addTypeSheetSubtitle": "Оберіть тип — форма підлаштується",
-  "addTypeMedsSub": "Розклад, дозування, повторення",
+  "addTypeMedsSub": "Розклад, залишок, повторення",
   "addTypeActivitySub": "Прогулянка, зарядка, вправи, ЛФК",
   "addTypeAppointmentSub": "Дата, час і нагадування про будь-яку подію",
   "addTypeWellbeingSub": "Зробити зріз — настрій, теги, коментар",
@@ -1502,7 +1487,7 @@
   "faqPlansQ1": "Чим відрізняються тарифи?",
   "faqPlansA1": "Elly (безкоштовний) — базові функції з обмеженнями. Elly Plus і Elly Family знімають ліміти й додають розширені можливості. Деталі — Профіль → Тарифи.",
   "faqPlansQ2": "Які саме обмеження має безкоштовний тариф?",
-  "faqPlansA2": "1 локальний профіль, 1 активна рутинна справа, 3 розділи Полички. Нагадування, ліки та самопочуття — без обмежень на всіх тарифах. Перевищення ліміту нічого не видаляє: старі записи лишаються доступними для перегляду, редагування чи створення нових — заблоковано, доки не оновите тариф.",
+  "faqPlansA2": "1 локальний профіль, 1 активна рутинна справа, 3 розділи Полички. Нагадування, інвентар та самопочуття — без обмежень на всіх тарифах. Перевищення ліміту нічого не видаляє: старі записи лишаються доступними для перегляду, редагування чи створення нових — заблоковано, доки не оновите тариф.",
   "faqPlansQ3": "Скільки людей можна додати до сімейної групи?",
   "faqPlansA3": "На тарифі Elly Family — до 8 автономних учасників. Запрошувати нових людей може лише той, хто оплачує підписку; прийняти запрошення можна безкоштовно на будь-якому тарифі. Запрошений отримує усі можливості Family, окрім права запрошувати інших у ЦЮ саму сім'ю.",
   "faqGroupTechTitle": "Технічні проблеми",
@@ -1517,7 +1502,7 @@
   "soonLabel": "Скоро",
   "notificationsMainSectionTitle": "Основні",
   "pushNotificationsLabel": "Push-сповіщення",
-  "pushNotificationsSub": "Нагадування про прийом ліків",
+  "pushNotificationsSub": "Нагадування про використання інвентарю",
   "vibrationLabel": "Вібрація",
   "vibrationSub": "Разом зі звуком",
   "reminderTimeSectionTitle": "Час нагадувань",
@@ -1664,12 +1649,26 @@
   "addPhotoOrPdfLabel": "Додати фото чи PDF",
   "documentsPrivacyHint": "Зберігається лише на пристрої (і в хмарі, якщо ввімкнено резервну копію) — застосунок не переглядає й не аналізує ці файли.",
   "notifChannelName": "Нагадування Elly",
-  "notifChannelDesc": "Нагадування про ліки, активності, візити та настрій",
-  "notifTakeMedTitle": "💊 Час прийняти ліки",
-  "notifIntakeNoResponseTitle": "🔔 Ви ще не відмітили прийом",
+  "notifChannelDesc": "Нагадування про інвентар, активності, візити та настрій",
+  "notifTakeMedTitle": "⏰ Час для {name}",
+  "@notifTakeMedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifIntakeNoResponseTitle": "🔔 Ви ще не відмітили: {name}",
+  "@notifIntakeNoResponseTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifBackupReminderTitle": "Захистіть свої дані",
   "notifBackupReminderBody": "Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. Увімкніть у Профілі, щоб не втратити їх.",
-  "notifLowStockTitle": "⚠️ Закінчуються ліки",
+  "notifLowStockTitle": "⚠️ Запас закінчується",
   "notifLowStockBody": "{medName} — залишилось {remaining} {unit}",
   "@notifLowStockBody": {
     "placeholders": {
@@ -1773,7 +1772,7 @@
   "todayScheduleForMedLabel": "Розклад на сьогодні",
   "intakeSnoozed": "Перенесено",
   "resetLocalDbConfirmTitle": "Скинути локальну базу даних?",
-  "resetLocalDbConfirmBody": "Це видалить усі дані на цьому пристрої (ліки, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.",
+  "resetLocalDbConfirmBody": "Це видалить усі дані на цьому пристрої (інвентар, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.",
   "resetAction": "Скинути",
   "resetLocalDbAction": "Скинути локальну БД",
   "petAvatarsSectionLabel": "Домашні улюбленці"

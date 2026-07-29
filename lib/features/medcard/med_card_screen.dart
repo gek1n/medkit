@@ -146,8 +146,8 @@ class _MedCardBody extends ConsumerWidget {
             ),
             children: [
               _MedCardTile(
-                icon: Icons.medication_liquid_rounded,
-                iconWidget: const AssetIcon('task_meds', size: 22),
+                icon: Icons.inventory_2_rounded,
+                iconWidget: const AssetIcon('box', size: 22),
                 iconColor: AppColors.primary,
                 title: context.l10n.medCardArchiveTitle,
                 subtitle: context.l10n.medCardArchiveSubtitle,

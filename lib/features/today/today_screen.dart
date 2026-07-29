@@ -14,7 +14,6 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
-import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../core/utils/task_color.dart';
@@ -1491,7 +1490,7 @@ class _ScheduleCard extends StatelessWidget {
   switch (item.type) {
     case _ItemType.intake:
       return (
-        medFormIcon(med?.form ?? 'tablet'),
+        Icons.inventory_2_rounded,
         med?.name ?? context.l10n.defaultMedName,
         med != null
             ? '${med.doseAmount.toStringAsFixed(med.doseAmount == med.doseAmount.roundToDouble() ? 0 : 1)} ${med.doseUnit}'
@@ -1951,7 +1950,7 @@ class _ActiveIntakeCard extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       _InfoChip(
-                        icon: medFormIcon(med!.form),
+                        icon: Icons.inventory_2_rounded,
                         iconWidget: MedcardIcon(med!.iconKey ?? 'form_cream', size: 18),
                         label:
                             '${med!.doseAmount.toStringAsFixed(med!.doseAmount == med!.doseAmount.roundToDouble() ? 0 : 1)} ${med!.doseUnit}',
