@@ -739,6 +739,8 @@ class _TextField extends StatelessWidget {
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 13,
@@ -1994,6 +1996,8 @@ class _DurationSectionState extends State<_DurationSection> {
                     ),
                     decoration: InputDecoration(
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       hintText: '—',
                       hintStyle: AppTextStyles.bodyLg.copyWith(
                         color: AppColors.textMuted,

@@ -1716,6 +1716,8 @@ class _Input extends StatelessWidget {
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         ),
         style: AppTextStyles.bodyMd,

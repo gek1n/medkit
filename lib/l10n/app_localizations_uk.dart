@@ -355,6 +355,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get allTagsFilter => 'Усі теги';
 
   @override
+  String get allStatusesFilter => 'Усі статуси';
+
+  @override
+  String get medStatusFilterPickerTitle => 'Оберіть статус';
+
+  @override
   String get medCardTitle => 'Полички';
 
   @override

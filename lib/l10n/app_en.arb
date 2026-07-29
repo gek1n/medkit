@@ -164,6 +164,8 @@
   "dayTomorrow": "Tomorrow",
   "dayYesterday": "Yesterday",
   "allTagsFilter": "All tags",
+  "allStatusesFilter": "All statuses",
+  "medStatusFilterPickerTitle": "Choose status",
   "medCardTitle": "Shelves",
   "medCardArchiveTitle": "Medication archive",
   "medCardArchiveSubtitle": "All medications and their treatment status",

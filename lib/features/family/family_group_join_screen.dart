@@ -211,6 +211,8 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
                 hintText: context.l10n.codeInputHint,
                 hintStyle: AppTextStyles.h2.copyWith(color: AppColors.textMuted, letterSpacing: 4),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               ),
             ),

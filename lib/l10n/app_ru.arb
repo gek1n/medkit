@@ -164,6 +164,8 @@
   "dayTomorrow": "Завтра",
   "dayYesterday": "Вчера",
   "allTagsFilter": "Все теги",
+  "allStatusesFilter": "Все статусы",
+  "medStatusFilterPickerTitle": "Выберите статус",
   "medCardTitle": "Полки",
   "medCardArchiveTitle": "Архив лекарств",
   "medCardArchiveSubtitle": "Все препараты и статус лечения",

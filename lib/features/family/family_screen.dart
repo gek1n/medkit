@@ -1594,6 +1594,8 @@ class _AddMemberScreenState extends ConsumerState<_AddMemberScreen> {
                           hintStyle: AppTextStyles.bodyMd
                               .copyWith(color: AppColors.textMuted),
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 13),
                         ),

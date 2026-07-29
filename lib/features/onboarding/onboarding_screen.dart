@@ -577,6 +577,8 @@ class _StepName extends StatelessWidget {
                       color: AppColors.textMuted,
                     ),
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 13,
