@@ -107,7 +107,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get todayAllDoneSubtitle => 'Отличная работа — так держать';
 
   @override
-  String get todayHurtsNow => 'Сейчас\nболит';
+  String get todayHurtsNow => 'Добавить\nнастроение';
 
   @override
   String get todayMissedSection => 'Вы пропустили';

@@ -68,6 +68,7 @@ class AddActivityScreen extends ConsumerStatefulWidget {
 
 class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   late final TextEditingController _nameController;
+  late final TextEditingController _stepInputController;
   String? _colorHex;
   int? _sectionId;
   bool _reminder = true;
@@ -94,6 +95,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     super.initState();
     final ex = widget.existing;
     _nameController = TextEditingController(text: ex?.name ?? '');
+    _stepInputController = TextEditingController();
     _colorHex = ex?.color;
     if (ex != null) {
       _sectionId = ex.sectionId;
@@ -149,7 +151,15 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _stepInputController.dispose();
     super.dispose();
+  }
+
+  void _addStep() {
+    final v = _stepInputController.text.trim();
+    if (v.isEmpty) return;
+    setState(() => _steps.add(v));
+    _stepInputController.clear();
   }
 
   Future<void> _delete() async {
@@ -435,21 +445,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             ),
                           ),
                         ),
-                        FieldChip(
-                          icon: Icons.checklist_rounded,
-                          label: context.l10n.routineStepsLabel,
-                          value: _steps.isEmpty ? null : '${_steps.length}',
-                          forceLabel: _steps.isEmpty,
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.routineStepsSheetTitle,
-                            child: _StepsSheet(
-                              initialSteps: _steps,
-                              onChanged: (steps) =>
-                                  setState(() => _steps = steps),
-                            ),
-                          ),
-                        ),
                         if (showTime)
                           FieldChip(
                             icon: Icons.notifications_outlined,
@@ -478,6 +473,66 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           memberId: widget.memberId,
                           sectionId: _sectionId,
                           onChanged: (id) => setState(() => _sectionId = id),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    // Кроки чек-листа — окремим завжди розгорнутим блоком
+                    // (не чіпом/шторкою), щоб одразу було видно й зручно
+                    // накидати список підпунктів, не відкриваючи окрему
+                    // шторку заради, по суті, головної фічі рутини.
+                    _Label(context.l10n.routineStepsLabel),
+                    const SizedBox(height: 6),
+                    ..._steps.asMap().entries.map((e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(e.value,
+                                      style: AppTextStyles.bodyMd),
+                                ),
+                                GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _steps.removeAt(e.key)),
+                                  child: const Icon(Icons.close_rounded,
+                                      size: 18, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Input(
+                            controller: _stepInputController,
+                            hint: context.l10n.routineAddStepHint,
+                            onSubmitted: (_) => _addStep(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _addStep,
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.add_rounded,
+                                color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
@@ -1092,95 +1147,6 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
   }
 }
 
-// ─── Кроки виконання ────────────────────────────────────────────────────────
-
-class _StepsSheet extends StatefulWidget {
-  final List<String> initialSteps;
-  final ValueChanged<List<String>> onChanged;
-  const _StepsSheet({required this.initialSteps, required this.onChanged});
-
-  @override
-  State<_StepsSheet> createState() => _StepsSheetState();
-}
-
-class _StepsSheetState extends State<_StepsSheet> {
-  late List<String> _steps;
-  final _controller = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _steps = [...widget.initialSteps];
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _add() {
-    final v = _controller.text.trim();
-    if (v.isEmpty) return;
-    setState(() => _steps.add(v));
-    widget.onChanged(_steps);
-    _controller.clear();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ..._steps.asMap().entries.map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(e.value, style: AppTextStyles.bodyMd),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() => _steps.removeAt(e.key));
-                      widget.onChanged(_steps);
-                    },
-                    child: const Icon(Icons.close_rounded,
-                        size: 18, color: AppColors.textMuted),
-                  ),
-                ],
-              ),
-            )),
-        if (_steps.isNotEmpty) const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _Input(
-                controller: _controller,
-                hint: context.l10n.routineAddStepHint,
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _add,
-              child: Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.add_rounded, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 // ─── Слот часу ──────────────────────────────────────────────────────────────
 
 class _ActivitySlot extends StatelessWidget {
@@ -1557,7 +1523,8 @@ class _Label extends StatelessWidget {
 class _Input extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  const _Input({required this.controller, required this.hint});
+  final ValueChanged<String>? onSubmitted;
+  const _Input({required this.controller, required this.hint, this.onSubmitted});
 
   @override
   Widget build(BuildContext context) {
@@ -1569,6 +1536,7 @@ class _Input extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        onSubmitted: onSubmitted,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
