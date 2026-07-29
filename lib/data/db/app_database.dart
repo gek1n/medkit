@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 39;
+  int get schemaVersion => 40;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -811,6 +811,14 @@ class AppDatabase extends _$AppDatabase {
                   "DELETE FROM intakes WHERE status IN ('pending', 'snoozed') AND "
                   'medication_id NOT IN (SELECT id FROM medications WHERE is_active = 1)');
             } catch (_) {}
+          }
+          if (from < 40) {
+            // Вирівнюємо форму рутини з формою нагадування — теги/фото/
+            // локація/іконка раніше існували лише в Reminders.
+            await m.addColumn(activities, activities.tags);
+            await m.addColumn(activities, activities.documentPaths);
+            await m.addColumn(activities, activities.location);
+            await m.addColumn(activities, activities.iconKey);
           }
         },
       );

@@ -1504,7 +1504,7 @@ class _ScheduleCard extends StatelessWidget {
         activity?.name ?? context.l10n.defaultActivityName,
         null,
         activity?.type == 'routine'
-            ? const AssetIcon('task_routine', size: 24)
+            ? MedcardIcon(activity?.iconKey ?? 'task_routine', size: 24)
             : null,
       );
     case _ItemType.appointment:
@@ -2637,6 +2637,7 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
             _IconHeader(
               illustration: 'assets/illustrations/elly-calendar.png',
               accent: iconColor,
+              iconKey: widget.activity?.iconKey,
               onZoom: () => Navigator.push(
                 context,
                 MaterialPageRoute(

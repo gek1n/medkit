@@ -2,16 +2,23 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/attachment_cleanup_service.dart';
+import '../../core/services/shared_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../core/utils/avatars.dart';
+import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
+import '../../shared/widgets/medcard_icon_picker.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_form_fields.dart' show MkTextField;
 import '../../shared/widgets/space_picker.dart';
+import '../../shared/widgets/tags_field.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../../core/utils/l10n_ext.dart';
@@ -70,9 +77,13 @@ class AddActivityScreen extends ConsumerStatefulWidget {
 class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _stepInputController;
+  late final TextEditingController _locationController;
   String? _colorHex;
+  late String _iconKey;
   int? _sectionId;
-  bool _reminder = true;
+  int _remindBeforeMin = 10;
+  List<String> _tags = [];
+  List<String> _documentPaths = [];
   bool _isSaving = false;
   bool _loaded = false;
 
@@ -97,10 +108,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     final ex = widget.existing;
     _nameController = TextEditingController(text: ex?.name ?? '');
     _stepInputController = TextEditingController();
+    _locationController = TextEditingController(text: ex?.location ?? '');
     _colorHex = ex?.color;
+    _iconKey = ex?.iconKey ?? 'task_routine';
     if (ex != null) {
       _sectionId = ex.sectionId;
-      _reminder = ex.reminderBeforeMin > 0;
+      _remindBeforeMin = ex.reminderBeforeMin;
       _repeatType = ex.repeatType;
       _dayOfMonth = ex.repeatDayOfMonth ?? DateTime.now().day;
       _intervalDays = ex.repeatIntervalDays ?? 3;
@@ -113,6 +126,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       try {
         final steps = jsonDecode(ex.stepsJson ?? '[]') as List;
         _steps = steps.map((s) => (s as Map)['title'] as String).toList();
+      } catch (_) {}
+      try {
+        _tags = List<String>.from(jsonDecode(ex.tags) as List);
+      } catch (_) {}
+      try {
+        _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
       } catch (_) {}
       _loadExisting(ex.id);
     } else {
@@ -153,7 +172,20 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   void dispose() {
     _nameController.dispose();
     _stepInputController.dispose();
+    _locationController.dispose();
     super.dispose();
+  }
+
+  List<(int, String)> _remindOptions(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      (0, l10n.remindBeforeAtTime),
+      (10, l10n.remindBefore10Min),
+      (30, l10n.remindBefore30Min),
+      (60, l10n.remindBefore1Hour),
+      (1440, l10n.remindBefore1Day),
+      (2880, l10n.remindBefore2Days),
+    ];
   }
 
   void _addStep() {
@@ -179,6 +211,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     }
     setState(() => _isSaving = true);
     try {
+      await SharedTagsLibraryService.addAll(_tags);
       final repo = ref.read(activitiesRepositoryProvider);
       final repeatDaysJson = jsonEncode(_weekdays.toList()..sort());
       final stepsJsonStr = _steps.isEmpty
@@ -187,6 +220,10 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       final showTime = _hasFixedTime && _repeatType != 'weeklyGoal';
       final activityDuration =
           showTime && _slots.isNotEmpty ? (_slots.first.duration ?? 0) : 0;
+      final tagsJson = jsonEncode(_tags);
+      final locationVal = _locationController.text.trim().isEmpty
+          ? null
+          : _locationController.text.trim();
       final int activityId;
 
       if (widget.existing != null) {
@@ -207,9 +244,13 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             rotationMode:
                 Value(_assigneeIds.length > 1 ? _rotationMode : 'fixed'),
             stepsJson: Value(stepsJsonStr),
-            reminderBeforeMin: Value(_reminder ? 10 : 0),
+            reminderBeforeMin: Value(_remindBeforeMin),
             color: Value(_colorHex),
+            iconKey: Value(_iconKey),
             sectionId: Value(_sectionId),
+            tags: Value(tagsJson),
+            documentPaths: Value(jsonEncode(_documentPaths)),
+            location: Value(locationVal),
           ),
         );
         activityId = widget.existing!.id;
@@ -232,9 +273,13 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
             rotationMode:
                 Value(_assigneeIds.length > 1 ? _rotationMode : 'fixed'),
             stepsJson: Value(stepsJsonStr),
-            reminderBeforeMin: Value(_reminder ? 10 : 0),
+            reminderBeforeMin: Value(_remindBeforeMin),
             color: Value(_colorHex),
+            iconKey: Value(_iconKey),
             sectionId: Value(_sectionId),
+            tags: Value(tagsJson),
+            documentPaths: Value(jsonEncode(_documentPaths)),
+            location: Value(locationVal),
           ),
         );
       }
@@ -463,11 +508,127 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                         if (showTime)
                           FieldChip(
                             icon: Icons.notifications_outlined,
-                            label: context.l10n.reminderLabel,
-                            value: _reminder ? 'on' : null,
-                            forceLabel: true,
-                            onTap: () => setState(() => _reminder = !_reminder),
+                            label: context.l10n.remindBeforeLabel,
+                            value: _remindOptions(context)
+                                .where((o) => o.$1 == _remindBeforeMin)
+                                .firstOrNull
+                                ?.$2,
+                            onClear: _remindBeforeMin == 0
+                                ? null
+                                : () => setState(() => _remindBeforeMin = 0),
+                            onTap: () => showFieldSheet(
+                              context,
+                              title: context.l10n.remindBeforeLabel,
+                              child: Wrap(
+                                spacing: 8,
+                                children: _remindOptions(context).map((opt) {
+                                  final sel = _remindBeforeMin == opt.$1;
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() => _remindBeforeMin = opt.$1);
+                                      Navigator.pop(context);
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 120),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 9,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: sel
+                                            ? AppColors.primaryLight
+                                            : AppColors.surface,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: sel
+                                              ? AppColors.primary
+                                              : AppColors.border,
+                                          width: sel ? 2 : 1.5,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        opt.$2,
+                                        style: AppTextStyles.labelMd.copyWith(
+                                          color: sel
+                                              ? AppColors.primary
+                                              : AppColors.textMain,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
                           ),
+                        SpaceChip(
+                          memberId: widget.memberId,
+                          sectionId: _sectionId,
+                          onChanged: (id) => setState(() => _sectionId = id),
+                        ),
+                        FieldChip(
+                          icon: Icons.attach_file_rounded,
+                          label: context.l10n.reminderPhotoLabel,
+                          value: _documentPaths.isEmpty
+                              ? null
+                              : '${_documentPaths.length}',
+                          onClear: _documentPaths.isEmpty
+                              ? null
+                              : () async {
+                                  await AttachmentCleanupService.deletePaths(
+                                    jsonEncode(_documentPaths),
+                                  );
+                                  if (mounted) {
+                                    setState(() => _documentPaths = []);
+                                  }
+                                },
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderPhotoLabel,
+                            child: DocumentsSection(
+                              paths: _documentPaths,
+                              onChanged: (paths) =>
+                                  setState(() => _documentPaths = paths),
+                              label: context.l10n.reminderPhotoLabel,
+                            ),
+                          ),
+                        ),
+                        FieldChip(
+                          icon: Icons.location_on_outlined,
+                          label: context.l10n.fieldWhere,
+                          value: _locationController.text.trim().isEmpty
+                              ? null
+                              : _locationController.text.trim(),
+                          onClear: () => setState(_locationController.clear),
+                          onTap: () async {
+                            await showFieldSheet(
+                              context,
+                              title: context.l10n.fieldWhere,
+                              child: MkTextField(
+                                controller: _locationController,
+                                hint: context.l10n.locationHint,
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                        ),
+                        FieldChip(
+                          icon: Icons.sell_outlined,
+                          label: context.l10n.reminderTagsFieldLabel,
+                          value: _tags.isEmpty ? null : _tags.join(', '),
+                          onClear: _tags.isEmpty
+                              ? null
+                              : () => setState(() => _tags = []),
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.reminderTagsFieldLabel,
+                            child: TagsField(
+                              tags: _tags,
+                              onChanged: (t) => setState(() => _tags = t),
+                              hint: context.l10n.reminderTagsHint,
+                              loadHistory: SharedTagsLibraryService.getAll,
+                            ),
+                          ),
+                        ),
                         FieldChip(
                           icon: Icons.palette_outlined,
                           label: context.l10n.taskColorPickerLabel,
@@ -477,17 +638,52 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                           onTap: () => showFieldSheet(
                             context,
                             title: context.l10n.taskColorPickerLabel,
-                            child: TaskColorPicker(
-                              selectedHex: _colorHex,
-                              onChanged: (hex) =>
-                                  setState(() => _colorHex = hex),
+                            child: StatefulBuilder(
+                              builder: (sheetContext, setSheetState) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TaskColorPicker(
+                                    selectedHex: _colorHex,
+                                    onChanged: (hex) {
+                                      setState(() => _colorHex = hex);
+                                      setSheetState(() {});
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _Label(context.l10n.sectionIconFieldLabel),
+                                  const SizedBox(height: 6),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showMedcardIconPicker(
+                                        sheetContext,
+                                        current: _iconKey,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _iconKey = picked);
+                                        setSheetState(() {});
+                                      }
+                                    },
+                                    child: Container(
+                                      width: 52,
+                                      height: 52,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: (colorFromHex(_colorHex) ??
+                                                AppColors.primary)
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(
+                                          AppDimensions.radiusMd,
+                                        ),
+                                        border: Border.all(color: AppColors.border),
+                                      ),
+                                      child: MedcardIcon(_iconKey, size: 26),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        SpaceChip(
-                          memberId: widget.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) => setState(() => _sectionId = id),
                         ),
                       ],
                     ),

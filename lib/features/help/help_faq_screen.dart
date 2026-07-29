@@ -33,6 +33,8 @@ List<_FaqGroup> _buildGroups(BuildContext context) {
       _Faq(l10n.faqFamilyQ1, l10n.faqFamilyA1),
       _Faq(l10n.faqFamilyQ2, l10n.faqFamilyA2),
       _Faq(l10n.faqFamilyQ3, l10n.faqFamilyA3),
+      _Faq(l10n.faqFamilyQ4, l10n.faqFamilyA4),
+      _Faq(l10n.faqFamilyQ5, l10n.faqFamilyA5),
     ]),
     _FaqGroup(l10n.notificationsLabel, Icons.notifications_none_rounded, [
       _Faq(l10n.faqNotificationsQ1, l10n.faqNotificationsA1),
@@ -40,6 +42,8 @@ List<_FaqGroup> _buildGroups(BuildContext context) {
     ]),
     _FaqGroup(l10n.plansLabel, Icons.workspace_premium_outlined, [
       _Faq(l10n.faqPlansQ1, l10n.faqPlansA1),
+      _Faq(l10n.faqPlansQ2, l10n.faqPlansA2),
+      _Faq(l10n.faqPlansQ3, l10n.faqPlansA3),
     ]),
     _FaqGroup(l10n.faqGroupTechTitle, Icons.build_outlined, [
       _Faq(l10n.faqTechQ1, l10n.faqTechA1),
