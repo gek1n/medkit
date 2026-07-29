@@ -2695,7 +2695,6 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                           .toggleLogStep(
                             widget.log.id,
                             e.key,
-                            steps.length,
                             actingMemberId: widget.activeMemberId,
                           ),
                       child: Padding(
