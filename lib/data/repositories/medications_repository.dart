@@ -197,6 +197,13 @@ class MedicationsRepository {
     for (final intake in pending) {
       await NotificationService.cancelIntakeReminder(intake.id);
     }
+    // Інакше вже згенеровані pending-прийоми (в т.ч. на сьогодні) лишаються
+    // сиротами й далі показуються на Сьогодні — той самий баг, що й у
+    // ActivitiesRepository.softDelete. Минулі (taken/skipped) прийоми
+    // навмисно НЕ чіпаємо — та сама історія лишається в архіві.
+    await (_db.delete(_db.intakes)
+          ..where((t) => t.id.isIn(pending.map((e) => e.id))))
+        .go();
     await NotificationService.cancel(NotificationService.lowStockNotificationId(id));
 
     final result = await (_db.update(_db.medications)..where((t) => t.id.equals(id)))

@@ -510,6 +510,15 @@ class ActivitiesRepository {
     for (final log in pending) {
       await NotificationService.cancelActivityReminder(log.id);
     }
+    // Інакше вже згенеровані pending-логи (в т.ч. на сьогодні) лишаються
+    // сиротами й далі показуються на Сьогодні — позначити/пропустити ще
+    // можна (лог сам по собі валідний рядок), а відкрити для перегляду вже
+    // не можна (watchById фільтрує isActive, RoutineViewScreen одразу
+    // закривається). Минулі (done/skipped) логи навмисно НЕ чіпаємо — та
+    // сама історія лишається в архіві.
+    await (_db.delete(_db.activityLogs)
+          ..where((t) => t.id.isIn(pending.map((e) => e.id))))
+        .go();
 
     final activity = await (_db.select(_db.activities)..where((t) => t.id.equals(id))).getSingleOrNull();
     final result = await (_db.update(_db.activities)..where((t) => t.id.equals(id)))
