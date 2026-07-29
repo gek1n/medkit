@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/services/shared_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -20,6 +21,7 @@ import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/feed_post_card.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
+import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/reminder_view_screen.dart';
 import '../medications/medication_detail_screen.dart';
@@ -78,11 +80,42 @@ class _FeedItem {
     this.activity,
     this.reminder,
   });
+
+  String get title => switch (kind) {
+        _ItemKind.entry => entry!.title,
+        _ItemKind.medication => medication!.name,
+        _ItemKind.activity => activity!.name,
+        _ItemKind.reminder => reminder!.doctorType,
+      };
+
+  String get searchableText => switch (kind) {
+        _ItemKind.entry => '${entry!.title} ${entry!.notes ?? ''}',
+        _ItemKind.reminder => '${reminder!.doctorType} ${reminder!.notes ?? ''}',
+        _ => title,
+      };
+
+  // Ліки й рутини тегів не мають — при активному фільтрі тегів вони не
+  // можуть йому відповідати, той самий підхід, що й в архіві нагадувань.
+  List<String> get tags => switch (kind) {
+        _ItemKind.entry => _parseTags(entry!.tags),
+        _ItemKind.reminder => _parseTags(reminder!.tags),
+        _ => const [],
+      };
 }
 
-class MedcardSectionScreen extends ConsumerWidget {
+class MedcardSectionScreen extends ConsumerStatefulWidget {
   final MedcardSection section;
   const MedcardSectionScreen({super.key, required this.section});
+
+  @override
+  ConsumerState<MedcardSectionScreen> createState() => _MedcardSectionScreenState();
+}
+
+class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
+  String _search = '';
+  Set<String> _selectedTags = {};
+
+  MedcardSection get section => widget.section;
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
@@ -111,7 +144,7 @@ class MedcardSectionScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final entriesAsync = ref.watch(_sectionEntriesProvider(section.id));
     final medsAsync = ref.watch(_sectionMedicationsProvider(section.id));
     final activitiesAsync = ref.watch(_sectionActivitiesProvider(section.id));
@@ -175,6 +208,21 @@ class MedcardSectionScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.screenPadding,
+                0,
+                AppDimensions.screenPadding,
+                AppDimensions.sm,
+              ),
+              child: TagSearchFilterBar(
+                searchHint: context.l10n.searchHint,
+                onSearchChanged: (v) => setState(() => _search = v),
+                tagsLoader: SharedTagsLibraryService.getAll,
+                selectedTags: _selectedTags,
+                onTagsChanged: (tags) => setState(() => _selectedTags = tags),
+              ),
+            ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -218,11 +266,29 @@ class MedcardSectionScreen extends ConsumerWidget {
                       ),
                     ]..sort((a, b) => b.date.compareTo(a.date));
 
-                    if (items.isEmpty) {
+                    final query = _search.trim().toLowerCase();
+                    final filtered = items.where((it) {
+                      if (query.isNotEmpty &&
+                          !it.searchableText.toLowerCase().contains(query)) {
+                        return false;
+                      }
+                      if (_selectedTags.isNotEmpty &&
+                          !_selectedTags.every((t) => it.tags.contains(t))) {
+                        return false;
+                      }
+                      return true;
+                    }).toList();
+
+                    if (filtered.isEmpty) {
+                      final filtering = query.isNotEmpty || _selectedTags.isNotEmpty;
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
-                          MkEmptyState(hint: context.l10n.sectionEmptyHint),
+                          MkEmptyState(
+                            hint: filtering
+                                ? context.l10n.noResultsFoundHint
+                                : context.l10n.sectionEmptyHint,
+                          ),
                         ],
                       );
                     }
@@ -234,10 +300,10 @@ class MedcardSectionScreen extends ConsumerWidget {
                         AppDimensions.screenPadding,
                         88,
                       ),
-                      itemCount: items.length,
+                      itemCount: filtered.length,
                       itemBuilder: (context, i) => Padding(
                         padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                        child: _FeedCard(item: items[i], section: section, color: color),
+                        child: _FeedCard(item: filtered[i], section: section, color: color),
                       ),
                     );
                   },

@@ -112,6 +112,8 @@
   "categoryDoctors": "Reminders",
   "scheduleTitle": "Schedule",
   "searchAllSections": "Search all sections",
+  "searchHint": "Search",
+  "noResultsFoundHint": "Nothing found",
   "sectionMeds": "Medications",
   "noActiveMeds": "No active medications",
   "sectionAppointments": "Reminders",

@@ -15,6 +15,7 @@ import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/feed_post_card.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
+import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../add/routine_view_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
@@ -74,21 +75,8 @@ class AppointmentsHistoryScreen extends ConsumerStatefulWidget {
 
 class _AppointmentsHistoryScreenState
     extends ConsumerState<AppointmentsHistoryScreen> {
-  String? _tag;
-
-  Future<void> _pickTag() async {
-    final history = await SharedTagsLibraryService.getAll();
-    if (!mounted) return;
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _TagFilterSheet(tags: history, current: _tag),
-    );
-    if (picked != null) setState(() => _tag = picked);
-  }
+  String _search = '';
+  Set<String> _selectedTags = {};
 
   @override
   Widget build(BuildContext context) {
@@ -114,13 +102,12 @@ class _AppointmentsHistoryScreenState
             const _Header(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: _TagFilterChip(
-                  tag: _tag,
-                  onTap: _pickTag,
-                  onClear: () => setState(() => _tag = null),
-                ),
+              child: TagSearchFilterBar(
+                searchHint: context.l10n.searchHint,
+                onSearchChanged: (v) => setState(() => _search = v),
+                tagsLoader: SharedTagsLibraryService.getAll,
+                selectedTags: _selectedTags,
+                onTagsChanged: (tags) => setState(() => _selectedTags = tags),
               ),
             ),
             const SizedBox(height: AppDimensions.sm),
@@ -137,11 +124,15 @@ class _AppointmentsHistoryScreenState
                     error: (e, _) =>
                         Center(child: Text(context.l10n.errorGeneric(e.toString()))),
                     data: (allActivities) {
-                      final hasFilter = _tag != null;
+                      final hasTagFilter = _selectedTags.isNotEmpty;
+                      final query = _search.trim().toLowerCase();
+                      bool matchesQuery(String text) =>
+                          query.isEmpty || text.toLowerCase().contains(query);
 
                       final reminderItems = allApts
                           .where((a) => widget.memberId == null || a.memberId == widget.memberId)
-                          .where((a) => _tag == null || _parseTags(a.tags).contains(_tag))
+                          .where((a) => _selectedTags.every((t) => _parseTags(a.tags).contains(t)))
+                          .where((a) => matchesQuery('${a.doctorType} ${a.notes ?? ''} ${a.location ?? ''}'))
                           .map((a) => _ArchiveItem(
                                 kind: _ArchiveKind.reminder,
                                 effectiveDate: a.scheduledAt,
@@ -154,11 +145,12 @@ class _AppointmentsHistoryScreenState
                       // Усі isActive-активності, не лише type=='routine' —
                       // старі записи Спорту/Простих завдань (до об'єднання
                       // пікера) інакше зникли б з архіву попри активність.
-                      final activityItems = hasFilter
+                      final activityItems = hasTagFilter
                           ? const Iterable<_ArchiveItem>.empty()
                           : allActivities
                               .where((a) =>
                                   widget.memberId == null || a.memberId == widget.memberId)
+                              .where((a) => matchesQuery(a.name))
                               .map((a) => _ArchiveItem(
                                     kind: _ArchiveKind.routine,
                                     effectiveDate: a.createdAt,
@@ -169,7 +161,9 @@ class _AppointmentsHistoryScreenState
                       final items = [...reminderItems, ...activityItems]
                         ..sort((a, b) => b.effectiveDate.compareTo(a.effectiveDate));
 
-                      if (items.isEmpty) return _EmptyState(filtered: hasFilter);
+                      if (items.isEmpty) {
+                        return _EmptyState(filtered: hasTagFilter || query.isNotEmpty);
+                      }
 
                       return ListView.builder(
                         padding: const EdgeInsets.fromLTRB(
@@ -214,119 +208,6 @@ class _Header extends StatelessWidget {
               child:
                   Text(context.l10n.appointmentsHistoryTitle, style: AppTextStyles.h3)),
         ],
-      ),
-    );
-  }
-}
-
-// ────────────────────────────── tag filter chip ─────────────────────
-
-class _TagFilterChip extends StatelessWidget {
-  final String? tag;
-  final VoidCallback onTap;
-  final VoidCallback onClear;
-  const _TagFilterChip({
-    required this.tag,
-    required this.onTap,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final active = tag != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? AppColors.primaryLight : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-          border: Border.all(color: active ? AppColors.primary : AppColors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.filter_list_rounded,
-              size: 16,
-              color: active ? AppColors.primary : AppColors.textMuted,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              tag ?? context.l10n.allTagsFilter,
-              style: AppTextStyles.labelMd.copyWith(
-                color: active ? AppColors.primary : AppColors.textSub,
-              ),
-            ),
-            if (active) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: onClear,
-                child: const Icon(Icons.close_rounded, size: 16, color: AppColors.primary),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ────────────────────────────── tag filter sheet ─────────────────────
-
-class _TagFilterSheet extends StatelessWidget {
-  final List<String> tags;
-  final String? current;
-  const _TagFilterSheet({required this.tags, required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      heightFactor: 0.6,
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(context.l10n.reminderTagsPickerTitle, style: AppTextStyles.h3),
-            ),
-            Expanded(
-              child: tags.isEmpty
-                  ? Center(
-                      child: Text(
-                        context.l10n.noTagsYetLabel,
-                        style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      itemCount: tags.length,
-                      itemBuilder: (context, index) {
-                        final t = tags[index];
-                        final selected = t == current;
-                        return ListTile(
-                          title: Text(t, style: AppTextStyles.bodyLg),
-                          trailing: selected
-                              ? const Icon(Icons.check_rounded, color: AppColors.primary)
-                              : null,
-                          onTap: () => Navigator.pop(context, t),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
       ),
     );
   }

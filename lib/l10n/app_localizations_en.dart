@@ -223,6 +223,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchAllSections => 'Search all sections';
 
   @override
+  String get searchHint => 'Search';
+
+  @override
+  String get noResultsFoundHint => 'Nothing found';
+
+  @override
   String get sectionMeds => 'Medications';
 
   @override
