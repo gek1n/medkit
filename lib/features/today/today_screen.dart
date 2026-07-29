@@ -2114,11 +2114,16 @@ class _IconHeader extends StatelessWidget {
   final String illustration;
   final Color accent;
   final VoidCallback? onZoom;
+  // Значок обраної при створенні іконки — необов'язковий, лише для карток,
+  // де користувач реально обирає іконку (напр. нагадування); без нього
+  // ілюстрація Еллі лишається як і була, тонована кольором картки.
+  final String? iconKey;
 
   const _IconHeader({
     required this.illustration,
     required this.accent,
     this.onZoom,
+    this.iconKey,
   });
 
   @override
@@ -2141,6 +2146,22 @@ class _IconHeader extends StatelessWidget {
                 ),
               ),
             ),
+            if (iconKey != null)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: MedcardIcon(iconKey!, size: 17),
+                ),
+              ),
             if (onZoom != null)
               Positioned(top: 8, right: 8, child: _ZoomButton(onTap: onZoom!)),
           ],
@@ -2962,6 +2983,7 @@ class _ActiveAppointmentCard extends StatelessWidget {
           _IconHeader(
             illustration: 'assets/illustrations/elly-calendar.png',
             accent: iconColor,
+            iconKey: appointment.iconKey,
             onZoom: () => Navigator.push(
               context,
               MaterialPageRoute(

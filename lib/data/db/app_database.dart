@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 37;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -776,6 +776,19 @@ class AppDatabase extends _$AppDatabase {
               await customStatement(
                   'UPDATE activities SET rotation_anchor_date = created_at '
                   'WHERE rotation_anchor_date IS NULL');
+            } catch (_) {}
+          }
+          if (from < 38) {
+            // Прибираємо дублікати ReminderLogs, що назбирались через race
+            // condition у ReminderLogGenerator (дві паралельні генерації
+            // могли обидві вставити запис на те саме нагадування+час, перш
+            // ніж сам генератор отримав захист від цього) — лишаємо лише
+            // найстаріший (мінімальний id) рядок на кожну пару
+            // reminder_id+scheduled_at.
+            try {
+              await customStatement(
+                  'DELETE FROM reminder_logs WHERE id NOT IN '
+                  '(SELECT MIN(id) FROM reminder_logs GROUP BY reminder_id, scheduled_at)');
             } catch (_) {}
           }
         },
