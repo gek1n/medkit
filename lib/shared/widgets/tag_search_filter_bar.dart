@@ -64,35 +64,36 @@ class _TagSearchFilterBarState extends State<TagSearchFilterBar> {
       children: [
         Expanded(
           flex: 3,
-          child: SizedBox(
+          child: Container(
             height: 40,
-            child: TextField(
-              controller: _searchController,
-              onChanged: widget.onSearchChanged,
-              style: AppTextStyles.bodySm,
-              textAlignVertical: TextAlignVertical.center,
-              decoration: InputDecoration(
-                isDense: true,
-                filled: true,
-                fillColor: AppColors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                  borderSide: const BorderSide(color: AppColors.border),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: AppColors.border),
+            ),
+            // Той самий Container(height: 40, ...), що й у фільтрі тегів
+            // нижче, — щоб обидва завжди мали однакову висоту пікселя в
+            // піксель. Bare TextField з collapsed-декорацією (без власного
+            // border/fill від InputDecorator) замість повноцінного поля —
+            // висота рахується самим Container, не InputDecorator.
+            child: Row(
+              children: [
+                const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: widget.onSearchChanged,
+                    style: AppTextStyles.bodySm,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration.collapsed(
+                      hintText: widget.searchHint,
+                      hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                    ),
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-                prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
-                prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 18),
-                hintText: widget.searchHint,
-                hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-              ),
+              ],
             ),
           ),
         ),
