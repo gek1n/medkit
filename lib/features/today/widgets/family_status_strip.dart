@@ -54,17 +54,8 @@ class _MemberChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final intakesAsync = ref.watch(todayIntakesProvider(member.id));
-
-    return intakesAsync.when(
-      loading: () => _chip(0, 0),
-      error: (_, _) => _chip(0, 0),
-      data: (intakes) {
-        final taken = intakes.where((i) => i.status == 'taken').length;
-        final total = intakes.length;
-        return _chip(taken, total);
-      },
-    );
+    final progress = ref.watch(familyMemberTodayProgressProvider(member.id));
+    return _chip(progress.done, progress.total);
   }
 
   Widget _chip(int taken, int total) {

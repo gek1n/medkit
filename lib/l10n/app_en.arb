@@ -632,6 +632,17 @@
       }
     }
   },
+  "tasksProgressLabel": "{taken} of {total} tasks",
+  "@tasksProgressLabel": {
+    "placeholders": {
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "missedRemindersLabel": "{count, plural, one{Missed {count} reminder} other{Missed {count} reminders}}",
   "@missedRemindersLabel": {
     "placeholders": {

@@ -1103,6 +1103,11 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
+  String tasksProgressLabel(int taken, int total) {
+    return '$taken з $total завдань';
+  }
+
+  @override
   String missedRemindersLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

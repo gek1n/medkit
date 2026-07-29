@@ -162,36 +162,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     _stepInputController.clear();
   }
 
-  Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(context.l10n.deleteActivityConfirmTitle),
-        content: Text(context.l10n.deleteActivityConfirmBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(context.l10n.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              context.l10n.deleteAction,
-              style: AppTextStyles.bodyMd.copyWith(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true || !mounted) return;
-    await ref
-        .read(activitiesRepositoryProvider)
-        .softDelete(widget.existing!.id);
-    ref.invalidate(generateTodayActivityLogsProvider);
-    ref.invalidate(tomorrowActivityLogsProvider);
-    if (mounted) Navigator.pop(context);
-  }
-
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -358,7 +328,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       : context.l10n.newRoutineTitle) +
                   memberNameSuffix(context, ref, widget.memberId),
               onBack: () => Navigator.pop(context),
-              onDelete: isEdit ? _delete : null,
             ),
             Expanded(
               child: SingleChildScrollView(
@@ -1503,8 +1472,7 @@ class _PickerHighlight extends StatelessWidget {
 class _BackHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBack;
-  final VoidCallback? onDelete;
-  const _BackHeader({required this.title, required this.onBack, this.onDelete});
+  const _BackHeader({required this.title, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -1516,24 +1484,6 @@ class _BackHeader extends StatelessWidget {
           MkBackButton(onTap: onBack),
           const SizedBox(width: 12),
           Expanded(child: Text(title, style: AppTextStyles.h3)),
-          if (onDelete != null)
-            GestureDetector(
-              onTap: onDelete,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFECACA)),
-                ),
-                child: const Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: Color(0xFFDC2626),
-                ),
-              ),
-            ),
         ],
       ),
     );

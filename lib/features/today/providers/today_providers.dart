@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/repositories/members_repository.dart';
@@ -92,19 +94,111 @@ final todayWellbeingLogsProvider =
   return ref.watch(wellbeingRepositoryProvider).watchTodayLogs(memberId, DateTime.now());
 });
 
-// Статистика сім'ї на сьогодні (memberId -> {taken, total})
-final familyTodayStatsProvider =
-    FutureProvider<Map<int, ({int taken, int total})>>((ref) async {
-  final members = await ref.watch(membersRepositoryProvider).watchAll().first;
-  final intakesRepo = ref.watch(intakesRepositoryProvider);
-  final result = <int, ({int taken, int total})>{};
+// Агреговані показники виконання ЛЮБИХ завдань (ліки + нагадування + рутини
+// + самопочуття) на сьогодні для члена сім'ї — те саме часове вікно
+// "пропущено" (>15хв прострочено), що й бакетинг на Сьогодні (_TodayContent),
+// але тут лише голі лічильники для бейджів у стрічці сім'ї/на екрані Сім'я.
+// Рутини без фіксованого часу враховуються у виконано/всього, але ніколи в
+// пропущено — так само, як окрема секція "будь-коли" на Сьогодні.
+final familyMemberTodayProgressProvider =
+    Provider.family<({int done, int total, int missed}), int>((ref, memberId) {
+  final intakes = ref.watch(todayIntakesProvider(memberId)).valueOrNull ?? [];
+  final activityLogs =
+      ref.watch(todayActivityLogsProvider(memberId)).valueOrNull ?? [];
+  final noFixedTimeIds =
+      ref.watch(todayNoFixedTimeActivityIdsProvider(memberId)).valueOrNull ??
+          <int>{};
+  final reminders =
+      ref.watch(todayAppointmentsProvider(memberId)).valueOrNull ?? [];
+  final reminderLogs =
+      ref.watch(todayReminderLogsProvider(memberId)).valueOrNull ?? [];
+  final wbSchedule =
+      ref.watch(todayWellbeingScheduleProvider(memberId)).valueOrNull;
+  final wbLogs =
+      ref.watch(todayWellbeingLogsProvider(memberId)).valueOrNull ?? [];
 
-  for (final m in members) {
-    final intakes = await intakesRepo.getByMemberAndDate(m.id, DateTime.now());
-    final taken = intakes.where((i) => i.status == 'taken').length;
-    result[m.id] = (taken: taken, total: intakes.length);
+  final now = DateTime.now();
+  final activeWindowStart = now.subtract(const Duration(minutes: 15));
+
+  var done = 0;
+  var total = 0;
+  var missed = 0;
+
+  DateTime effectiveDue(Intake i) =>
+      i.status == 'snoozed' && i.snoozedUntil != null
+          ? i.snoozedUntil!
+          : i.scheduledAt;
+
+  total += intakes.length;
+  done += intakes.where((i) => i.status == 'taken').length;
+  missed += intakes
+      .where((i) =>
+          (i.status == 'pending' || i.status == 'snoozed') &&
+          effectiveDue(i).isBefore(activeWindowStart))
+      .length;
+
+  // Той самий expand, що й _ApptOccurrence на Сьогодні: repeatType=='none' —
+  // з самого Reminder, повторювані — по одному запису на кожен ReminderLog.
+  final occurrences = reminders.expand((r) {
+    if (r.repeatType == 'none') {
+      return [(status: r.status, scheduledAt: r.scheduledAt)];
+    }
+    return reminderLogs.where((l) => l.reminderId == r.id).map(
+          (l) =>
+              (status: l.status, scheduledAt: l.snoozedUntil ?? l.scheduledAt),
+        );
+  });
+  for (final o in occurrences) {
+    total++;
+    if (o.status == 'attended' || o.status == 'done') done++;
+    if (o.status == 'pending' && o.scheduledAt.isBefore(activeWindowStart)) {
+      missed++;
+    }
   }
-  return result;
+
+  total += activityLogs.length;
+  done += activityLogs
+      .where((l) => l.status == 'done' || l.status == 'skipped')
+      .length;
+  missed += activityLogs
+      .where((l) =>
+          l.status == 'pending' &&
+          !noFixedTimeIds.contains(l.activityId) &&
+          l.scheduledAt.isBefore(activeWindowStart))
+      .length;
+
+  if (wbSchedule != null && wbSchedule.isActive) {
+    List<String> times;
+    try {
+      times = List<String>.from(jsonDecode(wbSchedule.times) as List);
+    } catch (_) {
+      times = const [];
+    }
+    final today = DateTime(now.year, now.month, now.day);
+    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+    final slots = times.map((t) {
+      final p = t.split(':');
+      return DateTime(
+          today.year, today.month, today.day, int.parse(p[0]), int.parse(p[1]));
+    }).toList()
+      ..sort();
+    for (var i = 0; i < slots.length; i++) {
+      final slot = slots[i];
+      final windowEnd = i + 1 < slots.length ? slots[i + 1] : endOfDay;
+      final hasLog = wbLogs.any((l) =>
+          l.loggedAt.isAfter(slot.subtract(const Duration(minutes: 30))) &&
+          l.loggedAt.isBefore(windowEnd));
+      if (slot.isAfter(now) && !hasLog) continue;
+      total++;
+      if (hasLog) {
+        done++;
+      } else if (slot.isBefore(activeWindowStart)) {
+        missed++;
+      }
+    }
+  }
+
+  return (done: done, total: total, missed: missed);
 });
 
 // Генерація прийомів при відкритті екрану
