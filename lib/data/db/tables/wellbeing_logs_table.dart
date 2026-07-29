@@ -14,7 +14,7 @@ class WellbeingLogs extends Table {
   // 28; нові записи сюди більше не пишуться.
   TextColumn get tagsJson => text().withDefault(const Constant('[]'))();
   // json: ["втома","стрес"] — довільні мітки, які користувач вводить сам;
-  // окрема історія від тегів нагадувань (ReminderTagsLibraryService)
+  // окрема історія від тегів завдань (SharedTagsLibraryService)
   TextColumn get comment => text().nullable()();
   TextColumn get voiceNotePath => text().nullable()();
   BoolColumn get skipped => boolean().withDefault(const Constant(false))();

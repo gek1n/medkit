@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/services/reminder_tags_library_service.dart';
+import '../../core/services/shared_tags_library_service.dart';
 import '../../core/services/reminder_title_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -292,7 +292,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
     setState(() => _isSaving = true);
     try {
       await ReminderTitleLibraryService.add(title);
-      await ReminderTagsLibraryService.addAll(_tags);
+      await SharedTagsLibraryService.addAll(_tags);
 
       final int reminderId;
       if (widget.existing != null) {
@@ -853,7 +853,7 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                               tags: _tags,
                               onChanged: (t) => setState(() => _tags = t),
                               hint: context.l10n.reminderTagsHint,
-                              loadHistory: ReminderTagsLibraryService.getAll,
+                              loadHistory: SharedTagsLibraryService.getAll,
                             ),
                           ),
                         ),

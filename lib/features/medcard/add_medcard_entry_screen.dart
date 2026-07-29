@@ -4,7 +4,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/services/medcard_entry_tag_library_service.dart';
+import '../../core/services/shared_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -110,7 +110,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
     }
     setState(() => _isSaving = true);
     try {
-      await MedcardEntryTagLibraryService.addAll(_tags);
+      await SharedTagsLibraryService.addAll(_tags);
       final notesVal =
           _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
       final locationVal =
@@ -242,7 +242,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                               tags: _tags,
                               onChanged: (t) => setState(() => _tags = t),
                               hint: context.l10n.reminderTagsHint,
-                              loadHistory: MedcardEntryTagLibraryService.getAll,
+                              loadHistory: SharedTagsLibraryService.getAll,
                             ),
                           ),
                         ),
