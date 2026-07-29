@@ -5704,6 +5704,72 @@ abstract class AppLocalizations {
   /// **'шт.'**
   String get medUnitPiece;
 
+  /// No description provided for @stockUnitKg.
+  ///
+  /// In uk, this message translates to:
+  /// **'кг'**
+  String get stockUnitKg;
+
+  /// No description provided for @stockUnitLiter.
+  ///
+  /// In uk, this message translates to:
+  /// **'л'**
+  String get stockUnitLiter;
+
+  /// No description provided for @stockUnitTube.
+  ///
+  /// In uk, this message translates to:
+  /// **'туба'**
+  String get stockUnitTube;
+
+  /// No description provided for @stockUnitPack.
+  ///
+  /// In uk, this message translates to:
+  /// **'пачка'**
+  String get stockUnitPack;
+
+  /// No description provided for @stockUnitJar.
+  ///
+  /// In uk, this message translates to:
+  /// **'банка'**
+  String get stockUnitJar;
+
+  /// No description provided for @stockUnitBottle.
+  ///
+  /// In uk, this message translates to:
+  /// **'пляшка'**
+  String get stockUnitBottle;
+
+  /// No description provided for @stockUnitPortion.
+  ///
+  /// In uk, this message translates to:
+  /// **'порція'**
+  String get stockUnitPortion;
+
+  /// No description provided for @stockUnitSpoon.
+  ///
+  /// In uk, this message translates to:
+  /// **'ложка'**
+  String get stockUnitSpoon;
+
+  /// No description provided for @stockUnitGlass.
+  ///
+  /// In uk, this message translates to:
+  /// **'склянка'**
+  String get stockUnitGlass;
+
+  /// No description provided for @stockUnitLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Одиниця виміру'**
+  String get stockUnitLabel;
+
+  /// No description provided for @inventoryFormHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Флакон, пачка, банка...'**
+  String get inventoryFormHint;
+
   /// No description provided for @chooseProfileLabel.
   ///
   /// In uk, this message translates to:

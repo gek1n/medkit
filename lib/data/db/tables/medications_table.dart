@@ -14,8 +14,10 @@ class Medications extends Table {
   // відв'язує їх (setNull), на відміну від MedcardEntries, які каскадно
   // видаляються разом із розділом.
   TextColumn get name => text().withLength(min: 1, max: 200)();
-  TextColumn get form => text().withDefault(const Constant('tablet'))();
-  // tablet/capsule/syrup/drops/cream/inhaler/injection/other
+  TextColumn get form => text().withDefault(const Constant(''))();
+  // вільний текст (напр. "Флакон", "Пачка") — до v41 був фіксованим
+  // переліком tablet/capsule/syrup/... що керував іконкою й одиницею виміру;
+  // тепер це окремо: iconKey (нижче) та stockUnit.
   RealColumn get doseAmount => real()();
   TextColumn get doseUnit => text().withDefault(const Constant('мг'))();
   TextColumn get foodRelation => text().withDefault(const Constant('any'))();
@@ -36,10 +38,16 @@ class Medications extends Table {
   TextColumn get instructions => text().nullable()();
   TextColumn get phases => text().nullable()();
   // json: [{"times":["08:00"],"durationDays":7}, ...]
-  IntColumn get stockPercent => integer().nullable()();
-  // 0-100, для рідких форм (сироп/краплі/крем/інгалятор)
-  DateTimeColumn get openedAt => dateTime().nullable()();
-  // коли відкрито поточний флакон/тюбик
+  BoolColumn get trackStock => boolean().withDefault(const Constant(false))();
+  // до v41 відстеження залишку вмикалось лише неявно (stockPercent!=null) —
+  // явний прапорець, той самий підхід, що й лишається робочим для
+  // count-режиму незалежно від відсоткового (видаленого в v41).
+  TextColumn get stockUnit => text().nullable()();
+  // одиниця виміру залишку (г/кг/мл/л/шт/склянка/...) — обирається окремо
+  // від form, використовується в розрахунку "потрібно докупити".
+  TextColumn get iconKey => text().nullable()();
+  // ключ повнокольорової іконки картки — той самий MedcardIcon/
+  // medcardIconKeys реєстр, що й для розділів Полички/кольору рутин.
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

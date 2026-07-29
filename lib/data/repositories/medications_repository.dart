@@ -8,17 +8,8 @@ import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 
-// Нижче цього залишку прийомів медикамент вважається таким, що закінчується
+// Нижче цього залишку одиниць запас вважається таким, що закінчується
 const int lowStockThreshold = 3;
-
-// Нижче цього відсотка флакон/тюбик вважається таким, що закінчується
-const int lowStockPercentThreshold = 15;
-
-// Форми, для яких залишок відстежується у % (одна відкрита ємність),
-// а не підрахунком дискретних одиниць (таблеток, ампул тощо).
-const Set<String> percentTrackedForms = {'syrup', 'drops', 'cream', 'inhaler'};
-
-bool isPercentTrackedForm(String form) => percentTrackedForms.contains(form);
 
 class MedicationsRepository {
   final AppDatabase _db;
@@ -139,43 +130,6 @@ class MedicationsRepository {
       updatedAt: Value(DateTime.now()),
     ));
     _triggerFamilySync(med.memberId);
-  }
-
-  Future<void> setStockPercent(int id, int percent) async {
-    final med = await getById(id);
-    if (med == null) return;
-    final clamped = percent.clamp(0, 100);
-    await (_db.update(_db.medications)..where((t) => t.id.equals(id)))
-        .write(MedicationsCompanion(
-      stockPercent: Value(clamped),
-      updatedAt: Value(DateTime.now()),
-    ));
-
-    if (clamped <= lowStockPercentThreshold) {
-      final settings = _ref.read(notificationSettingsProvider);
-      if (settings.pushEnabled && settings.isMemberEnabled(med.memberId)) {
-        await NotificationService.showLowStockAlert(
-          medicationId: med.id,
-          memberName: await _memberName(med.memberId),
-          medName: med.name,
-          remaining: clamped,
-          unit: '%',
-          vibrationEnabled: settings.vibrationEnabled,
-        );
-      }
-    }
-    _triggerFamilySync(med.memberId);
-  }
-
-  Future<void> openNewContainer(int id) async {
-    await (_db.update(_db.medications)..where((t) => t.id.equals(id))).write(
-      MedicationsCompanion(
-        stockPercent: const Value(100),
-        openedAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
-    await _triggerFamilySyncForMedication(id);
   }
 
   Future<void> refill(int id, int count) async {

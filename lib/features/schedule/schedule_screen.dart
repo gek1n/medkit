@@ -977,7 +977,7 @@ class _MedCard extends StatelessWidget {
     return _TaskCardShell(
       color: color,
       icon: medFormIcon(med.form),
-      iconWidget: AssetIcon(medFormIconAsset(med.form), size: 26),
+      iconWidget: MedcardIcon(med.iconKey ?? 'form_cream', size: 26),
       title: med.name,
       subtitle: '${_doseStr(med)} · ${_repeatStr(context, med)}',
       extraLine: _daysLeftStr(context, med),

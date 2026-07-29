@@ -3,17 +3,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/services/affiliate_config_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
-import '../../shared/widgets/affiliate_buy_button.dart';
-import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../data/db/app_database.dart';
@@ -114,17 +111,10 @@ Color _pillBarColor(int remaining, int total) {
   return AppColors.danger;
 }
 
-String _stockUnitLabel(BuildContext context, String form) => switch (form) {
-  'tablet' || 'capsule' => context.l10n.stockUnitTabletsCapsules,
-  'syrup' => context.l10n.stockUnitSyrup,
-  'drops' => context.l10n.stockUnitDrops,
-  'injection' => context.l10n.stockUnitInjections,
-  'suppository' => context.l10n.stockUnitSuppositories,
-  'vial' => context.l10n.stockUnitVial,
-  'cream' => context.l10n.stockUnitCream,
-  'inhaler' => context.l10n.stockUnitInhaler,
-  _ => context.l10n.stockUnitGeneric,
-};
+// Вільний текст, що ввів користувач ("Флакон", "Пачка") — раніше похідне
+// від фіксованого form-переліку, тепер form сам є довільним написом.
+String? _stockFormLabel(Medication med) =>
+    med.form.trim().isEmpty ? null : med.form.trim();
 
 // Підпис під назвою в шапці: "10 мг на прийом · 2 рази на день".
 String _doseSubtitle(BuildContext context, Medication med) {
@@ -234,29 +224,12 @@ class _DetailBody extends ConsumerWidget {
               ],
               _InfoBlock(med: med, accent: accent),
               const SizedBox(height: AppDimensions.xl),
-              if (med.totalCount > 0 || med.stockPercent != null)
+              if (med.trackStock)
                 Column(
                   children: [
                     _StockSection(med: med, schedules: schedules, accent: accent),
                     const SizedBox(height: AppDimensions.xl),
                   ],
-                )
-              else
-                ValueListenableBuilder<int>(
-                  valueListenable: AffiliateConfigService.revision,
-                  builder: (context, _, _) {
-                    final hasLink = AffiliateConfigService.linkFor(
-                          AffiliateSection.medications,
-                        ) !=
-                        null;
-                    if (!hasLink) return const SizedBox.shrink();
-                    return Column(
-                      children: [
-                        const AffiliateBuyButton(section: AffiliateSection.medications),
-                        const SizedBox(height: AppDimensions.xl),
-                      ],
-                    );
-                  },
                 ),
               const SizedBox(height: 24),
             ]),
@@ -547,14 +520,10 @@ class _StockSection extends ConsumerWidget {
           accent: accent,
         ),
         const SizedBox(height: 10),
-        isPercentTrackedForm(med.form)
-            ? _buildPercentCard(context, ref)
-            : _buildCountCard(context, ref),
+        _buildCountCard(context, ref),
       ],
     );
   }
-
-  // ── Дискретні одиниці (таблетки, капсули, свічки тощо) ──────────────────
 
   Widget _buildCountCard(BuildContext context, WidgetRef ref) {
     final dailyConsumption = _dailyConsumption(med, schedules);
@@ -592,21 +561,23 @@ class _StockSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.medication_outlined,
-                size: 13,
-                color: AppColors.textMuted,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                _stockUnitLabel(context, med.form),
-                style: AppTextStyles.labelSm.copyWith(fontSize: 11),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+          if (_stockFormLabel(med) != null) ...[
+            Row(
+              children: [
+                const Icon(
+                  Icons.inventory_2_outlined,
+                  size: 13,
+                  color: AppColors.textMuted,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  _stockFormLabel(med)!,
+                  style: AppTextStyles.labelSm.copyWith(fontSize: 11),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -702,8 +673,6 @@ class _StockSection extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          const AffiliateBuyButton(section: AffiliateSection.medications),
         ],
       ),
     );
@@ -744,183 +713,6 @@ class _StockSection extends ConsumerWidget {
     }
   }
 
-  // ── Рідкі форми (сироп, краплі, крем, інгалятор) — залишок у % ──────────
-
-  Widget _buildPercentCard(BuildContext context, WidgetRef ref) {
-    final percent = med.stockPercent ?? 100;
-    final openedAt = med.openedAt;
-    double? daysLeft;
-    if (openedAt != null) {
-      final daysSince = DateTime.now().difference(openedAt).inDays;
-      if (daysSince > 0 && percent < 100) {
-        final ratePerDay = (100 - percent) / daysSince;
-        if (ratePerDay > 0) daysLeft = percent / ratePerDay;
-      }
-    }
-    final color = _pillBarColor(percent, 100);
-    const presets = [75, 50, 25, 10];
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: _softCard(accent),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.water_drop_outlined,
-                size: 13,
-                color: AppColors.textMuted,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                _stockUnitLabel(context, med.form),
-                style: AppTextStyles.labelSm.copyWith(fontSize: 11),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 34,
-                height: 56,
-                decoration: BoxDecoration(
-                  border: Border.all(color: color, width: 2),
-                  borderRadius: BorderRadius.circular(6),
-                  color: Colors.white,
-                ),
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: FractionallySizedBox(
-                        heightFactor: (percent / 100).clamp(0.03, 1.0),
-                        child: Container(color: color.withValues(alpha: 0.55)),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        '$percent%',
-                        style: AppTextStyles.caption.copyWith(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.l10n.remainingApproxPercent(percent),
-                      style: AppTextStyles.bodyMd.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    if (daysLeft != null)
-                      Text(
-                        context.l10n.daysLeftAtCurrentRate(daysLeft.toStringAsFixed(0)),
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: AppColors.textSub,
-                        ),
-                      ),
-                    if (openedAt != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        _openedAgoLabel(context, openedAt),
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            context.l10n.updateStockEstimateLabel,
-            style: AppTextStyles.labelSm.copyWith(fontSize: 11),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: presets.asMap().entries.map((e) {
-              final p = e.value;
-              final selected = percent == p;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: e.key < presets.length - 1 ? 6 : 0,
-                  ),
-                  child: GestureDetector(
-                    onTap: () => ref
-                        .read(medicationsRepositoryProvider)
-                        .setStockPercent(med.id, p),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected ? accent : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: selected
-                              ? accent
-                              : accent.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Text(
-                        '~$p%',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.labelSm.copyWith(
-                          fontSize: 11,
-                          color: selected ? Colors.white : accent,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => ref
-                  .read(medicationsRepositoryProvider)
-                  .openNewContainer(med.id),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: accent,
-                side: BorderSide(color: accent.withValues(alpha: 0.4)),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                context.l10n.openedNewContainerAction,
-                style: AppTextStyles.labelMd.copyWith(color: accent),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _openedAgoLabel(BuildContext context, DateTime openedAt) {
-    final days = DateTime.now().difference(openedAt).inDays;
-    if (days <= 0) return context.l10n.openedTodayLabel;
-    return context.l10n.openedDaysAgoLabel(days);
-  }
 }
 
 // ── Medication photo (big) or icon (small) ────────────────────────────────────
@@ -962,7 +754,7 @@ class _MedPhotoBlock extends StatelessWidget {
           ],
         ),
         child: Center(
-          child: AssetIcon(medFormIconAsset(med.form), size: 34),
+          child: MedcardIcon(med.iconKey ?? 'form_cream', size: 34),
         ),
       );
     }

@@ -3205,6 +3205,39 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medUnitPiece => 'шт.';
 
   @override
+  String get stockUnitKg => 'кг';
+
+  @override
+  String get stockUnitLiter => 'л';
+
+  @override
+  String get stockUnitTube => 'туба';
+
+  @override
+  String get stockUnitPack => 'пачка';
+
+  @override
+  String get stockUnitJar => 'банка';
+
+  @override
+  String get stockUnitBottle => 'пляшка';
+
+  @override
+  String get stockUnitPortion => 'порція';
+
+  @override
+  String get stockUnitSpoon => 'ложка';
+
+  @override
+  String get stockUnitGlass => 'склянка';
+
+  @override
+  String get stockUnitLabel => 'Одиниця виміру';
+
+  @override
+  String get inventoryFormHint => 'Флакон, пачка, банка...';
+
+  @override
   String get chooseProfileLabel => 'Оберіть профіль';
 
   @override

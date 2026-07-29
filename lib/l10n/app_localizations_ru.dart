@@ -3211,6 +3211,39 @@ class AppLocalizationsRu extends AppLocalizations {
   String get medUnitPiece => 'шт.';
 
   @override
+  String get stockUnitKg => 'кг';
+
+  @override
+  String get stockUnitLiter => 'л';
+
+  @override
+  String get stockUnitTube => 'туба';
+
+  @override
+  String get stockUnitPack => 'пачка';
+
+  @override
+  String get stockUnitJar => 'банка';
+
+  @override
+  String get stockUnitBottle => 'бутылка';
+
+  @override
+  String get stockUnitPortion => 'порция';
+
+  @override
+  String get stockUnitSpoon => 'ложка';
+
+  @override
+  String get stockUnitGlass => 'стакан';
+
+  @override
+  String get stockUnitLabel => 'Единица измерения';
+
+  @override
+  String get inventoryFormHint => 'Флакон, пачка, банка...';
+
+  @override
   String get chooseProfileLabel => 'Выберите профиль';
 
   @override

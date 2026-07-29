@@ -5,11 +5,10 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/med_form_icons.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
-import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_card.dart';
 import '../../shared/widgets/section_label.dart';
 import 'add_medication_screen.dart';
@@ -304,7 +303,7 @@ class _MedCard extends StatelessWidget {
               child: Center(
                 child: Opacity(
                   opacity: dimmed ? 0.5 : 1.0,
-                  child: AssetIcon(medFormIconAsset(med.form), size: 28),
+                  child: MedcardIcon(med.iconKey ?? 'form_cream', size: 28),
                 ),
               ),
             ),

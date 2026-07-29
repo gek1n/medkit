@@ -3194,6 +3194,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medUnitPiece => 'pc.';
 
   @override
+  String get stockUnitKg => 'kg';
+
+  @override
+  String get stockUnitLiter => 'l';
+
+  @override
+  String get stockUnitTube => 'tube';
+
+  @override
+  String get stockUnitPack => 'pack';
+
+  @override
+  String get stockUnitJar => 'jar';
+
+  @override
+  String get stockUnitBottle => 'bottle';
+
+  @override
+  String get stockUnitPortion => 'portion';
+
+  @override
+  String get stockUnitSpoon => 'spoon';
+
+  @override
+  String get stockUnitGlass => 'glass';
+
+  @override
+  String get stockUnitLabel => 'Measurement unit';
+
+  @override
+  String get inventoryFormHint => 'Bottle, pack, jar...';
+
+  @override
   String get chooseProfileLabel => 'Choose a profile';
 
   @override

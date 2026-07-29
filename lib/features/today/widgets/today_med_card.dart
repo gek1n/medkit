@@ -4,11 +4,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_dimensions.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
-import '../../../core/utils/med_form_icons.dart';
+import '../../../core/utils/medcard_icons.dart';
 import '../../../data/db/app_database.dart';
 import '../../../data/repositories/intakes_repository.dart';
 import '../../../data/repositories/medications_repository.dart';
-import '../../../shared/widgets/asset_icon.dart';
 import '../../../shared/widgets/mk_card.dart';
 
 class TodayMedCard extends StatelessWidget {
@@ -83,7 +82,7 @@ class _MedCardContent extends StatelessWidget {
             child: Center(
               child: Opacity(
                 opacity: isDone ? 0.5 : 1.0,
-                child: AssetIcon(medFormIconAsset(med.form), size: 26),
+                child: MedcardIcon(med.iconKey ?? 'form_cream', size: 26),
               ),
             ),
           ),

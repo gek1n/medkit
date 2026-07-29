@@ -877,7 +877,7 @@ class $MedicationsTable extends Medications
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('tablet'),
+    defaultValue: const Constant(''),
   );
   static const VerificationMeta _doseAmountMeta = const VerificationMeta(
     'doseAmount',
@@ -1016,26 +1016,41 @@ class $MedicationsTable extends Medications
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _stockPercentMeta = const VerificationMeta(
-    'stockPercent',
+  static const VerificationMeta _trackStockMeta = const VerificationMeta(
+    'trackStock',
   );
   @override
-  late final GeneratedColumn<int> stockPercent = GeneratedColumn<int>(
-    'stock_percent',
+  late final GeneratedColumn<bool> trackStock = GeneratedColumn<bool>(
+    'track_stock',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("track_stock" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _stockUnitMeta = const VerificationMeta(
+    'stockUnit',
+  );
+  @override
+  late final GeneratedColumn<String> stockUnit = GeneratedColumn<String>(
+    'stock_unit',
     aliasedName,
     true,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _openedAtMeta = const VerificationMeta(
-    'openedAt',
+  static const VerificationMeta _iconKeyMeta = const VerificationMeta(
+    'iconKey',
   );
   @override
-  late final GeneratedColumn<DateTime> openedAt = GeneratedColumn<DateTime>(
-    'opened_at',
+  late final GeneratedColumn<String> iconKey = GeneratedColumn<String>(
+    'icon_key',
     aliasedName,
     true,
-    type: DriftSqlType.dateTime,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _isActiveMeta = const VerificationMeta(
@@ -1128,8 +1143,9 @@ class $MedicationsTable extends Medications
     photoPaths,
     instructions,
     phases,
-    stockPercent,
-    openedAt,
+    trackStock,
+    stockUnit,
+    iconKey,
     isActive,
     createdAt,
     updatedAt,
@@ -1268,19 +1284,22 @@ class $MedicationsTable extends Medications
         phases.isAcceptableOrUnknown(data['phases']!, _phasesMeta),
       );
     }
-    if (data.containsKey('stock_percent')) {
+    if (data.containsKey('track_stock')) {
       context.handle(
-        _stockPercentMeta,
-        stockPercent.isAcceptableOrUnknown(
-          data['stock_percent']!,
-          _stockPercentMeta,
-        ),
+        _trackStockMeta,
+        trackStock.isAcceptableOrUnknown(data['track_stock']!, _trackStockMeta),
       );
     }
-    if (data.containsKey('opened_at')) {
+    if (data.containsKey('stock_unit')) {
       context.handle(
-        _openedAtMeta,
-        openedAt.isAcceptableOrUnknown(data['opened_at']!, _openedAtMeta),
+        _stockUnitMeta,
+        stockUnit.isAcceptableOrUnknown(data['stock_unit']!, _stockUnitMeta),
+      );
+    }
+    if (data.containsKey('icon_key')) {
+      context.handle(
+        _iconKeyMeta,
+        iconKey.isAcceptableOrUnknown(data['icon_key']!, _iconKeyMeta),
       );
     }
     if (data.containsKey('is_active')) {
@@ -1399,13 +1418,17 @@ class $MedicationsTable extends Medications
         DriftSqlType.string,
         data['${effectivePrefix}phases'],
       ),
-      stockPercent: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}stock_percent'],
+      trackStock: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}track_stock'],
+      )!,
+      stockUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stock_unit'],
       ),
-      openedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}opened_at'],
+      iconKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_key'],
       ),
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -1458,8 +1481,9 @@ class Medication extends DataClass implements Insertable<Medication> {
   final String photoPaths;
   final String? instructions;
   final String? phases;
-  final int? stockPercent;
-  final DateTime? openedAt;
+  final bool trackStock;
+  final String? stockUnit;
+  final String? iconKey;
   final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -1484,8 +1508,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     required this.photoPaths,
     this.instructions,
     this.phases,
-    this.stockPercent,
-    this.openedAt,
+    required this.trackStock,
+    this.stockUnit,
+    this.iconKey,
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
@@ -1521,11 +1546,12 @@ class Medication extends DataClass implements Insertable<Medication> {
     if (!nullToAbsent || phases != null) {
       map['phases'] = Variable<String>(phases);
     }
-    if (!nullToAbsent || stockPercent != null) {
-      map['stock_percent'] = Variable<int>(stockPercent);
+    map['track_stock'] = Variable<bool>(trackStock);
+    if (!nullToAbsent || stockUnit != null) {
+      map['stock_unit'] = Variable<String>(stockUnit);
     }
-    if (!nullToAbsent || openedAt != null) {
-      map['opened_at'] = Variable<DateTime>(openedAt);
+    if (!nullToAbsent || iconKey != null) {
+      map['icon_key'] = Variable<String>(iconKey);
     }
     map['is_active'] = Variable<bool>(isActive);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -1569,12 +1595,13 @@ class Medication extends DataClass implements Insertable<Medication> {
       phases: phases == null && nullToAbsent
           ? const Value.absent()
           : Value(phases),
-      stockPercent: stockPercent == null && nullToAbsent
+      trackStock: Value(trackStock),
+      stockUnit: stockUnit == null && nullToAbsent
           ? const Value.absent()
-          : Value(stockPercent),
-      openedAt: openedAt == null && nullToAbsent
+          : Value(stockUnit),
+      iconKey: iconKey == null && nullToAbsent
           ? const Value.absent()
-          : Value(openedAt),
+          : Value(iconKey),
       isActive: Value(isActive),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1613,8 +1640,9 @@ class Medication extends DataClass implements Insertable<Medication> {
       photoPaths: serializer.fromJson<String>(json['photoPaths']),
       instructions: serializer.fromJson<String?>(json['instructions']),
       phases: serializer.fromJson<String?>(json['phases']),
-      stockPercent: serializer.fromJson<int?>(json['stockPercent']),
-      openedAt: serializer.fromJson<DateTime?>(json['openedAt']),
+      trackStock: serializer.fromJson<bool>(json['trackStock']),
+      stockUnit: serializer.fromJson<String?>(json['stockUnit']),
+      iconKey: serializer.fromJson<String?>(json['iconKey']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1644,8 +1672,9 @@ class Medication extends DataClass implements Insertable<Medication> {
       'photoPaths': serializer.toJson<String>(photoPaths),
       'instructions': serializer.toJson<String?>(instructions),
       'phases': serializer.toJson<String?>(phases),
-      'stockPercent': serializer.toJson<int?>(stockPercent),
-      'openedAt': serializer.toJson<DateTime?>(openedAt),
+      'trackStock': serializer.toJson<bool>(trackStock),
+      'stockUnit': serializer.toJson<String?>(stockUnit),
+      'iconKey': serializer.toJson<String?>(iconKey),
       'isActive': serializer.toJson<bool>(isActive),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1673,8 +1702,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     String? photoPaths,
     Value<String?> instructions = const Value.absent(),
     Value<String?> phases = const Value.absent(),
-    Value<int?> stockPercent = const Value.absent(),
-    Value<DateTime?> openedAt = const Value.absent(),
+    bool? trackStock,
+    Value<String?> stockUnit = const Value.absent(),
+    Value<String?> iconKey = const Value.absent(),
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1699,8 +1729,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     photoPaths: photoPaths ?? this.photoPaths,
     instructions: instructions.present ? instructions.value : this.instructions,
     phases: phases.present ? phases.value : this.phases,
-    stockPercent: stockPercent.present ? stockPercent.value : this.stockPercent,
-    openedAt: openedAt.present ? openedAt.value : this.openedAt,
+    trackStock: trackStock ?? this.trackStock,
+    stockUnit: stockUnit.present ? stockUnit.value : this.stockUnit,
+    iconKey: iconKey.present ? iconKey.value : this.iconKey,
     isActive: isActive ?? this.isActive,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1743,10 +1774,11 @@ class Medication extends DataClass implements Insertable<Medication> {
           ? data.instructions.value
           : this.instructions,
       phases: data.phases.present ? data.phases.value : this.phases,
-      stockPercent: data.stockPercent.present
-          ? data.stockPercent.value
-          : this.stockPercent,
-      openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
+      trackStock: data.trackStock.present
+          ? data.trackStock.value
+          : this.trackStock,
+      stockUnit: data.stockUnit.present ? data.stockUnit.value : this.stockUnit,
+      iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1778,8 +1810,9 @@ class Medication extends DataClass implements Insertable<Medication> {
           ..write('photoPaths: $photoPaths, ')
           ..write('instructions: $instructions, ')
           ..write('phases: $phases, ')
-          ..write('stockPercent: $stockPercent, ')
-          ..write('openedAt: $openedAt, ')
+          ..write('trackStock: $trackStock, ')
+          ..write('stockUnit: $stockUnit, ')
+          ..write('iconKey: $iconKey, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1809,8 +1842,9 @@ class Medication extends DataClass implements Insertable<Medication> {
     photoPaths,
     instructions,
     phases,
-    stockPercent,
-    openedAt,
+    trackStock,
+    stockUnit,
+    iconKey,
     isActive,
     createdAt,
     updatedAt,
@@ -1839,8 +1873,9 @@ class Medication extends DataClass implements Insertable<Medication> {
           other.photoPaths == this.photoPaths &&
           other.instructions == this.instructions &&
           other.phases == this.phases &&
-          other.stockPercent == this.stockPercent &&
-          other.openedAt == this.openedAt &&
+          other.trackStock == this.trackStock &&
+          other.stockUnit == this.stockUnit &&
+          other.iconKey == this.iconKey &&
           other.isActive == this.isActive &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1867,8 +1902,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   final Value<String> photoPaths;
   final Value<String?> instructions;
   final Value<String?> phases;
-  final Value<int?> stockPercent;
-  final Value<DateTime?> openedAt;
+  final Value<bool> trackStock;
+  final Value<String?> stockUnit;
+  final Value<String?> iconKey;
   final Value<bool> isActive;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1893,8 +1929,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.photoPaths = const Value.absent(),
     this.instructions = const Value.absent(),
     this.phases = const Value.absent(),
-    this.stockPercent = const Value.absent(),
-    this.openedAt = const Value.absent(),
+    this.trackStock = const Value.absent(),
+    this.stockUnit = const Value.absent(),
+    this.iconKey = const Value.absent(),
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1920,8 +1957,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.photoPaths = const Value.absent(),
     this.instructions = const Value.absent(),
     this.phases = const Value.absent(),
-    this.stockPercent = const Value.absent(),
-    this.openedAt = const Value.absent(),
+    this.trackStock = const Value.absent(),
+    this.stockUnit = const Value.absent(),
+    this.iconKey = const Value.absent(),
     this.isActive = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1950,8 +1988,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Expression<String>? photoPaths,
     Expression<String>? instructions,
     Expression<String>? phases,
-    Expression<int>? stockPercent,
-    Expression<DateTime>? openedAt,
+    Expression<bool>? trackStock,
+    Expression<String>? stockUnit,
+    Expression<String>? iconKey,
     Expression<bool>? isActive,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1977,8 +2016,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       if (photoPaths != null) 'photo_paths': photoPaths,
       if (instructions != null) 'instructions': instructions,
       if (phases != null) 'phases': phases,
-      if (stockPercent != null) 'stock_percent': stockPercent,
-      if (openedAt != null) 'opened_at': openedAt,
+      if (trackStock != null) 'track_stock': trackStock,
+      if (stockUnit != null) 'stock_unit': stockUnit,
+      if (iconKey != null) 'icon_key': iconKey,
       if (isActive != null) 'is_active': isActive,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -2006,8 +2046,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Value<String>? photoPaths,
     Value<String?>? instructions,
     Value<String?>? phases,
-    Value<int?>? stockPercent,
-    Value<DateTime?>? openedAt,
+    Value<bool>? trackStock,
+    Value<String?>? stockUnit,
+    Value<String?>? iconKey,
     Value<bool>? isActive,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -2033,8 +2074,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       photoPaths: photoPaths ?? this.photoPaths,
       instructions: instructions ?? this.instructions,
       phases: phases ?? this.phases,
-      stockPercent: stockPercent ?? this.stockPercent,
-      openedAt: openedAt ?? this.openedAt,
+      trackStock: trackStock ?? this.trackStock,
+      stockUnit: stockUnit ?? this.stockUnit,
+      iconKey: iconKey ?? this.iconKey,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2098,11 +2140,14 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     if (phases.present) {
       map['phases'] = Variable<String>(phases.value);
     }
-    if (stockPercent.present) {
-      map['stock_percent'] = Variable<int>(stockPercent.value);
+    if (trackStock.present) {
+      map['track_stock'] = Variable<bool>(trackStock.value);
     }
-    if (openedAt.present) {
-      map['opened_at'] = Variable<DateTime>(openedAt.value);
+    if (stockUnit.present) {
+      map['stock_unit'] = Variable<String>(stockUnit.value);
+    }
+    if (iconKey.present) {
+      map['icon_key'] = Variable<String>(iconKey.value);
     }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
@@ -2145,8 +2190,9 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
           ..write('photoPaths: $photoPaths, ')
           ..write('instructions: $instructions, ')
           ..write('phases: $phases, ')
-          ..write('stockPercent: $stockPercent, ')
-          ..write('openedAt: $openedAt, ')
+          ..write('trackStock: $trackStock, ')
+          ..write('stockUnit: $stockUnit, ')
+          ..write('iconKey: $iconKey, ')
           ..write('isActive: $isActive, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')

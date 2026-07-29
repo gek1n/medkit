@@ -13,6 +13,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
@@ -20,9 +21,10 @@ import '../../data/repositories/medications_repository.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/food_relation_picker.dart';
-import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/medcard_icon_picker.dart';
 import '../../shared/widgets/space_picker.dart';
+import '../../shared/widgets/stock_unit_picker.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
 import '../plans/elly_denied_screen.dart';
@@ -89,7 +91,9 @@ class _MedPhase {
 class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   final _nameController = TextEditingController();
 
-  String _form = 'tablet';
+  String _form = '';
+  String? _stockUnit;
+  String _iconKey = 'form_cream';
   String _foodRelation = 'unspecified';
   String _repeatType = 'daily';
 
@@ -133,11 +137,13 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
     _nameController.text = ex.name;
     _form = ex.form;
+    _stockUnit = ex.stockUnit;
+    _iconKey = ex.iconKey ?? 'form_cream';
     _foodRelation = ex.foodRelation;
     _repeatType = ex.repeatType;
     _colorHex = ex.color;
     _sectionId = ex.sectionId;
-    _trackStock = ex.stockPercent != null;
+    _trackStock = ex.trackStock;
     _availableCount = ex.remainingCount;
     try {
       _photoPaths = List<String>.from(jsonDecode(ex.photoPaths) as List);
@@ -199,8 +205,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     super.dispose();
   }
 
-  String _unitForForm(String form) => unitForMedForm(context, form);
-
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -210,7 +214,12 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       return;
     }
 
-    final doseUnit = _unitForForm(_form);
+    // Одиниця дози (скільки приймається за раз) тепер спільна з одиницею
+    // виміру залишку — раніше похідна від form (напр. tablet->"табл."),
+    // яка більше не є фіксованим переліком.
+    final doseUnit = _stockUnit != null
+        ? (stockUnitLabels(context)[_stockUnit] ?? context.l10n.medUnitPiece)
+        : context.l10n.medUnitPiece;
     final repeatConfig = _buildRepeatConfig();
     final now = DateTime.now();
 
@@ -256,7 +265,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
       ).add(Duration(days: totalDays));
     }
 
-    final isPercentForm = isPercentTrackedForm(_form);
     final ex = widget.existing;
 
     if (widget.onDraftCreated != null) {
@@ -273,10 +281,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           repeatConfig: Value(jsonEncode(repeatConfig)),
           startDate: now,
           endDate: Value(endDate),
-          totalCount: Value(isPercentForm ? 0 : _availableCount),
-          remainingCount: Value(isPercentForm ? 0 : _availableCount),
-          stockPercent: Value(_trackStock && isPercentForm ? 100 : null),
-          openedAt: Value(_trackStock && isPercentForm ? now : null),
+          totalCount: Value(_availableCount),
+          remainingCount: Value(_availableCount),
+          trackStock: Value(_trackStock),
+          stockUnit: Value(_stockUnit),
+          iconKey: Value(_iconKey),
           photoPaths: Value(jsonEncode(_photoPaths)),
           phases: Value(phasesJson),
           color: Value(_colorHex),
@@ -304,14 +313,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             repeatConfig: Value(jsonEncode(repeatConfig)),
             startDate: Value(baseStart),
             endDate: Value(endDate),
-            totalCount: Value(isPercentForm ? 0 : _availableCount),
-            remainingCount: Value(isPercentForm ? 0 : _availableCount),
-            stockPercent: Value(
-              _trackStock && isPercentForm ? (ex.stockPercent ?? 100) : null,
-            ),
-            openedAt: Value(
-              _trackStock && isPercentForm ? (ex.openedAt ?? now) : null,
-            ),
+            totalCount: Value(_availableCount),
+            remainingCount: Value(_availableCount),
+            trackStock: Value(_trackStock),
+            stockUnit: Value(_stockUnit),
+            iconKey: Value(_iconKey),
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
@@ -331,10 +337,11 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             repeatConfig: Value(jsonEncode(repeatConfig)),
             startDate: now,
             endDate: Value(endDate),
-            totalCount: Value(isPercentForm ? 0 : _availableCount),
-            remainingCount: Value(isPercentForm ? 0 : _availableCount),
-            stockPercent: Value(_trackStock && isPercentForm ? 100 : null),
-            openedAt: Value(_trackStock && isPercentForm ? now : null),
+            totalCount: Value(_availableCount),
+            remainingCount: Value(_availableCount),
+            trackStock: Value(_trackStock),
+            stockUnit: Value(_stockUnit),
+            iconKey: Value(_iconKey),
             photoPaths: Value(jsonEncode(_photoPaths)),
             phases: Value(phasesJson),
             color: Value(_colorHex),
@@ -432,15 +439,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                     _TextField(
                       controller: _nameController,
                       hint: context.l10n.medicationNameHint,
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Form (перша — визначає одиницю)
-                    _FormLabel(context.l10n.medicationFormLabel),
-                    const SizedBox(height: 8),
-                    FormChips(
-                      selected: _form,
-                      onSelect: (f) => setState(() => _form = f),
                     ),
                     const SizedBox(height: AppDimensions.lg),
 
@@ -548,8 +546,8 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                               doseAmount: _phases.isNotEmpty
                                   ? _phases.first.doseAmount
                                   : 1.0,
-                              doseUnit: _unitForForm(_form),
                               form: _form,
+                              stockUnit: _stockUnit,
                               onTrackToggle: (v) =>
                                   setState(() => _trackStock = v),
                               onDecrement: () => setState(() {
@@ -559,6 +557,9 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                                   setState(() => _availableCount++),
                               onEdit: (v) =>
                                   setState(() => _availableCount = v),
+                              onFormChanged: (v) => setState(() => _form = v),
+                              onStockUnitChanged: (v) =>
+                                  setState(() => _stockUnit = v),
                             ),
                           ),
                         ),
@@ -571,10 +572,50 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           onTap: () => showFieldSheet(
                             context,
                             title: context.l10n.taskColorPickerLabel,
-                            child: TaskColorPicker(
-                              selectedHex: _colorHex,
-                              onChanged: (hex) =>
-                                  setState(() => _colorHex = hex),
+                            child: StatefulBuilder(
+                              builder: (sheetContext, setSheetState) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TaskColorPicker(
+                                    selectedHex: _colorHex,
+                                    onChanged: (hex) {
+                                      setState(() => _colorHex = hex);
+                                      setSheetState(() {});
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  _FormLabel(context.l10n.sectionIconFieldLabel),
+                                  const SizedBox(height: 6),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showMedcardIconPicker(
+                                        sheetContext,
+                                        current: _iconKey,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _iconKey = picked);
+                                        setSheetState(() {});
+                                      }
+                                    },
+                                    child: Container(
+                                      width: 52,
+                                      height: 52,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: (colorFromHex(_colorHex) ??
+                                                AppColors.primary)
+                                            .withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(
+                                          AppDimensions.radiusMd,
+                                        ),
+                                        border: Border.all(color: AppColors.border),
+                                      ),
+                                      child: MedcardIcon(_iconKey, size: 26),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -722,8 +763,9 @@ class _FormLabel extends StatelessWidget {
 class _TextField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
+  final ValueChanged<String>? onChanged;
 
-  const _TextField({required this.controller, required this.hint});
+  const _TextField({required this.controller, required this.hint, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -735,6 +777,7 @@ class _TextField extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        onChanged: onChanged,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
@@ -2089,24 +2132,28 @@ class _MedStockContent extends StatefulWidget {
   final int availableCount;
   final List<_MedPhase> phases;
   final double doseAmount;
-  final String doseUnit;
   final String form;
+  final String? stockUnit;
   final void Function(bool) onTrackToggle;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final void Function(int) onEdit;
+  final void Function(String) onFormChanged;
+  final void Function(String?) onStockUnitChanged;
 
   const _MedStockContent({
     required this.trackStock,
     required this.availableCount,
     required this.phases,
     required this.doseAmount,
-    required this.doseUnit,
     required this.form,
+    required this.stockUnit,
     required this.onTrackToggle,
     required this.onDecrement,
     required this.onIncrement,
     required this.onEdit,
+    required this.onFormChanged,
+    required this.onStockUnitChanged,
   });
 
   @override
@@ -2121,12 +2168,22 @@ class _MedStockContentState extends State<_MedStockContent> {
   // оновлювались би одразу.
   late bool _trackStock;
   late int _availableCount;
+  late final TextEditingController _formController;
+  late String? _stockUnit;
 
   @override
   void initState() {
     super.initState();
     _trackStock = widget.trackStock;
     _availableCount = widget.availableCount;
+    _formController = TextEditingController(text: widget.form);
+    _stockUnit = widget.stockUnit;
+  }
+
+  @override
+  void dispose() {
+    _formController.dispose();
+    super.dispose();
   }
 
   @override
@@ -2153,8 +2210,9 @@ class _MedStockContentState extends State<_MedStockContent> {
   Widget build(BuildContext context) {
     final needed = _totalIntakes();
     final toBuy = (needed - _availableCount).clamp(0, 99999);
-    final doseUnit = widget.doseUnit;
-    final form = widget.form;
+    final unitLabel = _stockUnit != null
+        ? (stockUnitLabels(context)[_stockUnit] ?? context.l10n.medUnitPiece)
+        : context.l10n.medUnitPiece;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2209,42 +2267,55 @@ class _MedStockContentState extends State<_MedStockContent> {
               const Divider(height: 1, color: AppColors.border),
               const SizedBox(height: 14),
 
-              if (isPercentTrackedForm(form)) ...[
-                Text(context.l10n.vialPackageLabel, style: AppTextStyles.labelMd),
-                const SizedBox(height: 4),
-                Text(
-                  context.l10n.markAsOpenedHint,
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                ),
-              ] else ...[
-                Text(context.l10n.inStockLabel, style: AppTextStyles.labelMd),
-                const SizedBox(height: 4),
-                Text(
-                  context.l10n.howManyNowLabel(doseUnit),
-                  style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 10),
-                _PillCountRow(
-                  count: _availableCount,
-                  unit: doseUnit,
-                  onDecrement: () {
-                    setState(() {
-                      if (_availableCount > 0) _availableCount--;
-                    });
-                    widget.onDecrement();
-                  },
-                  onIncrement: () {
-                    setState(() => _availableCount++);
-                    widget.onIncrement();
-                  },
-                  onEdit: (v) {
-                    setState(() => _availableCount = v);
-                    widget.onEdit(v);
-                  },
-                ),
-              ],
+              Text(context.l10n.medicationFormLabel, style: AppTextStyles.labelMd),
+              const SizedBox(height: 6),
+              _TextField(
+                controller: _formController,
+                hint: context.l10n.inventoryFormHint,
+                onChanged: widget.onFormChanged,
+              ),
+              const SizedBox(height: 14),
 
-              if (!isPercentTrackedForm(form) && needed > 0) ...[
+              Text(context.l10n.stockUnitLabel, style: AppTextStyles.labelMd),
+              const SizedBox(height: 6),
+              StockUnitChips(
+                selected: _stockUnit,
+                onSelect: (v) {
+                  setState(() => _stockUnit = v);
+                  widget.onStockUnitChanged(v);
+                },
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: AppColors.border),
+              const SizedBox(height: 14),
+
+              Text(context.l10n.inStockLabel, style: AppTextStyles.labelMd),
+              const SizedBox(height: 4),
+              Text(
+                context.l10n.howManyNowLabel(unitLabel),
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 10),
+              _PillCountRow(
+                count: _availableCount,
+                unit: unitLabel,
+                onDecrement: () {
+                  setState(() {
+                    if (_availableCount > 0) _availableCount--;
+                  });
+                  widget.onDecrement();
+                },
+                onIncrement: () {
+                  setState(() => _availableCount++);
+                  widget.onIncrement();
+                },
+                onEdit: (v) {
+                  setState(() => _availableCount = v);
+                  widget.onEdit(v);
+                },
+              ),
+
+              if (needed > 0) ...[
                 const SizedBox(height: 16),
                 const Divider(height: 1, color: AppColors.border),
                 const SizedBox(height: 14),
@@ -2277,18 +2348,9 @@ class _MedStockContentState extends State<_MedStockContent> {
                                   children: [
                                     TextSpan(text: context.l10n.needToBuyLabel),
                                     TextSpan(
-                                      text: '$toBuy $doseUnit',
+                                      text: '$toBuy $unitLabel',
                                       style: AppTextStyles.labelMd.copyWith(
                                         color: AppColors.primary,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: context.l10n.courseAvailableLabel(
-                                        needed,
-                                        _availableCount,
-                                      ),
-                                      style: AppTextStyles.bodySm.copyWith(
-                                        color: AppColors.textMuted,
                                       ),
                                     ),
                                   ],

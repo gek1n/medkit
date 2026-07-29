@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 40;
+  int get schemaVersion => 41;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -114,11 +114,16 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
           }
           if (from < 3) {
+            // stockPercent/openedAt більше не поля таблиці (видалені в v41,
+            // див. нижче) — колонки вже не мають Dart-геттера, тож для цього
+            // історичного кроку лишається лише сирий SQL.
             try {
-              await m.addColumn(medications, medications.stockPercent);
+              await customStatement(
+                  'ALTER TABLE medications ADD COLUMN stock_percent INTEGER');
             } catch (_) {}
             try {
-              await m.addColumn(medications, medications.openedAt);
+              await customStatement(
+                  'ALTER TABLE medications ADD COLUMN opened_at DATETIME');
             } catch (_) {}
           }
           if (from < 4) {
@@ -819,6 +824,38 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(activities, activities.documentPaths);
             await m.addColumn(activities, activities.location);
             await m.addColumn(activities, activities.iconKey);
+          }
+          if (from < 41) {
+            // "Ліки" -> "Інвентар": прибираємо режим відстеження залишку у
+            // відсотках (stockPercent/openedAt) — лишається лише один,
+            // явний прапорець trackStock. form стає вільним текстом (уже
+            // був TextColumn, дефолт міняється лише для нових рядків);
+            // додаємо stockUnit (одиниця виміру залишку) та iconKey
+            // (спільний реєстр MedcardIcon, той самий, що й у розділах
+            // Полички/рутинах).
+            await m.addColumn(medications, medications.trackStock);
+            await m.addColumn(medications, medications.stockUnit);
+            await m.addColumn(medications, medications.iconKey);
+            // Відсотковий режим видалено — такі записи просто лишаються без
+            // відстеження (trackStock=0 за замовчуванням), користувач може
+            // ввімкнути наново й обрати вже новий (кількісний) варіант.
+            // Ті, хто вже мав кількісний режим (total_count>0), лишаються
+            // з відстеженням увімкненим — цю поведінку не чіпаємо.
+            try {
+              await customStatement(
+                  "UPDATE medications SET track_stock = 1 WHERE stock_percent IS NULL AND total_count > 0");
+            } catch (_) {}
+            // DROP COLUMN потребує SQLite 3.35+ (бандлований sqlcipher тут
+            // новіший) — якщо раптом ні, колонки просто лишаються
+            // невикористаним сміттям, не ламаючи міграцію.
+            try {
+              await customStatement(
+                  'ALTER TABLE medications DROP COLUMN stock_percent');
+            } catch (_) {}
+            try {
+              await customStatement(
+                  'ALTER TABLE medications DROP COLUMN opened_at');
+            } catch (_) {}
           }
         },
       );
