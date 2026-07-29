@@ -1384,7 +1384,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get medcardSyncToggleLabel =>
-      'Синхронізувати медкартку на інші пристрої';
+      'Синхронізувати дані профілю на інші пристрої';
 
   @override
   String get medcardSyncDescription =>
@@ -1400,8 +1400,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get viewerEditPermissionLabel => 'Може редагувати профіль';
 
   @override
-  String get viewerViewPermissionLabel =>
-      'Бачить завдання, медкартку й розклад';
+  String get viewerViewPermissionLabel => 'Бачить завдання, полички й розклад';
 
   @override
   String get permissionDeniedNotYoursBody =>
@@ -3284,7 +3283,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get resetLocalDbConfirmBody =>
-      'Це видалить усі дані на цьому пристрої (інвентар, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.';
+      'Це видалить усі дані на цьому пристрої (інвентар, розклад, полички). Резервної копії не знайдено — відновити дані після цього буде неможливо.';
 
   @override
   String get resetAction => 'Скинути';

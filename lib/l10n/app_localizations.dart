@@ -2461,7 +2461,7 @@ abstract class AppLocalizations {
   /// No description provided for @medcardSyncToggleLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Синхронізувати медкартку на інші пристрої'**
+  /// **'Синхронізувати дані профілю на інші пристрої'**
   String get medcardSyncToggleLabel;
 
   /// No description provided for @medcardSyncDescription.
@@ -2491,7 +2491,7 @@ abstract class AppLocalizations {
   /// No description provided for @viewerViewPermissionLabel.
   ///
   /// In uk, this message translates to:
-  /// **'Бачить завдання, медкартку й розклад'**
+  /// **'Бачить завдання, полички й розклад'**
   String get viewerViewPermissionLabel;
 
   /// No description provided for @permissionDeniedNotYoursBody.
@@ -5833,7 +5833,7 @@ abstract class AppLocalizations {
   /// No description provided for @resetLocalDbConfirmBody.
   ///
   /// In uk, this message translates to:
-  /// **'Це видалить усі дані на цьому пристрої (інвентар, розклад, медкартку). Резервної копії не знайдено — відновити дані після цього буде неможливо.'**
+  /// **'Це видалить усі дані на цьому пристрої (інвентар, розклад, полички). Резервної копії не знайдено — відновити дані після цього буде неможливо.'**
   String get resetLocalDbConfirmBody;
 
   /// No description provided for @resetAction.

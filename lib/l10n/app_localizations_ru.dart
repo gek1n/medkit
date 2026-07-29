@@ -1386,7 +1386,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get medcardSyncToggleLabel =>
-      'Синхронизировать медкарту на другие устройства';
+      'Синхронизировать данные профиля на другие устройства';
 
   @override
   String get medcardSyncDescription =>
@@ -1402,7 +1402,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get viewerEditPermissionLabel => 'Может редактировать профиль';
 
   @override
-  String get viewerViewPermissionLabel => 'Видит задачи, медкарту и расписание';
+  String get viewerViewPermissionLabel => 'Видит задачи, полки и расписание';
 
   @override
   String get permissionDeniedNotYoursBody =>
@@ -3288,7 +3288,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get resetLocalDbConfirmBody =>
-      'Это удалит все данные на этом устройстве (инвентарь, расписание, медкарту). Резервная копия не найдена — восстановить данные после этого будет невозможно.';
+      'Это удалит все данные на этом устройстве (инвентарь, расписание, полки). Резервная копия не найдена — восстановить данные после этого будет невозможно.';
 
   @override
   String get resetAction => 'Сбросить';
