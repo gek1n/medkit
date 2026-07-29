@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/wellbeing_tag_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -9,7 +10,17 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
+import '../../shared/widgets/tag_search_filter_bar.dart';
 import 'wellbeing_check_screen.dart';
+
+List<String> _parseWbTags(String json) {
+  try {
+    final List<dynamic> keys = jsonDecode(json);
+    return keys.cast<String>();
+  } catch (_) {
+    return [];
+  }
+}
 
 // ────────────────────────────── provider ──────────────────────────────
 
@@ -26,13 +37,21 @@ final _wellbeingHistoryProvider =
 
 // ────────────────────────────── screen ──────────────────────────────
 
-class WellbeingHistoryScreen extends ConsumerWidget {
+class WellbeingHistoryScreen extends ConsumerStatefulWidget {
   final int memberId;
   const WellbeingHistoryScreen({super.key, required this.memberId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final logsAsync = ref.watch(_wellbeingHistoryProvider(memberId));
+  ConsumerState<WellbeingHistoryScreen> createState() => _WellbeingHistoryScreenState();
+}
+
+class _WellbeingHistoryScreenState extends ConsumerState<WellbeingHistoryScreen> {
+  String _search = '';
+  Set<String> _selectedTags = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final logsAsync = ref.watch(_wellbeingHistoryProvider(widget.memberId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -40,7 +59,28 @@ class WellbeingHistoryScreen extends ConsumerWidget {
         loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary)),
         error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
-        data: (logs) => _HistoryBody(memberId: memberId, logs: logs),
+        data: (logs) {
+          final query = _search.trim().toLowerCase();
+          final filtered = logs.where((l) {
+            if (_selectedTags.isNotEmpty &&
+                !_selectedTags.every((t) => _parseWbTags(l.tagsJson).contains(t))) {
+              return false;
+            }
+            if (query.isNotEmpty &&
+                !(l.comment ?? '').toLowerCase().contains(query)) {
+              return false;
+            }
+            return true;
+          }).toList();
+          return _HistoryBody(
+            memberId: widget.memberId,
+            logs: filtered,
+            search: _search,
+            selectedTags: _selectedTags,
+            onSearchChanged: (v) => setState(() => _search = v),
+            onTagsChanged: (tags) => setState(() => _selectedTags = tags),
+          );
+        },
       ),
     );
   }
@@ -51,10 +91,18 @@ class WellbeingHistoryScreen extends ConsumerWidget {
 class _HistoryBody extends StatelessWidget {
   final int memberId;
   final List<WellbeingLog> logs;
+  final String search;
+  final Set<String> selectedTags;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<Set<String>> onTagsChanged;
 
   const _HistoryBody({
     required this.memberId,
     required this.logs,
+    required this.search,
+    required this.selectedTags,
+    required this.onSearchChanged,
+    required this.onTagsChanged,
   });
 
   // Group logs by date (yMd), return sorted desc
@@ -83,6 +131,18 @@ class _HistoryBody extends StatelessWidget {
               children: [
                 _Header(memberId: memberId),
                 const SizedBox(height: AppDimensions.md),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.screenPadding),
+                  child: TagSearchFilterBar(
+                    searchHint: context.l10n.searchHint,
+                    onSearchChanged: onSearchChanged,
+                    tagsLoader: WellbeingTagLibraryService.getAll,
+                    selectedTags: selectedTags,
+                    onTagsChanged: onTagsChanged,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.md),
                 _MiniChart(logs: logs),
                 const SizedBox(height: AppDimensions.lg),
               ],
@@ -90,7 +150,11 @@ class _HistoryBody extends StatelessWidget {
           ),
         ),
         if (grouped.isEmpty)
-          SliverToBoxAdapter(child: _EmptyState())
+          SliverToBoxAdapter(
+            child: _EmptyState(
+              filtered: search.trim().isNotEmpty || selectedTags.isNotEmpty,
+            ),
+          )
         else
           SliverList(
             delegate: SliverChildListDelegate([
@@ -526,11 +590,18 @@ class _TagChip extends StatelessWidget {
 // ────────────────────────────── empty ──────────────────────────────
 
 class _EmptyState extends StatelessWidget {
+  final bool filtered;
+  const _EmptyState({this.filtered = false});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24),
-      child: MkEmptyState(hint: context.l10n.noWellbeingLogsHint),
+      child: MkEmptyState(
+        hint: filtered
+            ? context.l10n.noResultsFoundHint
+            : context.l10n.noWellbeingLogsHint,
+      ),
     );
   }
 }

@@ -112,6 +112,8 @@
   "categoryDoctors": "Напоминания",
   "scheduleTitle": "Расписание",
   "searchAllSections": "Поиск по всем разделам",
+  "searchHint": "Поиск",
+  "noResultsFoundHint": "Ничего не найдено",
   "sectionMeds": "Лекарства",
   "noActiveMeds": "Нет активных лекарств",
   "sectionAppointments": "Напоминания",

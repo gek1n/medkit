@@ -223,6 +223,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get searchAllSections => 'Пошук по всіх розділах';
 
   @override
+  String get searchHint => 'Пошук';
+
+  @override
+  String get noResultsFoundHint => 'Нічого не знайдено';
+
+  @override
   String get sectionMeds => 'Ліки';
 
   @override

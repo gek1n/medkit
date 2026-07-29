@@ -112,6 +112,8 @@
   "categoryDoctors": "Нагадування",
   "scheduleTitle": "Розклад",
   "searchAllSections": "Пошук по всіх розділах",
+  "searchHint": "Пошук",
+  "noResultsFoundHint": "Нічого не знайдено",
   "sectionMeds": "Ліки",
   "noActiveMeds": "Немає активних ліків",
   "sectionAppointments": "Нагадування",

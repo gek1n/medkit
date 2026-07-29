@@ -502,6 +502,18 @@ abstract class AppLocalizations {
   /// **'Пошук по всіх розділах'**
   String get searchAllSections;
 
+  /// No description provided for @searchHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Пошук'**
+  String get searchHint;
+
+  /// No description provided for @noResultsFoundHint.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нічого не знайдено'**
+  String get noResultsFoundHint;
+
   /// No description provided for @sectionMeds.
   ///
   /// In uk, this message translates to:
