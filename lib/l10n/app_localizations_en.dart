@@ -2573,7 +2573,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planPerMonthPeriod => 'per month';
 
   @override
-  String get freeFeatureAllSections => 'All sections, no limits';
+  String get freeFeatureAllSections => '1 active routine, 3 Shelf sections';
 
   @override
   String get freeFeatureUnlimitedMeds => 'Unlimited reminders';

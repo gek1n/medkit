@@ -2582,7 +2582,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get planPerMonthPeriod => 'щомісяця';
 
   @override
-  String get freeFeatureAllSections => 'Всі розділи без обмежень';
+  String get freeFeatureAllSections => '1 рутинна справа, 3 розділи Полички';
 
   @override
   String get freeFeatureUnlimitedMeds => 'Необмежено нагадувань';

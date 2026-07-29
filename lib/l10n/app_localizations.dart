@@ -4627,7 +4627,7 @@ abstract class AppLocalizations {
   /// No description provided for @freeFeatureAllSections.
   ///
   /// In uk, this message translates to:
-  /// **'Всі розділи без обмежень'**
+  /// **'1 рутинна справа, 3 розділи Полички'**
   String get freeFeatureAllSections;
 
   /// No description provided for @freeFeatureUnlimitedMeds.

@@ -1380,7 +1380,7 @@
   "planForeverPeriod": "forever",
   "planPerMonthYearlyPeriod": "per month (billed yearly)",
   "planPerMonthPeriod": "per month",
-  "freeFeatureAllSections": "All sections, no limits",
+  "freeFeatureAllSections": "1 active routine, 3 Shelf sections",
   "freeFeatureUnlimitedMeds": "Unlimited reminders",
   "freeFeatureLocalBackup": "Local + backup to Google Drive/iCloud",
   "selectFreeAction": "Choose Free",
