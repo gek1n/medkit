@@ -228,10 +228,17 @@ final todayMedicationsProvider =
   return ref.watch(medicationsRepositoryProvider).watchByMember(memberId);
 });
 
-// Активності члена сім'ї (для отримання назв/типів)
+// Активності — для резолву назви/типу/кроків по activityId з ActivityLog.
+// Навмисно ВСІ активні активності родини, а не watchByMember(memberId): для
+// ротаційної рутини (>1 виконавець) ActivityLog.memberId — це той, чия
+// сьогодні черга (assigneeForDate), а не Activity.memberId (той, хто рутину
+// створив) — тож коли черга дійшла до локального залежного профілю, його
+// власний watchByMember НІКОЛИ не містив би цю рутину, і картка на
+// Сьогодні показувала б заглушку "Активність" замість реальної назви й
+// кнопок (чекліст/зміна черги) — саме так і виглядав баг.
 final todayActivitiesProvider =
     StreamProvider.family<List<Activity>, int>((ref, memberId) {
-  return ref.watch(activitiesRepositoryProvider).watchByMember(memberId);
+  return ref.watch(activitiesRepositoryProvider).watchAll();
 });
 
 // Id рутин без фіксованого часу — див. ActivitiesRepository.
