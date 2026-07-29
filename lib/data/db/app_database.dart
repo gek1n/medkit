@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 38;
+  int get schemaVersion => 39;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -789,6 +789,27 @@ class AppDatabase extends _$AppDatabase {
               await customStatement(
                   'DELETE FROM reminder_logs WHERE id NOT IN '
                   '(SELECT MIN(id) FROM reminder_logs GROUP BY reminder_id, scheduled_at)');
+            } catch (_) {}
+          }
+          if (from < 39) {
+            // Прибираємо "сирітські" pending-записи, чиї ліки/рутина вже
+            // видалені (isActive=false) чи фізично зникли — до фіксу в
+            // ActivitiesRepository/MedicationsRepository.softDelete() (яка
+            // раніше лише скасовувала сповіщення, а не сам pending-рядок)
+            // такі записи лишались назавжди й показувались на Сьогодні як
+            // картка-привид із заглушкою замість назви, що не реагує на
+            // тап (перегляд шукає вже неіснуючий/неактивний батьківський
+            // рядок). Минулі (done/skipped/taken) записи не чіпаємо — це
+            // реальна історія.
+            try {
+              await customStatement(
+                  "DELETE FROM activity_logs WHERE status = 'pending' AND "
+                  'activity_id NOT IN (SELECT id FROM activities WHERE is_active = 1)');
+            } catch (_) {}
+            try {
+              await customStatement(
+                  "DELETE FROM intakes WHERE status IN ('pending', 'snoozed') AND "
+                  'medication_id NOT IN (SELECT id FROM medications WHERE is_active = 1)');
             } catch (_) {}
           }
         },
