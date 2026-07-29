@@ -13,6 +13,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../../shared/widgets/mk_header_action_button.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_activity_screen.dart';
@@ -134,6 +135,38 @@ class _ViewBody extends ConsumerWidget {
     return context.l10n.routineAnyTimeTodayLabel;
   }
 
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    Activity activity,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(context.l10n.deleteActivityConfirmTitle),
+        content: Text(context.l10n.deleteActivityConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(context.l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              context.l10n.deleteAction,
+              style: AppTextStyles.bodyMd.copyWith(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+    await ref.read(activitiesRepositoryProvider).softDelete(activity.id);
+    ref.invalidate(generateTodayActivityLogsProvider);
+    ref.invalidate(tomorrowActivityLogsProvider);
+    if (context.mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = colorFromHex(activity.color) ?? AppColors.primary;
@@ -155,48 +188,38 @@ class _ViewBody extends ConsumerWidget {
               MkBackButton(onTap: () => Navigator.pop(context)),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(activity.name,
-                    style: AppTextStyles.h3,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(activity.name,
+                          style: AppTextStyles.h3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    MkEditIconButton(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => editBlocked
+                              ? EllyDeniedScreen(
+                                  title: context.l10n.routineTasksLimitDeniedTitle,
+                                  subtitle: context
+                                      .l10n.routineTasksLimitDeniedSubtitle,
+                                )
+                              : AddActivityScreen(
+                                  memberId: activity.memberId,
+                                  existing: activity,
+                                  hideTypePicker: true,
+                                  compactMode: true,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => editBlocked
-                        ? EllyDeniedScreen(
-                            title: context.l10n.routineTasksLimitDeniedTitle,
-                            subtitle:
-                                context.l10n.routineTasksLimitDeniedSubtitle,
-                          )
-                        : AddActivityScreen(
-                            memberId: activity.memberId,
-                            existing: activity,
-                            hideTypePicker: true,
-                            compactMode: true,
-                          ),
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.edit_outlined,
-                          size: 15, color: AppColors.textSub),
-                      const SizedBox(width: 6),
-                      Text(context.l10n.editAction,
-                          style: AppTextStyles.labelMd
-                              .copyWith(color: AppColors.textSub)),
-                    ],
-                  ),
-                ),
+              MkDeleteIconButton(
+                onTap: () => _delete(context, ref, activity),
               ),
             ],
           ),

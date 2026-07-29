@@ -1099,6 +1099,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String tasksProgressLabel(int taken, int total) {
+    return '$taken of $total tasks';
+  }
+
+  @override
   String missedRemindersLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

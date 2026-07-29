@@ -2020,6 +2020,12 @@ abstract class AppLocalizations {
   /// **'{taken} з {total} прийомів'**
   String takenOfTotalIntakesLabel(int taken, int total);
 
+  /// No description provided for @tasksProgressLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'{taken} з {total} завдань'**
+  String tasksProgressLabel(int taken, int total);
+
   /// No description provided for @missedRemindersLabel.
   ///
   /// In uk, this message translates to:

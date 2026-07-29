@@ -234,22 +234,27 @@ class _MemberCard extends ConsumerWidget {
     // веде dependent-профілі напряму, тож перегляд тут завжди дозволений,
     // жодних permission-гейтів не потрібно (на відміну від незалежних
     // FamilyPeers, з ними видимість — окреме питання, див. _PeerCard).
-    final intakesAsync = ref.watch(todayIntakesProvider(member.id));
+    final progress = ref.watch(familyMemberTodayProgressProvider(member.id));
     final medsAsync = ref.watch(_memberMedsProvider(member.id));
+    final activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
+    final intakesAsync = ref.watch(todayIntakesProvider(member.id));
+    final activityLogsAsync = ref.watch(todayActivityLogsProvider(member.id));
+    final noFixedTimeIdsAsync =
+        ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
+    final remindersAsync = ref.watch(todayAppointmentsProvider(member.id));
+    final reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
 
-    final intakes = intakesAsync.valueOrNull ?? [];
     final meds = medsAsync.valueOrNull ?? [];
+    final activities = activitiesAsync.valueOrNull ?? [];
+    final intakes = intakesAsync.valueOrNull ?? [];
+    final activityLogs = activityLogsAsync.valueOrNull ?? [];
+    final noFixedTimeIds = noFixedTimeIdsAsync.valueOrNull ?? <int>{};
+    final reminders = remindersAsync.valueOrNull ?? [];
+    final reminderLogs = reminderLogsAsync.valueOrNull ?? [];
 
-    final taken = intakes.where((i) => i.status == 'taken').length;
-    final total = intakes.length;
-    final missedIntakes = intakes.where((i) => i.status == 'skipped').toList();
-    final nextIntake = () {
-      final pending = intakes.where((i) => i.status == 'pending').toList()
-        ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
-      return pending.isEmpty ? null : pending.first;
-    }();
-
-    final hasMissed = missedIntakes.isNotEmpty;
+    final taken = progress.done;
+    final total = progress.total;
+    final hasMissed = progress.missed > 0;
 
     String medNameFor(int medicationId) {
       for (final m in meds) {
@@ -258,8 +263,75 @@ class _MemberCard extends ConsumerWidget {
       return context.l10n.defaultMedName;
     }
 
+    String activityNameFor(int activityId) {
+      for (final a in activities) {
+        if (a.id == activityId) return a.name;
+      }
+      return context.l10n.defaultActivityName;
+    }
+
     String timeStr(DateTime dt) =>
         '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+    // Пропущені елементи БУДЬ-ЯКОГО типу (ліки/нагадування/рутини) — те саме
+    // 15-хвилинне вікно, що й у familyMemberTodayProgressProvider вище, лише
+    // тут ще й резолвиться назва для картки-деталі нижче.
+    final now = DateTime.now();
+    final activeWindowStart = now.subtract(const Duration(minutes: 15));
+    DateTime effectiveDue(Intake i) =>
+        i.status == 'snoozed' && i.snoozedUntil != null
+            ? i.snoozedUntil!
+            : i.scheduledAt;
+    final missedItems = <_MissedItem>[];
+    for (final i in intakes) {
+      final due = effectiveDue(i);
+      if ((i.status == 'pending' || i.status == 'snoozed') &&
+          due.isBefore(activeWindowStart)) {
+        missedItems.add(_MissedItem(
+          entityType: 'intake',
+          uuid: 'intake_${i.id}',
+          title: medNameFor(i.medicationId),
+          scheduledAt: due,
+        ));
+      }
+    }
+    for (final l in activityLogs) {
+      if (l.status == 'pending' &&
+          !noFixedTimeIds.contains(l.activityId) &&
+          l.scheduledAt.isBefore(activeWindowStart)) {
+        missedItems.add(_MissedItem(
+          entityType: 'activity_log',
+          uuid: 'activity_${l.id}',
+          title: activityNameFor(l.activityId),
+          scheduledAt: l.scheduledAt,
+        ));
+      }
+    }
+    for (final r in reminders) {
+      if (r.repeatType == 'none') {
+        if (r.status == 'pending' && r.scheduledAt.isBefore(activeWindowStart)) {
+          missedItems.add(_MissedItem(
+            entityType: 'doctor_appointment',
+            uuid: 'reminder_${r.id}',
+            title: r.doctorType,
+            scheduledAt: r.scheduledAt,
+          ));
+        }
+        continue;
+      }
+      for (final log in reminderLogs.where((l) => l.reminderId == r.id)) {
+        final scheduledAt = log.snoozedUntil ?? log.scheduledAt;
+        if (log.status == 'pending' && scheduledAt.isBefore(activeWindowStart)) {
+          missedItems.add(_MissedItem(
+            entityType: 'doctor_appointment',
+            uuid: 'reminderLog_${log.id}',
+            title: r.doctorType,
+            scheduledAt: scheduledAt,
+          ));
+        }
+      }
+    }
+    missedItems.sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
 
     Widget statusLine;
     if (isOwner) {
@@ -268,14 +340,14 @@ class _MemberCard extends ConsumerWidget {
             ? context.l10n.noMedsTodayLabel
             : (taken == total
                 ? context.l10n.allDoneTodayLabel
-                : context.l10n.takenOfTotalIntakesLabel(taken, total)),
+                : context.l10n.tasksProgressLabel(taken, total)),
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
       );
     } else if (hasMissed) {
       statusLine = Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_rounded, size: 12, color: AppColors.danger),
         const SizedBox(width: 3),
-        Text(context.l10n.missedRemindersLabel(missedIntakes.length),
+        Text(context.l10n.missedRemindersLabel(missedItems.length),
             style: AppTextStyles.bodySm.copyWith(color: AppColors.danger)),
       ]);
     } else if (total > 0 && taken == total) {
@@ -285,9 +357,9 @@ class _MemberCard extends ConsumerWidget {
         Text(context.l10n.allDoneTodayLabel,
             style: AppTextStyles.bodySm.copyWith(color: const Color(0xFF22C55E))),
       ]);
-    } else if (nextIntake != null) {
+    } else if (total > 0) {
       statusLine = Text(
-        context.l10n.nextIntakeLabel(medNameFor(nextIntake.medicationId), timeStr(nextIntake.scheduledAt)),
+        context.l10n.tasksProgressLabel(taken, total),
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
       );
     } else {
@@ -296,7 +368,7 @@ class _MemberCard extends ConsumerWidget {
     }
 
     final showMissedCard = !isOwner && hasMissed;
-    final firstMissed = hasMissed ? missedIntakes.first : null;
+    final firstMissed = hasMissed ? missedItems.first : null;
 
     return Container(
       clipBehavior: Clip.hardEdge,
@@ -390,14 +462,20 @@ class _MemberCard extends ConsumerWidget {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.medication_rounded,
-                                    size: 18, color: AppColors.danger),
+                                Icon(
+                                    switch (firstMissed.entityType) {
+                                      'intake' => Icons.medication_rounded,
+                                      'activity_log' => Icons.checklist_rounded,
+                                      _ => Icons.notifications_rounded,
+                                    },
+                                    size: 18,
+                                    color: AppColors.danger),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(medNameFor(firstMissed.medicationId),
+                                      Text(_missedItemTitle(context, firstMissed),
                                           style: AppTextStyles.labelMd),
                                       Text(
                                           context.l10n.notTakenSuffixLabel(timeStr(firstMissed.scheduledAt)),

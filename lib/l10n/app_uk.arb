@@ -632,6 +632,17 @@
       }
     }
   },
+  "tasksProgressLabel": "{taken} з {total} завдань",
+  "@tasksProgressLabel": {
+    "placeholders": {
+      "taken": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "missedRemindersLabel": "Пропущено {count, plural, one{{count} нагадування} few{{count} нагадування} other{{count} нагадувань}}",
   "@missedRemindersLabel": {
     "placeholders": {
