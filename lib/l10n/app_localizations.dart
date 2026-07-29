@@ -283,7 +283,7 @@ abstract class AppLocalizations {
   /// No description provided for @todayHurtsNow.
   ///
   /// In uk, this message translates to:
-  /// **'Зараз\nболить'**
+  /// **'Додати\nнастрій'**
   String get todayHurtsNow;
 
   /// No description provided for @todayMissedSection.

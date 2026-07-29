@@ -107,7 +107,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todayAllDoneSubtitle => 'Great job — keep it up';
 
   @override
-  String get todayHurtsNow => 'Hurts\nright now';
+  String get todayHurtsNow => 'Add\nmood';
 
   @override
   String get todayMissedSection => 'You missed';
