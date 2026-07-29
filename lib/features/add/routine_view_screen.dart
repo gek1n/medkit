@@ -164,7 +164,12 @@ class _ViewBody extends ConsumerWidget {
     await ref.read(activitiesRepositoryProvider).softDelete(activity.id);
     ref.invalidate(generateTodayActivityLogsProvider);
     ref.invalidate(tomorrowActivityLogsProvider);
-    if (context.mounted) Navigator.pop(context);
+    // НЕ викликаємо Navigator.pop тут — щойно softDelete позначить рутину
+    // isActive=false, watchById(id) реактивно віддасть null, і сам екран
+    // вище (data: (activity) => if (activity == null) ...) закриється
+    // через addPostFrameCallback. Виклик pop і тут, і там — подвійний pop
+    // на одному навігаторі (чорний екран, що "лікується" лише
+    // перезапуском — саме так і виглядав баг).
   }
 
   @override

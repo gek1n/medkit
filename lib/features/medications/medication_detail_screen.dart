@@ -1365,7 +1365,12 @@ Future<void> _confirmStopMedication(
     // ліків).
     ref.invalidate(generateTodayIntakesProvider);
     ref.invalidate(tomorrowIntakesProvider);
-    if (context.mounted) Navigator.pop(context);
+    // НЕ викликаємо Navigator.pop тут — щойно softDelete позначить ліки
+    // isActive=false, watchById(id) реактивно віддасть null, і сам екран
+    // вище (data: (med) => if (med == null) ...) закриється через
+    // addPostFrameCallback. Виклик pop і тут, і там — подвійний pop на
+    // одному навігаторі, який на практиці міг зачинити на рівень більше,
+    // ніж треба (чорний екран, що "лікується" лише перезапуском).
   }
 }
 
