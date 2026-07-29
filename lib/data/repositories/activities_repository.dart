@@ -164,14 +164,28 @@ class ActivitiesRepository {
   // обов'язкового натискання "готово" після останнього підкроку).
   Future<void> toggleLogStep(
     int logId,
-    int stepIndex,
-    int totalSteps, {
+    int stepIndex, {
     required int actingMemberId,
   }) async {
     final log = await (_db.select(_db.activityLogs)
           ..where((t) => t.id.equals(logId)))
         .getSingleOrNull();
     if (log == null) return;
+    // totalSteps рахуємо тут, зі стану самої Activity — а не приймаємо від
+    // виклику з UI: якщо картка на Сьогодні збудувалась ще до того, як
+    // reactive-провайдер зі списком активностей встиг підвантажити щойно
+    // створену рутину, UI бачив би activity==null -> steps=[] -> totalSteps
+    // помилково 0, і будь-яка одна відмітка одразу "завершувала" б усю
+    // рутину (саме так і виглядав баг: один пункт чекліста — і вся картка
+    // зникає як виконана).
+    final activity = await (_db.select(_db.activities)
+          ..where((t) => t.id.equals(log.activityId)))
+        .getSingleOrNull();
+    var totalSteps = 0;
+    try {
+      totalSteps =
+          (jsonDecode(activity?.stepsJson ?? '[]') as List).length;
+    } catch (_) {}
     var completed = <int>{};
     try {
       completed =
@@ -184,7 +198,9 @@ class ActivitiesRepository {
     }
     final status = completed.isEmpty
         ? 'pending'
-        : (completed.length >= totalSteps ? 'done' : 'partial');
+        : (totalSteps > 0 && completed.length >= totalSteps
+            ? 'done'
+            : 'partial');
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(logId)))
         .write(
       ActivityLogsCompanion(
