@@ -291,15 +291,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     }
   }
 
-  String _assigneeSummary(BuildContext context, List<Member> members) {
-    if (_assigneeIds.length <= 1) {
-      final id = _assigneeIds.isNotEmpty ? _assigneeIds.first : widget.memberId;
-      final m = members.where((x) => x.id == id).firstOrNull;
-      return m?.name ?? '';
-    }
-    return context.l10n.routineRotationSummary(_assigneeIds.length);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (isMemberBlockedByPlan(ref, widget.memberId)) {
@@ -359,98 +350,11 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       hint: context.l10n.activityNameHint,
                     ),
                     const SizedBox(height: AppDimensions.lg),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FieldChip(
-                          icon: Icons.repeat_rounded,
-                          label: context.l10n.routineRepeatSectionLabel,
-                          value: _repeatSummary(context),
-                          forceLabel: true,
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.routineRepeatSectionLabel,
-                            child: _ScheduleFieldsSheet(
-                              initialRepeatType: _repeatType,
-                              initialWeekdays: _weekdays,
-                              initialDayOfMonth: _dayOfMonth,
-                              initialIntervalDays: _intervalDays,
-                              initialWeeklyGoalCount: _weeklyGoalCount,
-                              initialHasFixedTime: _hasFixedTime,
-                              initialSlots: _slots,
-                              onChanged: (v) => setState(() {
-                                _repeatType = v.repeatType;
-                                _weekdays = v.weekdays;
-                                _dayOfMonth = v.dayOfMonth;
-                                _intervalDays = v.intervalDays;
-                                _weeklyGoalCount = v.weeklyGoalCount;
-                                _hasFixedTime = v.hasFixedTime;
-                                _slots = v.slots;
-                              }),
-                            ),
-                          ),
-                        ),
-                        // Хто виконує/Кроки — те, що реально відрізняє
-                        // рутину від нагадування (сімейна ротація,
-                        // чек-лист), тож стоять одразу після розкладу, а
-                        // не в кінці серед косметичних полів.
-                        FieldChip(
-                          icon: Icons.people_outline_rounded,
-                          label: context.l10n.routineWhoDoesLabel,
-                          value: _assigneeSummary(context, members),
-                          forceLabel: _assigneeIds.length <= 1,
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.routineWhoDoesLabel,
-                            child: _AssigneesSheet(
-                              members: members,
-                              initialSelected: _assigneeIds,
-                              initialRotationMode: _rotationMode,
-                              onChanged: (ids, mode) => setState(() {
-                                _assigneeIds = ids;
-                                _rotationMode = mode;
-                              }),
-                            ),
-                          ),
-                        ),
-                        if (showTime)
-                          FieldChip(
-                            icon: Icons.notifications_outlined,
-                            label: context.l10n.reminderLabel,
-                            value: _reminder ? 'on' : null,
-                            forceLabel: true,
-                            onTap: () => setState(() => _reminder = !_reminder),
-                          ),
-                        FieldChip(
-                          icon: Icons.palette_outlined,
-                          label: context.l10n.taskColorPickerLabel,
-                          value: _colorHex,
-                          forceLabel: true,
-                          swatchColor: colorFromHex(_colorHex),
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.taskColorPickerLabel,
-                            child: TaskColorPicker(
-                              selectedHex: _colorHex,
-                              onChanged: (hex) =>
-                                  setState(() => _colorHex = hex),
-                            ),
-                          ),
-                        ),
-                        SpaceChip(
-                          memberId: widget.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) => setState(() => _sectionId = id),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Кроки чек-листа — окремим завжди розгорнутим блоком
-                    // (не чіпом/шторкою), щоб одразу було видно й зручно
-                    // накидати список підпунктів, не відкриваючи окрему
-                    // шторку заради, по суті, головної фічі рутини.
+                    // Кроки чек-листа — одразу під назвою, окремим завжди
+                    // розгорнутим блоком (не чіпом/шторкою), щоб одразу
+                    // було видно й зручно накидати список підпунктів, не
+                    // відкриваючи окрему шторку заради, по суті, головної
+                    // фічі рутини.
                     _Label(context.l10n.routineStepsLabel),
                     const SizedBox(height: 6),
                     ..._steps.asMap().entries.map((e) => Padding(
@@ -501,6 +405,58 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                             ),
                             child: const Icon(Icons.add_rounded,
                                 color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    // Хто виконує — теж завжди розгорнутим блоком, одразу
+                    // після кроків (сімейна ротація — друга річ, що реально
+                    // відрізняє рутину від разового нагадування).
+                    _Label(context.l10n.routineWhoDoesLabel),
+                    const SizedBox(height: 8),
+                    _AssigneesSheet(
+                      members: members,
+                      initialSelected: _assigneeIds,
+                      initialRotationMode: _rotationMode,
+                      onChanged: (ids, mode) => setState(() {
+                        _assigneeIds = ids;
+                        _rotationMode = mode;
+                      }),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FieldChip(
+                          icon: Icons.repeat_rounded,
+                          label: context.l10n.routineRepeatSectionLabel,
+                          value: _repeatSummary(context),
+                          forceLabel: true,
+                          onTap: () => showFieldSheet(
+                            context,
+                            title: context.l10n.routineRepeatSectionLabel,
+                            child: _ScheduleFieldsSheet(
+                              initialRepeatType: _repeatType,
+                              initialWeekdays: _weekdays,
+                              initialDayOfMonth: _dayOfMonth,
+                              initialIntervalDays: _intervalDays,
+                              initialWeeklyGoalCount: _weeklyGoalCount,
+                              initialHasFixedTime: _hasFixedTime,
+                              initialSlots: _slots,
+                              onChanged: (v) => setState(() {
+                                _repeatType = v.repeatType;
+                                _weekdays = v.weekdays;
+                                _dayOfMonth = v.dayOfMonth;
+                                _intervalDays = v.intervalDays;
+                                _weeklyGoalCount = v.weeklyGoalCount;
+                                _hasFixedTime = v.hasFixedTime;
+                                _slots = v.slots;
+                              }),
+                            ),
                           ),
                         ),
                         if (showTime)
