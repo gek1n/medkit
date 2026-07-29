@@ -13,6 +13,7 @@ import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/form_chips.dart';
+import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../medications/medication_detail_screen.dart';
 
 enum _MedStatus { ongoing, finished, cancelled }
@@ -55,13 +56,21 @@ final _archiveProvider = StreamProvider.family<List<Medication>, int>((ref, memb
   return ref.watch(medicationsRepositoryProvider).watchAllByMember(memberId);
 });
 
-class MedicationArchiveScreen extends ConsumerWidget {
+class MedicationArchiveScreen extends ConsumerStatefulWidget {
   final int memberId;
   const MedicationArchiveScreen({super.key, required this.memberId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final medsAsync = ref.watch(_archiveProvider(memberId));
+  ConsumerState<MedicationArchiveScreen> createState() => _MedicationArchiveScreenState();
+}
+
+class _MedicationArchiveScreenState extends ConsumerState<MedicationArchiveScreen> {
+  String _search = '';
+  Set<String> _selectedStatuses = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final medsAsync = ref.watch(_archiveProvider(widget.memberId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -79,10 +88,24 @@ class MedicationArchiveScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppDimensions.screenPadding, 0, AppDimensions.screenPadding, AppDimensions.sm),
+              child: TagSearchFilterBar(
+                searchHint: context.l10n.searchHint,
+                onSearchChanged: (v) => setState(() => _search = v),
+                tagsLoader: () async =>
+                    _MedStatus.values.map((s) => s.label(context)).toList(),
+                selectedTags: _selectedStatuses,
+                onTagsChanged: (v) => setState(() => _selectedStatuses = v),
+                filterAllLabel: context.l10n.allStatusesFilter,
+                filterSheetTitle: context.l10n.medStatusFilterPickerTitle,
+              ),
+            ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: () async => ref.invalidate(_archiveProvider(memberId)),
+                onRefresh: () async => ref.invalidate(_archiveProvider(widget.memberId)),
                 child: medsAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
@@ -95,7 +118,24 @@ class MedicationArchiveScreen extends ConsumerWidget {
                         ],
                       );
                     }
-                    final sorted = [...meds]..sort((a, b) => b.startDate.compareTo(a.startDate));
+                    final query = _search.trim().toLowerCase();
+                    final filtered = meds.where((m) {
+                      final matchesQuery = query.isEmpty ||
+                          m.name.toLowerCase().contains(query) ||
+                          (medFormLabels(context)[m.form] ?? m.form).toLowerCase().contains(query);
+                      final matchesStatus = _selectedStatuses.isEmpty ||
+                          _selectedStatuses.contains(_statusOf(m).label(context));
+                      return matchesQuery && matchesStatus;
+                    }).toList();
+                    if (filtered.isEmpty) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          MkEmptyState(hint: context.l10n.noResultsFoundHint),
+                        ],
+                      );
+                    }
+                    final sorted = [...filtered]..sort((a, b) => b.startDate.compareTo(a.startDate));
                     return ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(
@@ -110,7 +150,7 @@ class MedicationArchiveScreen extends ConsumerWidget {
                             MaterialPageRoute(
                               builder: (_) => MedicationDetailScreen(
                                 medicationId: sorted[i].id,
-                                memberId: memberId,
+                                memberId: widget.memberId,
                               ),
                             ),
                           ),

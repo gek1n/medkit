@@ -730,6 +730,18 @@ abstract class AppLocalizations {
   /// **'Усі теги'**
   String get allTagsFilter;
 
+  /// No description provided for @allStatusesFilter.
+  ///
+  /// In uk, this message translates to:
+  /// **'Усі статуси'**
+  String get allStatusesFilter;
+
+  /// No description provided for @medStatusFilterPickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Оберіть статус'**
+  String get medStatusFilterPickerTitle;
+
   /// No description provided for @medCardTitle.
   ///
   /// In uk, this message translates to:

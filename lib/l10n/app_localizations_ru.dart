@@ -355,6 +355,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get allTagsFilter => 'Все теги';
 
   @override
+  String get allStatusesFilter => 'Все статусы';
+
+  @override
+  String get medStatusFilterPickerTitle => 'Выберите статус';
+
+  @override
   String get medCardTitle => 'Полки';
 
   @override

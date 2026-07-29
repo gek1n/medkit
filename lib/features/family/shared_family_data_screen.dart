@@ -433,6 +433,8 @@ Future<void> _openEditNotesSheet(
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 hintText: context.l10n.notesHintEllipsis,
               ),
               style: AppTextStyles.bodyMd,

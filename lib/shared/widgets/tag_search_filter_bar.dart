@@ -16,6 +16,12 @@ class TagSearchFilterBar extends StatefulWidget {
   final Future<List<String>> Function() tagsLoader;
   final Set<String> selectedTags;
   final ValueChanged<Set<String>> onTagsChanged;
+  // Той самий пошук+мультивибір, коли універсум — НЕ теги (напр. статуси
+  // ліків в Архіві ліків) — перевизначають дефолтні "теги"-написи, щоб
+  // шторка й пілюля-кнопка не показували слово "теги" там, де це не теги.
+  final String? filterAllLabel;
+  final String? filterSheetTitle;
+  final String? filterEmptyLabel;
 
   const TagSearchFilterBar({
     super.key,
@@ -24,6 +30,9 @@ class TagSearchFilterBar extends StatefulWidget {
     required this.tagsLoader,
     required this.selectedTags,
     required this.onTagsChanged,
+    this.filterAllLabel,
+    this.filterSheetTitle,
+    this.filterEmptyLabel,
   });
 
   @override
@@ -51,6 +60,8 @@ class _TagSearchFilterBarState extends State<TagSearchFilterBar> {
       builder: (_) => _MultiTagFilterSheet(
         tags: tags,
         initiallySelected: widget.selectedTags,
+        title: widget.filterSheetTitle,
+        emptyLabel: widget.filterEmptyLabel,
       ),
     );
     if (result != null) widget.onTagsChanged(result);
@@ -87,9 +98,21 @@ class _TagSearchFilterBarState extends State<TagSearchFilterBar> {
                     onChanged: widget.onSearchChanged,
                     style: AppTextStyles.bodySm,
                     textAlignVertical: TextAlignVertical.center,
+                    // .collapsed() лише занулює border, а не enabledBorder/
+                    // focusedBorder — глобальна InputDecorationTheme
+                    // (app_theme.dart) задає їх явно, і при фокусі саме
+                    // focusedBorder (яскраво-зелений) перемагає над
+                    // .collapsed()'s border:none, малюючи "вкладену" рамку
+                    // всередині цього ж пілюльного контейнера.
                     decoration: InputDecoration.collapsed(
                       hintText: widget.searchHint,
                       hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                    ).copyWith(
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
                     ),
                   ),
                 ),
@@ -123,7 +146,7 @@ class _TagSearchFilterBarState extends State<TagSearchFilterBar> {
                     child: Text(
                       active
                           ? widget.selectedTags.join(', ')
-                          : context.l10n.allTagsFilter,
+                          : (widget.filterAllLabel ?? context.l10n.allTagsFilter),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.labelMd.copyWith(
@@ -152,7 +175,14 @@ class _TagSearchFilterBarState extends State<TagSearchFilterBar> {
 class _MultiTagFilterSheet extends StatefulWidget {
   final List<String> tags;
   final Set<String> initiallySelected;
-  const _MultiTagFilterSheet({required this.tags, required this.initiallySelected});
+  final String? title;
+  final String? emptyLabel;
+  const _MultiTagFilterSheet({
+    required this.tags,
+    required this.initiallySelected,
+    this.title,
+    this.emptyLabel,
+  });
 
   @override
   State<_MultiTagFilterSheet> createState() => _MultiTagFilterSheetState();
@@ -182,7 +212,10 @@ class _MultiTagFilterSheetState extends State<_MultiTagFilterSheet> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(context.l10n.reminderTagsPickerTitle, style: AppTextStyles.h3),
+                    child: Text(
+                      widget.title ?? context.l10n.reminderTagsPickerTitle,
+                      style: AppTextStyles.h3,
+                    ),
                   ),
                   if (_selected.isNotEmpty)
                     TextButton(
@@ -196,7 +229,7 @@ class _MultiTagFilterSheetState extends State<_MultiTagFilterSheet> {
               child: widget.tags.isEmpty
                   ? Center(
                       child: Text(
-                        context.l10n.noTagsYetLabel,
+                        widget.emptyLabel ?? context.l10n.noTagsYetLabel,
                         style: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
                       ),
                     )

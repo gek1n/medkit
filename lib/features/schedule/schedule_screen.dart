@@ -802,6 +802,8 @@ class _SearchFieldState extends State<_SearchField> {
                       color: AppColors.textMuted, size: 18),
                 ),
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),

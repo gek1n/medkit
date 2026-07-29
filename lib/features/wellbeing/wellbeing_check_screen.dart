@@ -489,6 +489,8 @@ class _VoiceCommentFieldState extends State<_VoiceCommentField>
                   color: AppColors.textMuted,
                 ),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 contentPadding: const EdgeInsets.all(14),
               ),
               style: AppTextStyles.bodyMd,

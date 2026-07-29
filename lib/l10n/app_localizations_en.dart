@@ -353,6 +353,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allTagsFilter => 'All tags';
 
   @override
+  String get allStatusesFilter => 'All statuses';
+
+  @override
+  String get medStatusFilterPickerTitle => 'Choose status';
+
+  @override
   String get medCardTitle => 'Shelves';
 
   @override

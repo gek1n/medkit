@@ -60,7 +60,14 @@ class MkTextField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+          // border:none сам по собі не глушить enabledBorder/focusedBorder з
+          // глобальної InputDecorationTheme (app_theme.dart) — без явного
+          // занулення обох при фокусі поверх зовнішньої рамки Container
+          // з'являється друга, вкладена рамка (focusedBorder переможе).
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           suffixIcon: readOnly
               ? const Icon(Icons.expand_more_rounded, color: AppColors.textMuted)
