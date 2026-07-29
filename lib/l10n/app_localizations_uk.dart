@@ -2595,6 +2595,13 @@ class AppLocalizationsUk extends AppLocalizations {
       'Необмежена кількість профілів родини — керуєте тільки ви';
 
   @override
+  String get planFeatureUnlimitedRoutines =>
+      'Необмежена кількість рутинних справ';
+
+  @override
+  String get planFeatureUnlimitedShelves => 'Необмежена кількість поличок';
+
+  @override
   String get selectPlusAction => 'Обрати Plus';
 
   @override

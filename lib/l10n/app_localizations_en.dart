@@ -2586,6 +2586,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unlimited family profiles — you\'re the only one in control';
 
   @override
+  String get planFeatureUnlimitedRoutines => 'Unlimited routine tasks';
+
+  @override
+  String get planFeatureUnlimitedShelves => 'Unlimited shelves';
+
+  @override
   String get selectPlusAction => 'Choose Plus';
 
   @override
