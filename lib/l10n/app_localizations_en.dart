@@ -35,7 +35,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get todayProgressSubtitle => 'medications taken today';
+  String get todayProgressSubtitle => 'inventory items used today';
 
   @override
   String todayProgressPercent(int percent) {
@@ -128,7 +128,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dayPartNight => 'Night';
 
   @override
-  String get defaultMedName => 'Medication';
+  String get defaultMedName => 'Inventory';
 
   @override
   String get defaultActivityName => 'Activity';
@@ -205,7 +205,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryAll => 'All';
 
   @override
-  String get categoryMeds => 'Medications';
+  String get categoryMeds => 'Inventory';
 
   @override
   String get categoryActivities => 'Activities';
@@ -229,10 +229,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noResultsFoundHint => 'Nothing found';
 
   @override
-  String get sectionMeds => 'Medications';
+  String get sectionMeds => 'Inventory';
 
   @override
-  String get noActiveMeds => 'No active medications';
+  String get noActiveMeds => 'No active inventory';
 
   @override
   String get sectionAppointments => 'Reminders';
@@ -277,10 +277,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get repeatCycle => 'cycle';
 
   @override
-  String get courseOngoing => 'ongoing course';
+  String get courseOngoing => 'ongoing';
 
   @override
-  String get courseFinished => 'course finished';
+  String get courseFinished => 'finished';
 
   @override
   String courseDaysLeft(int count) {
@@ -362,11 +362,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medCardTitle => 'Shelves';
 
   @override
-  String get medCardArchiveTitle => 'Medication archive';
+  String get medCardArchiveTitle => 'Inventory archive';
 
   @override
-  String get medCardArchiveSubtitle =>
-      'All medications and their treatment status';
+  String get medCardArchiveSubtitle => 'All inventory items and their status';
 
   @override
   String get medCardAppointmentsTitle => 'Reminders archive';
@@ -463,7 +462,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get medicationArchiveEmptyHint =>
-      'All the medications you\'ve ever added will appear here';
+      'Everything you\'ve ever added to your inventory will appear here';
 
   @override
   String get medStatusOngoing => 'Ongoing';
@@ -507,7 +506,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get removeAction => 'Remove';
 
   @override
-  String get medsTitle => 'Medications';
+  String get medsTitle => 'Inventory';
 
   @override
   String activeMedsCountSection(int count) {
@@ -520,43 +519,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get noMedsYetTitle => 'No medications yet';
+  String get noMedsYetTitle => 'Nothing in inventory yet';
 
   @override
-  String get noMedsYetHint => 'Tap + to add your first medication';
+  String get noMedsYetHint => 'Tap + to add your first item';
 
   @override
-  String get addMedicationAction => 'Add medication';
+  String get addMedicationAction => 'Add to inventory';
 
   @override
   String get errorGenericShort => 'Error';
-
-  @override
-  String get stockUnitTabletsCapsules => 'TABLETS / CAPSULES';
-
-  @override
-  String get stockUnitSyrup => 'SYRUP';
-
-  @override
-  String get stockUnitDrops => 'DROPS';
-
-  @override
-  String get stockUnitInjections => 'INJECTIONS';
-
-  @override
-  String get stockUnitSuppositories => 'SUPPOSITORIES';
-
-  @override
-  String get stockUnitVial => 'VIAL';
-
-  @override
-  String get stockUnitCream => 'CREAM';
-
-  @override
-  String get stockUnitInhaler => 'INHALER';
-
-  @override
-  String get stockUnitGeneric => 'REMAINING';
 
   @override
   String perDoseLabel(String dose, String unit) {
@@ -578,7 +550,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stockSectionLabel => 'Stock';
 
   @override
-  String get untilCourseEndLabel => 'until end of course';
+  String get untilCourseEndLabel => 'until end of period';
 
   @override
   String get next30DaysLabel => 'for the next 30 days';
@@ -607,36 +579,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get okAction => 'OK';
 
   @override
-  String remainingApproxPercent(int percent) {
-    return 'About $percent% left';
-  }
-
-  @override
-  String daysLeftAtCurrentRate(String days) {
-    return '~$days days left at current rate';
-  }
-
-  @override
-  String get updateStockEstimateLabel => 'Update stock estimate:';
-
-  @override
-  String get openedNewContainerAction => '+ Opened a new container';
-
-  @override
-  String get openedTodayLabel => 'Opened today';
-
-  @override
-  String openedDaysAgoLabel(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count days ago',
-      one: '$count day ago',
-    );
-    return 'Opened $_temp0';
-  }
-
-  @override
   String phaseNumberLabel(int number) {
     return 'Stage $number';
   }
@@ -650,7 +592,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get courseStagesLabel => 'Course stages';
+  String get courseStagesLabel => 'Stages';
 
   @override
   String get foodBeforeLabel => '🕐 Before food';
@@ -676,13 +618,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailsLabel => 'Details';
 
   @override
-  String get intakeLabel => 'Intake';
+  String get intakeLabel => 'Schedule';
 
   @override
   String get withFoodLabel => 'With food';
 
   @override
-  String get courseNounLabel => 'Course';
+  String get courseNounLabel => 'Period';
 
   @override
   String get noteLabel => 'Note';
@@ -712,34 +654,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stopAction => 'Stop';
 
   @override
-  String get stopCourseConfirmTitle => 'Stop the course?';
+  String get stopCourseConfirmTitle => 'Stop?';
 
   @override
   String stopCourseConfirmBody(String name) {
-    return '\"$name\" will be removed from your active medications.';
+    return '\"$name\" will be removed from your active inventory.';
   }
 
   @override
-  String get enterMedicationNameError => 'Enter the medication name';
+  String get enterMedicationNameError => 'Enter a name';
 
   @override
-  String get deleteMedicationConfirmTitle => 'Delete this medication?';
+  String get deleteMedicationConfirmTitle => 'Delete this item?';
 
   @override
   String get deleteMedicationConfirmBody =>
-      'The medication will be removed from your schedule.';
+      'The item will be removed from your schedule.';
 
   @override
-  String get editMedicationTitle => 'Edit medication';
+  String get editMedicationTitle => 'Edit item';
 
   @override
-  String get medicationNameHint => 'Medication name';
+  String get medicationNameHint => 'Name';
 
   @override
   String get medicationFormLabel => 'Form';
 
   @override
-  String get coursePhasesLabel => 'Course phases';
+  String get coursePhasesLabel => 'Phases';
 
   @override
   String get addPhaseAction => 'Add phase';
@@ -760,10 +702,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveAndViewScheduleAction => 'Save and view schedule →';
 
   @override
-  String get medicalDisclaimerText =>
-      'Elly is a reminder and organization tool, not medical advice. Always consult a doctor for diagnosis, prescriptions, or treatment changes.';
-
-  @override
   String phaseCardTitle(int number) {
     return 'Phase $number';
   }
@@ -772,7 +710,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get removePhaseAction => 'remove';
 
   @override
-  String get doseAmountLabel => 'AMOUNT PER DOSE';
+  String get doseAmountLabel => 'AMOUNT PER USE';
 
   @override
   String get foodRelationSectionLabel => 'RELATION TO FOOD';
@@ -830,10 +768,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hoursSuffix => 'h';
 
   @override
-  String get doseCommentHint => 'Dose comment (optional)';
+  String get doseCommentHint => 'Comment (optional)';
 
   @override
-  String get doseAmountDialogTitle => 'Amount per dose';
+  String get doseAmountDialogTitle => 'Amount per use';
 
   @override
   String get doseAmountExampleHint => 'e.g. 2.5';
@@ -878,13 +816,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackStockLabel => 'Track stock and remind when low';
 
   @override
-  String get vialPackageLabel => 'Vial / package';
-
-  @override
-  String get markAsOpenedHint =>
-      'We\'ll mark it as just opened (100%) — you can update the stock estimate later in the medication card';
-
-  @override
   String get inStockLabel => 'In stock';
 
   @override
@@ -893,12 +824,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String courseAvailableLabel(int needed, int available) {
-    return ' (course needs: $needed, have: $available)';
-  }
-
-  @override
-  String get enoughForCourseLabel => 'Enough for the whole course';
+  String get enoughForCourseLabel => 'Enough for the whole period';
 
   @override
   String get noCameraAccessError =>
@@ -914,7 +840,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addPhotoAction => 'Add photo';
 
   @override
-  String get addPhotoHint => 'so you don\'t mix up medications';
+  String get addPhotoHint => 'so you don\'t mix up items';
 
   @override
   String inviteMemberTitle(String name) {
@@ -1469,7 +1395,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get medcardSyncDescription =>
-      'If disabled, this profile\'s reminders (along with attachments) won\'t be shared with other family devices connected via pairing. Medications and dosing schedule sync regardless of this toggle.';
+      'If disabled, this profile\'s reminders (along with attachments) won\'t be shared with other family devices connected via pairing. Inventory and usage schedule sync regardless of this toggle.';
 
   @override
   String get pendingConnectionLabel => 'Waiting for connection';
@@ -2252,7 +2178,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get setupMedsToActivateLabel =>
-      'Set up medications to activate reminders';
+      'Add something to your inventory to activate reminders';
 
   @override
   String get privacyConsentPrefix => 'I have read and agree to the ';
@@ -2281,7 +2207,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String scheduleSetByInviterBody(String name) {
-    return '$name has already set up a medication schedule for you. You\'ll be able to edit it any time after connecting.';
+    return '$name has already set up a usage schedule for you. You\'ll be able to edit it any time after connecting.';
   }
 
   @override
@@ -2320,7 +2246,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeDescription =>
-      'Elly helps you keep track of medications,\nactivities, and mood — for you\nand your whole family';
+      'Elly helps you keep track of your inventory,\nactivities, and mood — for you\nand your whole family';
 
   @override
   String onboardingStepLabel(int step, int total) {
@@ -2338,7 +2264,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get createAccountSubtitle =>
-      'I\'ll set up medications and a schedule for myself';
+      'I\'ll set up my inventory and a schedule for myself';
 
   @override
   String get joinFamilyChoiceTitle => 'Join a family';
@@ -2357,31 +2283,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter your name and choose a profile avatar';
 
   @override
-  String get nextToMedsAction => 'Next — medications →';
+  String get nextToMedsAction => 'Next — inventory →';
 
   @override
   String get scanOrEnterManuallyHint =>
-      'Add the medications you\'re currently taking';
+      'Add the things you\'re currently using';
 
   @override
-  String get addMedsShortAction => 'Add medications';
+  String get addMedsShortAction => 'Add to inventory';
 
   @override
-  String get addMoreMedsAction => 'Add more medications';
-
-  @override
-  String get addMedsHint =>
-      'Scan a prescription photo, or enter name, dose, and schedule manually';
+  String get addMoreMedsAction => 'Add more';
 
   @override
   String get onboardingAddItemAction => 'Add';
 
   @override
-  String get onboardingAddItemHint => 'A reminder or a medication — pick one';
+  String get onboardingAddItemHint =>
+      'A reminder or an inventory item — pick one';
 
   @override
   String get addMedsLaterInfo =>
-      'You can add medications later from the \"Medications\" section in the main menu';
+      'You can add inventory later from the \"Inventory\" section in the main menu';
 
   @override
   String get nextAction => 'Next →';
@@ -2407,7 +2330,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wellbeingDiaryDescription =>
-      'Quick mood notes help you see the connection between taking your medication and how you feel';
+      'Quick mood notes help you see the connection between your inventory and how you feel';
 
   @override
   String get wellbeingSlotsTitle => 'Mood check-ins';
@@ -2432,7 +2355,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupIntroBody =>
-      'Medications, schedule, archive (photos), and all other data — choose where to keep your backup.';
+      'Inventory, schedule, archive (photos), and all other data — choose where to keep your backup.';
 
   @override
   String get backupModeLocalTitle => 'Device only';
@@ -2711,7 +2634,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportDescriptionBody =>
-      'A JSON file with all profiles, medications, schedule, doses, mood logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they\'re already in your \"Backup\") — text data only.';
+      'A JSON file with all profiles, inventory, schedule, doses, mood logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nInventory photos are not included in the file (they\'re already in your \"Backup\") — text data only.';
 
   @override
   String get exportAction => 'Export';
@@ -2739,7 +2662,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addTypeSheetSubtitle => 'Choose a type — the form will adjust';
 
   @override
-  String get addTypeMedsSub => 'Schedule, dosage, repeats';
+  String get addTypeMedsSub => 'Schedule, stock, repeats';
 
   @override
   String get addTypeActivitySub => 'Walk, exercise, workout, physical therapy';
@@ -2888,7 +2811,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get faqPlansA2 =>
-      '1 local profile, 1 active routine, 3 Shelf sections. Reminders, medications, and mood tracking are unlimited on every plan. Going over a limit never deletes anything: older entries stay viewable, only editing or creating new ones is blocked until you upgrade.';
+      '1 local profile, 1 active routine, 3 Shelf sections. Reminders, inventory, and mood tracking are unlimited on every plan. Going over a limit never deletes anything: older entries stay viewable, only editing or creating new ones is blocked until you upgrade.';
 
   @override
   String get faqPlansQ3 => 'How many people can I add to a family group?';
@@ -2937,7 +2860,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pushNotificationsLabel => 'Push notifications';
 
   @override
-  String get pushNotificationsSub => 'Reminders to take your medications';
+  String get pushNotificationsSub => 'Reminders to use your inventory';
 
   @override
   String get vibrationLabel => 'Vibration';
@@ -3247,14 +3170,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifChannelDesc =>
-      'Reminders for medications, activities, visits, and mood check-ins';
+      'Reminders for inventory, activities, visits, and mood check-ins';
 
   @override
-  String get notifTakeMedTitle => '💊 Time to take your medication';
+  String notifTakeMedTitle(String name) {
+    return '⏰ Time for $name';
+  }
 
   @override
-  String get notifIntakeNoResponseTitle =>
-      '🔔 You haven\'t marked this dose yet';
+  String notifIntakeNoResponseTitle(String name) {
+    return '🔔 You haven\'t marked yet: $name';
+  }
 
   @override
   String get notifBackupReminderTitle => 'Protect your data';
@@ -3264,7 +3190,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Backup is off — data is stored only on this device. Turn it on in Profile so you don\'t lose it.';
 
   @override
-  String get notifLowStockTitle => '⚠️ Running low on medication';
+  String get notifLowStockTitle => '⚠️ Running low';
 
   @override
   String notifLowStockBody(String medName, int remaining, String unit) {
@@ -3379,7 +3305,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetLocalDbConfirmBody =>
-      'This will delete all data on this device (medications, schedule, medical records). No backup was found — this data cannot be recovered afterward.';
+      'This will delete all data on this device (inventory, schedule, medical records). No backup was found — this data cannot be recovered afterward.';
 
   @override
   String get resetAction => 'Reset';

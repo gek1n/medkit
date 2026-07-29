@@ -18,7 +18,7 @@
       }
     }
   },
-  "todayProgressSubtitle": "medications taken today",
+  "todayProgressSubtitle": "inventory items used today",
   "todayProgressPercent": "{percent}%",
   "@todayProgressPercent": {
     "placeholders": {
@@ -68,7 +68,7 @@
   "dayPartAfternoon": "Afternoon",
   "dayPartEvening": "Evening",
   "dayPartNight": "Night",
-  "defaultMedName": "Medication",
+  "defaultMedName": "Inventory",
   "defaultActivityName": "Activity",
   "wellbeingTitle": "Mood",
   "detailLabelTime": "Time",
@@ -106,7 +106,7 @@
   "welcomeTitle": "Welcome to Elly",
   "welcomeSubtitle": "Add your profile to get started",
   "categoryAll": "All",
-  "categoryMeds": "Medications",
+  "categoryMeds": "Inventory",
   "categoryActivities": "Activities",
   "categoryWellbeing": "Mood",
   "categoryDoctors": "Reminders",
@@ -114,8 +114,8 @@
   "searchAllSections": "Search all sections",
   "searchHint": "Search",
   "noResultsFoundHint": "Nothing found",
-  "sectionMeds": "Medications",
-  "noActiveMeds": "No active medications",
+  "sectionMeds": "Inventory",
+  "noActiveMeds": "No active inventory",
   "sectionAppointments": "Reminders",
   "noScheduledAppointments": "No scheduled appointments",
   "sectionActivities": "Activities",
@@ -130,8 +130,8 @@
   "repeatWeekdays": "specific days",
   "repeatEveryN": "every N days",
   "repeatCycle": "cycle",
-  "courseOngoing": "ongoing course",
-  "courseFinished": "course finished",
+  "courseOngoing": "ongoing",
+  "courseFinished": "finished",
   "courseDaysLeft": "{count, plural, one{{count} day left} other{{count} days left}}",
   "@courseDaysLeft": {
     "placeholders": {
@@ -167,8 +167,8 @@
   "allStatusesFilter": "All statuses",
   "medStatusFilterPickerTitle": "Choose status",
   "medCardTitle": "Shelves",
-  "medCardArchiveTitle": "Medication archive",
-  "medCardArchiveSubtitle": "All medications and their treatment status",
+  "medCardArchiveTitle": "Inventory archive",
+  "medCardArchiveSubtitle": "All inventory items and their status",
   "medCardAppointmentsTitle": "Reminders archive",
   "medCardAppointmentsSubtitle": "Meetings, simple tasks, routine chores",
   "medCardWellbeingHistoryTitle": "Mood history",
@@ -199,7 +199,7 @@
   "entryDateFieldLabel": "Entry date",
   "entryNotesHint": "Freeform notes…",
   "deleteEntryConfirmBody": "This entry will be deleted.",
-  "medicationArchiveEmptyHint": "All the medications you've ever added will appear here",
+  "medicationArchiveEmptyHint": "Everything you've ever added to your inventory will appear here",
   "medStatusOngoing": "Ongoing",
   "medStatusFinished": "Finished",
   "medStatusCancelled": "Cancelled",
@@ -220,7 +220,7 @@
   "deleteSurgeryConfirmTitle": "Delete this record?",
   "editSurgeryTitle": "Edit record",
   "removeAction": "Remove",
-  "medsTitle": "Medications",
+  "medsTitle": "Inventory",
   "activeMedsCountSection": "Active ({count})",
   "@activeMedsCountSection": {
     "placeholders": {
@@ -237,19 +237,10 @@
       }
     }
   },
-  "noMedsYetTitle": "No medications yet",
-  "noMedsYetHint": "Tap + to add your first medication",
-  "addMedicationAction": "Add medication",
+  "noMedsYetTitle": "Nothing in inventory yet",
+  "noMedsYetHint": "Tap + to add your first item",
+  "addMedicationAction": "Add to inventory",
   "errorGenericShort": "Error",
-  "stockUnitTabletsCapsules": "TABLETS / CAPSULES",
-  "stockUnitSyrup": "SYRUP",
-  "stockUnitDrops": "DROPS",
-  "stockUnitInjections": "INJECTIONS",
-  "stockUnitSuppositories": "SUPPOSITORIES",
-  "stockUnitVial": "VIAL",
-  "stockUnitCream": "CREAM",
-  "stockUnitInhaler": "INHALER",
-  "stockUnitGeneric": "REMAINING",
   "perDoseLabel": "{dose} {unit} per dose",
   "@perDoseLabel": {
     "placeholders": {
@@ -270,7 +261,7 @@
     }
   },
   "stockSectionLabel": "Stock",
-  "untilCourseEndLabel": "until end of course",
+  "untilCourseEndLabel": "until end of period",
   "next30DaysLabel": "for the next 30 days",
   "remainingColonLabel": "Remaining: ",
   "daysLeftShortLabel": "for {days} d.",
@@ -286,33 +277,6 @@
   "refillPackageTitle": "Refill package",
   "quantityHint": "Quantity",
   "okAction": "OK",
-  "remainingApproxPercent": "About {percent}% left",
-  "@remainingApproxPercent": {
-    "placeholders": {
-      "percent": {
-        "type": "int"
-      }
-    }
-  },
-  "daysLeftAtCurrentRate": "~{days} days left at current rate",
-  "@daysLeftAtCurrentRate": {
-    "placeholders": {
-      "days": {
-        "type": "String"
-      }
-    }
-  },
-  "updateStockEstimateLabel": "Update stock estimate:",
-  "openedNewContainerAction": "+ Opened a new container",
-  "openedTodayLabel": "Opened today",
-  "openedDaysAgoLabel": "Opened {count, plural, one{{count} day ago} other{{count} days ago}}",
-  "@openedDaysAgoLabel": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "phaseNumberLabel": "Stage {number}",
   "@phaseNumberLabel": {
     "placeholders": {
@@ -330,7 +294,7 @@
       }
     }
   },
-  "courseStagesLabel": "Course stages",
+  "courseStagesLabel": "Stages",
   "foodBeforeLabel": "🕐 Before food",
   "foodAfterLabel": "🍽 After food",
   "foodWithLabel": "🥗 With food",
@@ -345,9 +309,9 @@
   },
   "ongoingLabel": "ongoing",
   "detailsLabel": "Details",
-  "intakeLabel": "Intake",
+  "intakeLabel": "Schedule",
   "withFoodLabel": "With food",
-  "courseNounLabel": "Course",
+  "courseNounLabel": "Period",
   "noteLabel": "Note",
   "courseRangeLabel": "from {start} {endPart}",
   "@courseRangeLabel": {
@@ -382,8 +346,8 @@
     }
   },
   "stopAction": "Stop",
-  "stopCourseConfirmTitle": "Stop the course?",
-  "stopCourseConfirmBody": "\"{name}\" will be removed from your active medications.",
+  "stopCourseConfirmTitle": "Stop?",
+  "stopCourseConfirmBody": "\"{name}\" will be removed from your active inventory.",
   "@stopCourseConfirmBody": {
     "placeholders": {
       "name": {
@@ -391,20 +355,19 @@
       }
     }
   },
-  "enterMedicationNameError": "Enter the medication name",
-  "deleteMedicationConfirmTitle": "Delete this medication?",
-  "deleteMedicationConfirmBody": "The medication will be removed from your schedule.",
-  "editMedicationTitle": "Edit medication",
-  "medicationNameHint": "Medication name",
+  "enterMedicationNameError": "Enter a name",
+  "deleteMedicationConfirmTitle": "Delete this item?",
+  "deleteMedicationConfirmBody": "The item will be removed from your schedule.",
+  "editMedicationTitle": "Edit item",
+  "medicationNameHint": "Name",
   "medicationFormLabel": "Form",
-  "coursePhasesLabel": "Course phases",
+  "coursePhasesLabel": "Phases",
   "addPhaseAction": "Add phase",
   "repeatSectionLabel": "Repeat",
   "savingLabel": "Saving...",
   "saveChangesAction": "Save changes",
   "saveAndContinueAction": "Save and continue →",
   "saveAndViewScheduleAction": "Save and view schedule →",
-  "medicalDisclaimerText": "Elly is a reminder and organization tool, not medical advice. Always consult a doctor for diagnosis, prescriptions, or treatment changes.",
   "phaseCardTitle": "Phase {number}",
   "@phaseCardTitle": {
     "placeholders": {
@@ -414,7 +377,7 @@
     }
   },
   "removePhaseAction": "remove",
-  "doseAmountLabel": "AMOUNT PER DOSE",
+  "doseAmountLabel": "AMOUNT PER USE",
   "foodRelationSectionLabel": "RELATION TO FOOD",
   "durationSectionLabel": "DURATION",
   "daysCountDashLabel": "— d.",
@@ -446,8 +409,8 @@
   "daysSuffix": "d.",
   "intervalDialogTitle": "Interval",
   "hoursSuffix": "h",
-  "doseCommentHint": "Dose comment (optional)",
-  "doseAmountDialogTitle": "Amount per dose",
+  "doseCommentHint": "Comment (optional)",
+  "doseAmountDialogTitle": "Amount per use",
   "doseAmountExampleHint": "e.g. 2.5",
   "weekdayExampleLabel": "Mon, Wed, Fri, Sun…",
   "weekdaysOptionLabel": "Specific days of the week",
@@ -462,8 +425,6 @@
   "optionalParamsLabel": "Additional parameters",
   "optionalLabel": "Optional",
   "trackStockLabel": "Track stock and remind when low",
-  "vialPackageLabel": "Vial / package",
-  "markAsOpenedHint": "We'll mark it as just opened (100%) — you can update the stock estimate later in the medication card",
   "inStockLabel": "In stock",
   "howManyNowLabel": "How many {unit} do you have now",
   "@howManyNowLabel": {
@@ -473,23 +434,12 @@
       }
     }
   },
-  "courseAvailableLabel": " (course needs: {needed}, have: {available})",
-  "@courseAvailableLabel": {
-    "placeholders": {
-      "needed": {
-        "type": "int"
-      },
-      "available": {
-        "type": "int"
-      }
-    }
-  },
-  "enoughForCourseLabel": "Enough for the whole course",
+  "enoughForCourseLabel": "Enough for the whole period",
   "noCameraAccessError": "No camera access. Allow it in your phone settings.",
   "cameraOpenError": "Couldn't open the camera",
   "packagePhotoLabel": "Package photo",
   "addPhotoAction": "Add photo",
-  "addPhotoHint": "so you don't mix up medications",
+  "addPhotoHint": "so you don't mix up items",
   "inviteMemberTitle": "Invite {name}",
   "@inviteMemberTitle": {
     "placeholders": {
@@ -717,8 +667,12 @@
   "routineTasksLimitSubtitle": "Used {used} of {max}. Upgrade to Elly Plus for unlimited",
   "@routineTasksLimitSubtitle": {
     "placeholders": {
-      "used": { "type": "int" },
-      "max": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "routineTasksLimitDeniedTitle": "Routine tasks limit reached",
@@ -728,8 +682,12 @@
   "medcardSectionsLimitSubtitle": "Used {used} of {max}. Upgrade to Elly Plus for unlimited",
   "@medcardSectionsLimitSubtitle": {
     "placeholders": {
-      "used": { "type": "int" },
-      "max": { "type": "int" }
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
     }
   },
   "medcardSectionsLimitDeniedTitle": "Shelves limit reached",
@@ -889,7 +847,7 @@
   "familyVisibilityEmptyBody": "If independent members (with their own account) join your family group, you'll be able to manage their access to your profile here",
   "familyVisibilityIntro": "What other family members can see and do with your profile",
   "medcardSyncToggleLabel": "Sync med card to other devices",
-  "medcardSyncDescription": "If disabled, this profile's reminders (along with attachments) won't be shared with other family devices connected via pairing. Medications and dosing schedule sync regardless of this toggle.",
+  "medcardSyncDescription": "If disabled, this profile's reminders (along with attachments) won't be shared with other family devices connected via pairing. Inventory and usage schedule sync regardless of this toggle.",
   "pendingConnectionLabel": "Waiting for connection",
   "viewerNotifyPermissionLabel": "Receives notifications",
   "viewerEditPermissionLabel": "Can edit the profile",
@@ -1048,11 +1006,19 @@
   "routineRepeatWeeklyGoalOption": "N times a week",
   "routineIntervalDaysValueLabel": "Every {n} days",
   "@routineIntervalDaysValueLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineWeeklyGoalValueLabel": "{n}x/week",
   "@routineWeeklyGoalValueLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineTimeFieldLabel": "Time",
   "routineFixedTimeOption": "At a set time",
@@ -1064,37 +1030,57 @@
   "routineRotationCadenceMonthly": "Monthly",
   "routineRotationSummary": "Rotating ({n})",
   "@routineRotationSummary": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineStepsLabel": "Steps",
   "routineStepsSheetTitle": "Steps to complete",
   "routineAddStepHint": "Add a step…",
   "routineWhoseTurnLabel": "Turn: {name}",
   "@routineWhoseTurnLabel": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "routineSwapTurnAction": "Swap",
   "routineSkipTurnAction": "Skip turn",
   "routineWeeklyGoalProgressLabel": "{done}/{total} this week",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "routinePartialStatusLabel": "Partial",
   "routineStepsProgressLabel": "{done}/{total} steps",
   "@routineStepsProgressLabel": {
     "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "routineAnyTimeTodayLabel": "Anytime today",
   "routineFormExplainer": "A routine repeats and tracks completion — for habits and family duties, unlike a one-off reminder",
   "routineStreakDaysLabel": "{n}-day streak",
   "@routineStreakDaysLabel": {
-    "placeholders": { "n": { "type": "int" } }
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
   },
   "routineNoStreakYetLabel": "No streak yet — start today",
   "routineAllRoutinesScreenTitle": "Family duties",
@@ -1233,7 +1219,7 @@
   "firstReminderTodayLabel": "First reminder — today",
   "noRemindersYetLabel": "No reminders yet",
   "reminderWillArriveLabel": "A reminder will arrive according to the schedule you just added",
-  "setupMedsToActivateLabel": "Set up medications to activate reminders",
+  "setupMedsToActivateLabel": "Add something to your inventory to activate reminders",
   "privacyConsentPrefix": "I have read and agree to the ",
   "privacyConsentSuffix": " of the app",
   "openDashboardAction": "Open dashboard →",
@@ -1242,7 +1228,7 @@
   "enterAccessCodeHint": "Enter the access code your family sent you",
   "checkingEllipsisLabel": "Checking...",
   "scheduleAlreadyReadyTitle": "Schedule is already set up",
-  "scheduleSetByInviterBody": "{name} has already set up a medication schedule for you. You'll be able to edit it any time after connecting.",
+  "scheduleSetByInviterBody": "{name} has already set up a usage schedule for you. You'll be able to edit it any time after connecting.",
   "@scheduleSetByInviterBody": {
     "placeholders": {
       "name": {
@@ -1267,7 +1253,7 @@
     }
   },
   "welcomeGreeting": "Hi there! 👋",
-  "welcomeDescription": "Elly helps you keep track of medications,\nactivities, and mood — for you\nand your whole family",
+  "welcomeDescription": "Elly helps you keep track of your inventory,\nactivities, and mood — for you\nand your whole family",
   "onboardingStepLabel": "Step {step} of {total}",
   "@onboardingStepLabel": {
     "placeholders": {
@@ -1282,20 +1268,19 @@
   "accountChoiceTitle": "How would you like to start?",
   "accountChoiceSubtitle": "Choose the option that fits you",
   "createAccountTitle": "Create an account",
-  "createAccountSubtitle": "I'll set up medications and a schedule for myself",
+  "createAccountSubtitle": "I'll set up my inventory and a schedule for myself",
   "joinFamilyChoiceTitle": "Join a family",
   "joinFamilyChoiceSubtitle": "I have an access code from my family",
   "restoreAccountChoiceSubtitle": "I've used Elly before",
   "tellAboutYourselfTitle": "Tell us about yourself",
   "tellAboutYourselfSubtitle": "Enter your name and choose a profile avatar",
-  "nextToMedsAction": "Next — medications →",
-  "scanOrEnterManuallyHint": "Add the medications you're currently taking",
-  "addMedsShortAction": "Add medications",
-  "addMoreMedsAction": "Add more medications",
-  "addMedsHint": "Scan a prescription photo, or enter name, dose, and schedule manually",
+  "nextToMedsAction": "Next — inventory →",
+  "scanOrEnterManuallyHint": "Add the things you're currently using",
+  "addMedsShortAction": "Add to inventory",
+  "addMoreMedsAction": "Add more",
   "onboardingAddItemAction": "Add",
-  "onboardingAddItemHint": "A reminder or a medication — pick one",
-  "addMedsLaterInfo": "You can add medications later from the \"Medications\" section in the main menu",
+  "onboardingAddItemHint": "A reminder or an inventory item — pick one",
+  "addMedsLaterInfo": "You can add inventory later from the \"Inventory\" section in the main menu",
   "nextAction": "Next →",
   "skipAddLaterAction": "Skip — I'll add later",
   "activityWellbeingTitle": "Activity & mood",
@@ -1303,7 +1288,7 @@
   "activitySectionLabel": "Activity",
   "walkActivitySub": "30 min · daily · 8:30 AM",
   "wellbeingDiaryLabel": "Mood diary",
-  "wellbeingDiaryDescription": "Quick mood notes help you see the connection between taking your medication and how you feel",
+  "wellbeingDiaryDescription": "Quick mood notes help you see the connection between your inventory and how you feel",
   "wellbeingSlotsTitle": "Mood check-ins",
   "wellbeingSlotsSub": "2–3 times a day · 8:00 AM, 2:00 PM, 8:00 PM",
   "almostDoneAction": "Almost done →",
@@ -1311,7 +1296,7 @@
   "foodOptAfter": "After food",
   "refFoodAnyLabel": "Regardless of food",
   "backupScreenTitle": "Backup",
-  "backupIntroBody": "Medications, schedule, archive (photos), and all other data — choose where to keep your backup.",
+  "backupIntroBody": "Inventory, schedule, archive (photos), and all other data — choose where to keep your backup.",
   "backupModeLocalTitle": "Device only",
   "backupModeLocalSubtitle": "All data will be lost if you reinstall the app",
   "backupModeGoogleDriveSubtitle": "Encrypted on your device — neither Elly nor Google can see your data",
@@ -1450,7 +1435,7 @@
   "planFreeShortLabel": "Free",
   "exportShareSubject": "Elly — data export",
   "exportCopyTitle": "A copy of all your data",
-  "exportDescriptionBody": "A JSON file with all profiles, medications, schedule, doses, mood logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nMedication photos are not included in the file (they're already in your \"Backup\") — text data only.",
+  "exportDescriptionBody": "A JSON file with all profiles, inventory, schedule, doses, mood logs, and doctor visits — everything stored on this device. You can open it anywhere or share it with anyone.\n\nInventory photos are not included in the file (they're already in your \"Backup\") — text data only.",
   "exportAction": "Export",
   "appLockedTitle": "Elly is locked",
   "authFailedRetryBody": "Couldn't verify your identity — try again",
@@ -1459,7 +1444,7 @@
   "unlockAction": "Unlock",
   "addTypeSheetTitle": "What would you like to add?",
   "addTypeSheetSubtitle": "Choose a type — the form will adjust",
-  "addTypeMedsSub": "Schedule, dosage, repeats",
+  "addTypeMedsSub": "Schedule, stock, repeats",
   "addTypeActivitySub": "Walk, exercise, workout, physical therapy",
   "addTypeWellbeingSub": "Log a check-in — mood, tags, comment",
   "taskTypeSport": "Sport",
@@ -1502,7 +1487,7 @@
   "faqPlansQ1": "What's the difference between plans?",
   "faqPlansA1": "Elly (free) — basic features with limits. Elly Plus and Elly Family remove the limits and add extra features. Details — Profile → Plans.",
   "faqPlansQ2": "What exactly does the free plan limit?",
-  "faqPlansA2": "1 local profile, 1 active routine, 3 Shelf sections. Reminders, medications, and mood tracking are unlimited on every plan. Going over a limit never deletes anything: older entries stay viewable, only editing or creating new ones is blocked until you upgrade.",
+  "faqPlansA2": "1 local profile, 1 active routine, 3 Shelf sections. Reminders, inventory, and mood tracking are unlimited on every plan. Going over a limit never deletes anything: older entries stay viewable, only editing or creating new ones is blocked until you upgrade.",
   "faqPlansQ3": "How many people can I add to a family group?",
   "faqPlansA3": "On Elly Family — up to 8 independent members. Only the person paying for the subscription can invite new people; accepting an invitation is free on any plan. The invited person gets every Family perk except the right to invite others into that same family.",
   "faqGroupTechTitle": "Technical issues",
@@ -1517,7 +1502,7 @@
   "soonLabel": "Coming soon",
   "notificationsMainSectionTitle": "Main",
   "pushNotificationsLabel": "Push notifications",
-  "pushNotificationsSub": "Reminders to take your medications",
+  "pushNotificationsSub": "Reminders to use your inventory",
   "vibrationLabel": "Vibration",
   "vibrationSub": "Together with sound",
   "reminderTimeSectionTitle": "Reminder time",
@@ -1664,12 +1649,26 @@
   "addPhotoOrPdfLabel": "Add photo or PDF",
   "documentsPrivacyHint": "Stored only on your device (and in the cloud if backup is enabled) — the app never views or analyzes these files.",
   "notifChannelName": "Elly reminders",
-  "notifChannelDesc": "Reminders for medications, activities, visits, and mood check-ins",
-  "notifTakeMedTitle": "💊 Time to take your medication",
-  "notifIntakeNoResponseTitle": "🔔 You haven't marked this dose yet",
+  "notifChannelDesc": "Reminders for inventory, activities, visits, and mood check-ins",
+  "notifTakeMedTitle": "⏰ Time for {name}",
+  "@notifTakeMedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifIntakeNoResponseTitle": "🔔 You haven't marked yet: {name}",
+  "@notifIntakeNoResponseTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifBackupReminderTitle": "Protect your data",
   "notifBackupReminderBody": "Backup is off — data is stored only on this device. Turn it on in Profile so you don't lose it.",
-  "notifLowStockTitle": "⚠️ Running low on medication",
+  "notifLowStockTitle": "⚠️ Running low",
   "notifLowStockBody": "{medName} — {remaining} {unit} left",
   "@notifLowStockBody": {
     "placeholders": {
@@ -1773,7 +1772,7 @@
   "todayScheduleForMedLabel": "Today's schedule",
   "intakeSnoozed": "Postponed",
   "resetLocalDbConfirmTitle": "Reset local database?",
-  "resetLocalDbConfirmBody": "This will delete all data on this device (medications, schedule, medical records). No backup was found — this data cannot be recovered afterward.",
+  "resetLocalDbConfirmBody": "This will delete all data on this device (inventory, schedule, medical records). No backup was found — this data cannot be recovered afterward.",
   "resetAction": "Reset",
   "resetLocalDbAction": "Reset local database",
   "petAvatarsSectionLabel": "Pets"

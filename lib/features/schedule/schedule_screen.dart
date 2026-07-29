@@ -7,7 +7,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/utils/med_form_icons.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/asset_icon.dart';
@@ -87,7 +86,7 @@ extension on _ScheduleCategory {
   // показу всіх одразу) — лишається на Material-іконці.
   String? get assetKey => switch (this) {
         _ScheduleCategory.all => null,
-        _ScheduleCategory.meds => 'task_meds',
+        _ScheduleCategory.meds => 'box',
         _ScheduleCategory.reminders => 'task_reminder',
         _ScheduleCategory.routine => 'task_routine',
         _ScheduleCategory.wellbeing => 'task_wellbeing',
@@ -336,7 +335,7 @@ class _ScheduleBody extends ConsumerWidget {
                     category == _ScheduleCategory.meds) ...[
                   _SectionHeader(
                     icon: Icons.medication_rounded,
-                    iconWidget: const AssetIcon('task_meds', size: 22),
+                    iconWidget: const AssetIcon('box', size: 22),
                     title: context.l10n.sectionMeds,
                     onAdd: () => Navigator.push(
                       context,
@@ -591,7 +590,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (meds.isNotEmpty) ...[
                         _SectionHeader(
                           icon: Icons.medication_rounded,
-                          iconWidget: const AssetIcon('task_meds', size: 22),
+                          iconWidget: const AssetIcon('box', size: 22),
                           title: context.l10n.sectionMeds,
                         ),
                         const SizedBox(height: AppDimensions.md),
@@ -976,7 +975,7 @@ class _MedCard extends StatelessWidget {
     final color = colorFromHex(med.color) ?? AppColors.primary;
     return _TaskCardShell(
       color: color,
-      icon: medFormIcon(med.form),
+      icon: Icons.inventory_2_rounded,
       iconWidget: MedcardIcon(med.iconKey ?? 'form_cream', size: 26),
       title: med.name,
       subtitle: '${_doseStr(med)} · ${_repeatStr(context, med)}',

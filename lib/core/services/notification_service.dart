@@ -199,16 +199,16 @@ class NotificationService {
     final l10n = await _l10n();
     await _zonedSchedule(
       id: intakeNotificationId(intakeId),
-      title: '$memberName · ${l10n.notifTakeMedTitle}',
-      body: '$medName — $dose',
+      title: '$memberName · ${l10n.notifTakeMedTitle(medName)}',
+      body: dose,
       at: scheduledAt,
       vibrationEnabled: vibrationEnabled,
     );
     if (repeatMinutes > 0) {
       await _zonedSchedule(
         id: intakeRepeatNotificationId(intakeId),
-        title: '$memberName · ${l10n.notifIntakeNoResponseTitle}',
-        body: '$medName — $dose',
+        title: '$memberName · ${l10n.notifIntakeNoResponseTitle(medName)}',
+        body: dose,
         at: scheduledAt.add(Duration(minutes: repeatMinutes)),
         vibrationEnabled: vibrationEnabled,
       );

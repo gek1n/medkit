@@ -192,7 +192,7 @@ class AddTaskScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   _TypeCard(
-                    iconAsset: 'task_meds',
+                    iconAsset: 'box',
                     title: context.l10n.categoryMeds,
                     sub: context.l10n.addTypeMedsSub,
                     onTap: () => openType(_TaskType.meds),
