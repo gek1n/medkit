@@ -8,6 +8,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
+import '../../core/utils/avatars.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/space_picker.dart';
@@ -1037,26 +1038,69 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...widget.members.map((m) {
-          final sel = _selected.contains(m.id);
-          return CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: AppColors.primary,
-            value: sel,
-            title: Text(m.name, style: AppTextStyles.bodyMd),
-            onChanged: (v) {
-              setState(() {
-                if (v == true) {
-                  if (!_selected.contains(m.id)) _selected.add(m.id);
-                } else {
-                  _selected.remove(m.id);
-                }
-              });
-              _emit();
-            },
-          );
-        }),
+        Wrap(
+          spacing: 14,
+          runSpacing: 10,
+          children: widget.members.map((m) {
+            final sel = _selected.contains(m.id);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (sel) {
+                    _selected.remove(m.id);
+                  } else {
+                    _selected.add(m.id);
+                  }
+                });
+                _emit();
+              },
+              child: SizedBox(
+                width: 64,
+                child: Column(
+                  children: [
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: sel ? AppColors.success : AppColors.border,
+                              width: sel ? 2 : 1.5,
+                            ),
+                          ),
+                          child: AvatarImage(index: m.avatarIndex, size: 52),
+                        ),
+                        if (sel)
+                          Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: AppColors.success,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: const Icon(Icons.check_rounded,
+                                color: Colors.white, size: 12),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      m.name,
+                      style: AppTextStyles.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
         if (_selected.length > 1) ...[
           const SizedBox(height: 8),
           _Label(context.l10n.routineRotationCadenceLabel),

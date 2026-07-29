@@ -169,27 +169,20 @@ class _TodayContent extends ConsumerWidget {
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (e, _) => Center(child: Text(context.l10n.errorGeneric('$e'))),
-        data: (rawIntakes) {
+        data: (intakes) {
           final meds = medsAsync.valueOrNull ?? [];
           final activities = activitiesAsync.valueOrNull ?? [];
-          final rawActivityLogs = activityLogsAsync.valueOrNull ?? [];
+          // "Сирітські" pending-логи, чиї ліки/рутина вже видалені —
+          // відфільтровані на рівні SQL-запиту (join+isActive) у
+          // IntakesRepository.watchByMemberAndDate /
+          // ActivitiesRepository.watchLogsByMemberAndDate, а не тут:
+          // порівняння з ОКРЕМИМ стрімом activities/meds на цьому рівні
+          // вносило гонку між двома незалежними watch() — картка щойно
+          // створеної рутини могла на мить "зникати", якщо стрім логів
+          // оновлювався раніше за стрім самих активностей.
+          final activityLogs = activityLogsAsync.valueOrNull ?? [];
           final reminderLogs = reminderLogsAsync.valueOrNull ?? [];
           final members = membersAsync.valueOrNull ?? [];
-
-          // Захист від "привидів" — логів/прийомів, чиї ліки/рутина вже
-          // видалені (softDelete раніше не чистив pending-записи, лишаючи
-          // їх сиротами назавжди; сам softDelete це вже виправлено, але у
-          // вже встановлених користувачів такі рядки могли назбиратись ДО
-          // фіксу). Без цього фільтра сирота рендериться як картка з
-          // placeholder-назвою ("Ліки"/"Активність") і не реагує на тап,
-          // бо перегляд шукає той самий вже неіснуючий/неактивний рядок.
-          final medIds = meds.map((m) => m.id).toSet();
-          final intakes =
-              rawIntakes.where((i) => medIds.contains(i.medicationId)).toList();
-          final activityIds = activities.map((a) => a.id).toSet();
-          final activityLogs = rawActivityLogs
-              .where((l) => activityIds.contains(l.activityId))
-              .toList();
 
           // Для repeatType=='none' — status/scheduledAt з самого Reminder
           // (як і раніше). Для повторюваних — з ВІДПОВІДНИХ ReminderLog за

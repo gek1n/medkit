@@ -87,6 +87,19 @@ class ActivitiesRepository {
     });
   }
 
+  // isInQuery(активні activities) — інакше сирітський pending-лог (батьків
+  // Activity вже неактивна/видалена) все одно потрапляв би у список, а
+  // разом з ним і UI-фільтр на боці today_screen.dart, який порівнював цей
+  // список ІЗ ОКРЕМИМ (незалежним) стрімом activities: два різні watch()
+  // над різними таблицями можуть оновитись не одночасно, тож щойно
+  // створена рутина могла на мить "зникнути" з картки, якщо стрім логів
+  // устиг оновитись раніше за стрім самих активностей. Один SQL-запит із
+  // підзапитом прибирає цю гонку повністю.
+  Expression<bool> _activeActivityFilter(Expression<int> activityId) =>
+      activityId.isInQuery(_db.selectOnly(_db.activities)
+        ..addColumns([_db.activities.id])
+        ..where(_db.activities.isActive.equals(true)));
+
   Future<List<ActivityLog>> getLogsByMemberAndDate(
     int memberId,
     DateTime date,
@@ -97,7 +110,8 @@ class ActivitiesRepository {
           ..where((t) =>
               t.memberId.equals(memberId) &
               t.scheduledAt.isBiggerOrEqualValue(start) &
-              t.scheduledAt.isSmallerThanValue(end)))
+              t.scheduledAt.isSmallerThanValue(end) &
+              _activeActivityFilter(t.activityId)))
         .get();
   }
 
@@ -111,7 +125,8 @@ class ActivitiesRepository {
           ..where((t) =>
               t.memberId.equals(memberId) &
               t.scheduledAt.isBiggerOrEqualValue(start) &
-              t.scheduledAt.isSmallerThanValue(end)))
+              t.scheduledAt.isSmallerThanValue(end) &
+              _activeActivityFilter(t.activityId)))
         .watch();
   }
 
