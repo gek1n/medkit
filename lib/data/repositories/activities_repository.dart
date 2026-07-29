@@ -69,13 +69,17 @@ class ActivitiesRepository {
           .get();
 
   // Рутини "без фіксованого часу" (ActivitySlots порожній — див. коментар в
-  // ActivityLogGenerator) — id активностей члена сім'ї, чиї ActivityLogs слід
-  // показувати поза звичайним бакетингом пропущено/зараз/незабаром (див.
-  // today_screen.dart _AnytimeRoutinesSection).
+  // ActivityLogGenerator) — id активностей, чиї ActivityLogs слід показувати
+  // поза звичайним бакетингом пропущено/зараз/незабаром (див.
+  // today_screen.dart _AnytimeRoutinesSection). Навмисно по ВСІХ активних
+  // активностях родини, а не лише t.memberId.equals(memberId) — той самий
+  // нюанс ротації, що й todayActivitiesProvider: ActivityLog.memberId для
+  // ротаційної рутини — це той, чия сьогодні черга, а не Activity.memberId
+  // (той, хто рутину створив), тож при перегляді "Сьогодні" залежного
+  // профілю, чия зараз черга, memberId-фільтр тут ніколи не збігався б.
   Stream<Set<int>> watchNoFixedTimeActivityIds(int memberId) {
     return (_db.select(_db.activities)
-          ..where(
-              (t) => t.memberId.equals(memberId) & t.isActive.equals(true)))
+          ..where((t) => t.isActive.equals(true)))
         .watch()
         .asyncMap((acts) async {
       final result = <int>{};
