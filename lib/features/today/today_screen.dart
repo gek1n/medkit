@@ -23,7 +23,6 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
-import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_task_screen.dart';
@@ -1306,6 +1305,10 @@ class _ScheduleCard extends StatelessWidget {
     return colorFromHex(customHex) ?? _scheduleCategoryColor(item.type);
   }
 
+  String? get _comment => item.type == _ItemType.intake && _resolvedMed != null
+      ? _doseComment(_resolvedMed!, item.scheduledAt)
+      : null;
+
   @override
   Widget build(BuildContext context) {
     final (icon, title, subtitle, iconWidget) = _scheduleItemInfo(
@@ -1365,6 +1368,18 @@ class _ScheduleCard extends StatelessWidget {
                             subtitle,
                             style: AppTextStyles.bodySm.copyWith(
                               color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                        if (_comment != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            _comment!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.textMuted,
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ],
@@ -1810,13 +1825,6 @@ class _DoneAccordion extends StatelessWidget {
 
 // ─── Active Intake Card ────────────────────────────────────────────────────────
 
-IconData _foodRelationIcon(String v) => switch (v) {
-  'before' => Icons.schedule_rounded,
-  'after' => Icons.restaurant_rounded,
-  'with' => Icons.ramen_dining_rounded,
-  _ => Icons.check_circle_outline_rounded,
-};
-
 // doseComment живе всередині відповідної фази в med.phases (json), а не в
 // самому intake — тому шукаємо активну на дату intake фазу так само, як для
 // розрахунку залишку в medication_detail_screen.
@@ -1954,12 +1962,6 @@ class _ActiveIntakeCard extends StatelessWidget {
                         iconWidget: MedcardIcon(med!.iconKey ?? 'form_cream', size: 18),
                         label:
                             '${med!.doseAmount.toStringAsFixed(med!.doseAmount == med!.doseAmount.roundToDouble() ? 0 : 1)} ${med!.doseUnit}',
-                      ),
-                      _InfoChip(
-                        icon: _foodRelationIcon(med!.foodRelation),
-                        label:
-                            foodRelationLabels(context)[med!.foodRelation] ??
-                            med!.foodRelation,
                       ),
                     ],
                   ),

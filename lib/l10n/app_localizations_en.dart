@@ -595,18 +595,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get courseStagesLabel => 'Stages';
 
   @override
-  String get foodBeforeLabel => '🕐 Before food';
-
-  @override
-  String get foodAfterLabel => '🍽 After food';
-
-  @override
-  String get foodWithLabel => '🥗 With food';
-
-  @override
-  String get foodAnytimeLabel => '✓ Regardless of food';
-
-  @override
   String untilDateLabel(String date) {
     return 'until $date';
   }
@@ -619,9 +607,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intakeLabel => 'Schedule';
-
-  @override
-  String get withFoodLabel => 'With food';
 
   @override
   String get courseNounLabel => 'Period';
@@ -713,7 +698,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doseAmountLabel => 'AMOUNT PER USE';
 
   @override
-  String get foodRelationSectionLabel => 'RELATION TO FOOD';
+  String get doseCommentSectionLabel => 'COMMENT';
 
   @override
   String get durationSectionLabel => 'DURATION';
@@ -2342,15 +2327,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get almostDoneAction => 'Almost done →';
 
   @override
-  String get foodOptBefore => 'Before food';
-
-  @override
-  String get foodOptAfter => 'After food';
-
-  @override
-  String get refFoodAnyLabel => 'Regardless of food';
-
-  @override
   String get backupScreenTitle => 'Backup';
 
   @override
@@ -3028,15 +3004,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get returnAction => 'Return';
-
-  @override
-  String get foodRelationUnspecified => 'Not selected';
-
-  @override
-  String get foodRelationWith => 'With food';
-
-  @override
-  String get foodRelationPickerTitle => 'Relation to food';
 
   @override
   String get recoveryKeyDialogTitle => 'Your recovery key';

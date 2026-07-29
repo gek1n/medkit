@@ -902,18 +902,6 @@ class $MedicationsTable extends Medications
     requiredDuringInsert: false,
     defaultValue: const Constant('мг'),
   );
-  static const VerificationMeta _foodRelationMeta = const VerificationMeta(
-    'foodRelation',
-  );
-  @override
-  late final GeneratedColumn<String> foodRelation = GeneratedColumn<String>(
-    'food_relation',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('any'),
-  );
   static const VerificationMeta _repeatTypeMeta = const VerificationMeta(
     'repeatType',
   );
@@ -1133,7 +1121,6 @@ class $MedicationsTable extends Medications
     form,
     doseAmount,
     doseUnit,
-    foodRelation,
     repeatType,
     repeatConfig,
     startDate,
@@ -1208,15 +1195,6 @@ class $MedicationsTable extends Medications
       context.handle(
         _doseUnitMeta,
         doseUnit.isAcceptableOrUnknown(data['dose_unit']!, _doseUnitMeta),
-      );
-    }
-    if (data.containsKey('food_relation')) {
-      context.handle(
-        _foodRelationMeta,
-        foodRelation.isAcceptableOrUnknown(
-          data['food_relation']!,
-          _foodRelationMeta,
-        ),
       );
     }
     if (data.containsKey('repeat_type')) {
@@ -1378,10 +1356,6 @@ class $MedicationsTable extends Medications
         DriftSqlType.string,
         data['${effectivePrefix}dose_unit'],
       )!,
-      foodRelation: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}food_relation'],
-      )!,
       repeatType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}repeat_type'],
@@ -1471,7 +1445,6 @@ class Medication extends DataClass implements Insertable<Medication> {
   final String form;
   final double doseAmount;
   final String doseUnit;
-  final String foodRelation;
   final String repeatType;
   final String repeatConfig;
   final DateTime startDate;
@@ -1498,7 +1471,6 @@ class Medication extends DataClass implements Insertable<Medication> {
     required this.form,
     required this.doseAmount,
     required this.doseUnit,
-    required this.foodRelation,
     required this.repeatType,
     required this.repeatConfig,
     required this.startDate,
@@ -1530,7 +1502,6 @@ class Medication extends DataClass implements Insertable<Medication> {
     map['form'] = Variable<String>(form);
     map['dose_amount'] = Variable<double>(doseAmount);
     map['dose_unit'] = Variable<String>(doseUnit);
-    map['food_relation'] = Variable<String>(foodRelation);
     map['repeat_type'] = Variable<String>(repeatType);
     map['repeat_config'] = Variable<String>(repeatConfig);
     map['start_date'] = Variable<DateTime>(startDate);
@@ -1579,7 +1550,6 @@ class Medication extends DataClass implements Insertable<Medication> {
       form: Value(form),
       doseAmount: Value(doseAmount),
       doseUnit: Value(doseUnit),
-      foodRelation: Value(foodRelation),
       repeatType: Value(repeatType),
       repeatConfig: Value(repeatConfig),
       startDate: Value(startDate),
@@ -1630,7 +1600,6 @@ class Medication extends DataClass implements Insertable<Medication> {
       form: serializer.fromJson<String>(json['form']),
       doseAmount: serializer.fromJson<double>(json['doseAmount']),
       doseUnit: serializer.fromJson<String>(json['doseUnit']),
-      foodRelation: serializer.fromJson<String>(json['foodRelation']),
       repeatType: serializer.fromJson<String>(json['repeatType']),
       repeatConfig: serializer.fromJson<String>(json['repeatConfig']),
       startDate: serializer.fromJson<DateTime>(json['startDate']),
@@ -1662,7 +1631,6 @@ class Medication extends DataClass implements Insertable<Medication> {
       'form': serializer.toJson<String>(form),
       'doseAmount': serializer.toJson<double>(doseAmount),
       'doseUnit': serializer.toJson<String>(doseUnit),
-      'foodRelation': serializer.toJson<String>(foodRelation),
       'repeatType': serializer.toJson<String>(repeatType),
       'repeatConfig': serializer.toJson<String>(repeatConfig),
       'startDate': serializer.toJson<DateTime>(startDate),
@@ -1692,7 +1660,6 @@ class Medication extends DataClass implements Insertable<Medication> {
     String? form,
     double? doseAmount,
     String? doseUnit,
-    String? foodRelation,
     String? repeatType,
     String? repeatConfig,
     DateTime? startDate,
@@ -1719,7 +1686,6 @@ class Medication extends DataClass implements Insertable<Medication> {
     form: form ?? this.form,
     doseAmount: doseAmount ?? this.doseAmount,
     doseUnit: doseUnit ?? this.doseUnit,
-    foodRelation: foodRelation ?? this.foodRelation,
     repeatType: repeatType ?? this.repeatType,
     repeatConfig: repeatConfig ?? this.repeatConfig,
     startDate: startDate ?? this.startDate,
@@ -1750,9 +1716,6 @@ class Medication extends DataClass implements Insertable<Medication> {
           ? data.doseAmount.value
           : this.doseAmount,
       doseUnit: data.doseUnit.present ? data.doseUnit.value : this.doseUnit,
-      foodRelation: data.foodRelation.present
-          ? data.foodRelation.value
-          : this.foodRelation,
       repeatType: data.repeatType.present
           ? data.repeatType.value
           : this.repeatType,
@@ -1800,7 +1763,6 @@ class Medication extends DataClass implements Insertable<Medication> {
           ..write('form: $form, ')
           ..write('doseAmount: $doseAmount, ')
           ..write('doseUnit: $doseUnit, ')
-          ..write('foodRelation: $foodRelation, ')
           ..write('repeatType: $repeatType, ')
           ..write('repeatConfig: $repeatConfig, ')
           ..write('startDate: $startDate, ')
@@ -1832,7 +1794,6 @@ class Medication extends DataClass implements Insertable<Medication> {
     form,
     doseAmount,
     doseUnit,
-    foodRelation,
     repeatType,
     repeatConfig,
     startDate,
@@ -1863,7 +1824,6 @@ class Medication extends DataClass implements Insertable<Medication> {
           other.form == this.form &&
           other.doseAmount == this.doseAmount &&
           other.doseUnit == this.doseUnit &&
-          other.foodRelation == this.foodRelation &&
           other.repeatType == this.repeatType &&
           other.repeatConfig == this.repeatConfig &&
           other.startDate == this.startDate &&
@@ -1892,7 +1852,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
   final Value<String> form;
   final Value<double> doseAmount;
   final Value<String> doseUnit;
-  final Value<String> foodRelation;
   final Value<String> repeatType;
   final Value<String> repeatConfig;
   final Value<DateTime> startDate;
@@ -1919,7 +1878,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.form = const Value.absent(),
     this.doseAmount = const Value.absent(),
     this.doseUnit = const Value.absent(),
-    this.foodRelation = const Value.absent(),
     this.repeatType = const Value.absent(),
     this.repeatConfig = const Value.absent(),
     this.startDate = const Value.absent(),
@@ -1947,7 +1905,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     this.form = const Value.absent(),
     required double doseAmount,
     this.doseUnit = const Value.absent(),
-    this.foodRelation = const Value.absent(),
     this.repeatType = const Value.absent(),
     this.repeatConfig = const Value.absent(),
     required DateTime startDate,
@@ -1978,7 +1935,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Expression<String>? form,
     Expression<double>? doseAmount,
     Expression<String>? doseUnit,
-    Expression<String>? foodRelation,
     Expression<String>? repeatType,
     Expression<String>? repeatConfig,
     Expression<DateTime>? startDate,
@@ -2006,7 +1962,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       if (form != null) 'form': form,
       if (doseAmount != null) 'dose_amount': doseAmount,
       if (doseUnit != null) 'dose_unit': doseUnit,
-      if (foodRelation != null) 'food_relation': foodRelation,
       if (repeatType != null) 'repeat_type': repeatType,
       if (repeatConfig != null) 'repeat_config': repeatConfig,
       if (startDate != null) 'start_date': startDate,
@@ -2036,7 +1991,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     Value<String>? form,
     Value<double>? doseAmount,
     Value<String>? doseUnit,
-    Value<String>? foodRelation,
     Value<String>? repeatType,
     Value<String>? repeatConfig,
     Value<DateTime>? startDate,
@@ -2064,7 +2018,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
       form: form ?? this.form,
       doseAmount: doseAmount ?? this.doseAmount,
       doseUnit: doseUnit ?? this.doseUnit,
-      foodRelation: foodRelation ?? this.foodRelation,
       repeatType: repeatType ?? this.repeatType,
       repeatConfig: repeatConfig ?? this.repeatConfig,
       startDate: startDate ?? this.startDate,
@@ -2109,9 +2062,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
     }
     if (doseUnit.present) {
       map['dose_unit'] = Variable<String>(doseUnit.value);
-    }
-    if (foodRelation.present) {
-      map['food_relation'] = Variable<String>(foodRelation.value);
     }
     if (repeatType.present) {
       map['repeat_type'] = Variable<String>(repeatType.value);
@@ -2180,7 +2130,6 @@ class MedicationsCompanion extends UpdateCompanion<Medication> {
           ..write('form: $form, ')
           ..write('doseAmount: $doseAmount, ')
           ..write('doseUnit: $doseUnit, ')
-          ..write('foodRelation: $foodRelation, ')
           ..write('repeatType: $repeatType, ')
           ..write('repeatConfig: $repeatConfig, ')
           ..write('startDate: $startDate, ')

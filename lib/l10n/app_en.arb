@@ -295,10 +295,6 @@
     }
   },
   "courseStagesLabel": "Stages",
-  "foodBeforeLabel": "🕐 Before food",
-  "foodAfterLabel": "🍽 After food",
-  "foodWithLabel": "🥗 With food",
-  "foodAnytimeLabel": "✓ Regardless of food",
   "untilDateLabel": "until {date}",
   "@untilDateLabel": {
     "placeholders": {
@@ -310,7 +306,6 @@
   "ongoingLabel": "ongoing",
   "detailsLabel": "Details",
   "intakeLabel": "Schedule",
-  "withFoodLabel": "With food",
   "courseNounLabel": "Period",
   "noteLabel": "Note",
   "courseRangeLabel": "from {start} {endPart}",
@@ -378,7 +373,7 @@
   },
   "removePhaseAction": "remove",
   "doseAmountLabel": "AMOUNT PER USE",
-  "foodRelationSectionLabel": "RELATION TO FOOD",
+  "doseCommentSectionLabel": "COMMENT",
   "durationSectionLabel": "DURATION",
   "daysCountDashLabel": "— d.",
   "daysCountLabel": "{n} d.",
@@ -1292,9 +1287,6 @@
   "wellbeingSlotsTitle": "Mood check-ins",
   "wellbeingSlotsSub": "2–3 times a day · 8:00 AM, 2:00 PM, 8:00 PM",
   "almostDoneAction": "Almost done →",
-  "foodOptBefore": "Before food",
-  "foodOptAfter": "After food",
-  "refFoodAnyLabel": "Regardless of food",
   "backupScreenTitle": "Backup",
   "backupIntroBody": "Inventory, schedule, archive (photos), and all other data — choose where to keep your backup.",
   "backupModeLocalTitle": "Device only",
@@ -1604,9 +1596,6 @@
     }
   },
   "returnAction": "Return",
-  "foodRelationUnspecified": "Not selected",
-  "foodRelationWith": "With food",
-  "foodRelationPickerTitle": "Relation to food",
   "recoveryKeyDialogTitle": "Your recovery key",
   "recoveryKeyDialogBody": "Save this code somewhere safe. It's the only way to restore your data on a new device — without it, we can't help you either.",
   "copiedSnackbar": "Copied",

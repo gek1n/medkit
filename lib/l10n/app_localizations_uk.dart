@@ -598,18 +598,6 @@ class AppLocalizationsUk extends AppLocalizations {
   String get courseStagesLabel => 'Етапи';
 
   @override
-  String get foodBeforeLabel => '🕐 До їжі';
-
-  @override
-  String get foodAfterLabel => '🍽 Після їжі';
-
-  @override
-  String get foodWithLabel => '🥗 Під час їжі';
-
-  @override
-  String get foodAnytimeLabel => '✓ Незалежно від їжі';
-
-  @override
   String untilDateLabel(String date) {
     return 'до $date';
   }
@@ -622,9 +610,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get intakeLabel => 'Розклад';
-
-  @override
-  String get withFoodLabel => 'З їжею';
 
   @override
   String get courseNounLabel => 'Період';
@@ -715,7 +700,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get doseAmountLabel => 'КІЛЬКІСТЬ ЗА РАЗ';
 
   @override
-  String get foodRelationSectionLabel => 'ВІДНОСНО ЇЖІ';
+  String get doseCommentSectionLabel => 'КОМЕНТАР';
 
   @override
   String get durationSectionLabel => 'ТРИВАЛІСТЬ';
@@ -2349,15 +2334,6 @@ class AppLocalizationsUk extends AppLocalizations {
   String get almostDoneAction => 'Майже готово →';
 
   @override
-  String get foodOptBefore => 'До їжі';
-
-  @override
-  String get foodOptAfter => 'Після їжі';
-
-  @override
-  String get refFoodAnyLabel => 'Незалежно від їжі';
-
-  @override
   String get backupScreenTitle => 'Резервна копія';
 
   @override
@@ -3039,15 +3015,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get returnAction => 'Повернутись';
-
-  @override
-  String get foodRelationUnspecified => 'Не вибрано';
-
-  @override
-  String get foodRelationWith => 'Під час їжі';
-
-  @override
-  String get foodRelationPickerTitle => 'Відносно їжі';
 
   @override
   String get recoveryKeyDialogTitle => 'Ваш recovery key';

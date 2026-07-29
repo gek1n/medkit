@@ -945,12 +945,6 @@ class _InfoBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = _decodeJson(med.repeatConfig);
-    final foodLabel = switch (med.foodRelation) {
-      'before' => context.l10n.foodBeforeLabel,
-      'after' => context.l10n.foodAfterLabel,
-      'with' => context.l10n.foodWithLabel,
-      _ => context.l10n.foodAnytimeLabel,
-    };
     final endLabel = med.endDate != null
         ? context.l10n.untilDateLabel(_fmt(context, med.endDate!))
         : context.l10n.ongoingLabel;
@@ -975,7 +969,6 @@ class _InfoBlock extends StatelessWidget {
                 _repeatFull(context, med.repeatType, config),
                 accent,
               ),
-              _InfoRow(Icons.restaurant_rounded, context.l10n.withFoodLabel, foodLabel, accent),
               _InfoRow(
                 Icons.timer_rounded,
                 context.l10n.courseNounLabel,

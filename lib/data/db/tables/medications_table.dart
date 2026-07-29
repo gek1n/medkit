@@ -20,8 +20,6 @@ class Medications extends Table {
   // тепер це окремо: iconKey (нижче) та stockUnit.
   RealColumn get doseAmount => real()();
   TextColumn get doseUnit => text().withDefault(const Constant('мг'))();
-  TextColumn get foodRelation => text().withDefault(const Constant('any'))();
-  // before/after/with/any
   TextColumn get repeatType => text().withDefault(const Constant('daily'))();
   // daily/alternate/weekdays/every_n/cycle
   TextColumn get repeatConfig =>

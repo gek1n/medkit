@@ -1162,30 +1162,6 @@ abstract class AppLocalizations {
   /// **'Етапи'**
   String get courseStagesLabel;
 
-  /// No description provided for @foodBeforeLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'🕐 До їжі'**
-  String get foodBeforeLabel;
-
-  /// No description provided for @foodAfterLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'🍽 Після їжі'**
-  String get foodAfterLabel;
-
-  /// No description provided for @foodWithLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'🥗 Під час їжі'**
-  String get foodWithLabel;
-
-  /// No description provided for @foodAnytimeLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'✓ Незалежно від їжі'**
-  String get foodAnytimeLabel;
-
   /// No description provided for @untilDateLabel.
   ///
   /// In uk, this message translates to:
@@ -1209,12 +1185,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Розклад'**
   String get intakeLabel;
-
-  /// No description provided for @withFoodLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'З їжею'**
-  String get withFoodLabel;
 
   /// No description provided for @courseNounLabel.
   ///
@@ -1372,11 +1342,11 @@ abstract class AppLocalizations {
   /// **'КІЛЬКІСТЬ ЗА РАЗ'**
   String get doseAmountLabel;
 
-  /// No description provided for @foodRelationSectionLabel.
+  /// No description provided for @doseCommentSectionLabel.
   ///
   /// In uk, this message translates to:
-  /// **'ВІДНОСНО ЇЖІ'**
-  String get foodRelationSectionLabel;
+  /// **'КОМЕНТАР'**
+  String get doseCommentSectionLabel;
 
   /// No description provided for @durationSectionLabel.
   ///
@@ -4234,24 +4204,6 @@ abstract class AppLocalizations {
   /// **'Майже готово →'**
   String get almostDoneAction;
 
-  /// No description provided for @foodOptBefore.
-  ///
-  /// In uk, this message translates to:
-  /// **'До їжі'**
-  String get foodOptBefore;
-
-  /// No description provided for @foodOptAfter.
-  ///
-  /// In uk, this message translates to:
-  /// **'Після їжі'**
-  String get foodOptAfter;
-
-  /// No description provided for @refFoodAnyLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Незалежно від їжі'**
-  String get refFoodAnyLabel;
-
   /// No description provided for @backupScreenTitle.
   ///
   /// In uk, this message translates to:
@@ -5415,24 +5367,6 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Повернутись'**
   String get returnAction;
-
-  /// No description provided for @foodRelationUnspecified.
-  ///
-  /// In uk, this message translates to:
-  /// **'Не вибрано'**
-  String get foodRelationUnspecified;
-
-  /// No description provided for @foodRelationWith.
-  ///
-  /// In uk, this message translates to:
-  /// **'Під час їжі'**
-  String get foodRelationWith;
-
-  /// No description provided for @foodRelationPickerTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Відносно їжі'**
-  String get foodRelationPickerTitle;
 
   /// No description provided for @recoveryKeyDialogTitle.
   ///

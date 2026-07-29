@@ -20,7 +20,6 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/field_sheet.dart';
-import '../../shared/widgets/food_relation_picker.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
 import '../../shared/widgets/space_picker.dart';
@@ -94,7 +93,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
   String _form = '';
   String? _stockUnit;
   String _iconKey = 'form_cream';
-  String _foodRelation = 'unspecified';
   String _repeatType = 'daily';
 
   // Phases
@@ -139,7 +137,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _form = ex.form;
     _stockUnit = ex.stockUnit;
     _iconKey = ex.iconKey ?? 'form_cream';
-    _foodRelation = ex.foodRelation;
     _repeatType = ex.repeatType;
     _colorHex = ex.color;
     _sectionId = ex.sectionId;
@@ -276,7 +273,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
           form: Value(_form),
           doseAmount: doseAmount,
           doseUnit: Value(doseUnit),
-          foodRelation: Value(_foodRelation),
           repeatType: Value(_repeatType),
           repeatConfig: Value(jsonEncode(repeatConfig)),
           startDate: now,
@@ -308,7 +304,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             form: Value(_form),
             doseAmount: Value(doseAmount),
             doseUnit: Value(doseUnit),
-            foodRelation: Value(_foodRelation),
             repeatType: Value(_repeatType),
             repeatConfig: Value(jsonEncode(repeatConfig)),
             startDate: Value(baseStart),
@@ -332,7 +327,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             form: Value(_form),
             doseAmount: doseAmount,
             doseUnit: Value(doseUnit),
-            foodRelation: Value(_foodRelation),
             repeatType: Value(_repeatType),
             repeatConfig: Value(jsonEncode(repeatConfig)),
             startDate: now,
@@ -453,9 +447,6 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           phase: e.value,
                           canRemove: _phases.length > 1,
                           isLast: e.key == _phases.length - 1,
-                          foodRelation: _foodRelation,
-                          onFoodRelationChanged: (v) =>
-                              setState(() => _foodRelation = v),
                           onChanged: (p) => setState(() => _phases[e.key] = p),
                           onRemove: () =>
                               setState(() => _phases.removeAt(e.key)),
@@ -818,8 +809,6 @@ class _PhaseCard extends StatelessWidget {
   final _MedPhase phase;
   final bool canRemove;
   final bool isLast;
-  final String foodRelation;
-  final void Function(String) onFoodRelationChanged;
   final void Function(_MedPhase) onChanged;
   final VoidCallback onRemove;
   final void Function(int) onPickTime;
@@ -829,8 +818,6 @@ class _PhaseCard extends StatelessWidget {
     required this.phase,
     required this.canRemove,
     required this.isLast,
-    required this.foodRelation,
-    required this.onFoodRelationChanged,
     required this.onChanged,
     required this.onRemove,
     required this.onPickTime,
@@ -913,7 +900,7 @@ class _PhaseCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Dose per intake + Відносно їжі — в один рядок двома колонками
+          // Dose per intake + Коментар — в один рядок двома колонками
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -940,59 +927,19 @@ class _PhaseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.l10n.foodRelationSectionLabel,
+                      context.l10n.doseCommentSectionLabel,
                       style: AppTextStyles.labelSm.copyWith(fontSize: 10),
                     ),
                     const SizedBox(height: 6),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () async {
-                        final picked = await showFoodRelationPicker(
-                          context,
-                          current: foodRelation,
-                        );
-                        if (picked != null) onFoodRelationChanged(picked);
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 11,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                foodRelationLabels(context)[foodRelation] ?? foodRelation,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.labelMd.copyWith(
-                                  color: AppColors.textMain,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            const Icon(
-                              Icons.expand_more_rounded,
-                              size: 18,
-                              color: AppColors.textMuted,
-                            ),
-                          ],
-                        ),
-                      ),
+                    _DoseCommentField(
+                      value: phase.doseComment,
+                      onChanged: (c) =>
+                          onChanged(_copyPhase(phase, doseComment: c)),
                     ),
                   ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          _DoseCommentField(
-            value: phase.doseComment,
-            onChanged: (c) => onChanged(_copyPhase(phase, doseComment: c)),
           ),
           const SizedBox(height: 12),
           const Divider(height: 1, color: AppColors.primary),
@@ -1500,19 +1447,19 @@ class _DoseCommentFieldState extends State<_DoseCommentField> {
         hintText: context.l10n.doseCommentHint,
         hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         filled: true,
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),

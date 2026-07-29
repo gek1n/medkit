@@ -295,10 +295,6 @@
     }
   },
   "courseStagesLabel": "Этапы",
-  "foodBeforeLabel": "🕐 До еды",
-  "foodAfterLabel": "🍽 После еды",
-  "foodWithLabel": "🥗 Во время еды",
-  "foodAnytimeLabel": "✓ Не зависит от еды",
   "untilDateLabel": "до {date}",
   "@untilDateLabel": {
     "placeholders": {
@@ -310,7 +306,6 @@
   "ongoingLabel": "постоянно",
   "detailsLabel": "Детали",
   "intakeLabel": "Расписание",
-  "withFoodLabel": "С едой",
   "courseNounLabel": "Период",
   "noteLabel": "Примечание",
   "courseRangeLabel": "с {start} {endPart}",
@@ -378,7 +373,7 @@
   },
   "removePhaseAction": "удалить",
   "doseAmountLabel": "КОЛИЧЕСТВО ЗА РАЗ",
-  "foodRelationSectionLabel": "ОТНОСИТЕЛЬНО ЕДЫ",
+  "doseCommentSectionLabel": "КОММЕНТАРИЙ",
   "durationSectionLabel": "ДЛИТЕЛЬНОСТЬ",
   "daysCountDashLabel": "— дн.",
   "daysCountLabel": "{n} дн.",
@@ -1292,9 +1287,6 @@
   "wellbeingSlotsTitle": "Чек-ины настроения",
   "wellbeingSlotsSub": "2–3 раза в день · 08:00, 14:00, 20:00",
   "almostDoneAction": "Почти готово →",
-  "foodOptBefore": "До еды",
-  "foodOptAfter": "После еды",
-  "refFoodAnyLabel": "Независимо от еды",
   "backupScreenTitle": "Резервная копия",
   "backupIntroBody": "Инвентарь, расписание, архив (фото) и все остальные данные — выбирайте, где хранить резервную копию.",
   "backupModeLocalTitle": "Только на устройстве",
@@ -1604,9 +1596,6 @@
     }
   },
   "returnAction": "Вернуться",
-  "foodRelationUnspecified": "Не выбрано",
-  "foodRelationWith": "Во время еды",
-  "foodRelationPickerTitle": "Относительно еды",
   "recoveryKeyDialogTitle": "Ваш recovery key",
   "recoveryKeyDialogBody": "Сохраните этот код в надёжном месте. Это единственный способ восстановить данные на новом устройстве — без него мы тоже не сможем помочь.",
   "copiedSnackbar": "Скопировано",

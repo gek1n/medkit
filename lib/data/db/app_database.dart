@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 41;
+  int get schemaVersion => 42;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -855,6 +855,16 @@ class AppDatabase extends _$AppDatabase {
             try {
               await customStatement(
                   'ALTER TABLE medications DROP COLUMN opened_at');
+            } catch (_) {}
+          }
+          if (from < 42) {
+            // "Відносно їжі" прибрано з форми Інвентарю — поле стосувалось
+            // лише ліків, а не довільних предметів, і не використовується в
+            // жодному розрахунку (лише інформативний підпис). DROP COLUMN —
+            // той самий безпечний try/catch патерн, що й у v41 вище.
+            try {
+              await customStatement(
+                  'ALTER TABLE medications DROP COLUMN food_relation');
             } catch (_) {}
           }
         },

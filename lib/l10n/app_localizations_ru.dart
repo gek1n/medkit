@@ -598,18 +598,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get courseStagesLabel => 'Этапы';
 
   @override
-  String get foodBeforeLabel => '🕐 До еды';
-
-  @override
-  String get foodAfterLabel => '🍽 После еды';
-
-  @override
-  String get foodWithLabel => '🥗 Во время еды';
-
-  @override
-  String get foodAnytimeLabel => '✓ Не зависит от еды';
-
-  @override
   String untilDateLabel(String date) {
     return 'до $date';
   }
@@ -622,9 +610,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get intakeLabel => 'Расписание';
-
-  @override
-  String get withFoodLabel => 'С едой';
 
   @override
   String get courseNounLabel => 'Период';
@@ -716,7 +701,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get doseAmountLabel => 'КОЛИЧЕСТВО ЗА РАЗ';
 
   @override
-  String get foodRelationSectionLabel => 'ОТНОСИТЕЛЬНО ЕДЫ';
+  String get doseCommentSectionLabel => 'КОММЕНТАРИЙ';
 
   @override
   String get durationSectionLabel => 'ДЛИТЕЛЬНОСТЬ';
@@ -2351,15 +2336,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get almostDoneAction => 'Почти готово →';
 
   @override
-  String get foodOptBefore => 'До еды';
-
-  @override
-  String get foodOptAfter => 'После еды';
-
-  @override
-  String get refFoodAnyLabel => 'Независимо от еды';
-
-  @override
   String get backupScreenTitle => 'Резервная копия';
 
   @override
@@ -3043,15 +3019,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get returnAction => 'Вернуться';
-
-  @override
-  String get foodRelationUnspecified => 'Не выбрано';
-
-  @override
-  String get foodRelationWith => 'Во время еды';
-
-  @override
-  String get foodRelationPickerTitle => 'Относительно еды';
 
   @override
   String get recoveryKeyDialogTitle => 'Ваш recovery key';

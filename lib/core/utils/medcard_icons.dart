@@ -43,7 +43,6 @@ const List<String> medcardIconKeys = [
   'eye',
   'excercise',
   'cleaning',
-  'form_cream',
   'plans',
   'repeat_yearly',
   'sleep',

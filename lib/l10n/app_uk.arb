@@ -295,10 +295,6 @@
     }
   },
   "courseStagesLabel": "Етапи",
-  "foodBeforeLabel": "🕐 До їжі",
-  "foodAfterLabel": "🍽 Після їжі",
-  "foodWithLabel": "🥗 Під час їжі",
-  "foodAnytimeLabel": "✓ Незалежно від їжі",
   "untilDateLabel": "до {date}",
   "@untilDateLabel": {
     "placeholders": {
@@ -310,7 +306,6 @@
   "ongoingLabel": "постійно",
   "detailsLabel": "Деталі",
   "intakeLabel": "Розклад",
-  "withFoodLabel": "З їжею",
   "courseNounLabel": "Період",
   "noteLabel": "Примітка",
   "courseRangeLabel": "з {start} {endPart}",
@@ -378,7 +373,7 @@
   },
   "removePhaseAction": "видалити",
   "doseAmountLabel": "КІЛЬКІСТЬ ЗА РАЗ",
-  "foodRelationSectionLabel": "ВІДНОСНО ЇЖІ",
+  "doseCommentSectionLabel": "КОМЕНТАР",
   "durationSectionLabel": "ТРИВАЛІСТЬ",
   "daysCountDashLabel": "— дн.",
   "daysCountLabel": "{n} дн.",
@@ -1292,9 +1287,6 @@
   "wellbeingSlotsTitle": "Зрізи настрою",
   "wellbeingSlotsSub": "2–3 рази на день · 08:00, 14:00, 20:00",
   "almostDoneAction": "Майже готово →",
-  "foodOptBefore": "До їжі",
-  "foodOptAfter": "Після їжі",
-  "refFoodAnyLabel": "Незалежно від їжі",
   "backupScreenTitle": "Резервна копія",
   "backupIntroBody": "Інвентар, розклад, архів (фото) і всі інші дані — обирайте, де зберігати резервну копію.",
   "backupModeLocalTitle": "Тільки на пристрої",
@@ -1604,9 +1596,6 @@
     }
   },
   "returnAction": "Повернутись",
-  "foodRelationUnspecified": "Не вибрано",
-  "foodRelationWith": "Під час їжі",
-  "foodRelationPickerTitle": "Відносно їжі",
   "recoveryKeyDialogTitle": "Ваш recovery key",
   "recoveryKeyDialogBody": "Збережіть цей код у надійному місці. Це єдиний спосіб відновити дані на новому пристрої — без нього ми теж не зможемо допомогти.",
   "copiedSnackbar": "Скопійовано",
