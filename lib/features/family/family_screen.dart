@@ -249,7 +249,13 @@ class _MemberCard extends ConsumerWidget {
     final intakes = intakesAsync.valueOrNull ?? [];
     final activityLogs = activityLogsAsync.valueOrNull ?? [];
     final noFixedTimeIds = noFixedTimeIdsAsync.valueOrNull ?? <int>{};
-    final reminders = remindersAsync.valueOrNull ?? [];
+    // watchActiveOnDate дає окрему копію Reminder (той самий id) на кожен
+    // слот мультислотового daily/weekly — дедуп за id обов'язковий, інакше
+    // .where(reminderId==r.id) нижче знайде ті самі ReminderLogs по кілька
+    // разів і додасть дублікати в missedItems.
+    final reminders = {
+      for (final r in remindersAsync.valueOrNull ?? <Reminder>[]) r.id: r,
+    }.values.toList();
     final reminderLogs = reminderLogsAsync.valueOrNull ?? [];
 
     final taken = progress.done;

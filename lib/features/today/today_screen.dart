@@ -189,7 +189,18 @@ class _TodayContent extends ConsumerWidget {
           // Поки логи ще не згенерувались (напр. щойно відкрили екран) —
           // нагадування просто не показується цей єдиний кадр, а не
           // підміняється фейковим записом з якоря.
-          final appointments = (appointmentsAsync.valueOrNull ?? []).expand((r) {
+          // watchActiveOnDate розгортає мультислотові daily/weekly в окрему
+          // копію Reminder (той самий id, різний scheduledAt) на кожен слот
+          // — потрібно лише прев'ю "завтра" (там scheduledAt читається
+          // напряму з копії). Тут же нижче для repeatType != 'none' час усе
+          // одно береться з ReminderLogs, а не з цієї копії, тож кілька
+          // копій з тим самим id означали б, що .where нижче знайде ті самі
+          // логи по кілька разів — звідси дублі карток на Сьогодні.
+          final uniqueAppointments = {
+            for (final r in appointmentsAsync.valueOrNull ?? <Reminder>[])
+              r.id: r,
+          }.values;
+          final appointments = uniqueAppointments.expand((r) {
             if (r.repeatType == 'none') {
               return [
                 _ApptOccurrence(

@@ -108,8 +108,14 @@ final familyMemberTodayProgressProvider =
   final noFixedTimeIds =
       ref.watch(todayNoFixedTimeActivityIdsProvider(memberId)).valueOrNull ??
           <int>{};
-  final reminders =
-      ref.watch(todayAppointmentsProvider(memberId)).valueOrNull ?? [];
+  // watchActiveOnDate дає окрему копію Reminder (той самий id) на кожен
+  // слот мультислотового daily/weekly — дедуп за id обов'язковий тут,
+  // інакше .where(reminderId==r.id) нижче знайде ті самі ReminderLogs по
+  // кілька разів (по копії на слот) і роздує total/done/missed.
+  final reminders = {
+    for (final r in ref.watch(todayAppointmentsProvider(memberId)).valueOrNull ?? <Reminder>[])
+      r.id: r,
+  }.values.toList();
   final reminderLogs =
       ref.watch(todayReminderLogsProvider(memberId)).valueOrNull ?? [];
   final wbSchedule =

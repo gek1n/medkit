@@ -96,8 +96,15 @@ class NotificationResyncService {
 
   Future<void> _resyncAppointments() async {
     final settings = _ref.read(notificationSettingsProvider);
+    // Лише repeatType=='none' — scheduleAppointmentReminder планує РАЗОВЕ
+    // сповіщення з appt.scheduledAt як якорем. Повторювані (daily/weekly/
+    // monthly/yearly) мають власне нативне повторюване планування
+    // (scheduleDailyReminderSlots/scheduleWeeklyReminderSlots/
+    // scheduleMonthlyReminder/scheduleYearlyReminder, вже застосоване при
+    // збереженні) — без цього фільтра тут ще й планувалось ЗАЙВЕ разове
+    // сповіщення для КОЖНОГО повторюваного нагадування, даючи дубль пушу.
     final pending = await (_db.select(_db.reminders)
-          ..where((t) => t.status.equals('pending')))
+          ..where((t) => t.status.equals('pending') & t.repeatType.equals('none')))
         .get();
     for (final appt in pending) {
       await NotificationService.cancelAppointmentReminder(appt.id);
