@@ -1391,7 +1391,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'What other family members can see and do with your profile';
 
   @override
-  String get medcardSyncToggleLabel => 'Sync med card to other devices';
+  String get medcardSyncToggleLabel => 'Sync profile data to other devices';
 
   @override
   String get medcardSyncDescription =>
@@ -1408,7 +1408,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewerViewPermissionLabel =>
-      'Can see tasks, med card, and schedule';
+      'Can see tasks, shelves, and schedule';
 
   @override
   String get permissionDeniedNotYoursBody =>
@@ -3305,7 +3305,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetLocalDbConfirmBody =>
-      'This will delete all data on this device (inventory, schedule, medical records). No backup was found — this data cannot be recovered afterward.';
+      'This will delete all data on this device (inventory, schedule, shelves). No backup was found — this data cannot be recovered afterward.';
 
   @override
   String get resetAction => 'Reset';
