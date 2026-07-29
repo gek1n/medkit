@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/services/reminder_tags_library_service.dart';
+import '../../core/services/shared_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -77,7 +77,7 @@ class _AppointmentsHistoryScreenState
   String? _tag;
 
   Future<void> _pickTag() async {
-    final history = await ReminderTagsLibraryService.getAll();
+    final history = await SharedTagsLibraryService.getAll();
     if (!mounted) return;
     final picked = await showModalBottomSheet<String>(
       context: context,

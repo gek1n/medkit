@@ -17,8 +17,8 @@ class MedcardEntries extends Table {
   // дата самого запису — НЕ пов'язана з датою/часом нагадування
   TextColumn get notes => text().nullable()();
   TextColumn get tags => text().withDefault(const Constant('[]'))();
-  // json: ["тег1","тег2"] — окрема історія від тегів нагадувань,
-  // MedcardEntryTagLibraryService
+  // json: ["тег1","тег2"] — спільна історія з тегами нагадувань,
+  // SharedTagsLibraryService
   TextColumn get location => text().nullable()();
   TextColumn get documentPaths => text().withDefault(const Constant('[]'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

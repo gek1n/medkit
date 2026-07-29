@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Історія тегів самопочуття — окрема від тегів нагадувань
-/// ([ReminderTagsLibraryService]): різні контексти, різні набори міток.
+/// Історія тегів самопочуття — окрема від тегів завдань
+/// ([SharedTagsLibraryService]): різні контексти, різні набори міток.
 class WellbeingTagLibraryService {
   static const _key = 'wellbeing_tags_history';
 

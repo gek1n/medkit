@@ -18,7 +18,7 @@ class DoctorAppointments extends Table {
   TextColumn get doctorType => text()();
   TextColumn get tags => text().withDefault(const Constant('[]'))();
   // json: ["тег1","тег2"] — довільні мітки, які користувач вводить через
-  // кому; історія всіх уживаних тегів — ReminderTagsLibraryService.
+  // кому; історія всіх уживаних тегів — SharedTagsLibraryService.
   TextColumn get location => text().nullable()();
   DateTimeColumn get scheduledAt => dateTime()();
   IntColumn get remindBeforeMin =>

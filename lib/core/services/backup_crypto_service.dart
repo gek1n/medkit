@@ -30,7 +30,7 @@ import 'file_encryption_service.dart';
 ///
 /// Додатково (з `_backedUpPrefsKeys`) пакує explicit allowlist рядкових
 /// значень із SharedPreferences — історія тегів/назв, які користувач сам
-/// вводив (напр. `ReminderTagsLibraryService`, `WellbeingTagLibraryService`),
+/// вводив (напр. `SharedTagsLibraryService`, `WellbeingTagLibraryService`),
 /// які інакше губляться при відновленні бекапу:
 /// старі записи в БД, де такий варіант уже використаний, лишаються
 /// читабельними (БД відновлюється окремо, через zip), але сам варіант
@@ -67,9 +67,13 @@ class BackupCryptoService {
   // ("спільний список + свої варіанти, збережені в SharedPreferences").
   static const _backedUpPrefsKeys = {
     'reminder_title_history', // ReminderTitleLibraryService
-    'reminder_tags_history', // ReminderTagsLibraryService
+    'shared_tags_history', // SharedTagsLibraryService (нагадування + нотатки)
     'wellbeing_tags_history', // WellbeingTagLibraryService
-    'medcard_entry_tags_history', // MedcardEntryTagLibraryService
+    // Легасі ключі до об'єднання тегів нагадувань/нотаток в один список —
+    // лишені в бекапі, бо SharedTagsLibraryService.getAll() досі підмішує
+    // їх для старих пристроїв, де вони ще не мігрували в shared_tags_history.
+    'reminder_tags_history',
+    'medcard_entry_tags_history',
   };
   static const _prefsKeyPrefix = 'prefs:';
 
