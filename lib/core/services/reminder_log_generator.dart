@@ -17,7 +17,22 @@ class ReminderLogGenerator {
   final Ref _ref;
   ReminderLogGenerator(this._db, this._ref);
 
-  Future<void> generateForDay(DateTime date) async {
+  Future<void>? _inFlight;
+
+  // Захист від дублікатів при паралельних викликах (напр. кілька
+  // ref.invalidate(generateTodayReminderLogsProvider) поспіль до того, як
+  // попередній виклик встиг завершитись) — без цього дві одночасні
+  // генерації могли обидві побачити "запису ще немає" ще до того, як
+  // перша встигла його вставити, і створити дублікат ReminderLog (саме
+  // так з'являлись повторювані картки на Сьогодні). Поки попередній виклик
+  // ще виконується — повертаємо той самий Future замість запуску нового.
+  Future<void> generateForDay(DateTime date) {
+    return _inFlight ??= _generateForDay(date).whenComplete(() {
+      _inFlight = null;
+    });
+  }
+
+  Future<void> _generateForDay(DateTime date) async {
     final day = DateTime(date.year, date.month, date.day);
     final cutoff = DateTime.now().subtract(const Duration(hours: 1));
     final remindersRepo = _ref.read(remindersRepositoryProvider);
@@ -36,19 +51,25 @@ class ReminderLogGenerator {
           // Одна невдала спроба не повинна обривати генерацію для решти
           // нагадувань — див. аналогічний коментар у ActivityLogGenerator.
           try {
-            final exists = await (_db.select(_db.reminderLogs)
-                  ..where((t) =>
-                      t.reminderId.equals(r.id) & t.scheduledAt.equals(at)))
-                .getSingleOrNull();
-            if (exists != null) continue;
+            // Транзакція — перевірка "чи вже є" і вставка мають бути єдиною
+            // атомарною операцією, інакше навіть із захистом generateForDay
+            // вище лишається вікно для дублікату (напр. виклик з іншого
+            // provider container).
+            await _db.transaction(() async {
+              final exists = await (_db.select(_db.reminderLogs)
+                    ..where((t) =>
+                        t.reminderId.equals(r.id) & t.scheduledAt.equals(at)))
+                  .getSingleOrNull();
+              if (exists != null) return;
 
-            await _db.into(_db.reminderLogs).insert(
-                  ReminderLogsCompanion.insert(
-                    reminderId: r.id,
-                    memberId: r.memberId,
-                    scheduledAt: at,
-                  ),
-                );
+              await _db.into(_db.reminderLogs).insert(
+                    ReminderLogsCompanion.insert(
+                      reminderId: r.id,
+                      memberId: r.memberId,
+                      scheduledAt: at,
+                    ),
+                  );
+            });
           } catch (e, st) {
             AppLogger.logError(
               'ReminderLogGenerator.occurrence(reminderId=${r.id})',
