@@ -319,13 +319,16 @@ class _FeedCard extends StatelessWidget {
       case _ItemKind.reminder:
         final r = item.reminder!;
         final tags = _parseTags(r.tags);
+        final photos = _parseTags(r.documentPaths);
         return FeedPostCard(
           icon: Icons.notifications_rounded,
           iconWidget: MedcardIcon(r.iconKey, size: 22),
           color: color,
           title: r.doctorType,
           dateLabel: _formatDate(r.scheduledAt),
+          notePreview: r.notes,
           tags: tags,
+          photoPaths: photos,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
