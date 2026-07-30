@@ -1348,6 +1348,14 @@
       }
     }
   },
+  "planActivatedSnackbar": "{plan} активовано!",
+  "@planActivatedSnackbar": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "actionFailedError": "Не вдалося: {error}",
   "@actionFailedError": {
     "placeholders": {
@@ -1357,7 +1365,7 @@
     }
   },
   "planForeverPeriod": "назавжди",
-  "planPerMonthYearlyPeriod": "на місяць (рік)",
+  "planPerYearPeriod": "на рік",
   "planPerMonthPeriod": "щомісяця",
   "freeFeatureAllSections": "1 рутинна справа, 3 розділи Полички",
   "freeFeatureUnlimitedMeds": "Необмежено нагадувань",

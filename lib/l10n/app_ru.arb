@@ -1348,6 +1348,14 @@
       }
     }
   },
+  "planActivatedSnackbar": "{plan} активирован!",
+  "@planActivatedSnackbar": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "actionFailedError": "Не удалось: {error}",
   "@actionFailedError": {
     "placeholders": {
@@ -1357,7 +1365,7 @@
     }
   },
   "planForeverPeriod": "навсегда",
-  "planPerMonthYearlyPeriod": "в месяц (год)",
+  "planPerYearPeriod": "в год",
   "planPerMonthPeriod": "ежемесячно",
   "freeFeatureAllSections": "1 рутинное дело, 3 раздела Полочки",
   "freeFeatureUnlimitedMeds": "Неограниченно напоминаний",

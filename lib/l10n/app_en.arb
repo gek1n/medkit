@@ -1348,6 +1348,14 @@
       }
     }
   },
+  "planActivatedSnackbar": "{plan} activated!",
+  "@planActivatedSnackbar": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      }
+    }
+  },
   "actionFailedError": "Failed: {error}",
   "@actionFailedError": {
     "placeholders": {
@@ -1357,7 +1365,7 @@
     }
   },
   "planForeverPeriod": "forever",
-  "planPerMonthYearlyPeriod": "per month (billed yearly)",
+  "planPerYearPeriod": "per year",
   "planPerMonthPeriod": "per month",
   "freeFeatureAllSections": "1 active routine, 3 Shelf sections",
   "freeFeatureUnlimitedMeds": "Unlimited reminders",

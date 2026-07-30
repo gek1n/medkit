@@ -4444,6 +4444,12 @@ abstract class AppLocalizations {
   /// **'{plan} активовано (тестовий режим, без реальної оплати)'**
   String planActivatedTestSnackbar(String plan);
 
+  /// No description provided for @planActivatedSnackbar.
+  ///
+  /// In uk, this message translates to:
+  /// **'{plan} активовано!'**
+  String planActivatedSnackbar(String plan);
+
   /// No description provided for @actionFailedError.
   ///
   /// In uk, this message translates to:
@@ -4456,11 +4462,11 @@ abstract class AppLocalizations {
   /// **'назавжди'**
   String get planForeverPeriod;
 
-  /// No description provided for @planPerMonthYearlyPeriod.
+  /// No description provided for @planPerYearPeriod.
   ///
   /// In uk, this message translates to:
-  /// **'на місяць (рік)'**
-  String get planPerMonthYearlyPeriod;
+  /// **'на рік'**
+  String get planPerYearPeriod;
 
   /// No description provided for @planPerMonthPeriod.
   ///

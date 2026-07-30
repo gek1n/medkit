@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/config/app_env.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/providers/real_plan_provider.dart';
@@ -145,12 +146,11 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         await showRecoveryKeyDialog(context, outcome.newRecoveryKeyDisplay!);
       }
       if (mounted) {
+        final message = AppEnv.isTestBuild
+            ? context.l10n.planActivatedTestSnackbar(plan.displayName(context))
+            : context.l10n.planActivatedSnackbar(plan.displayName(context));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.l10n.planActivatedTestSnackbar(plan.displayName(context)),
-            ),
-          ),
+          SnackBar(content: Text(message)),
         );
       }
     } catch (e) {
@@ -347,7 +347,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                                 _realPrices[(AppPlan.plus, _isYearly)] ??
                                 (_isYearly ? '\$2.39' : '\$2.99'),
                             period: _isYearly
-                                ? context.l10n.planPerMonthYearlyPeriod
+                                ? context.l10n.planPerYearPeriod
                                 : context.l10n.planPerMonthPeriod,
                             illustration:
                                 'assets/illustrations/elly-hospital.png',
@@ -370,7 +370,7 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                                 _realPrices[(AppPlan.family, _isYearly)] ??
                                 (_isYearly ? '\$4.79' : '\$5.99'),
                             period: _isYearly
-                                ? context.l10n.planPerMonthYearlyPeriod
+                                ? context.l10n.planPerYearPeriod
                                 : context.l10n.planPerMonthPeriod,
                             illustration: 'assets/illustrations/family.png',
                             features: [
