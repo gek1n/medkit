@@ -2472,6 +2472,11 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
+  String planActivatedSnackbar(String plan) {
+    return '$plan активовано!';
+  }
+
+  @override
   String actionFailedError(String error) {
     return 'Не вдалося: $error';
   }
@@ -2480,7 +2485,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get planForeverPeriod => 'назавжди';
 
   @override
-  String get planPerMonthYearlyPeriod => 'на місяць (рік)';
+  String get planPerYearPeriod => 'на рік';
 
   @override
   String get planPerMonthPeriod => 'щомісяця';
