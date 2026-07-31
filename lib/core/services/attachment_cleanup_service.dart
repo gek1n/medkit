@@ -30,6 +30,13 @@ abstract final class AttachmentCleanupService {
   /// Викликати ДО видалення члена сім'ї (MembersRepository.delete) — FK
   /// каскад видаляє всі його рядки одразу після цього, тож шляхи до файлів
   /// треба зібрати, поки рядки ще існують.
+  ///
+  /// ⚠️ НЕ звертатись тут до labResults/allergies/chronicConditions/
+  /// vaccinations/surgeries — ці таблиці фізично дропнуті (onCreate і
+  /// міграція 30, див. app_database.dart) для АБСОЛЮТНО всіх пристроїв,
+  /// і нових, і оновлених. Запит до неіснуючої таблиці кидав SqliteException
+  /// ще до реального видалення профілю — саме тому видалення члена сім'ї
+  /// не працювало взагалі ні для кого.
   static Future<void> deleteAllForMember(AppDatabase db, int memberId) async {
     final medications = await (db.select(db.medications)..where((t) => t.memberId.equals(memberId))).get();
     for (final m in medications) {
@@ -40,25 +47,9 @@ abstract final class AttachmentCleanupService {
     for (final a in appointments) {
       await deletePaths(a.documentPaths);
     }
-    final labResults = await (db.select(db.labResults)..where((t) => t.memberId.equals(memberId))).get();
-    for (final l in labResults) {
-      await deletePaths(l.documentPaths);
-    }
-    final allergies = await (db.select(db.allergies)..where((t) => t.memberId.equals(memberId))).get();
-    for (final a in allergies) {
-      await deletePaths(a.documentPaths);
-    }
-    final conditions = await (db.select(db.chronicConditions)..where((t) => t.memberId.equals(memberId))).get();
-    for (final c in conditions) {
-      await deletePaths(c.documentPaths);
-    }
-    final vaccinations = await (db.select(db.vaccinations)..where((t) => t.memberId.equals(memberId))).get();
-    for (final v in vaccinations) {
-      await deletePaths(v.documentPaths);
-    }
-    final surgeries = await (db.select(db.surgeries)..where((t) => t.memberId.equals(memberId))).get();
-    for (final s in surgeries) {
-      await deletePaths(s.documentPaths);
+    final entries = await (db.select(db.medcardEntries)..where((t) => t.memberId.equals(memberId))).get();
+    for (final e in entries) {
+      await deletePaths(e.documentPaths);
     }
   }
 }

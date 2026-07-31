@@ -1084,7 +1084,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String deleteMemberConfirmBody(String name) {
-    return 'Будуть видалені весь розклад та медичні картки, прив\'язані до профілю $name';
+    return 'Будуть видалені весь розклад та всі записи з Поличок, прив\'язані до профілю $name';
   }
 
   @override

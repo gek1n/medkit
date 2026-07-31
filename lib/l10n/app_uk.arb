@@ -635,7 +635,7 @@
   },
   "deleteForeverAction": "Видалити назавжди",
   "areYouSureTitle": "Ви впевнені?",
-  "deleteMemberConfirmBody": "Будуть видалені весь розклад та медичні картки, прив'язані до профілю {name}",
+  "deleteMemberConfirmBody": "Будуть видалені весь розклад та всі записи з Поличок, прив'язані до профілю {name}",
   "@deleteMemberConfirmBody": {
     "placeholders": {
       "name": {

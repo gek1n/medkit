@@ -1079,7 +1079,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String deleteMemberConfirmBody(String name) {
-    return 'This will delete all schedule and medical records linked to $name\'s profile';
+    return 'This will delete all schedule items and all Shelves entries linked to $name\'s profile';
   }
 
   @override
