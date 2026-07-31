@@ -243,6 +243,9 @@ class _MemberCard extends ConsumerWidget {
         ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
     final remindersAsync = ref.watch(todayAppointmentsProvider(member.id));
     final reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
+    final wbScheduleAsync =
+        ref.watch(todayWellbeingScheduleProvider(member.id));
+    final wbLogsAsync = ref.watch(todayWellbeingLogsProvider(member.id));
 
     final meds = medsAsync.valueOrNull ?? [];
     final activities = activitiesAsync.valueOrNull ?? [];
@@ -257,6 +260,8 @@ class _MemberCard extends ConsumerWidget {
       for (final r in remindersAsync.valueOrNull ?? <Reminder>[]) r.id: r,
     }.values.toList();
     final reminderLogs = reminderLogsAsync.valueOrNull ?? [];
+    final wbSchedule = wbScheduleAsync.valueOrNull;
+    final wbLogs = wbLogsAsync.valueOrNull ?? [];
 
     final taken = progress.done;
     final total = progress.total;
@@ -333,6 +338,43 @@ class _MemberCard extends ConsumerWidget {
             uuid: 'reminderLog_${log.id}',
             title: r.doctorType,
             scheduledAt: scheduledAt,
+          ));
+        }
+      }
+    }
+    // Пропущені зрізи самопочуття — той самий розрахунок слотів, що й у
+    // familyMemberTodayProgressProvider вище: без цієї гілки progress.missed
+    // міг рахувати пропущений зріз самопочуття (hasMissed=true), а
+    // missedItems тут лишався порожнім — і missedItems.first нижче падав з
+    // Bad state: No element (саме так виглядав баг з сірим екраном "Сім'я").
+    if (wbSchedule != null && wbSchedule.isActive) {
+      List<String> times;
+      try {
+        times = List<String>.from(jsonDecode(wbSchedule.times) as List);
+      } catch (_) {
+        times = const [];
+      }
+      final today = DateTime(now.year, now.month, now.day);
+      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+      final slots = times.map((t) {
+        final p = t.split(':');
+        return DateTime(
+            today.year, today.month, today.day, int.parse(p[0]), int.parse(p[1]));
+      }).toList()
+        ..sort();
+      for (var i = 0; i < slots.length; i++) {
+        final slot = slots[i];
+        final windowEnd = i + 1 < slots.length ? slots[i + 1] : endOfDay;
+        final hasLog = wbLogs.any((l) =>
+            l.loggedAt.isAfter(slot.subtract(const Duration(minutes: 30))) &&
+            l.loggedAt.isBefore(windowEnd));
+        if (hasLog || slot.isAfter(now)) continue;
+        if (slot.isBefore(activeWindowStart)) {
+          missedItems.add(_MissedItem(
+            entityType: 'wellbeing',
+            uuid: 'wellbeing_${member.id}_$i',
+            title: null,
+            scheduledAt: slot,
           ));
         }
       }
