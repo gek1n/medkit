@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
@@ -114,27 +115,45 @@ class WellbeingRepository {
           ..where((t) => t.id.equals(schedule.memberId)))
         .getSingleOrNull();
     final memberName = member?.name ?? '';
-    final times = List<String>.from(jsonDecode(schedule.times) as List);
+    List<String> times;
+    try {
+      times = List<String>.from(jsonDecode(schedule.times) as List);
+    } catch (_) {
+      times = const [];
+    }
     for (var i = 0; i < times.length; i++) {
-      final parts = times[i].split(':');
-      final now = DateTime.now();
-      final raw = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        int.parse(parts[0]),
-        int.parse(parts[1]),
-      );
-      final at = settings.adjust(raw, memberId: schedule.memberId);
-      if (at == null) continue;
-      await NotificationService.scheduleWellbeingDaily(
-        memberId: schedule.memberId,
-        memberName: memberName,
-        slotIndex: i,
-        hour: at.hour,
-        minute: at.minute,
-        vibrationEnabled: settings.vibrationEnabled,
-      );
+      // Одна невдала спроба (напр. виняток від zonedSchedule) не повинна
+      // обривати планування решти слотів того самого розкладу — інакше
+      // збій на першому слоті мовчки (для користувача — просто загальний
+      // errorGeneric у _save()) залишав УСІ наступні слоти взагалі
+      // незапланованими, без жодного сліду в логах, чому саме.
+      try {
+        final parts = times[i].split(':');
+        final now = DateTime.now();
+        final raw = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+        );
+        final at = settings.adjust(raw, memberId: schedule.memberId);
+        if (at == null) continue;
+        await NotificationService.scheduleWellbeingDaily(
+          memberId: schedule.memberId,
+          memberName: memberName,
+          slotIndex: i,
+          hour: at.hour,
+          minute: at.minute,
+          vibrationEnabled: settings.vibrationEnabled,
+        );
+      } catch (e, st) {
+        AppLogger.logError(
+          'WellbeingRepository.scheduleNotificationsForSchedule(memberId=${schedule.memberId}, slot=$i)',
+          e,
+          st,
+        );
+      }
     }
   }
 }
