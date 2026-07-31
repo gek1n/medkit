@@ -635,7 +635,7 @@
   },
   "deleteForeverAction": "Удалить навсегда",
   "areYouSureTitle": "Вы уверены?",
-  "deleteMemberConfirmBody": "Будут удалены всё расписание и медицинские карты, привязанные к профилю {name}",
+  "deleteMemberConfirmBody": "Будут удалены всё расписание и все записи из Полочек, привязанные к профилю {name}",
   "@deleteMemberConfirmBody": {
     "placeholders": {
       "name": {

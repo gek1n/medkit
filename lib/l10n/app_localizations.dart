@@ -1981,7 +1981,7 @@ abstract class AppLocalizations {
   /// No description provided for @deleteMemberConfirmBody.
   ///
   /// In uk, this message translates to:
-  /// **'Будуть видалені весь розклад та медичні картки, прив\'язані до профілю {name}'**
+  /// **'Будуть видалені весь розклад та всі записи з Поличок, прив\'язані до профілю {name}'**
   String deleteMemberConfirmBody(String name);
 
   /// No description provided for @careSummaryLabel.
