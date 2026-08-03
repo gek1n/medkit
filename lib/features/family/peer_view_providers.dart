@@ -30,6 +30,13 @@ class PeerSubject {
 
 final activePeerProvider = StateProvider<PeerSubject?>((_) => null);
 
+/// Список автономних пірів для перемикача "переглянути як" — спільний між
+/// FamilyStatusStrip (Сьогодні) і рештою екранів, замість того, щоб кожен
+/// екран заводив свій приватний StreamProvider на той самий запит.
+final allFamilyPeersProvider = StreamProvider<List<FamilyPeer>>(
+  (ref) => ref.watch(familyPeersRepositoryProvider).watchAll(),
+);
+
 /// Стабільний, лише В МЕЖАХ ПЕРЕГЛЯДУ, "локальний" номер для запису піра —
 /// справжнього автоінкрементного id в базі не існує (запис ніколи туди не
 /// пишеться, це чисто відображення), тож беремо детермінований хеш його
@@ -268,4 +275,108 @@ final peerMedcardEntriesProvider = Provider.family<List<MedcardEntry>, String>((
         }));
       }).toList() ??
       const [];
+});
+
+// ── Похідні провайдери для екранів (Крок 4.3.2+) ────────────────────────
+
+/// Той самий принцип, що й ActivitiesRepository.watchNoFixedTimeActivityIds
+/// (today_providers.dart) — рутина без жодного ActivitySlot вважається
+/// "без фіксованого часу". Рахуємо з уже перекладених peer-списків, а не
+/// окремим запитом до бази, якої для піра просто не існує.
+final peerNoFixedTimeActivityIdsProvider = Provider.family<Set<int>, String>((ref, personUuid) {
+  final slotActivityIds =
+      ref.watch(peerActivitySlotsProvider(personUuid)).map((s) => s.activityId).toSet();
+  return ref
+      .watch(peerActivitiesProvider(personUuid))
+      .where((a) => a.isActive)
+      .map((a) => a.id)
+      .where((id) => !slotActivityIds.contains(id))
+      .toSet();
+});
+
+/// Дзеркало familyMemberTodayProgressProvider (today_providers.dart) для
+/// піра — ті самі лічильники "виконано/всього/пропущено" для бейджа в
+/// перемикачі "переглянути як", лише джерело даних інше.
+final peerTodayProgressProvider =
+    Provider.family<({int done, int total, int missed}), String>((ref, personUuid) {
+  final intakes = ref.watch(peerIntakesProvider(personUuid));
+  final activityLogs = ref.watch(peerActivityLogsProvider(personUuid));
+  final noFixedTimeIds = ref.watch(peerNoFixedTimeActivityIdsProvider(personUuid));
+  final reminders = {for (final r in ref.watch(peerRemindersProvider(personUuid))) r.id: r}.values;
+  final reminderLogs = ref.watch(peerReminderLogsProvider(personUuid));
+  final wbSchedule = ref.watch(peerWellbeingSchedulesProvider(personUuid)).firstOrNull;
+  final wbLogs = ref.watch(peerWellbeingLogsProvider(personUuid));
+
+  final now = DateTime.now();
+  final activeWindowStart = now.subtract(const Duration(minutes: 15));
+
+  var done = 0;
+  var total = 0;
+  var missed = 0;
+
+  DateTime effectiveDue(Intake i) =>
+      i.status == 'snoozed' && i.snoozedUntil != null ? i.snoozedUntil! : i.scheduledAt;
+
+  total += intakes.length;
+  done += intakes.where((i) => i.status == 'taken').length;
+  missed += intakes
+      .where((i) =>
+          (i.status == 'pending' || i.status == 'snoozed') &&
+          effectiveDue(i).isBefore(activeWindowStart))
+      .length;
+
+  final occurrences = reminders.expand((r) {
+    if (r.repeatType == 'none') {
+      return [(status: r.status, scheduledAt: r.scheduledAt)];
+    }
+    return reminderLogs
+        .where((l) => l.reminderId == r.id)
+        .map((l) => (status: l.status, scheduledAt: l.snoozedUntil ?? l.scheduledAt));
+  });
+  for (final o in occurrences) {
+    total++;
+    if (o.status == 'attended' || o.status == 'done') done++;
+    if (o.status == 'pending' && o.scheduledAt.isBefore(activeWindowStart)) missed++;
+  }
+
+  total += activityLogs.length;
+  done += activityLogs.where((l) => l.status == 'done' || l.status == 'skipped').length;
+  missed += activityLogs
+      .where((l) =>
+          (l.status == 'pending' || l.status == 'partial') &&
+          !noFixedTimeIds.contains(l.activityId) &&
+          l.scheduledAt.isBefore(activeWindowStart))
+      .length;
+
+  if (wbSchedule != null && wbSchedule.isActive) {
+    List<String> times;
+    try {
+      times = List<String>.from(jsonDecode(wbSchedule.times) as List);
+    } catch (_) {
+      times = const [];
+    }
+    final today = DateTime(now.year, now.month, now.day);
+    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+    final slots = times.map((t) {
+      final p = t.split(':');
+      return DateTime(today.year, today.month, today.day, int.parse(p[0]), int.parse(p[1]));
+    }).toList()
+      ..sort();
+    for (var i = 0; i < slots.length; i++) {
+      final slot = slots[i];
+      final windowEnd = i + 1 < slots.length ? slots[i + 1] : endOfDay;
+      final hasLog = wbLogs.any((l) =>
+          l.loggedAt.isAfter(slot.subtract(const Duration(minutes: 30))) &&
+          l.loggedAt.isBefore(windowEnd));
+      if (slot.isAfter(now) && !hasLog) continue;
+      total++;
+      if (hasLog) {
+        done++;
+      } else if (slot.isBefore(activeWindowStart)) {
+        missed++;
+      }
+    }
+  }
+
+  return (done: done, total: total, missed: missed);
 });
