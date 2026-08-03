@@ -13936,6 +13936,34 @@ class $FamilyPeersTable extends FamilyPeers
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _viewShelvesGrantedMeta =
+      const VerificationMeta('viewShelvesGranted');
+  @override
+  late final GeneratedColumn<bool> viewShelvesGranted = GeneratedColumn<bool>(
+    'view_shelves_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("view_shelves_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _editShelvesGrantedMeta =
+      const VerificationMeta('editShelvesGranted');
+  @override
+  late final GeneratedColumn<bool> editShelvesGranted = GeneratedColumn<bool>(
+    'edit_shelves_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("edit_shelves_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _invitedMeMeta = const VerificationMeta(
     'invitedMe',
   );
@@ -13982,6 +14010,8 @@ class $FamilyPeersTable extends FamilyPeers
     editScheduleGranted,
     viewMedcardGranted,
     editMedcardGranted,
+    viewShelvesGranted,
+    editShelvesGranted,
     invitedMe,
     payerPlanActive,
   ];
@@ -14116,6 +14146,24 @@ class $FamilyPeersTable extends FamilyPeers
         ),
       );
     }
+    if (data.containsKey('view_shelves_granted')) {
+      context.handle(
+        _viewShelvesGrantedMeta,
+        viewShelvesGranted.isAcceptableOrUnknown(
+          data['view_shelves_granted']!,
+          _viewShelvesGrantedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('edit_shelves_granted')) {
+      context.handle(
+        _editShelvesGrantedMeta,
+        editShelvesGranted.isAcceptableOrUnknown(
+          data['edit_shelves_granted']!,
+          _editShelvesGrantedMeta,
+        ),
+      );
+    }
     if (data.containsKey('invited_me')) {
       context.handle(
         _invitedMeMeta,
@@ -14196,6 +14244,14 @@ class $FamilyPeersTable extends FamilyPeers
         DriftSqlType.bool,
         data['${effectivePrefix}edit_medcard_granted'],
       )!,
+      viewShelvesGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}view_shelves_granted'],
+      )!,
+      editShelvesGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}edit_shelves_granted'],
+      )!,
       invitedMe: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}invited_me'],
@@ -14228,6 +14284,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
   final bool editScheduleGranted;
   final bool viewMedcardGranted;
   final bool editMedcardGranted;
+  final bool viewShelvesGranted;
+  final bool editShelvesGranted;
   final bool invitedMe;
   final bool payerPlanActive;
   const FamilyPeer({
@@ -14245,6 +14303,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     required this.editScheduleGranted,
     required this.viewMedcardGranted,
     required this.editMedcardGranted,
+    required this.viewShelvesGranted,
+    required this.editShelvesGranted,
     required this.invitedMe,
     required this.payerPlanActive,
   });
@@ -14267,6 +14327,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     map['edit_schedule_granted'] = Variable<bool>(editScheduleGranted);
     map['view_medcard_granted'] = Variable<bool>(viewMedcardGranted);
     map['edit_medcard_granted'] = Variable<bool>(editMedcardGranted);
+    map['view_shelves_granted'] = Variable<bool>(viewShelvesGranted);
+    map['edit_shelves_granted'] = Variable<bool>(editShelvesGranted);
     map['invited_me'] = Variable<bool>(invitedMe);
     map['payer_plan_active'] = Variable<bool>(payerPlanActive);
     return map;
@@ -14290,6 +14352,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       editScheduleGranted: Value(editScheduleGranted),
       viewMedcardGranted: Value(viewMedcardGranted),
       editMedcardGranted: Value(editMedcardGranted),
+      viewShelvesGranted: Value(viewShelvesGranted),
+      editShelvesGranted: Value(editShelvesGranted),
       invitedMe: Value(invitedMe),
       payerPlanActive: Value(payerPlanActive),
     );
@@ -14319,6 +14383,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       ),
       viewMedcardGranted: serializer.fromJson<bool>(json['viewMedcardGranted']),
       editMedcardGranted: serializer.fromJson<bool>(json['editMedcardGranted']),
+      viewShelvesGranted: serializer.fromJson<bool>(json['viewShelvesGranted']),
+      editShelvesGranted: serializer.fromJson<bool>(json['editShelvesGranted']),
       invitedMe: serializer.fromJson<bool>(json['invitedMe']),
       payerPlanActive: serializer.fromJson<bool>(json['payerPlanActive']),
     );
@@ -14341,6 +14407,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       'editScheduleGranted': serializer.toJson<bool>(editScheduleGranted),
       'viewMedcardGranted': serializer.toJson<bool>(viewMedcardGranted),
       'editMedcardGranted': serializer.toJson<bool>(editMedcardGranted),
+      'viewShelvesGranted': serializer.toJson<bool>(viewShelvesGranted),
+      'editShelvesGranted': serializer.toJson<bool>(editShelvesGranted),
       'invitedMe': serializer.toJson<bool>(invitedMe),
       'payerPlanActive': serializer.toJson<bool>(payerPlanActive),
     };
@@ -14361,6 +14429,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     bool? editScheduleGranted,
     bool? viewMedcardGranted,
     bool? editMedcardGranted,
+    bool? viewShelvesGranted,
+    bool? editShelvesGranted,
     bool? invitedMe,
     bool? payerPlanActive,
   }) => FamilyPeer(
@@ -14378,6 +14448,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     editScheduleGranted: editScheduleGranted ?? this.editScheduleGranted,
     viewMedcardGranted: viewMedcardGranted ?? this.viewMedcardGranted,
     editMedcardGranted: editMedcardGranted ?? this.editMedcardGranted,
+    viewShelvesGranted: viewShelvesGranted ?? this.viewShelvesGranted,
+    editShelvesGranted: editShelvesGranted ?? this.editShelvesGranted,
     invitedMe: invitedMe ?? this.invitedMe,
     payerPlanActive: payerPlanActive ?? this.payerPlanActive,
   );
@@ -14417,6 +14489,12 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       editMedcardGranted: data.editMedcardGranted.present
           ? data.editMedcardGranted.value
           : this.editMedcardGranted,
+      viewShelvesGranted: data.viewShelvesGranted.present
+          ? data.viewShelvesGranted.value
+          : this.viewShelvesGranted,
+      editShelvesGranted: data.editShelvesGranted.present
+          ? data.editShelvesGranted.value
+          : this.editShelvesGranted,
       invitedMe: data.invitedMe.present ? data.invitedMe.value : this.invitedMe,
       payerPlanActive: data.payerPlanActive.present
           ? data.payerPlanActive.value
@@ -14441,6 +14519,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ..write('editScheduleGranted: $editScheduleGranted, ')
           ..write('viewMedcardGranted: $viewMedcardGranted, ')
           ..write('editMedcardGranted: $editMedcardGranted, ')
+          ..write('viewShelvesGranted: $viewShelvesGranted, ')
+          ..write('editShelvesGranted: $editShelvesGranted, ')
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive')
           ..write(')'))
@@ -14463,6 +14543,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     editScheduleGranted,
     viewMedcardGranted,
     editMedcardGranted,
+    viewShelvesGranted,
+    editShelvesGranted,
     invitedMe,
     payerPlanActive,
   );
@@ -14484,6 +14566,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           other.editScheduleGranted == this.editScheduleGranted &&
           other.viewMedcardGranted == this.viewMedcardGranted &&
           other.editMedcardGranted == this.editMedcardGranted &&
+          other.viewShelvesGranted == this.viewShelvesGranted &&
+          other.editShelvesGranted == this.editShelvesGranted &&
           other.invitedMe == this.invitedMe &&
           other.payerPlanActive == this.payerPlanActive);
 }
@@ -14503,6 +14587,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
   final Value<bool> editScheduleGranted;
   final Value<bool> viewMedcardGranted;
   final Value<bool> editMedcardGranted;
+  final Value<bool> viewShelvesGranted;
+  final Value<bool> editShelvesGranted;
   final Value<bool> invitedMe;
   final Value<bool> payerPlanActive;
   final Value<int> rowid;
@@ -14521,6 +14607,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.editScheduleGranted = const Value.absent(),
     this.viewMedcardGranted = const Value.absent(),
     this.editMedcardGranted = const Value.absent(),
+    this.viewShelvesGranted = const Value.absent(),
+    this.editShelvesGranted = const Value.absent(),
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -14540,6 +14628,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.editScheduleGranted = const Value.absent(),
     this.viewMedcardGranted = const Value.absent(),
     this.editMedcardGranted = const Value.absent(),
+    this.viewShelvesGranted = const Value.absent(),
+    this.editShelvesGranted = const Value.absent(),
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -14562,6 +14652,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Expression<bool>? editScheduleGranted,
     Expression<bool>? viewMedcardGranted,
     Expression<bool>? editMedcardGranted,
+    Expression<bool>? viewShelvesGranted,
+    Expression<bool>? editShelvesGranted,
     Expression<bool>? invitedMe,
     Expression<bool>? payerPlanActive,
     Expression<int>? rowid,
@@ -14585,6 +14677,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
         'view_medcard_granted': viewMedcardGranted,
       if (editMedcardGranted != null)
         'edit_medcard_granted': editMedcardGranted,
+      if (viewShelvesGranted != null)
+        'view_shelves_granted': viewShelvesGranted,
+      if (editShelvesGranted != null)
+        'edit_shelves_granted': editShelvesGranted,
       if (invitedMe != null) 'invited_me': invitedMe,
       if (payerPlanActive != null) 'payer_plan_active': payerPlanActive,
       if (rowid != null) 'rowid': rowid,
@@ -14606,6 +14702,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Value<bool>? editScheduleGranted,
     Value<bool>? viewMedcardGranted,
     Value<bool>? editMedcardGranted,
+    Value<bool>? viewShelvesGranted,
+    Value<bool>? editShelvesGranted,
     Value<bool>? invitedMe,
     Value<bool>? payerPlanActive,
     Value<int>? rowid,
@@ -14625,6 +14723,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       editScheduleGranted: editScheduleGranted ?? this.editScheduleGranted,
       viewMedcardGranted: viewMedcardGranted ?? this.viewMedcardGranted,
       editMedcardGranted: editMedcardGranted ?? this.editMedcardGranted,
+      viewShelvesGranted: viewShelvesGranted ?? this.viewShelvesGranted,
+      editShelvesGranted: editShelvesGranted ?? this.editShelvesGranted,
       invitedMe: invitedMe ?? this.invitedMe,
       payerPlanActive: payerPlanActive ?? this.payerPlanActive,
       rowid: rowid ?? this.rowid,
@@ -14676,6 +14776,12 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     if (editMedcardGranted.present) {
       map['edit_medcard_granted'] = Variable<bool>(editMedcardGranted.value);
     }
+    if (viewShelvesGranted.present) {
+      map['view_shelves_granted'] = Variable<bool>(viewShelvesGranted.value);
+    }
+    if (editShelvesGranted.present) {
+      map['edit_shelves_granted'] = Variable<bool>(editShelvesGranted.value);
+    }
     if (invitedMe.present) {
       map['invited_me'] = Variable<bool>(invitedMe.value);
     }
@@ -14705,6 +14811,8 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
           ..write('editScheduleGranted: $editScheduleGranted, ')
           ..write('viewMedcardGranted: $viewMedcardGranted, ')
           ..write('editMedcardGranted: $editMedcardGranted, ')
+          ..write('viewShelvesGranted: $viewShelvesGranted, ')
+          ..write('editShelvesGranted: $editShelvesGranted, ')
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive, ')
           ..write('rowid: $rowid')

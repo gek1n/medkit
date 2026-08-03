@@ -858,6 +858,7 @@
   "familySectionsIntro": "Exactly what this member can see and edit, while access is turned on above",
   "familySectionScheduleLabel": "Schedule",
   "familySectionVisitsWellbeingLabel": "Visits and wellbeing",
+  "familySectionShelvesLabel": "Shelves",
   "familySectionViewColumnLabel": "View",
   "familySectionEditColumnLabel": "Edit",
   "permissionDeniedNotYoursBody": "Couldn't change it — this isn't your profile",

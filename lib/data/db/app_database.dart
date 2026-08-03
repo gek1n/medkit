@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 45;
+  int get schemaVersion => 46;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -906,6 +906,16 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.addColumn(reminderSlots, reminderSlots.syncUuid);
+            } catch (_) {}
+          }
+          if (from < 46) {
+            // Крок 4.3.4 плану: Полички як окремий розділ прав видимості,
+            // той самий принцип, що й у Кроку 4.1 для Розкладу/Медкартки.
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewShelvesGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editShelvesGranted);
             } catch (_) {}
           }
         },

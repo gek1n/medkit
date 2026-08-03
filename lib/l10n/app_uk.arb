@@ -858,6 +858,7 @@
   "familySectionsIntro": "Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище",
   "familySectionScheduleLabel": "Розклад",
   "familySectionVisitsWellbeingLabel": "Візити та самопочуття",
+  "familySectionShelvesLabel": "Полички",
   "familySectionViewColumnLabel": "Перегляд",
   "familySectionEditColumnLabel": "Редагування",
   "permissionDeniedNotYoursBody": "Не вдалося змінити — це не ваш профіль",

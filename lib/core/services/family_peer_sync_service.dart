@@ -145,6 +145,10 @@ class FamilyPeerSyncService {
           _db, ownerUuid, peer.personUuid, FamilySection.medcard, edit: false),
       'editMedcard': await FamilyVisibilityService.isSectionAllowed(
           _db, ownerUuid, peer.personUuid, FamilySection.medcard, edit: true),
+      'viewShelves': await FamilyVisibilityService.isSectionAllowed(
+          _db, ownerUuid, peer.personUuid, FamilySection.shelves, edit: false),
+      'editShelves': await FamilyVisibilityService.isSectionAllowed(
+          _db, ownerUuid, peer.personUuid, FamilySection.shelves, edit: true),
       'payerPlanActive': payerPlanActive,
     };
     final entity = {
@@ -207,11 +211,19 @@ class FamilyPeerSyncService {
           _db, subjectUuid, peer.personUuid, FamilySection.schedule, edit: false);
       final viewMedcardAllowed = await FamilyVisibilityService.isSectionAllowed(
           _db, subjectUuid, peer.personUuid, FamilySection.medcard, edit: false);
+      // Крок 4.3.4 плану: Полички — окремий розділ від Медкартки (візити/
+      // самопочуття), той самий master-перемикач medcardAllowed і далі діє
+      // як спільний "вимикач усього, крім ліків/розкладу" зверху.
+      final viewShelvesAllowed = await FamilyVisibilityService.isSectionAllowed(
+          _db, subjectUuid, peer.personUuid, FamilySection.shelves, edit: false);
 
       for (final type in _entityTypes) {
         if (!_alwaysSyncedTypes.contains(type) && !medcardAllowed) continue;
-        final sectionAllowed =
-            _alwaysSyncedTypes.contains(type) ? viewScheduleAllowed : viewMedcardAllowed;
+        final sectionAllowed = _alwaysSyncedTypes.contains(type)
+            ? viewScheduleAllowed
+            : (type == 'medcard_section' || type == 'medcard_entry')
+                ? viewShelvesAllowed
+                : viewMedcardAllowed;
         if (!sectionAllowed) continue;
         final rows = await _rowsFor(type, subject.id);
         for (final row in rows) {
@@ -688,9 +700,14 @@ class FamilyPeerSyncService {
     );
     if (!allowed) return;
 
-    // Крок 4.1: точніше, по розділу (medication → Розклад, doctor_appointment
-    // → Медкартка) — той самий бар'єр, що й для push у _push() вище.
-    final section = _alwaysSyncedTypes.contains(entityType) ? FamilySection.schedule : FamilySection.medcard;
+    // Крок 4.1/4.3.4: точніше, по розділу (medication → Розклад,
+    // doctor_appointment → Медкартка, medcard_entry → Полички) — той самий
+    // бар'єр, що й для push у _push() вище.
+    final section = _alwaysSyncedTypes.contains(entityType)
+        ? FamilySection.schedule
+        : entityType == 'medcard_entry'
+            ? FamilySection.shelves
+            : FamilySection.medcard;
     final sectionAllowed = await FamilyVisibilityService.isSectionAllowed(
       _db,
       subjectUuid,
@@ -787,6 +804,8 @@ class FamilyPeerSyncService {
           editSchedule: json['editSchedule'] as bool? ?? false,
           viewMedcard: json['viewMedcard'] as bool? ?? false,
           editMedcard: json['editMedcard'] as bool? ?? false,
+          viewShelves: json['viewShelves'] as bool? ?? false,
+          editShelves: json['editShelves'] as bool? ?? false,
           payerPlanActive: json['payerPlanActive'] as bool? ?? false,
         );
         continue;

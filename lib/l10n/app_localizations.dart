@@ -2524,6 +2524,12 @@ abstract class AppLocalizations {
   /// **'Візити та самопочуття'**
   String get familySectionVisitsWellbeingLabel;
 
+  /// No description provided for @familySectionShelvesLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Полички'**
+  String get familySectionShelvesLabel;
+
   /// No description provided for @familySectionViewColumnLabel.
   ///
   /// In uk, this message translates to:

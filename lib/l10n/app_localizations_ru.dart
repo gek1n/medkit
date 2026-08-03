@@ -1424,6 +1424,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get familySectionVisitsWellbeingLabel => 'Визиты и самочувствие';
 
   @override
+  String get familySectionShelvesLabel => 'Полочки';
+
+  @override
   String get familySectionViewColumnLabel => 'Просмотр';
 
   @override

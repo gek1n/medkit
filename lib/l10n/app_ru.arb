@@ -858,6 +858,7 @@
   "familySectionsIntro": "Что именно видит и может редактировать этот участник, пока доступ включён выше",
   "familySectionScheduleLabel": "Расписание",
   "familySectionVisitsWellbeingLabel": "Визиты и самочувствие",
+  "familySectionShelvesLabel": "Полочки",
   "familySectionViewColumnLabel": "Просмотр",
   "familySectionEditColumnLabel": "Редактирование",
   "permissionDeniedNotYoursBody": "Не удалось изменить — это не ваш профиль",

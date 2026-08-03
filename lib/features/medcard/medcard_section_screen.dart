@@ -23,6 +23,7 @@ import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/reminder_view_screen.dart';
+import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import 'add_medcard_entry_screen.dart';
 import 'add_medcard_section_screen.dart';
@@ -104,7 +105,8 @@ class _FeedItem {
 
 class MedcardSectionScreen extends ConsumerStatefulWidget {
   final MedcardSection section;
-  const MedcardSectionScreen({super.key, required this.section});
+  final PeerSubject? peer;
+  const MedcardSectionScreen({super.key, required this.section, this.peer});
 
   @override
   ConsumerState<MedcardSectionScreen> createState() => _MedcardSectionScreenState();
@@ -144,22 +146,45 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final entriesAsync = ref.watch(_sectionEntriesProvider(section.id));
-    final medsAsync = ref.watch(_sectionMedicationsProvider(section.id));
-    final activitiesAsync = ref.watch(_sectionActivitiesProvider(section.id));
-    final remindersAsync = ref.watch(_sectionRemindersProvider(section.id));
+    final readOnly = widget.peer != null;
+    final AsyncValue<List<MedcardEntry>> entriesAsync;
+    final AsyncValue<List<Medication>> medsAsync;
+    final AsyncValue<List<Activity>> activitiesAsync;
+    final AsyncValue<List<Reminder>> remindersAsync;
+    if (widget.peer != null) {
+      final uuid = widget.peer!.personUuid;
+      entriesAsync = AsyncValue.data(
+        ref.watch(peerMedcardEntriesProvider(uuid)).where((e) => e.sectionId == section.id).toList(),
+      );
+      medsAsync = AsyncValue.data(
+        ref.watch(peerMedicationsProvider(uuid)).where((m) => m.sectionId == section.id).toList(),
+      );
+      activitiesAsync = AsyncValue.data(
+        ref.watch(peerActivitiesProvider(uuid)).where((a) => a.sectionId == section.id).toList(),
+      );
+      remindersAsync = AsyncValue.data(
+        ref.watch(peerRemindersProvider(uuid)).where((r) => r.sectionId == section.id).toList(),
+      );
+    } else {
+      entriesAsync = ref.watch(_sectionEntriesProvider(section.id));
+      medsAsync = ref.watch(_sectionMedicationsProvider(section.id));
+      activitiesAsync = ref.watch(_sectionActivitiesProvider(section.id));
+      remindersAsync = ref.watch(_sectionRemindersProvider(section.id));
+    }
     final color = colorFromHex(section.color) ?? AppColors.primary;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: MkAddFab(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AddMedcardEntryScreen(section: section),
-          ),
-        ),
-      ),
+      floatingActionButton: readOnly
+          ? null
+          : MkAddFab(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AddMedcardEntryScreen(section: section),
+                ),
+              ),
+            ),
       body: SafeArea(
         child: Column(
           children: [
@@ -182,6 +207,7 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(child: Text(section.name, style: AppTextStyles.h3)),
+                  if (!readOnly) ...[
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
@@ -204,6 +230,7 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                       child: Icon(Icons.delete_outline_rounded, size: 20, color: AppColors.danger),
                     ),
                   ),
+                  ],
                 ],
               ),
             ),
@@ -302,7 +329,12 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                       itemCount: filtered.length,
                       itemBuilder: (context, i) => Padding(
                         padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                        child: _FeedCard(item: filtered[i], section: section, color: color),
+                        child: _FeedCard(
+                          item: filtered[i],
+                          section: section,
+                          color: color,
+                          readOnly: readOnly,
+                        ),
                       ),
                     );
                   },
@@ -320,10 +352,20 @@ class _FeedCard extends StatelessWidget {
   final _FeedItem item;
   final MedcardSection section;
   final Color color;
-  const _FeedCard({required this.item, required this.section, required this.color});
+  final bool readOnly;
+  const _FeedCard({
+    required this.item,
+    required this.section,
+    required this.color,
+    this.readOnly = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Екрани повного перегляду (запис Полички/ліки/рутина/нагадування)
+    // поки не вміють показувати чужий запис (Крок 4.3.5 плану) — для
+    // піра тап нічого не робить, замість відкриття порожнього/зламаного
+    // екрана за синтетичним id.
     switch (item.kind) {
       case _ItemKind.entry:
         final entry = item.entry!;
@@ -338,15 +380,17 @@ class _FeedCard extends StatelessWidget {
           notePreview: entry.notes,
           tags: tags,
           photoPaths: photos,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MedcardEntryViewScreen(
-                section: section,
-                entryId: entry.id,
-              ),
-            ),
-          ),
+          onTap: readOnly
+              ? () {}
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MedcardEntryViewScreen(
+                        section: section,
+                        entryId: entry.id,
+                      ),
+                    ),
+                  ),
         );
       case _ItemKind.medication:
         final m = item.medication!;
@@ -356,15 +400,17 @@ class _FeedCard extends StatelessWidget {
           color: color,
           title: m.name,
           dateLabel: _formatDate(m.startDate),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MedicationDetailScreen(
-                medicationId: m.id,
-                memberId: m.memberId,
-              ),
-            ),
-          ),
+          onTap: readOnly
+              ? () {}
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MedicationDetailScreen(
+                        medicationId: m.id,
+                        memberId: m.memberId,
+                      ),
+                    ),
+                  ),
         );
       case _ItemKind.activity:
         final a = item.activity!;
@@ -374,12 +420,14 @@ class _FeedCard extends StatelessWidget {
           color: color,
           title: a.name,
           dateLabel: _formatDate(a.createdAt),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RoutineViewScreen(activityId: a.id),
-            ),
-          ),
+          onTap: readOnly
+              ? () {}
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RoutineViewScreen(activityId: a.id),
+                    ),
+                  ),
         );
       case _ItemKind.reminder:
         final r = item.reminder!;
@@ -394,12 +442,14 @@ class _FeedCard extends StatelessWidget {
           notePreview: r.notes,
           tags: tags,
           photoPaths: photos,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ReminderViewScreen(reminderId: r.id),
-            ),
-          ),
+          onTap: readOnly
+              ? () {}
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ReminderViewScreen(reminderId: r.id),
+                    ),
+                  ),
         );
     }
   }
