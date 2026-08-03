@@ -29,7 +29,7 @@ import '../today/providers/today_providers.dart';
 import 'family_duties_screen.dart';
 import 'family_group_invite_screen.dart';
 import 'family_group_join_screen.dart';
-import 'shared_family_data_screen.dart';
+import 'peer_view_providers.dart';
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
@@ -592,6 +592,7 @@ class _MemberActionsSheet extends ConsumerWidget {
         icon: Icons.today_rounded,
         label: context.l10n.viewAsLabel(member.name),
         onTap: () {
+          ref.read(activePeerProvider.notifier).state = null;
           ref.read(activeMemberIdProvider.notifier).state = member.id;
           ref.read(requestedTabIndexProvider.notifier).state = 2; // Сьогодні
           Navigator.pop(context);
@@ -1289,11 +1290,22 @@ class _PeerCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => SharedFamilyDataScreen(peerChannelId: peer.channelId, peerName: peer.name),
-              ),
-            ),
+            onTap: () {
+              // Крок 4.3.1 плану: раніше тут відкривався окремий, спрощений
+              // екран ("Дані від ___"). Тепер вибір автономного піра, як і
+              // локального члена сім'ї, просто перемикає звичайні
+              // Сьогодні/Розклад/Медкартка в режим перегляду цієї людини —
+              // Крок 4.3.7 прибере старий екран остаточно, коли всі 4
+              // реальних екрани навчаться показувати дані піра.
+              ref.read(activeMemberIdProvider.notifier).state = null;
+              ref.read(activePeerProvider.notifier).state = PeerSubject(
+                personUuid: peer.personUuid,
+                channelId: peer.channelId,
+                name: peer.name,
+                avatarIndex: peer.avatarIndex,
+              );
+              ref.read(requestedTabIndexProvider.notifier).state = 2; // Сьогодні
+            },
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(

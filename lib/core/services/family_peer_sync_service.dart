@@ -416,6 +416,11 @@ class FamilyPeerSyncService {
     return row?.syncUuid;
   }
 
+  Future<String?> _scheduleSyncUuidFor(int scheduleId) async {
+    final row = await (_db.select(_db.schedules)..where((t) => t.id.equals(scheduleId))).getSingleOrNull();
+    return row?.syncUuid;
+  }
+
   Future<String?> _activitySyncUuidFor(int activityId) async {
     final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activityId))).getSingleOrNull();
     return row?.syncUuid;
@@ -437,7 +442,14 @@ class FamilyPeerSyncService {
     switch (type) {
       case 'medication':
         final rows = await (_db.select(_db.medications)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+        final result = <Map<String, dynamic>>[];
+        for (final r in rows) {
+          if (r.syncUuid == null) continue;
+          final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
+          json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          result.add(json);
+        }
+        return result;
       case 'schedule':
         final query = _db.select(_db.schedules).join([
           innerJoin(_db.medications, _db.medications.id.equalsExp(_db.schedules.medicationId)),
@@ -461,17 +473,26 @@ class FamilyPeerSyncService {
         for (final i in rows) {
           if (i.syncUuid == null) continue;
           final medUuid = await _medicationSyncUuidFor(i.medicationId);
-          if (medUuid == null) continue;
+          final schedUuid = await _scheduleSyncUuidFor(i.scheduleId);
+          if (medUuid == null || schedUuid == null) continue;
           final json = _withUuid(i.toJson(), i.syncUuid!)
             ..remove('medicationId')
             ..remove('scheduleId');
           json['medicationSyncUuid'] = medUuid;
+          json['scheduleSyncUuid'] = schedUuid;
           result.add(json);
         }
         return result;
       case 'activity':
         final rows = await (_db.select(_db.activities)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+        final result = <Map<String, dynamic>>[];
+        for (final r in rows) {
+          if (r.syncUuid == null) continue;
+          final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
+          json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          result.add(json);
+        }
+        return result;
       case 'activity_slot':
         final query = _db.select(_db.activitySlots).join([
           innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activitySlots.activityId)),
@@ -508,11 +529,25 @@ class FamilyPeerSyncService {
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
       case 'wellbeing_schedule':
         final rows = await (_db.select(_db.wellbeingSchedules)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+        final wsResult = <Map<String, dynamic>>[];
+        for (final r in rows) {
+          if (r.syncUuid == null) continue;
+          final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
+          json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          wsResult.add(json);
+        }
+        return wsResult;
       case 'doctor_appointment':
         final rows =
             await (_db.select(_db.reminders)..where((t) => t.memberId.equals(memberId))).get();
-        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+        final daResult = <Map<String, dynamic>>[];
+        for (final r in rows) {
+          if (r.syncUuid == null) continue;
+          final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
+          json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          daResult.add(json);
+        }
+        return daResult;
       case 'reminder_log':
         final rows = await (_db.select(_db.reminderLogs)
               ..where((t) => t.memberId.equals(memberId) & t.scheduledAt.isBiggerOrEqualValue(recentCutoff)))
@@ -565,6 +600,14 @@ class FamilyPeerSyncService {
     final row = await (_db.select(_db.medcardSections)..where((t) => t.id.equals(sectionId))).getSingleOrNull();
     return row?.syncUuid;
   }
+
+  // Крок 4.3 плану: medication/activity/wellbeing_schedule/doctor_appointment
+  // раніше передавали сирий локальний sectionId як є (без перекладу через
+  // syncUuid) — те саме упущення, що вже виправили для 1:1-синку в Кроці
+  // 5.5, тут просто не було зроблено. Виправляю зараз, бо перекладач чужих
+  // даних (peer view) читатиме саме це поле.
+  Future<String?> _sectionSyncUuidOrNull(int? sectionId) =>
+      sectionId == null ? Future.value(null) : _medcardSectionSyncUuidFor(sectionId);
 
   Map<String, dynamic> _withUuid(Map<String, dynamic> json, String uuid) {
     json['uuid'] = uuid;
