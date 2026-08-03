@@ -52,6 +52,7 @@ class FamilyPeerSyncService {
     'wellbeing_log',
     'wellbeing_schedule',
     'doctor_appointment',
+    'reminder_log',
     'medcard_section',
     'medcard_entry',
   ];
@@ -361,6 +362,14 @@ class FamilyPeerSyncService {
             await (_db.update(_db.medcardSections)..where((t) => t.id.equals(r.id)))
                 .write(MedcardSectionsCompanion(syncUuid: Value(_uuid.v4())));
           }
+        case 'reminder_log':
+          final rows = await (_db.select(_db.reminderLogs)
+                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+              .get();
+          for (final r in rows) {
+            await (_db.update(_db.reminderLogs)..where((t) => t.id.equals(r.id)))
+                .write(ReminderLogsCompanion(syncUuid: Value(_uuid.v4())));
+          }
       }
     }
 
@@ -383,7 +392,7 @@ class FamilyPeerSyncService {
     await wellbeingLogs();
     await wellbeingSchedules();
     await medcardEntries();
-    for (final t in const ['doctor_appointment', 'medcard_section']) {
+    for (final t in const ['doctor_appointment', 'medcard_section', 'reminder_log']) {
       await flat(t);
     }
   }
@@ -395,6 +404,11 @@ class FamilyPeerSyncService {
 
   Future<String?> _activitySyncUuidFor(int activityId) async {
     final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activityId))).getSingleOrNull();
+    return row?.syncUuid;
+  }
+
+  Future<String?> _reminderSyncUuidFor(int reminderId) async {
+    final row = await (_db.select(_db.reminders)..where((t) => t.id.equals(reminderId))).getSingleOrNull();
     return row?.syncUuid;
   }
 
@@ -485,6 +499,20 @@ class FamilyPeerSyncService {
         final rows =
             await (_db.select(_db.reminders)..where((t) => t.memberId.equals(memberId))).get();
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+      case 'reminder_log':
+        final rows = await (_db.select(_db.reminderLogs)
+              ..where((t) => t.memberId.equals(memberId) & t.scheduledAt.isBiggerOrEqualValue(recentCutoff)))
+            .get();
+        final result = <Map<String, dynamic>>[];
+        for (final l in rows) {
+          if (l.syncUuid == null) continue;
+          final reminderUuid = await _reminderSyncUuidFor(l.reminderId);
+          if (reminderUuid == null) continue;
+          final json = _withUuid(l.toJson(), l.syncUuid!)..remove('reminderId');
+          json['reminderSyncUuid'] = reminderUuid;
+          result.add(json);
+        }
+        return result;
       case 'medcard_section':
         final rows = await (_db.select(_db.medcardSections)..where((t) => t.memberId.equals(memberId))).get();
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
