@@ -10,7 +10,10 @@ class MedcardSectionsRepository {
   Stream<List<MedcardSection>> watchByMember(int memberId) {
     return (_db.select(_db.medcardSections)
           ..where((t) => t.memberId.equals(memberId))
-          ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.sortOrder),
+            (t) => OrderingTerm.asc(t.createdAt),
+          ]))
         .watch();
   }
 
@@ -25,8 +28,30 @@ class MedcardSectionsRepository {
       (_db.select(_db.medcardSections)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
 
-  Future<int> insert(MedcardSectionsCompanion section) =>
-      _db.into(_db.medcardSections).insert(section);
+  // Нові розділи йдуть у кінець списку "Ваші розділи" — sortOrder не
+  // передається явним викликачем, тож рахуємо його тут за поточною
+  // кількістю розділів профілю.
+  Future<int> insert(MedcardSectionsCompanion section) async {
+    var toInsert = section;
+    if (!section.sortOrder.present) {
+      final count = await countByMember(section.memberId.value);
+      toInsert = toInsert.copyWith(sortOrder: Value(count));
+    }
+    return _db.into(_db.medcardSections).insert(toInsert);
+  }
+
+  // Викликати з нового порядку id-шників після драг-н-дропу в UI (усі
+  // розділи, крім автостворених нотаток — ті завжди пінуються першими
+  // окремо, див. med_card_screen.dart).
+  Future<void> reorder(List<int> orderedSectionIds) async {
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedSectionIds.length; i++) {
+        await (_db.update(_db.medcardSections)
+              ..where((t) => t.id.equals(orderedSectionIds[i])))
+            .write(MedcardSectionsCompanion(sortOrder: Value(i)));
+      }
+    });
+  }
 
   // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. memberId), а
   // екран редагування передає лише змінені поля без memberId.

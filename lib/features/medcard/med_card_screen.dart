@@ -193,14 +193,18 @@ class _MedCardBody extends ConsumerWidget {
                 error: (_, _) => const SizedBox.shrink(),
                 data: (sections) {
                   if (sections.isEmpty) return const SizedBox.shrink();
-                  // Автостворений розділ "Нотатки" (isDefaultNotes) завжди
-                  // вгорі — незалежно від того, коли саме його лениво
-                  // створили відносно інших розділів (watchByMember сортує
-                  // за createdAt).
-                  final pinned = [...sections]..sort((a, b) {
-                      if (a.isDefaultNotes == b.isDefaultNotes) return 0;
-                      return a.isDefaultNotes ? -1 : 1;
-                    });
+                  // Автостворений розділ "Нотатки" завжди вгорі, поза
+                  // драг-н-дропом — решта (реальний sortOrder із
+                  // watchByMember) перетягується вільно.
+                  MedcardSection? defaultSection;
+                  final draggable = <MedcardSection>[];
+                  for (final s in sections) {
+                    if (s.isDefaultNotes && defaultSection == null) {
+                      defaultSection = s;
+                    } else {
+                      draggable.add(s);
+                    }
+                  }
                   return Column(
                     children: [
                       const SizedBox(height: AppDimensions.lg),
@@ -212,22 +216,24 @@ class _MedCardBody extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: AppDimensions.sm),
-                      ...pinned.map((s) => Padding(
-                            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                            child: _MedCardTile(
-                              icon: Icons.folder_rounded,
-                              iconWidget: MedcardIcon(s.iconKey, size: 24),
-                              iconColor: colorFromHex(s.color) ?? AppColors.primary,
-                              title: s.name,
-                              subtitle: s.comment,
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => MedcardSectionScreen(section: s),
-                                ),
+                      if (defaultSection != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                          child: _MedCardTile(
+                            icon: Icons.folder_rounded,
+                            iconWidget: MedcardIcon(defaultSection.iconKey, size: 24),
+                            iconColor: colorFromHex(defaultSection.color) ?? AppColors.primary,
+                            title: defaultSection.name,
+                            subtitle: defaultSection.comment,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MedcardSectionScreen(section: defaultSection!),
                               ),
                             ),
-                          )),
+                          ),
+                        ),
+                      _DraggableSections(sections: draggable),
                     ],
                   );
                 },
@@ -294,6 +300,88 @@ class _MedCardBody extends ConsumerWidget {
   }
 }
 
+// ── Довільні розділи: драг-н-дроп ────────────────────────────────────────────
+
+class _DraggableSections extends ConsumerStatefulWidget {
+  final List<MedcardSection> sections;
+  const _DraggableSections({required this.sections});
+
+  @override
+  ConsumerState<_DraggableSections> createState() => _DraggableSectionsState();
+}
+
+class _DraggableSectionsState extends ConsumerState<_DraggableSections> {
+  late List<MedcardSection> _local;
+  // Поки триває збереження нового порядку — не підміняти _local вхідними
+  // widget.sections: той список ще зі старим sortOrder (потік watchByMember
+  // емітить оновлення лише ПІСЛЯ завершення запису), інакше щойно
+  // перетягнутий елемент на мить "відскочив" би назад.
+  bool _reordering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _local = widget.sections;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DraggableSections oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_reordering) _local = widget.sections;
+  }
+
+  Future<void> _handleReorder(int oldIndex, int newIndex) async {
+    setState(() {
+      _reordering = true;
+      final item = _local.removeAt(oldIndex);
+      _local.insert(newIndex, item);
+    });
+    await ref
+        .read(medcardSectionsRepositoryProvider)
+        .reorder(_local.map((s) => s.id).toList());
+    if (mounted) setState(() => _reordering = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_local.isEmpty) return const SizedBox.shrink();
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: _local.length,
+      onReorderItem: _handleReorder,
+      itemBuilder: (context, index) {
+        final s = _local[index];
+        return Padding(
+          key: ValueKey(s.id),
+          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+          child: _MedCardTile(
+            icon: Icons.folder_rounded,
+            iconWidget: MedcardIcon(s.iconKey, size: 24),
+            iconColor: colorFromHex(s.color) ?? AppColors.primary,
+            title: s.name,
+            subtitle: s.comment,
+            leading: ReorderableDragStartListener(
+              index: index,
+              child: const Icon(
+                Icons.drag_handle_rounded,
+                color: AppColors.textMuted,
+              ),
+            ),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MedcardSectionScreen(section: s),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _MedCardTile extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -301,6 +389,7 @@ class _MedCardTile extends StatelessWidget {
   final String? subtitle;
   final VoidCallback? onTap;
   final Widget? iconWidget;
+  final Widget? leading;
 
   const _MedCardTile({
     required this.icon,
@@ -309,6 +398,7 @@ class _MedCardTile extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.iconWidget,
+    this.leading,
   });
 
   @override
@@ -328,6 +418,10 @@ class _MedCardTile extends StatelessWidget {
           ),
           child: Row(
             children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: AppDimensions.sm),
+              ],
               Container(
                 width: 40,
                 height: 40,

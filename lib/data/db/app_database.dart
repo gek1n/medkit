@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 42;
+  int get schemaVersion => 43;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -865,6 +865,16 @@ class AppDatabase extends _$AppDatabase {
             try {
               await customStatement(
                   'ALTER TABLE medications DROP COLUMN food_relation');
+            } catch (_) {}
+          }
+          if (from < 43) {
+            // Драг-н-дроп для "Ваші розділи" — усі наявні рядки отримують
+            // 0 за замовчуванням, що безпечно: сортування в watchByMember
+            // йде [sortOrder, createdAt], тож поки sortOrder однаковий,
+            // порядок лишається тим самим, що й був (за датою створення) —
+            // жодного видимого стрибка для наявних користувачів.
+            try {
+              await m.addColumn(medcardSections, medcardSections.sortOrder);
             } catch (_) {}
           }
         },
