@@ -17,8 +17,8 @@ import '../../data/repositories/family_peers_repository.dart';
 const _notesFieldByType = {
   'medication': 'instructions',
   'doctor_appointment': 'notes',
+  'medcard_entry': 'notes',
 };
-
 
 String _entityTypeLabel(BuildContext context, String type) {
   final l10n = context.l10n;
@@ -27,6 +27,7 @@ String _entityTypeLabel(BuildContext context, String type) {
     'doctor_appointment' => l10n.doctorVisitLabel,
     'activity' => l10n.defaultActivityName,
     'wellbeing_schedule' => l10n.wellbeingTitle,
+    'medcard_entry' => l10n.navMedCard,
     _ => type,
   };
 }
@@ -36,6 +37,7 @@ const _entityTypeIcons = {
   'doctor_appointment': Icons.calendar_month_rounded,
   'activity': Icons.directions_walk_rounded,
   'wellbeing_schedule': Icons.favorite_border_rounded,
+  'medcard_entry': Icons.folder_rounded,
 };
 
 // Дочірні "інстанси на день" (intake/activity_log/wellbeing_log) та внутрішні
@@ -43,20 +45,23 @@ const _entityTypeIcons = {
 // список ріс би необмежено з кожним новим днем. Вони все одно обробляються
 // (перевірки пропущеного, підрахунок стану), просто не рендеряться напряму;
 // час прийому видно всередині картки відповідних ліків/активності нижче.
+// medcard_section теж прихована — сама "папка" без вмісту нічого не додає
+// до цього плоского списку, показуємо лише записи (medcard_entry) в ній.
 const _hiddenFromList = {
   'schedule',
   'intake',
   'activity_slot',
   'activity_log',
   'wellbeing_log',
+  'medcard_section',
 };
 
 /// Читає найбільш "людяне" поле з довільного JSON — записи різних типів
-/// мають різні назви ключового поля (name/testName/allergen/doctorType),
+/// мають різні назви ключового поля (name/testName/allergen/doctorType/title),
 /// тому радше вгадуємо перше підходяще, ніж дублюємо типізовану модель
 /// заради суто інформаційного, нередагованого перегляду.
 String _primaryLabel(BuildContext context, Map<String, dynamic> json) {
-  for (final key in ['name', 'testName', 'allergen', 'doctorType']) {
+  for (final key in ['name', 'testName', 'allergen', 'doctorType', 'title']) {
     final v = json[key];
     if (v is String && v.isNotEmpty) return v;
   }

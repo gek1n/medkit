@@ -84,6 +84,8 @@ class FamilySyncService {
     await _assignMissingActivityLogUuids(memberId);
     await _assignMissingWellbeingLogUuids(memberId);
     await _assignMissingWellbeingScheduleUuids(memberId);
+    await _assignMissingMedcardSectionUuids(memberId);
+    await _assignMissingMedcardEntryUuids(memberId);
 
     final medications = await (_db.select(_db.medications)..where((t) => t.memberId.equals(memberId))).get();
     for (final m in medications) {
@@ -174,6 +176,24 @@ class FamilySyncService {
       }
     }
 
+    final medcardSectionRows =
+        await (_db.select(_db.medcardSections)..where((t) => t.memberId.equals(memberId))).get();
+    for (final s in medcardSectionRows) {
+      if (s.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(
+            channelId: channel.channelId, entityType: 'medcard_section', syncUuid: s.syncUuid!);
+      }
+    }
+
+    final medcardEntryRows =
+        await (_db.select(_db.medcardEntries)..where((t) => t.memberId.equals(memberId))).get();
+    for (final e in medcardEntryRows) {
+      if (e.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(
+            channelId: channel.channelId, entityType: 'medcard_entry', syncUuid: e.syncUuid!);
+      }
+    }
+
     try {
       await _syncChannel(channel);
     } catch (_) {
@@ -212,11 +232,17 @@ class FamilySyncService {
         ? true
         : await FamilyVisibilityService.isMedcardSyncAllowed(subjectMember!.personUuid!);
 
+    // Крок 5-6 плану: Полички тепер синхронізуються (нижче), тож перш ніж
+    // резолвити sectionSyncUuid для медикаментів/рутин/нагадувань/самопочуття,
+    // усі наявні розділи мають вже отримати свій syncUuid.
+    await _assignMissingMedcardSectionUuids(memberId);
+
     for (final m in await _medicationsForPush(memberId, since)) {
-      // sectionId — суто локальний номер Полички на цьому пристрої;
-      // Полички ще не синхронізуються (див. Крок 6 плану), тож він нічого
-      // не означає на приймачі й раніше викликав FK-конфлікт при вставці.
+      // sectionId — Крок 5-6: Полички тепер синхронізуються (вище), тож
+      // передаємо прив'язку до розділу через його syncUuid — так само, як
+      // medicationSyncUuid для розкладу. null, якщо розділ не обрано.
       final json = m.toJson()..remove('id')..remove('memberId')..remove('sectionId');
+      json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(m.sectionId);
       entities.add({
         'type': 'medication',
         'uuid': m.syncUuid,
@@ -268,6 +294,7 @@ class FamilySyncService {
     for (final a in await _activitiesForPush(memberId, since)) {
       // sectionId — див. коментар у блоці medication вище.
       final json = a.toJson()..remove('id')..remove('memberId')..remove('sectionId');
+      json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(a.sectionId);
       entities.add({
         'type': 'activity',
         'uuid': a.syncUuid,
@@ -311,6 +338,7 @@ class FamilySyncService {
       for (final s in await _wellbeingSchedulesForPush(memberId, since)) {
         // sectionId — див. коментар у блоці medication вище.
         final json = s.toJson()..remove('id')..remove('memberId')..remove('sectionId');
+        json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(s.sectionId);
         entities.add({
           'type': 'wellbeing_schedule',
           'uuid': s.syncUuid,
@@ -329,9 +357,36 @@ class FamilySyncService {
       for (final a in await _appointmentsForPush(memberId, since)) {
         // sectionId — див. коментар у блоці medication вище.
         final json = a.toJson()..remove('id')..remove('memberId')..remove('sectionId');
+        json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(a.sectionId);
         entities.add({
           'type': 'doctor_appointment',
           'uuid': a.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+    }
+
+    // Полички — Крок 5-6 плану: власні розділи архіву й записи в них раніше
+    // взагалі не синхронізувались між пристроями одного профілю. Розділ —
+    // плоска сутність (як medication), запис усередині нього — дочірня (як
+    // schedule), тож несе не сирий sectionId, а syncUuid розділу.
+    if (medcardSyncAllowed) {
+      for (final s in await _medcardSectionsForPush(memberId, since)) {
+        final json = s.toJson()..remove('id')..remove('memberId');
+        entities.add({
+          'type': 'medcard_section',
+          'uuid': s.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      for (final e in await _medcardEntriesForPush(memberId, since)) {
+        final sectionUuid = await _medcardSectionSyncUuidFor(e.sectionId);
+        if (sectionUuid == null) continue; // розділ ще не отримав syncUuid — почекаємо наступного разу
+        final json = e.toJson()..remove('id')..remove('memberId')..remove('sectionId');
+        json['sectionSyncUuid'] = sectionUuid;
+        entities.add({
+          'type': 'medcard_entry',
+          'uuid': e.syncUuid,
           'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
         });
       }
@@ -583,6 +638,52 @@ class FamilySyncService {
     return query.get();
   }
 
+  // ── Полички (розділи архіву + записи в них) ──────────────────────────────
+
+  Future<void> _assignMissingMedcardSectionUuids(int memberId) async {
+    final rows = await (_db.select(_db.medcardSections)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final s in rows) {
+      await (_db.update(_db.medcardSections)..where((t) => t.id.equals(s.id))).write(
+        MedcardSectionsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<MedcardSection>> _medcardSectionsForPush(int memberId, DateTime? since) async {
+    await _assignMissingMedcardSectionUuids(memberId);
+    final query = _db.select(_db.medcardSections)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
+  }
+
+  Future<void> _assignMissingMedcardEntryUuids(int memberId) async {
+    final rows = await (_db.select(_db.medcardEntries)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final e in rows) {
+      await (_db.update(_db.medcardEntries)..where((t) => t.id.equals(e.id))).write(
+        MedcardEntriesCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<MedcardEntry>> _medcardEntriesForPush(int memberId, DateTime? since) async {
+    await _assignMissingMedcardEntryUuids(memberId);
+    final query = _db.select(_db.medcardEntries)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
+  }
+
+  Future<String?> _medcardSectionSyncUuidFor(int sectionId) async {
+    final row = await (_db.select(_db.medcardSections)..where((t) => t.id.equals(sectionId))).getSingleOrNull();
+    return row?.syncUuid;
+  }
+
+  Future<String?> _sectionSyncUuidOrNull(int? sectionId) =>
+      sectionId == null ? Future.value(null) : _medcardSectionSyncUuidFor(sectionId);
+
   Future<String?> _medicationSyncUuidFor(int medicationId) async {
     final row = await (_db.select(_db.medications)..where((t) => t.id.equals(medicationId))).getSingleOrNull();
     return row?.syncUuid;
@@ -645,6 +746,12 @@ class FamilySyncService {
       for (final a in appointments) {
         addDocumentPaths(a.documentPaths);
       }
+
+      final medcardEntries =
+          await (_db.select(_db.medcardEntries)..where((t) => t.memberId.equals(channel.memberId))).get();
+      for (final e in medcardEntries) {
+        addDocumentPaths(e.documentPaths);
+      }
     }
 
     final previouslyPushed = await _pushedPhotoIds(channel.channelId);
@@ -702,13 +809,17 @@ class FamilySyncService {
 
     // Порядок важливий для medication/schedule/intake/symptom: дочірні
     // сутності посилаються лише коли в батьківської вже є syncUuid, тож
-    // medication гарантовано не пізніше за своїх дітей. Решта медкартки —
-    // плоскі (memberId напряму), порядок між ними не має значення.
+    // medication гарантовано не пізніше за своїх дітей. medcard_section —
+    // першою: medication/activity/wellbeing_schedule/doctor_appointment
+    // тепер теж резолвлять sectionSyncUuid (Крок 5-6), а medcard_entry
+    // (дочірня щодо medcard_section) — останньою.
     const order = [
+      'medcard_section',
       'medication', 'schedule', 'intake', 'symptom',
       'activity', 'activity_slot', 'activity_log',
       'wellbeing_log', 'wellbeing_schedule',
       'doctor_appointment',
+      'medcard_entry',
     ];
     final byType = <String, List<FamilySyncEntity>>{for (final t in order) t: []};
     for (final e in result.entities) {
@@ -768,6 +879,7 @@ class FamilySyncService {
             await (_db.select(_db.medications)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
         json['id'] = existing?.id ?? 0;
         json['memberId'] = memberId;
+        json['sectionId'] = await _localSectionIdOrNull(json['sectionSyncUuid'] as String?);
         final row = Medication.fromJson(json);
         var companion = row.toCompanion(false);
         companion = existing != null
@@ -845,6 +957,7 @@ class FamilySyncService {
             await (_db.select(_db.activities)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
         json['id'] = existing?.id ?? 0;
         json['memberId'] = memberId;
+        json['sectionId'] = await _localSectionIdOrNull(json['sectionSyncUuid'] as String?);
         final row = Activity.fromJson(json);
         var companion = row.toCompanion(false);
         companion = existing != null
@@ -917,6 +1030,7 @@ class FamilySyncService {
             .getSingleOrNull();
         json['id'] = existing?.id ?? 0;
         json['memberId'] = memberId;
+        json['sectionId'] = await _localSectionIdOrNull(json['sectionSyncUuid'] as String?);
         final row = WellbeingSchedule.fromJson(json);
         var companion = row.toCompanion(false);
         companion = existing != null
@@ -934,6 +1048,7 @@ class FamilySyncService {
             .getSingleOrNull();
         json['id'] = existing?.id ?? 0;
         json['memberId'] = memberId;
+        json['sectionId'] = await _localSectionIdOrNull(json['sectionSyncUuid'] as String?);
         final row = Reminder.fromJson(json);
         var companion = row.toCompanion(false);
         companion = existing != null
@@ -943,6 +1058,44 @@ class FamilySyncService {
           await _db.update(_db.reminders).replace(companion);
         } else {
           await _db.into(_db.reminders).insert(companion);
+        }
+
+      case 'medcard_section':
+        final existing = await (_db.select(_db.medcardSections)
+              ..where((t) => t.syncUuid.equals(syncUuid)))
+            .getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['memberId'] = memberId;
+        final row = MedcardSection.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.medcardSections).replace(companion);
+        } else {
+          await _db.into(_db.medcardSections).insert(companion);
+        }
+
+      case 'medcard_entry':
+        final sectionUuid = json['sectionSyncUuid'] as String?;
+        final sectionId = sectionUuid == null ? null : await _localMedcardSectionIdForUuid(sectionUuid);
+        if (sectionId == null) return; // розділ ще не прийшов — пропускаємо, прийде наступного разу
+        final existing = await (_db.select(_db.medcardEntries)
+              ..where((t) => t.syncUuid.equals(syncUuid)))
+            .getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['sectionId'] = sectionId;
+        json['memberId'] = memberId;
+        final row = MedcardEntry.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.medcardEntries).replace(companion);
+        } else {
+          await _db.into(_db.medcardEntries).insert(companion);
         }
 
     }
@@ -970,6 +1123,10 @@ class FamilySyncService {
         await (_db.delete(_db.wellbeingSchedules)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'doctor_appointment':
         await (_db.delete(_db.reminders)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'medcard_section':
+        await (_db.delete(_db.medcardSections)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'medcard_entry':
+        await (_db.delete(_db.medcardEntries)..where((t) => t.syncUuid.equals(syncUuid))).go();
     }
   }
 
@@ -982,4 +1139,18 @@ class FamilySyncService {
     final row = await (_db.select(_db.schedules)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
     return row?.id;
   }
+
+  Future<int?> _localMedcardSectionIdForUuid(String syncUuid) async {
+    final row =
+        await (_db.select(_db.medcardSections)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+    return row?.id;
+  }
+
+  /// null, якщо запис не мав розділу (sectionSyncUuid відсутній) АБО розділ
+  /// ще не дійшов до цього пристрою — у другому випадку прив'язка просто
+  /// не встановиться цього разу й підхопиться на наступному синку, коли
+  /// medcard_section вже буде локально (той самий компроміс, що й для
+  /// medicationSyncUuid/scheduleSyncUuid вище).
+  Future<int?> _localSectionIdOrNull(String? sectionSyncUuid) =>
+      sectionSyncUuid == null ? Future.value(null) : _localMedcardSectionIdForUuid(sectionSyncUuid);
 }

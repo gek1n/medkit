@@ -52,6 +52,8 @@ class FamilyPeerSyncService {
     'wellbeing_log',
     'wellbeing_schedule',
     'doctor_appointment',
+    'medcard_section',
+    'medcard_entry',
   ];
 
   // Той самий пріоритет, що й у family_sync_service.dart (пейринг 1:1):
@@ -351,6 +353,24 @@ class FamilyPeerSyncService {
             await (_db.update(_db.reminders)..where((t) => t.id.equals(r.id)))
                 .write(RemindersCompanion(syncUuid: Value(_uuid.v4())));
           }
+        case 'medcard_section':
+          final rows = await (_db.select(_db.medcardSections)
+                ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+              .get();
+          for (final r in rows) {
+            await (_db.update(_db.medcardSections)..where((t) => t.id.equals(r.id)))
+                .write(MedcardSectionsCompanion(syncUuid: Value(_uuid.v4())));
+          }
+      }
+    }
+
+    Future<void> medcardEntries() async {
+      final rows = await (_db.select(_db.medcardEntries)
+            ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+          .get();
+      for (final r in rows) {
+        await (_db.update(_db.medcardEntries)..where((t) => t.id.equals(r.id)))
+            .write(MedcardEntriesCompanion(syncUuid: Value(_uuid.v4())));
       }
     }
 
@@ -362,7 +382,8 @@ class FamilyPeerSyncService {
     await activityLogs();
     await wellbeingLogs();
     await wellbeingSchedules();
-    for (final t in const ['doctor_appointment']) {
+    await medcardEntries();
+    for (final t in const ['doctor_appointment', 'medcard_section']) {
       await flat(t);
     }
   }
@@ -464,8 +485,28 @@ class FamilyPeerSyncService {
         final rows =
             await (_db.select(_db.reminders)..where((t) => t.memberId.equals(memberId))).get();
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+      case 'medcard_section':
+        final rows = await (_db.select(_db.medcardSections)..where((t) => t.memberId.equals(memberId))).get();
+        return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
+      case 'medcard_entry':
+        final rows = await (_db.select(_db.medcardEntries)..where((t) => t.memberId.equals(memberId))).get();
+        final result = <Map<String, dynamic>>[];
+        for (final e in rows) {
+          if (e.syncUuid == null) continue;
+          final sectionUuid = await _medcardSectionSyncUuidFor(e.sectionId);
+          if (sectionUuid == null) continue;
+          final json = _withUuid(e.toJson(), e.syncUuid!)..remove('sectionId');
+          json['sectionSyncUuid'] = sectionUuid;
+          result.add(json);
+        }
+        return result;
     }
     return const [];
+  }
+
+  Future<String?> _medcardSectionSyncUuidFor(int sectionId) async {
+    final row = await (_db.select(_db.medcardSections)..where((t) => t.id.equals(sectionId))).getSingleOrNull();
+    return row?.syncUuid;
   }
 
   Map<String, dynamic> _withUuid(Map<String, dynamic> json, String uuid) {
@@ -792,6 +833,9 @@ class FamilyPeerSyncService {
 
     for (final a in await _db.select(_db.reminders).get()) {
       if (_documentPathsContain(a.documentPaths, photoPath) && await memberAllowed(a.memberId)) return true;
+    }
+    for (final e in await _db.select(_db.medcardEntries).get()) {
+      if (_documentPathsContain(e.documentPaths, photoPath) && await memberAllowed(e.memberId)) return true;
     }
     return false;
   }
