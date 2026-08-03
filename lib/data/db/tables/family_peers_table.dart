@@ -34,6 +34,14 @@ class FamilyPeers extends Table {
   // цього видно/можна редагувати. Той самий принцип "я не вирішую сам за
   // себе, лише читаю те, що суб'єкт сповістив через grants_summary".
 
+  BoolColumn get viewShelvesGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get editShelvesGranted => boolean().withDefault(const Constant(false))();
+  // Крок 4.3.4 плану: Полички як окремий розділ, той самий принцип, що й
+  // Розклад/Медкартка вище — додано, коли самі Полички вже синхронізуються
+  // (Крок 5.1), окремо від Медкартки (візити/самопочуття), бо в Поличках
+  // часто вільні особисті нотатки, які людина може захотіти лишити
+  // приватними, навіть ділячись медичною історією.
+
   BoolColumn get invitedMe => boolean().withDefault(const Constant(false))();
   // true — це ВІН мене запросив (я скановував його код, або конверсія
   // "Локальний → Автономний" на його боці); false — це Я його запросив, або

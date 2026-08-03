@@ -1415,6 +1415,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get familySectionVisitsWellbeingLabel => 'Visits and wellbeing';
 
   @override
+  String get familySectionShelvesLabel => 'Shelves';
+
+  @override
   String get familySectionViewColumnLabel => 'View';
 
   @override

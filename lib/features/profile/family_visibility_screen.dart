@@ -419,6 +419,13 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
                 onViewChanged: (v) => _toggleSection(FamilySection.medcard, false, v),
                 onEditChanged: (v) => _toggleSection(FamilySection.medcard, true, v),
               ),
+              _SectionPermissionRow(
+                label: context.l10n.familySectionShelvesLabel,
+                viewValue: _sectionValues[FamilySection.shelves]![false]!,
+                editValue: _sectionValues[FamilySection.shelves]![true]!,
+                onViewChanged: (v) => _toggleSection(FamilySection.shelves, false, v),
+                onEditChanged: (v) => _toggleSection(FamilySection.shelves, true, v),
+              ),
             ],
             if (_denied) ...[
               const SizedBox(height: 4),

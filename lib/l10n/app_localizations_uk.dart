@@ -1422,6 +1422,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get familySectionVisitsWellbeingLabel => 'Візити та самопочуття';
 
   @override
+  String get familySectionShelvesLabel => 'Полички';
+
+  @override
   String get familySectionViewColumnLabel => 'Перегляд';
 
   @override

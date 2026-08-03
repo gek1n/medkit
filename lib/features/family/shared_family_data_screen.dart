@@ -226,8 +226,11 @@ class _SubjectEntities extends ConsumerWidget {
     // відсутністю даних (інакше не відрізнити "закрито" від "поки що пусто").
     final scheduleClosed = peer != null && !peer!.viewScheduleGranted;
     final medcardClosed = peer != null && !peer!.viewMedcardGranted;
+    // Крок 4.3.4 плану: Полички тепер окремий розділ (medcard_section/
+    // medcard_entry гейтяться viewShelvesGranted, не viewMedcardGranted).
+    final shelvesClosed = peer != null && !peer!.viewShelvesGranted;
 
-    if (entities.isEmpty && !scheduleClosed && !medcardClosed) {
+    if (entities.isEmpty && !scheduleClosed && !medcardClosed && !shelvesClosed) {
       return Text(
         context.l10n.noViewableDataLabel,
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
@@ -245,6 +248,11 @@ class _SubjectEntities extends ConsumerWidget {
           _SectionClosedCard(
             peerName: peerName,
             sectionLabel: context.l10n.familySectionVisitsWellbeingLabel,
+          ),
+        if (shelvesClosed)
+          _SectionClosedCard(
+            peerName: peerName,
+            sectionLabel: context.l10n.familySectionShelvesLabel,
           ),
         ...entities.map((e) {
           Map<String, dynamic> json;
