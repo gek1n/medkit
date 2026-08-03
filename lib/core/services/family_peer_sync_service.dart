@@ -87,7 +87,14 @@ class FamilyPeerSyncService {
 
     await _push(peer, key);
     await _pushGrantsSummary(peer, key);
-    await _pull(peer, key);
+    final peerLeft = await _pull(peer, key);
+    if (peerLeft) {
+      // Симетрична частина Кроку 3.4: пір сам вийшов із сім'ї чи був
+      // виключений на своєму боці — прибираємо його тут же, а не чекаємо,
+      // поки хтось помітить застарілий рядок вручну.
+      await removePeer(peer.personUuid);
+      return;
+    }
     await FamilyPeersRepository(_db).updateLastSynced(peer.personUuid, DateTime.now());
     await _scheduleMissedChecks(peer);
 
@@ -577,11 +584,19 @@ class FamilyPeerSyncService {
 
   // ── Pull: те, що поділив цей пір, → SharedSubjects/SharedEntities ───────
 
-  Future<void> _pull(FamilyPeer peer, SecretKey key) async {
+  // Повертає true, якщо цей пір щойно сигналізував 'peer_left' (сам вийшов
+  // із сім'ї чи був виключений) — викликач (_syncPeer) має симетрично
+  // прибрати його й на цьому пристрої, а не продовжувати синк як зазвичай.
+  Future<bool> _pull(FamilyPeer peer, SecretKey key) async {
     final result = await _api.pull(channelId: peer.channelId, since: peer.lastSyncedAt);
     final repo = FamilyPeersRepository(_db);
+    var peerLeft = false;
 
     for (final entity in result.entities) {
+      if (entity.type == 'peer_left') {
+        if (!entity.deleted) peerLeft = true;
+        continue;
+      }
       if (entity.type == 'edit_proposal') {
         if (entity.deleted) continue; // tombstone для edit_proposal не буває
         final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
@@ -658,6 +673,7 @@ class FamilyPeerSyncService {
         updatedAt: Value(DateTime.now()),
       ));
     }
+    return peerLeft;
   }
 
   // ── "🔔 Нагадати": миттєвий пуш пиру, коли наглядач натиснув кнопку ──────
@@ -1007,7 +1023,25 @@ class FamilyPeerSyncService {
 
     final keyBytes = await SharedChannelKeyStorage.read(peer.channelId);
     if (keyBytes != null) {
-      await _tombstoneEverythingFor(peer, SecretKey(keyBytes));
+      final key = SecretKey(keyBytes);
+      await _tombstoneEverythingFor(peer, key);
+      // Крок 3.4 плану: без явного сигналу інша сторона цього зв'язку ніколи
+      // не дізнається, що я пішов/мене виключили — її власний рядок
+      // FamilyPeers для мене просто лишався б висіти назавжди зі старими
+      // даними (tombstone-и вище стирають лише МОЇ раніше поділені сутності,
+      // не сам факт зв'язку). 'peer_left' — сигнал "прибери мене як піра
+      // теж", оброблюється симетрично на прийомі нижче в _pull.
+      try {
+        await _api.push(channelId: peer.channelId, entities: [
+          {
+            'type': 'peer_left',
+            'uuid': 'peer_left',
+            'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, {})),
+          }
+        ]);
+      } catch (_) {
+        // Best-effort — той самий компроміс, що й tombstone-и вище.
+      }
     }
     await SharedChannelKeyStorage.delete(peer.channelId);
     await repo.delete(personUuid);
