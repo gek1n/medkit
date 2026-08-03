@@ -14,6 +14,12 @@ class FamilyPeersRepository {
   Future<FamilyPeer?> getByUuid(String personUuid) =>
       (_db.select(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid))).getSingleOrNull();
 
+  // Крок 3.2 плану: одного інвайтера ловить getByUuid, але цього не
+  // достатньо — та сама сімейна група (familyId) могла вже "прийти" через
+  // ІНШОГО її учасника (автопредставлення чи попереднє пряме приєднання).
+  Future<List<FamilyPeer>> getByFamilyId(String familyId) =>
+      (_db.select(_db.familyPeers)..where((t) => t.familyId.equals(familyId))).get();
+
   Future<void> upsert(FamilyPeersCompanion peer) =>
       _db.into(_db.familyPeers).insertOnConflictUpdate(peer);
 

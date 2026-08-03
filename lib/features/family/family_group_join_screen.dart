@@ -10,6 +10,7 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
@@ -72,10 +73,18 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
       // вдруге, наче щось не спрацювало першого разу).
       final existingPeer =
           await FamilyPeersRepository(db).getByUuid(preview.inviterPersonUuid);
-      if (existingPeer != null) {
+      // Крок 3.2: навіть якщо саме ЦЬОГО інвайтера ми ще не сканували, та
+      // сама сімейна група (familyId) може вже бути "нашою" через будь-кого
+      // іншого з неї — інакше можна нескінченно повторно "приєднуватись" до
+      // сім'ї, в якій вже перебуваєш, скануючи коди різних її учасників.
+      final familyPeers = existingPeer == null
+          ? await FamilyPeersRepository(db).getByFamilyId(preview.familyId)
+          : const <FamilyPeer>[];
+      final alreadyInFamily = existingPeer ?? familyPeers.firstOrNull;
+      if (alreadyInFamily != null) {
         if (!mounted) return;
         setState(() {
-          _error = context.l10n.alreadyJoinedFamilyError(preview.inviterName);
+          _error = context.l10n.alreadyJoinedFamilyError(alreadyInFamily.name);
           _submitting = false;
           _handledScan = false;
         });
