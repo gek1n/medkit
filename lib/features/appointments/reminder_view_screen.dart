@@ -19,7 +19,9 @@ import '../../data/repositories/medcard_sections_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
+import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_view_providers.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
@@ -41,12 +43,32 @@ final _sectionProvider =
 /// Перегляд збереженого нагадування — показує все заповнене, без прямого
 /// редагування. Кнопка "Редагувати" веде на стандартну форму (той самий
 /// патерн, що й MedcardEntryViewScreen/MedicationDetailScreen).
+///
+/// Крок 4.3.5 плану: [peer] непорожній — нагадування береться не з
+/// локальної бази (id синтетичний), а з перекладача кешу піра; кнопки
+/// редагування/видалення ховаються.
 class ReminderViewScreen extends ConsumerWidget {
   final int reminderId;
-  const ReminderViewScreen({super.key, required this.reminderId});
+  final PeerSubject? peer;
+  const ReminderViewScreen({super.key, required this.reminderId, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (peer != null) {
+      final reminder = ref
+          .watch(peerRemindersProvider(peer!.personUuid))
+          .where((r) => r.id == reminderId)
+          .firstOrNull;
+      if (reminder == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(child: _ViewBody(reminder: reminder, peer: peer)),
+      );
+    }
+
     final reminderAsync = ref.watch(_reminderProvider(reminderId));
 
     return Scaffold(
@@ -74,7 +96,8 @@ class ReminderViewScreen extends ConsumerWidget {
 
 class _ViewBody extends ConsumerWidget {
   final Reminder reminder;
-  const _ViewBody({required this.reminder});
+  final PeerSubject? peer;
+  const _ViewBody({required this.reminder, this.peer});
 
   List<String> get _tags {
     try {
@@ -196,11 +219,24 @@ class _ViewBody extends ConsumerWidget {
     final showRemindBefore = reminder.repeatType == 'none' ||
         reminder.repeatType == 'monthly' ||
         reminder.repeatType == 'yearly';
-    final slotsAsync =
-        hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null;
-    final sectionAsync = reminder.sectionId != null
-        ? ref.watch(_sectionProvider(reminder.sectionId!))
+    final List<ReminderSlot>? peerSlots = peer != null && hasSlots
+        ? ref
+            .watch(peerReminderSlotsProvider(peer!.personUuid))
+            .where((s) => s.reminderId == reminder.id)
+            .toList()
         : null;
+    final slotsAsync = peer != null
+        ? null
+        : (hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null);
+    final MedcardSection? peerSection = peer != null && reminder.sectionId != null
+        ? ref
+            .watch(peerMedcardSectionsProvider(peer!.personUuid))
+            .where((s) => s.id == reminder.sectionId)
+            .firstOrNull
+        : null;
+    final sectionAsync = peer != null
+        ? null
+        : (reminder.sectionId != null ? ref.watch(_sectionProvider(reminder.sectionId!)) : null);
 
     return Column(
       children: [
@@ -220,21 +256,23 @@ class _ViewBody extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    MkEditIconButton(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AddAppointmentScreen(
-                            memberId: reminder.memberId,
-                            existing: reminder,
+                    if (peer == null)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddAppointmentScreen(
+                              memberId: reminder.memberId,
+                              existing: reminder,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
+              if (peer == null)
+                MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
             ],
           ),
         ),
@@ -271,10 +309,8 @@ class _ViewBody extends ConsumerWidget {
                 ),
                 if (hasSlots) ...[
                   const SizedBox(height: 12),
-                  slotsAsync!.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (e, _) => const SizedBox.shrink(),
-                    data: (slots) => slots.isEmpty
+                  Builder(builder: (context) {
+                    Widget chips(List<ReminderSlot> slots) => slots.isEmpty
                         ? const SizedBox.shrink()
                         : Wrap(
                             spacing: 8,
@@ -307,8 +343,14 @@ class _ViewBody extends ConsumerWidget {
                                       ),
                                     ))
                                 .toList(),
-                          ),
-                  ),
+                          );
+                    if (peerSlots != null) return chips(peerSlots);
+                    return slotsAsync!.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (e, _) => const SizedBox.shrink(),
+                      data: chips,
+                    );
+                  }),
                 ],
                 if (showRemindBefore) ...[
                   const SizedBox(height: 12),
@@ -324,27 +366,29 @@ class _ViewBody extends ConsumerWidget {
                     ],
                   ),
                 ],
-                if (sectionAsync != null) ...[
+                if (peerSection != null || sectionAsync != null) ...[
                   const SizedBox(height: 12),
-                  sectionAsync.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (e, _) => const SizedBox.shrink(),
-                    data: (section) => section == null
-                        ? const SizedBox.shrink()
-                        : Row(
-                            children: [
-                              Icon(Icons.folder_outlined, size: 15, color: color),
-                              const SizedBox(width: 8),
-                              MedcardIcon(section.iconKey, size: 15),
-                              const SizedBox(width: 6),
-                              Text(
-                                section.name,
-                                style: AppTextStyles.bodyMd
-                                    .copyWith(color: AppColors.textSub),
-                              ),
-                            ],
-                          ),
-                  ),
+                  Builder(builder: (context) {
+                    Widget row(MedcardSection section) => Row(
+                          children: [
+                            Icon(Icons.folder_outlined, size: 15, color: color),
+                            const SizedBox(width: 8),
+                            MedcardIcon(section.iconKey, size: 15),
+                            const SizedBox(width: 6),
+                            Text(
+                              section.name,
+                              style: AppTextStyles.bodyMd
+                                  .copyWith(color: AppColors.textSub),
+                            ),
+                          ],
+                        );
+                    if (peerSection != null) return row(peerSection);
+                    return sectionAsync!.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (e, _) => const SizedBox.shrink(),
+                      data: (section) => section == null ? const SizedBox.shrink() : row(section),
+                    );
+                  }),
                 ],
                 if (hasLocation) ...[
                   const SizedBox(height: 12),
@@ -400,6 +444,15 @@ class _ViewBody extends ConsumerWidget {
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(),
                       style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
+                  if (peer != null)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: photos
+                          .map((path) => PeerAttachmentChip(channelId: peer!.channelId, photoPath: path))
+                          .toList(),
+                    )
+                  else
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
