@@ -309,10 +309,29 @@ class FamilyGroupService {
   /// Викликати на тих самих тригерах, що й `FamilySyncService.syncAll()`
   /// (відкриття/resume/FCM) — перевіряє, чи хтось відповів на запрошення,
   /// що очікують відповіді.
+  // Крок 3.1 плану: код запрошення на сервері мертвий вже через 30 хвилин
+  // (одноразовий pairing-blob, див. inviteCodeExpiryNotice) — тож перевіряти
+  // мережею запрошення, старіше за це, гарантовано марно. Даємо запас на
+  // повільну мережу/розсинхронізований годинник і однаково прибираємо
+  // застарілий рядок локально, а не лишаємо його рости в списку назавжди.
+  static const _pendingInviteTtl = Duration(hours: 2);
+
   Future<void> refreshPeers() async {
     final repo = FamilyPeersRepository(_db);
 
     for (final invite in await repo.pendingInvites()) {
+      if (DateTime.now().difference(invite.createdAt) > _pendingInviteTtl) {
+        await repo.removePendingInvite(invite.channelId);
+        // Конверсія, яку так ніхто й не завершив, — прибираємо одноразовий
+        // канал передачі історії; сам локальний профіль лишається як є (він
+        // ніколи не переставав бути локальним, конверсія просто не сталась).
+        final convertingId = invite.convertingMemberId;
+        if (convertingId != null) {
+          await SharedChannelsRepository(_db).unbind(convertingId);
+        }
+        await SharedChannelKeyStorage.delete(invite.channelId);
+        continue;
+      }
       try {
         final keyBytes = await SharedChannelKeyStorage.read(invite.channelId);
         if (keyBytes == null) continue;
