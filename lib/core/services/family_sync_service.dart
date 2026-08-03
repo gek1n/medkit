@@ -213,7 +213,10 @@ class FamilySyncService {
         : await FamilyVisibilityService.isMedcardSyncAllowed(subjectMember!.personUuid!);
 
     for (final m in await _medicationsForPush(memberId, since)) {
-      final json = m.toJson()..remove('id')..remove('memberId');
+      // sectionId — суто локальний номер Полички на цьому пристрої;
+      // Полички ще не синхронізуються (див. Крок 6 плану), тож він нічого
+      // не означає на приймачі й раніше викликав FK-конфлікт при вставці.
+      final json = m.toJson()..remove('id')..remove('memberId')..remove('sectionId');
       entities.add({
         'type': 'medication',
         'uuid': m.syncUuid,
@@ -263,7 +266,8 @@ class FamilySyncService {
     // саме "виконав/пропустив активність" — ключова причина, чому за
     // автономним профілем взагалі наглядають.
     for (final a in await _activitiesForPush(memberId, since)) {
-      final json = a.toJson()..remove('id')..remove('memberId');
+      // sectionId — див. коментар у блоці medication вище.
+      final json = a.toJson()..remove('id')..remove('memberId')..remove('sectionId');
       entities.add({
         'type': 'activity',
         'uuid': a.syncUuid,
@@ -305,7 +309,8 @@ class FamilySyncService {
         });
       }
       for (final s in await _wellbeingSchedulesForPush(memberId, since)) {
-        final json = s.toJson()..remove('id')..remove('memberId');
+        // sectionId — див. коментар у блоці medication вище.
+        final json = s.toJson()..remove('id')..remove('memberId')..remove('sectionId');
         entities.add({
           'type': 'wellbeing_schedule',
           'uuid': s.syncUuid,
@@ -322,7 +327,8 @@ class FamilySyncService {
     // виключити з передачі на інші пристрої.
     if (medcardSyncAllowed) {
       for (final a in await _appointmentsForPush(memberId, since)) {
-        final json = a.toJson()..remove('id')..remove('memberId');
+        // sectionId — див. коментар у блоці medication вище.
+        final json = a.toJson()..remove('id')..remove('memberId')..remove('sectionId');
         entities.add({
           'type': 'doctor_appointment',
           'uuid': a.syncUuid,
@@ -711,12 +717,19 @@ class FamilySyncService {
 
     for (final type in order) {
       for (final entity in byType[type] ?? const []) {
-        if (entity.deleted) {
-          await _deleteLocally(type, entity.uuid);
-          continue;
+        try {
+          if (entity.deleted) {
+            await _deleteLocally(type, entity.uuid);
+            continue;
+          }
+          final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+          await _upsertLocally(type, entity.uuid, json, channel.memberId);
+        } catch (_) {
+          // Один пошкоджений/несумісний запис не має права заморозити весь
+          // канал — lastSyncedAt все одно просунеться після цього проходу,
+          // тож пропущений запис просто не з'явиться (краще, ніж жоден запис
+          // не синхронізується назавжди).
         }
-        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
-        await _upsertLocally(type, entity.uuid, json, channel.memberId);
       }
     }
 

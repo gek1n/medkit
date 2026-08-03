@@ -138,6 +138,21 @@ class FamilyGroupService {
   /// ([refreshPeers]) і надалі відносини між двома вже незалежними людьми
   /// живуть через звичайні FamilyPeers/FamilyGrants.
   Future<String> createConversionInvite(Member dependent) async {
+    // Крок 1.2 плану: почати НОВУ конвертацію заборонено — конвертація
+    // розкриває багато проблем на приймаючому боці. UI вже ховає кнопку для
+    // цього випадку; це defense-in-depth на рівні сервісу. Регенерація коду
+    // для ВЖЕ розпочатої конвертації (є рядок PendingGroupInvites з цим
+    // convertingMemberId) лишається дозволеною, щоб не зламати завершення
+    // вже показаного користувачу запрошення.
+    final hasPendingConversion = await (_db.select(_db.pendingGroupInvites)
+          ..where((t) => t.convertingMemberId.equals(dependent.id)))
+        .get()
+        .then((rows) => rows.isNotEmpty);
+    if (!hasPendingConversion) {
+      throw const GroupJoinException(
+          'Перетворення локального профілю на автономний тимчасово недоступне');
+    }
+
     final membersRepo = MembersRepository(_db);
     final owner = await membersRepo.getOwner();
     if (owner == null) throw const GroupJoinException('Немає власного профілю');

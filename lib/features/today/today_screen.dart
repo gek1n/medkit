@@ -445,9 +445,11 @@ class _TodayContent extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(generateTodayIntakesProvider);
               ref.invalidate(generateTodayActivityLogsProvider);
+              ref.invalidate(generateTodayReminderLogsProvider);
               await Future.wait([
                 ref.read(generateTodayIntakesProvider.future),
                 ref.read(generateTodayActivityLogsProvider.future),
+                ref.read(generateTodayReminderLogsProvider.future),
               ]);
             },
             child: CustomScrollView(
