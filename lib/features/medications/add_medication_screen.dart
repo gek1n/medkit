@@ -396,6 +396,21 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _ => {},
   };
 
+  // Скільки днів курсу вже минуло від оригінального старту — щоб "Потрібно
+  // докупити" в _MedStockContent рахувало залишок ВІД СЬОГОДНІ, а не від
+  // початку курсу (актуально, коли відстеження запасу вмикають вже
+  // ПІД ЧАС курсу, не лише при його створенні). 0 для нового запису —
+  // там курс стартує сьогодні, минулих днів ще нема.
+  int _daysElapsedSinceStart() {
+    final start = widget.existing?.startDate;
+    if (start == null) return 0;
+    final startDay = DateTime(start.year, start.month, start.day);
+    final today = DateTime.now();
+    final todayDay = DateTime(today.year, today.month, today.day);
+    final diff = todayDay.difference(startDay).inDays;
+    return diff > 0 ? diff : 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isMemberBlockedByPlan(ref, widget.memberId)) {
@@ -533,6 +548,7 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                             child: _MedStockContent(
                               trackStock: _trackStock,
                               availableCount: _availableCount,
+                              daysElapsed: _daysElapsedSinceStart(),
                               phases: _phases,
                               doseAmount: _phases.isNotEmpty
                                   ? _phases.first.doseAmount
@@ -2058,6 +2074,7 @@ class _DurationSectionState extends State<_DurationSection> {
 class _MedStockContent extends StatefulWidget {
   final bool trackStock;
   final int availableCount;
+  final int daysElapsed;
   final List<_MedPhase> phases;
   final double doseAmount;
   final String form;
@@ -2072,6 +2089,7 @@ class _MedStockContent extends StatefulWidget {
   const _MedStockContent({
     required this.trackStock,
     required this.availableCount,
+    required this.daysElapsed,
     required this.phases,
     required this.doseAmount,
     required this.form,
@@ -2123,13 +2141,20 @@ class _MedStockContentState extends State<_MedStockContent> {
     }
   }
 
-  // Загальна кількість прийомів за курс (одиниць ліків)
+  // Кількість прийомів, що ЛИШИЛАСЬ до кінця курсу — тобто мінус ті дні,
+  // що вже минули від старту курсу (widget.daysElapsed), а не весь курс
+  // від початку. Дні "з'їдаються" по черзі, фаза за фазою, якщо курс
+  // багатофазний.
   int _totalIntakes() {
+    var elapsed = widget.daysElapsed;
     double total = 0;
     for (final phase in widget.phases) {
       final days = phase.durationDays ?? 0;
+      final consumed = elapsed < days ? elapsed : days;
+      final remainingDays = days - consumed;
+      elapsed -= consumed;
       final intakesPerDay = phase.effectiveTimes.length;
-      total += days * intakesPerDay * widget.doseAmount;
+      total += remainingDays * intakesPerDay * widget.doseAmount;
     }
     return total.ceil();
   }
