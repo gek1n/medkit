@@ -333,7 +333,7 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                           item: filtered[i],
                           section: section,
                           color: color,
-                          readOnly: readOnly,
+                          peer: widget.peer,
                         ),
                       ),
                     );
@@ -352,20 +352,19 @@ class _FeedCard extends StatelessWidget {
   final _FeedItem item;
   final MedcardSection section;
   final Color color;
-  final bool readOnly;
+  final PeerSubject? peer;
   const _FeedCard({
     required this.item,
     required this.section,
     required this.color,
-    this.readOnly = false,
+    this.peer,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Екрани повного перегляду (запис Полички/ліки/рутина/нагадування)
-    // поки не вміють показувати чужий запис (Крок 4.3.5 плану) — для
-    // піра тап нічого не робить, замість відкриття порожнього/зламаного
-    // екрана за синтетичним id.
+    // Крок 4.3.5 плану: екрани повного перегляду тепер вміють показувати
+    // запис піра (peer прокидається далі) — тап відкриває той самий
+    // екран, лише в режимі "тільки перегляд" всередині нього.
     switch (item.kind) {
       case _ItemKind.entry:
         final entry = item.entry!;
@@ -380,17 +379,16 @@ class _FeedCard extends StatelessWidget {
           notePreview: entry.notes,
           tags: tags,
           photoPaths: photos,
-          onTap: readOnly
-              ? () {}
-              : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MedcardEntryViewScreen(
-                        section: section,
-                        entryId: entry.id,
-                      ),
-                    ),
-                  ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MedcardEntryViewScreen(
+                section: section,
+                entryId: entry.id,
+                peer: peer,
+              ),
+            ),
+          ),
         );
       case _ItemKind.medication:
         final m = item.medication!;
@@ -400,17 +398,16 @@ class _FeedCard extends StatelessWidget {
           color: color,
           title: m.name,
           dateLabel: _formatDate(m.startDate),
-          onTap: readOnly
-              ? () {}
-              : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MedicationDetailScreen(
-                        medicationId: m.id,
-                        memberId: m.memberId,
-                      ),
-                    ),
-                  ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MedicationDetailScreen(
+                medicationId: m.id,
+                memberId: m.memberId,
+                peer: peer,
+              ),
+            ),
+          ),
         );
       case _ItemKind.activity:
         final a = item.activity!;
@@ -420,14 +417,12 @@ class _FeedCard extends StatelessWidget {
           color: color,
           title: a.name,
           dateLabel: _formatDate(a.createdAt),
-          onTap: readOnly
-              ? () {}
-              : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RoutineViewScreen(activityId: a.id),
-                    ),
-                  ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RoutineViewScreen(activityId: a.id, peer: peer),
+            ),
+          ),
         );
       case _ItemKind.reminder:
         final r = item.reminder!;
@@ -442,14 +437,12 @@ class _FeedCard extends StatelessWidget {
           notePreview: r.notes,
           tags: tags,
           photoPaths: photos,
-          onTap: readOnly
-              ? () {}
-              : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ReminderViewScreen(reminderId: r.id),
-                    ),
-                  ),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ReminderViewScreen(reminderId: r.id, peer: peer),
+            ),
+          ),
         );
     }
   }

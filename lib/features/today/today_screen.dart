@@ -571,6 +571,7 @@ class _TodayContent extends ConsumerWidget {
                     ref: ref,
                     wellbeingSchedule: schedule,
                     readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
 
@@ -588,6 +589,7 @@ class _TodayContent extends ConsumerWidget {
                     ref: ref,
                     wellbeingSchedule: schedule,
                     readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
 
@@ -615,6 +617,7 @@ class _TodayContent extends ConsumerWidget {
                     memberId: member.id,
                     wellbeingSchedule: schedule,
                     readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
 
@@ -1033,6 +1036,7 @@ class _MissedSection extends StatelessWidget {
   final WidgetRef ref;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _MissedSection({
     required this.intakes,
@@ -1045,6 +1049,7 @@ class _MissedSection extends StatelessWidget {
     required this.ref,
     this.wellbeingSchedule,
     this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -1061,6 +1066,7 @@ class _MissedSection extends StatelessWidget {
               ref: ref,
               missed: true,
               readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1078,6 +1084,7 @@ class _MissedSection extends StatelessWidget {
               activeMemberId: memberId,
               missed: true,
               readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1105,6 +1112,7 @@ class _MissedSection extends StatelessWidget {
               ref: ref,
               missed: true,
               readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1157,6 +1165,7 @@ class _ActiveNowSection extends StatelessWidget {
   final WidgetRef ref;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveNowSection({
     required this.intakes,
@@ -1169,6 +1178,7 @@ class _ActiveNowSection extends StatelessWidget {
     required this.ref,
     this.wellbeingSchedule,
     this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -1184,6 +1194,7 @@ class _ActiveNowSection extends StatelessWidget {
               med: meds.where((m) => m.id == i.medicationId).firstOrNull,
               ref: ref,
               readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1200,6 +1211,7 @@ class _ActiveNowSection extends StatelessWidget {
                   .firstOrNull,
               activeMemberId: memberId,
               readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1221,7 +1233,12 @@ class _ActiveNowSection extends StatelessWidget {
           a.scheduledAt,
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _ActiveAppointmentCard(occurrence: a, ref: ref, readOnly: readOnly),
+            child: _ActiveAppointmentCard(
+              occurrence: a,
+              ref: ref,
+              readOnly: readOnly,
+              peer: peer,
+            ),
           ),
         ),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
@@ -1270,6 +1287,7 @@ class _ScheduleSection extends StatelessWidget {
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _ScheduleSection({
     required this.title,
@@ -1279,6 +1297,7 @@ class _ScheduleSection extends StatelessWidget {
     required this.memberId,
     this.wellbeingSchedule,
     this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -1308,6 +1327,7 @@ class _ScheduleSection extends StatelessWidget {
                     memberId: memberId,
                     wellbeingSchedule: wellbeingSchedule,
                     readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
               ),
@@ -1378,6 +1398,7 @@ class _ScheduleCard extends StatelessWidget {
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _ScheduleCard({
     required this.item,
@@ -1386,6 +1407,7 @@ class _ScheduleCard extends StatelessWidget {
     required this.memberId,
     this.wellbeingSchedule,
     this.readOnly = false,
+    this.peer,
   });
 
   Color get _color {
@@ -1412,12 +1434,13 @@ class _ScheduleCard extends StatelessWidget {
     );
     final color = _color;
 
-    // Картки повного перегляду (ліки/нагадування/рутина/самопочуття) поки
-    // не вміють показувати запис піра (Крок 4.3.5 плану) — ховаємо тап для
-    // readOnly, а не ризикуємо показати чужий/порожній екран за
-    // синтетичним id.
+    // Самопочуття — форма чек-іну, а не картка перегляду, і не вміє
+    // показувати запис піра — лишається заблокованою для readOnly. Решта
+    // (ліки/нагадування/рутина) вже вміють (Крок 4.3.5 плану).
     return GestureDetector(
-      onTap: readOnly ? null : () => _handleTap(context),
+      onTap: readOnly && item.type == _ItemType.wellbeing
+          ? null
+          : () => _handleTap(context),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -1556,6 +1579,7 @@ class _ScheduleCard extends StatelessWidget {
           builder: (_) => MedicationDetailScreen(
             medicationId: item.intake!.medicationId,
             memberId: memberId,
+            peer: peer,
           ),
         ),
       );
@@ -1567,8 +1591,10 @@ class _ScheduleCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              ReminderViewScreen(reminderId: item.appointment!.id),
+          builder: (_) => ReminderViewScreen(
+            reminderId: item.appointment!.id,
+            peer: peer,
+          ),
         ),
       );
       return;
@@ -1578,8 +1604,10 @@ class _ScheduleCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              RoutineViewScreen(activityId: item.activityLog!.activityId),
+          builder: (_) => RoutineViewScreen(
+            activityId: item.activityLog!.activityId,
+            peer: peer,
+          ),
         ),
       );
       return;
@@ -2001,6 +2029,7 @@ class _ActiveIntakeCard extends StatelessWidget {
   final WidgetRef ref;
   final bool missed;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveIntakeCard({
     required this.intake,
@@ -2008,6 +2037,7 @@ class _ActiveIntakeCard extends StatelessWidget {
     required this.ref,
     this.missed = false,
     this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -2017,10 +2047,7 @@ class _ActiveIntakeCard extends StatelessWidget {
     final iconColor = colorFromHex(med?.color) ?? AppColors.primary;
     final photoPath = _firstMedPhoto(med?.photoPaths);
     final comment = med != null ? _doseComment(med!, intake.scheduledAt) : null;
-    // Картка піра: повна картка ліків (MedicationDetailScreen) поки не вміє
-    // показувати чужі дані (Крок 4.3.5 плану) — ховаємо тап-у-деталі, а не
-    // відкриваємо порожній/зламаний екран.
-    final onZoom = readOnly || med == null ? null : () => _openDetails(context);
+    final onZoom = med == null ? null : () => _openDetails(context);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -2109,6 +2136,7 @@ class _ActiveIntakeCard extends StatelessWidget {
         builder: (_) => MedicationDetailScreen(
           medicationId: intake.medicationId,
           memberId: med!.memberId,
+          peer: peer,
         ),
       ),
     );
@@ -2680,6 +2708,7 @@ class _ActiveActivityCard extends StatefulWidget {
   // конкретного часу й ігнорує [missed] (див. _AnytimeRoutinesSection).
   final bool anytime;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveActivityCard({
     required this.log,
@@ -2689,6 +2718,7 @@ class _ActiveActivityCard extends StatefulWidget {
     this.missed = false,
     this.anytime = false,
     this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -2751,17 +2781,15 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
               illustration: 'assets/illustrations/elly-calendar.png',
               accent: iconColor,
               iconKey: widget.activity?.iconKey,
-              // RoutineViewScreen поки не вміє показувати рутину піра
-              // (Крок 4.3.5 плану) — ховаємо тап-у-деталі для readOnly.
-              onZoom: widget.readOnly
-                  ? null
-                  : () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              RoutineViewScreen(activityId: widget.log.activityId),
-                        ),
-                      ),
+              onZoom: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RoutineViewScreen(
+                    activityId: widget.log.activityId,
+                    peer: widget.peer,
+                  ),
+                ),
+              ),
             ),
           Padding(
             padding: const EdgeInsets.all(14),
@@ -3096,12 +3124,14 @@ class _ActiveAppointmentCard extends StatelessWidget {
   final WidgetRef ref;
   final bool missed;
   final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveAppointmentCard({
     required this.occurrence,
     required this.ref,
     this.missed = false,
     this.readOnly = false,
+    this.peer,
   });
 
   Reminder get appointment => occurrence.reminder;
@@ -3120,16 +3150,15 @@ class _ActiveAppointmentCard extends StatelessWidget {
             illustration: 'assets/illustrations/elly-calendar.png',
             accent: iconColor,
             iconKey: appointment.iconKey,
-            // ReminderViewScreen поки не вміє показувати запис піра
-            // (Крок 4.3.5 плану) — ховаємо тап-у-деталі для readOnly.
-            onZoom: readOnly
-                ? null
-                : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ReminderViewScreen(reminderId: appointment.id),
-                      ),
-                    ),
+            onZoom: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReminderViewScreen(
+                  reminderId: appointment.id,
+                  peer: peer,
+                ),
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(14),

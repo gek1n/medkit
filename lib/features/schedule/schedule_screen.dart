@@ -426,19 +426,16 @@ class _ScheduleBody extends ConsumerWidget {
                             .map((m) => Padding(
                                   padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                                   child: GestureDetector(
-                                    // MedicationDetailScreen ще не вміє показувати
-                                    // ліки піра (Крок 4.3.5 плану) — ховаємо тап.
-                                    onTap: readOnly
-                                        ? null
-                                        : () => Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => MedicationDetailScreen(
-                                                  medicationId: m.id,
-                                                  memberId: selectedMemberId,
-                                                ),
-                                              ),
-                                            ),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MedicationDetailScreen(
+                                          medicationId: m.id,
+                                          memberId: m.memberId,
+                                          peer: peer,
+                                        ),
+                                      ),
+                                    ),
                                     child: _MedCard(med: m),
                                   ),
                                 ))
@@ -501,17 +498,15 @@ class _ScheduleBody extends ConsumerWidget {
                             .map((a) => Padding(
                                   padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                                   child: GestureDetector(
-                                    // ReminderViewScreen ще не вміє показувати
-                                    // нагадування піра (Крок 4.3.5 плану).
-                                    onTap: readOnly
-                                        ? null
-                                        : () => Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    ReminderViewScreen(reminderId: a.id),
-                                              ),
-                                            ),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ReminderViewScreen(
+                                          reminderId: a.id,
+                                          peer: peer,
+                                        ),
+                                      ),
+                                    ),
                                     child: _AppointmentCard(appointment: a),
                                   ),
                                 ))
@@ -554,17 +549,15 @@ class _ScheduleBody extends ConsumerWidget {
                             .map((a) => Padding(
                                   padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                                   child: GestureDetector(
-                                    // RoutineViewScreen ще не вміє показувати
-                                    // рутину піра (Крок 4.3.5 плану).
-                                    onTap: readOnly
-                                        ? null
-                                        : () => Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    RoutineViewScreen(activityId: a.id),
-                                              ),
-                                            ),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => RoutineViewScreen(
+                                          activityId: a.id,
+                                          peer: peer,
+                                        ),
+                                      ),
+                                    ),
                                     child: _ActivityCard(activity: a),
                                   ),
                                 ))
@@ -672,17 +665,16 @@ class _ScheduleBody extends ConsumerWidget {
                         ...meds.map((m) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                               child: GestureDetector(
-                                onTap: readOnly
-                                    ? null
-                                    : () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => MedicationDetailScreen(
-                                              medicationId: m.id,
-                                              memberId: selectedMemberId,
-                                            ),
-                                          ),
-                                        ),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => MedicationDetailScreen(
+                                      medicationId: m.id,
+                                      memberId: m.memberId,
+                                      peer: peer,
+                                    ),
+                                  ),
+                                ),
                                 child: _MedCard(med: m),
                               ),
                             )),
@@ -698,15 +690,15 @@ class _ScheduleBody extends ConsumerWidget {
                         ...activities.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                               child: GestureDetector(
-                                onTap: readOnly
-                                    ? null
-                                    : () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                RoutineViewScreen(activityId: a.id),
-                                          ),
-                                        ),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => RoutineViewScreen(
+                                      activityId: a.id,
+                                      peer: peer,
+                                    ),
+                                  ),
+                                ),
                                 child: _ActivityCard(activity: a),
                               ),
                             )),
@@ -722,15 +714,15 @@ class _ScheduleBody extends ConsumerWidget {
                         ...appointments.map((a) => Padding(
                               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
                               child: GestureDetector(
-                                onTap: readOnly
-                                    ? null
-                                    : () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                ReminderViewScreen(reminderId: a.id),
-                                          ),
-                                        ),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ReminderViewScreen(
+                                      reminderId: a.id,
+                                      peer: peer,
+                                    ),
+                                  ),
+                                ),
                                 child: _AppointmentCard(appointment: a),
                               ),
                             )),
