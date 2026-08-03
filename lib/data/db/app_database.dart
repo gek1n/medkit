@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 44;
+  int get schemaVersion => 45;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -895,6 +895,17 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.addColumn(familyPeers, familyPeers.editMedcardGranted);
+            } catch (_) {}
+          }
+          if (from < 45) {
+            // Крок 5-6 плану: RemindersSlots (час(и) нагадувань кілька разів
+            // на день) раніше взагалі не мали технічної підготовки для
+            // синхронізації — ні syncUuid, ні updatedAt.
+            try {
+              await m.addColumn(reminderSlots, reminderSlots.updatedAt);
+            } catch (_) {}
+            try {
+              await m.addColumn(reminderSlots, reminderSlots.syncUuid);
             } catch (_) {}
           }
         },

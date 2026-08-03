@@ -9503,8 +9503,39 @@ class $ReminderSlotsTable extends ReminderSlots
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, reminderId, timeOfDay, sortOrder];
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncUuidMeta = const VerificationMeta(
+    'syncUuid',
+  );
+  @override
+  late final GeneratedColumn<String> syncUuid = GeneratedColumn<String>(
+    'sync_uuid',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    reminderId,
+    timeOfDay,
+    sortOrder,
+    updatedAt,
+    syncUuid,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -9542,6 +9573,18 @@ class $ReminderSlotsTable extends ReminderSlots
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_uuid')) {
+      context.handle(
+        _syncUuidMeta,
+        syncUuid.isAcceptableOrUnknown(data['sync_uuid']!, _syncUuidMeta),
+      );
+    }
     return context;
   }
 
@@ -9567,6 +9610,14 @@ class $ReminderSlotsTable extends ReminderSlots
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_uuid'],
+      ),
     );
   }
 
@@ -9581,11 +9632,15 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
   final int reminderId;
   final String timeOfDay;
   final int sortOrder;
+  final DateTime updatedAt;
+  final String? syncUuid;
   const ReminderSlot({
     required this.id,
     required this.reminderId,
     required this.timeOfDay,
     required this.sortOrder,
+    required this.updatedAt,
+    this.syncUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9594,6 +9649,10 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
     map['reminder_id'] = Variable<int>(reminderId);
     map['time_of_day'] = Variable<String>(timeOfDay);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncUuid != null) {
+      map['sync_uuid'] = Variable<String>(syncUuid);
+    }
     return map;
   }
 
@@ -9603,6 +9662,10 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
       reminderId: Value(reminderId),
       timeOfDay: Value(timeOfDay),
       sortOrder: Value(sortOrder),
+      updatedAt: Value(updatedAt),
+      syncUuid: syncUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncUuid),
     );
   }
 
@@ -9616,6 +9679,8 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
       reminderId: serializer.fromJson<int>(json['reminderId']),
       timeOfDay: serializer.fromJson<String>(json['timeOfDay']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncUuid: serializer.fromJson<String?>(json['syncUuid']),
     );
   }
   @override
@@ -9626,6 +9691,8 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
       'reminderId': serializer.toJson<int>(reminderId),
       'timeOfDay': serializer.toJson<String>(timeOfDay),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncUuid': serializer.toJson<String?>(syncUuid),
     };
   }
 
@@ -9634,11 +9701,15 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
     int? reminderId,
     String? timeOfDay,
     int? sortOrder,
+    DateTime? updatedAt,
+    Value<String?> syncUuid = const Value.absent(),
   }) => ReminderSlot(
     id: id ?? this.id,
     reminderId: reminderId ?? this.reminderId,
     timeOfDay: timeOfDay ?? this.timeOfDay,
     sortOrder: sortOrder ?? this.sortOrder,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
   );
   ReminderSlot copyWithCompanion(ReminderSlotsCompanion data) {
     return ReminderSlot(
@@ -9648,6 +9719,8 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
           : this.reminderId,
       timeOfDay: data.timeOfDay.present ? data.timeOfDay.value : this.timeOfDay,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncUuid: data.syncUuid.present ? data.syncUuid.value : this.syncUuid,
     );
   }
 
@@ -9657,13 +9730,16 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
           ..write('id: $id, ')
           ..write('reminderId: $reminderId, ')
           ..write('timeOfDay: $timeOfDay, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, reminderId, timeOfDay, sortOrder);
+  int get hashCode =>
+      Object.hash(id, reminderId, timeOfDay, sortOrder, updatedAt, syncUuid);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -9671,7 +9747,9 @@ class ReminderSlot extends DataClass implements Insertable<ReminderSlot> {
           other.id == this.id &&
           other.reminderId == this.reminderId &&
           other.timeOfDay == this.timeOfDay &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.updatedAt == this.updatedAt &&
+          other.syncUuid == this.syncUuid);
 }
 
 class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
@@ -9679,17 +9757,23 @@ class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
   final Value<int> reminderId;
   final Value<String> timeOfDay;
   final Value<int> sortOrder;
+  final Value<DateTime> updatedAt;
+  final Value<String?> syncUuid;
   const ReminderSlotsCompanion({
     this.id = const Value.absent(),
     this.reminderId = const Value.absent(),
     this.timeOfDay = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   });
   ReminderSlotsCompanion.insert({
     this.id = const Value.absent(),
     required int reminderId,
     required String timeOfDay,
     this.sortOrder = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncUuid = const Value.absent(),
   }) : reminderId = Value(reminderId),
        timeOfDay = Value(timeOfDay);
   static Insertable<ReminderSlot> custom({
@@ -9697,12 +9781,16 @@ class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
     Expression<int>? reminderId,
     Expression<String>? timeOfDay,
     Expression<int>? sortOrder,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (reminderId != null) 'reminder_id': reminderId,
       if (timeOfDay != null) 'time_of_day': timeOfDay,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncUuid != null) 'sync_uuid': syncUuid,
     });
   }
 
@@ -9711,12 +9799,16 @@ class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
     Value<int>? reminderId,
     Value<String>? timeOfDay,
     Value<int>? sortOrder,
+    Value<DateTime>? updatedAt,
+    Value<String?>? syncUuid,
   }) {
     return ReminderSlotsCompanion(
       id: id ?? this.id,
       reminderId: reminderId ?? this.reminderId,
       timeOfDay: timeOfDay ?? this.timeOfDay,
       sortOrder: sortOrder ?? this.sortOrder,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncUuid: syncUuid ?? this.syncUuid,
     );
   }
 
@@ -9735,6 +9827,12 @@ class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncUuid.present) {
+      map['sync_uuid'] = Variable<String>(syncUuid.value);
+    }
     return map;
   }
 
@@ -9744,7 +9842,9 @@ class ReminderSlotsCompanion extends UpdateCompanion<ReminderSlot> {
           ..write('id: $id, ')
           ..write('reminderId: $reminderId, ')
           ..write('timeOfDay: $timeOfDay, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncUuid: $syncUuid')
           ..write(')'))
         .toString();
   }
