@@ -86,6 +86,7 @@ class FamilySyncService {
     await _assignMissingWellbeingScheduleUuids(memberId);
     await _assignMissingMedcardSectionUuids(memberId);
     await _assignMissingMedcardEntryUuids(memberId);
+    await _assignMissingReminderLogUuids(memberId);
 
     final medications = await (_db.select(_db.medications)..where((t) => t.memberId.equals(memberId))).get();
     for (final m in medications) {
@@ -191,6 +192,15 @@ class FamilySyncService {
       if (e.syncUuid != null) {
         await FamilySyncDeleteQueue.enqueue(
             channelId: channel.channelId, entityType: 'medcard_entry', syncUuid: e.syncUuid!);
+      }
+    }
+
+    final reminderLogRows =
+        await (_db.select(_db.reminderLogs)..where((t) => t.memberId.equals(memberId))).get();
+    for (final l in reminderLogRows) {
+      if (l.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(
+            channelId: channel.channelId, entityType: 'reminder_log', syncUuid: l.syncUuid!);
       }
     }
 
@@ -361,6 +371,21 @@ class FamilySyncService {
         entities.add({
           'type': 'doctor_appointment',
           'uuid': a.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      // Позначки "виконано/пропущено" по кожному конкретному разу
+      // повторюваного нагадування — Крок 5-6 плану, раніше взагалі не
+      // синхронізувались, тож автономний член сім'ї бачив на Сьогодні
+      // повторювані нагадування завжди "як нові".
+      for (final l in await _reminderLogsForPush(memberId, since)) {
+        final reminderUuid = await _reminderSyncUuidFor(l.reminderId);
+        if (reminderUuid == null) continue; // нагадування ще не отримало syncUuid — почекаємо наступного разу
+        final json = l.toJson()..remove('id')..remove('reminderId')..remove('memberId');
+        json['reminderSyncUuid'] = reminderUuid;
+        entities.add({
+          'type': 'reminder_log',
+          'uuid': l.syncUuid,
           'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
         });
       }
@@ -638,6 +663,29 @@ class FamilySyncService {
     return query.get();
   }
 
+  Future<void> _assignMissingReminderLogUuids(int memberId) async {
+    final rows = await (_db.select(_db.reminderLogs)
+          ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
+        .get();
+    for (final l in rows) {
+      await (_db.update(_db.reminderLogs)..where((t) => t.id.equals(l.id))).write(
+        ReminderLogsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<ReminderLog>> _reminderLogsForPush(int memberId, DateTime? since) async {
+    await _assignMissingReminderLogUuids(memberId);
+    final query = _db.select(_db.reminderLogs)..where((t) => t.memberId.equals(memberId));
+    if (since != null) query.where((t) => t.updatedAt.isBiggerThanValue(since));
+    return query.get();
+  }
+
+  Future<String?> _reminderSyncUuidFor(int reminderId) async {
+    final row = await (_db.select(_db.reminders)..where((t) => t.id.equals(reminderId))).getSingleOrNull();
+    return row?.syncUuid;
+  }
+
   // ── Полички (розділи архіву + записи в них) ──────────────────────────────
 
   Future<void> _assignMissingMedcardSectionUuids(int memberId) async {
@@ -819,6 +867,7 @@ class FamilySyncService {
       'activity', 'activity_slot', 'activity_log',
       'wellbeing_log', 'wellbeing_schedule',
       'doctor_appointment',
+      'reminder_log',
       'medcard_entry',
     ];
     final byType = <String, List<FamilySyncEntity>>{for (final t in order) t: []};
@@ -1060,6 +1109,26 @@ class FamilySyncService {
           await _db.into(_db.reminders).insert(companion);
         }
 
+      case 'reminder_log':
+        final reminderUuid = json['reminderSyncUuid'] as String?;
+        final reminderId = reminderUuid == null ? null : await _localReminderIdForUuid(reminderUuid);
+        if (reminderId == null) return; // нагадування ще не прийшло — пропускаємо, прийде наступного разу
+        final existing =
+            await (_db.select(_db.reminderLogs)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['reminderId'] = reminderId;
+        json['memberId'] = memberId;
+        final row = ReminderLog.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.reminderLogs).replace(companion);
+        } else {
+          await _db.into(_db.reminderLogs).insert(companion);
+        }
+
       case 'medcard_section':
         final existing = await (_db.select(_db.medcardSections)
               ..where((t) => t.syncUuid.equals(syncUuid)))
@@ -1123,6 +1192,8 @@ class FamilySyncService {
         await (_db.delete(_db.wellbeingSchedules)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'doctor_appointment':
         await (_db.delete(_db.reminders)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'reminder_log':
+        await (_db.delete(_db.reminderLogs)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'medcard_section':
         await (_db.delete(_db.medcardSections)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'medcard_entry':
@@ -1137,6 +1208,11 @@ class FamilySyncService {
 
   Future<int?> _localScheduleIdForUuid(String syncUuid) async {
     final row = await (_db.select(_db.schedules)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+    return row?.id;
+  }
+
+  Future<int?> _localReminderIdForUuid(String syncUuid) async {
+    final row = await (_db.select(_db.reminders)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
     return row?.id;
   }
 
