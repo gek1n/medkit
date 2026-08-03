@@ -944,6 +944,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noViewableDataLabel => 'No data available to view';
 
   @override
+  String familySectionAccessClosedTitle(String name, String section) {
+    return '“$name” closed access to “$section”';
+  }
+
+  @override
+  String get familySectionAccessClosedBody =>
+      'Ask them to share it if you\'d like to see these entries';
+
+  @override
   String get fileRequestSentSnackbar =>
       'Request sent — the file hasn\'t arrived yet';
 
@@ -1394,6 +1403,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get viewerViewPermissionLabel =>
       'Can see tasks, shelves, and schedule';
+
+  @override
+  String get familySectionsIntro =>
+      'Exactly what this member can see and edit, while access is turned on above';
+
+  @override
+  String get familySectionScheduleLabel => 'Schedule';
+
+  @override
+  String get familySectionVisitsWellbeingLabel => 'Visits and wellbeing';
+
+  @override
+  String get familySectionViewColumnLabel => 'View';
+
+  @override
+  String get familySectionEditColumnLabel => 'Edit';
 
   @override
   String get permissionDeniedNotYoursBody =>

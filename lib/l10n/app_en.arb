@@ -523,6 +523,14 @@
     }
   },
   "noViewableDataLabel": "No data available to view",
+  "familySectionAccessClosedTitle": "“{name}” closed access to “{section}”",
+  "@familySectionAccessClosedTitle": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "section": { "type": "String" }
+    }
+  },
+  "familySectionAccessClosedBody": "Ask them to share it if you'd like to see these entries",
   "fileRequestSentSnackbar": "Request sent — the file hasn't arrived yet",
   "fileRequestFailedError": "Couldn't send the request: {error}",
   "@fileRequestFailedError": {
@@ -847,6 +855,11 @@
   "viewerNotifyPermissionLabel": "Receives notifications",
   "viewerEditPermissionLabel": "Can edit the profile",
   "viewerViewPermissionLabel": "Can see tasks, shelves, and schedule",
+  "familySectionsIntro": "Exactly what this member can see and edit, while access is turned on above",
+  "familySectionScheduleLabel": "Schedule",
+  "familySectionVisitsWellbeingLabel": "Visits and wellbeing",
+  "familySectionViewColumnLabel": "View",
+  "familySectionEditColumnLabel": "Edit",
   "permissionDeniedNotYoursBody": "Couldn't change it — this isn't your profile",
   "privacyLabel": "Privacy",
   "securityLabel": "Security",

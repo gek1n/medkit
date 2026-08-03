@@ -19,6 +19,7 @@ const _notesFieldByType = {
   'doctor_appointment': 'notes',
 };
 
+
 String _entityTypeLabel(BuildContext context, String type) {
   final l10n = context.l10n;
   return switch (type) {
@@ -42,7 +43,13 @@ const _entityTypeIcons = {
 // список ріс би необмежено з кожним новим днем. Вони все одно обробляються
 // (перевірки пропущеного, підрахунок стану), просто не рендеряться напряму;
 // час прийому видно всередині картки відповідних ліків/активності нижче.
-const _hiddenFromList = {'schedule', 'intake', 'activity_slot', 'activity_log', 'wellbeing_log'};
+const _hiddenFromList = {
+  'schedule',
+  'intake',
+  'activity_slot',
+  'activity_log',
+  'wellbeing_log',
+};
 
 /// Читає найбільш "людяне" поле з довільного JSON — записи різних типів
 /// мають різні назви ключового поля (name/testName/allergen/doctorType),
@@ -60,8 +67,24 @@ final _sharedSubjectsProvider = StreamProvider<List<SharedSubject>>((ref) {
   return ref.watch(familyPeersRepositoryProvider).watchSharedSubjects();
 });
 
-final _sharedEntitiesProvider = StreamProvider.family<List<SharedEntity>, String>((ref, subjectPersonUuid) {
-  return ref.watch(familyPeersRepositoryProvider).watchSharedEntities(subjectPersonUuid);
+final _sharedEntitiesProvider =
+    StreamProvider.family<List<SharedEntity>, String>((ref, subjectPersonUuid) {
+      return ref
+          .watch(familyPeersRepositoryProvider)
+          .watchSharedEntities(subjectPersonUuid);
+    });
+
+// Крок 4.2: потрібні свіжі viewScheduleGranted/viewMedcardGranted саме
+// ЦЬОГО піра — читаємо через watchAll(), а не окремим query, щоб екран сам
+// підхопив зміну, якщо суб'єкт відкриє/закриє розділ, поки перегляд відкритий.
+final _peerByChannelProvider = StreamProvider.family<FamilyPeer?, String>((
+  ref,
+  channelId,
+) {
+  return ref
+      .watch(familyPeersRepositoryProvider)
+      .watchAll()
+      .map((peers) => peers.where((p) => p.channelId == channelId).firstOrNull);
 });
 
 /// Перегляд того, що поділився зі мною конкретний пір (Фаза 4). Редагувати
@@ -74,13 +97,19 @@ final _sharedEntitiesProvider = StreamProvider.family<List<SharedEntity>, String
 class SharedFamilyDataScreen extends ConsumerWidget {
   final String peerChannelId;
   final String peerName;
-  const SharedFamilyDataScreen({super.key, required this.peerChannelId, required this.peerName});
+  const SharedFamilyDataScreen({
+    super.key,
+    required this.peerChannelId,
+    required this.peerName,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subjectsAsync = ref.watch(_sharedSubjectsProvider);
-    final subjects =
-        (subjectsAsync.valueOrNull ?? const []).where((s) => s.peerChannelId == peerChannelId).toList();
+    final subjects = (subjectsAsync.valueOrNull ?? const [])
+        .where((s) => s.peerChannelId == peerChannelId)
+        .toList();
+    final peer = ref.watch(_peerByChannelProvider(peerChannelId)).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -96,22 +125,33 @@ class SharedFamilyDataScreen extends ConsumerWidget {
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
                   const SizedBox(width: 4),
-                  Expanded(child: Text(context.l10n.dataFromPeerTitle(peerName), style: AppTextStyles.h3)),
+                  Expanded(
+                    child: Text(
+                      context.l10n.dataFromPeerTitle(peerName),
+                      style: AppTextStyles.h3,
+                    ),
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: subjectsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
                 error: (e, _) => Center(child: Text('$e')),
                 data: (_) {
                   if (subjects.isEmpty) {
                     return Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(AppDimensions.screenPadding),
+                        padding: const EdgeInsets.all(
+                          AppDimensions.screenPadding,
+                        ),
                         child: Text(
                           context.l10n.peerNothingSharedYet(peerName),
-                          style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+                          style: AppTextStyles.bodyMd.copyWith(
+                            color: AppColors.textSub,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -137,6 +177,8 @@ class SharedFamilyDataScreen extends ConsumerWidget {
                         _SubjectEntities(
                           subjectPersonUuid: subject.personUuid,
                           peerChannelId: peerChannelId,
+                          peer: peer,
+                          peerName: peerName,
                         ),
                         const SizedBox(height: AppDimensions.lg),
                       ],
@@ -155,15 +197,30 @@ class SharedFamilyDataScreen extends ConsumerWidget {
 class _SubjectEntities extends ConsumerWidget {
   final String subjectPersonUuid;
   final String peerChannelId;
-  const _SubjectEntities({required this.subjectPersonUuid, required this.peerChannelId});
+  final FamilyPeer? peer;
+  final String peerName;
+  const _SubjectEntities({
+    required this.subjectPersonUuid,
+    required this.peerChannelId,
+    required this.peer,
+    required this.peerName,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entitiesAsync = ref.watch(_sharedEntitiesProvider(subjectPersonUuid));
-    final entities =
-        (entitiesAsync.valueOrNull ?? const []).where((e) => !_hiddenFromList.contains(e.entityType)).toList();
+    final entities = (entitiesAsync.valueOrNull ?? const [])
+        .where((e) => !_hiddenFromList.contains(e.entityType))
+        .toList();
 
-    if (entities.isEmpty) {
+    // Крок 4.2: розділ, до якого доступу нема, ніколи не приносить жодного
+    // запису (family_peer_sync_service.dart._push фільтрує це ще на боці
+    // суб'єкта) — тож "закрито" визначаємо напряму з grants, а не за
+    // відсутністю даних (інакше не відрізнити "закрито" від "поки що пусто").
+    final scheduleClosed = peer != null && !peer!.viewScheduleGranted;
+    final medcardClosed = peer != null && !peer!.viewMedcardGranted;
+
+    if (entities.isEmpty && !scheduleClosed && !medcardClosed) {
       return Text(
         context.l10n.noViewableDataLabel,
         style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
@@ -171,72 +228,167 @@ class _SubjectEntities extends ConsumerWidget {
     }
 
     return Column(
-      children: entities.map((e) {
-        Map<String, dynamic> json;
-        try {
-          json = jsonDecode(e.dataJson) as Map<String, dynamic>;
-        } catch (_) {
-          json = const {};
-        }
-        final editable = _notesFieldByType.containsKey(e.entityType);
-        final documentPaths = _documentPathsOf(json);
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-          child: Container(
-            clipBehavior: Clip.hardEdge,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              border: Border.all(color: AppColors.border),
+      children: [
+        if (scheduleClosed)
+          _SectionClosedCard(
+            peerName: peerName,
+            sectionLabel: context.l10n.familySectionScheduleLabel,
+          ),
+        if (medcardClosed)
+          _SectionClosedCard(
+            peerName: peerName,
+            sectionLabel: context.l10n.familySectionVisitsWellbeingLabel,
+          ),
+        ...entities.map((e) {
+          Map<String, dynamic> json;
+          try {
+            json = jsonDecode(e.dataJson) as Map<String, dynamic>;
+          } catch (_) {
+            json = const {};
+          }
+          final editable = _notesFieldByType.containsKey(e.entityType);
+          final documentPaths = _documentPathsOf(json);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+            child: Container(
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: editable
+                        ? () => _openEditNotesSheet(
+                            context,
+                            ref,
+                            entity: e,
+                            json: json,
+                            peerChannelId: peerChannelId,
+                          )
+                        : null,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppDimensions.md),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _entityTypeIcons[e.entityType] ??
+                                Icons.description_rounded,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _primaryLabel(context, json),
+                                  style: AppTextStyles.labelMd,
+                                ),
+                                Text(
+                                  _entityTypeLabel(context, e.entityType),
+                                  style: AppTextStyles.bodySm.copyWith(
+                                    color: AppColors.textSub,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (editable)
+                            const Icon(
+                              Icons.edit_note_rounded,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (documentPaths.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimensions.md,
+                        0,
+                        AppDimensions.md,
+                        AppDimensions.md,
+                      ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: documentPaths
+                            .map(
+                              (path) => _AttachmentChip(
+                                channelId: peerChannelId,
+                                photoPath: path,
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                ],
+              ),
             ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+/// Крок 4.2: невеликий інлайн-блок у стилі EllyDeniedScreen (та сама
+/// ілюстрація, менший розмір) — на відміну від нього, тут немає кнопки
+/// "План" (справа не в тарифі, а в тому, що конкретна людина сама закрила
+/// цей розділ), тому просто інформує й показується разом з рештою розділів,
+/// а не замінює весь екран.
+class _SectionClosedCard extends StatelessWidget {
+  final String peerName;
+  final String sectionLabel;
+  const _SectionClosedCard({
+    required this.peerName,
+    required this.sectionLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppDimensions.sm),
+      padding: const EdgeInsets.all(AppDimensions.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Image.asset('assets/illustrations/elly-denied.png', height: 48),
+          const SizedBox(width: AppDimensions.md),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: editable
-                      ? () => _openEditNotesSheet(context, ref, entity: e, json: json, peerChannelId: peerChannelId)
-                      : null,
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppDimensions.md),
-                    child: Row(
-                      children: [
-                        Icon(_entityTypeIcons[e.entityType] ?? Icons.description_rounded,
-                            size: 20, color: AppColors.primary),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(_primaryLabel(context, json), style: AppTextStyles.labelMd),
-                              Text(
-                                _entityTypeLabel(context, e.entityType),
-                                style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (editable)
-                          const Icon(Icons.edit_note_rounded, size: 18, color: AppColors.textMuted),
-                      ],
-                    ),
+                Text(
+                  context.l10n.familySectionAccessClosedTitle(
+                    peerName,
+                    sectionLabel,
+                  ),
+                  style: AppTextStyles.labelMd,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  context.l10n.familySectionAccessClosedBody,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSub,
                   ),
                 ),
-                if (documentPaths.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(AppDimensions.md, 0, AppDimensions.md, AppDimensions.md),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: documentPaths
-                          .map((path) => _AttachmentChip(channelId: peerChannelId, photoPath: path))
-                          .toList(),
-                    ),
-                  ),
               ],
             ),
           ),
-        );
-      }).toList(),
+        ],
+      ),
     );
   }
 }
@@ -277,20 +429,31 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
   }
 
   Future<void> _refresh() async {
-    final exists = await PeerPhotoService.exists(widget.channelId, widget.photoPath);
+    final exists = await PeerPhotoService.exists(
+      widget.channelId,
+      widget.photoPath,
+    );
     if (exists) {
       if (mounted) setState(() => _state = _AttachmentState.available);
       return;
     }
-    final pending = await PeerPhotoService.isRequested(widget.channelId, widget.photoPath);
-    if (mounted) setState(() => _state = pending ? _AttachmentState.pending : _AttachmentState.none);
+    final pending = await PeerPhotoService.isRequested(
+      widget.channelId,
+      widget.photoPath,
+    );
+    if (mounted)
+      setState(
+        () =>
+            _state = pending ? _AttachmentState.pending : _AttachmentState.none,
+      );
   }
 
   Future<void> _request() async {
     setState(() => _state = _AttachmentState.pending);
     try {
-      await FamilyPeerSyncService(ref.read(databaseProvider))
-          .requestPhoto(channelId: widget.channelId, photoPath: widget.photoPath);
+      await FamilyPeerSyncService(
+        ref.read(databaseProvider),
+      ).requestPhoto(channelId: widget.channelId, photoPath: widget.photoPath);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.fileRequestSentSnackbar)),
@@ -299,19 +462,24 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
     } catch (e) {
       if (mounted) {
         setState(() => _state = _AttachmentState.none);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.l10n.fileRequestFailedError('$e'))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.fileRequestFailedError('$e'))),
+        );
       }
     }
   }
 
   Future<void> _open() async {
     try {
-      final bytes = await PeerPhotoService.decryptedBytes(widget.channelId, widget.photoPath);
+      final bytes = await PeerPhotoService.decryptedBytes(
+        widget.channelId,
+        widget.photoPath,
+      );
       if (!mounted) return;
       if (PeerPhotoService.isPdf(widget.photoPath)) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.l10n.pdfReceivedSavedSnackbar)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.pdfReceivedSavedSnackbar)),
+        );
         return;
       }
       await showDialog<void>(
@@ -324,8 +492,9 @@ class _AttachmentChipState extends ConsumerState<_AttachmentChip> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.l10n.fileOpenFailedError('$e'))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.fileOpenFailedError('$e'))),
+        );
       }
     }
   }
@@ -396,12 +565,16 @@ Future<void> _openEditNotesSheet(
   final field = _notesFieldByType[entity.entityType] ?? 'notes';
   final controller = TextEditingController(text: json[field] as String? ?? '');
   final baseUpdatedAtRaw = json['updatedAt'] as String?;
-  final baseUpdatedAt = baseUpdatedAtRaw != null ? DateTime.tryParse(baseUpdatedAtRaw) : null;
+  final baseUpdatedAt = baseUpdatedAtRaw != null
+      ? DateTime.tryParse(baseUpdatedAtRaw)
+      : null;
 
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
     builder: (sheetContext) => Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -431,7 +604,10 @@ Future<void> _openEditNotesSheet(
               maxLines: 4,
               autofocus: true,
               decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
+                ),
                 filled: false,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -450,7 +626,9 @@ Future<void> _openEditNotesSheet(
                   : () async {
                       Navigator.pop(sheetContext);
                       try {
-                        await FamilyPeerSyncService(ref.read(databaseProvider)).proposeEdit(
+                        await FamilyPeerSyncService(
+                          ref.read(databaseProvider),
+                        ).proposeEdit(
                           channelId: peerChannelId,
                           subjectPersonUuid: entity.subjectPersonUuid,
                           entityType: entity.entityType,
@@ -460,13 +638,18 @@ Future<void> _openEditNotesSheet(
                         );
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(context.l10n.editSentSnackbar)),
+                            SnackBar(
+                              content: Text(context.l10n.editSentSnackbar),
+                            ),
                           );
                         }
                       } catch (e) {
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(SnackBar(content: Text(context.l10n.sendFailedError('$e'))));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(context.l10n.sendFailedError('$e')),
+                            ),
+                          );
                         }
                       }
                     },
@@ -474,7 +657,9 @@ Future<void> _openEditNotesSheet(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
               child: Text(context.l10n.sendEditAction),

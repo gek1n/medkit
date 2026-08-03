@@ -1780,6 +1780,18 @@ abstract class AppLocalizations {
   /// **'Немає даних, доступних для перегляду'**
   String get noViewableDataLabel;
 
+  /// No description provided for @familySectionAccessClosedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'«{name}» закрив(-ла) доступ до розділу «{section}»'**
+  String familySectionAccessClosedTitle(String name, String section);
+
+  /// No description provided for @familySectionAccessClosedBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Попросіть поділитись, якщо хочете бачити ці записи'**
+  String get familySectionAccessClosedBody;
+
   /// No description provided for @fileRequestSentSnackbar.
   ///
   /// In uk, this message translates to:
@@ -2493,6 +2505,36 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Бачить завдання, полички й розклад'**
   String get viewerViewPermissionLabel;
+
+  /// No description provided for @familySectionsIntro.
+  ///
+  /// In uk, this message translates to:
+  /// **'Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище'**
+  String get familySectionsIntro;
+
+  /// No description provided for @familySectionScheduleLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розклад'**
+  String get familySectionScheduleLabel;
+
+  /// No description provided for @familySectionVisitsWellbeingLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Візити та самопочуття'**
+  String get familySectionVisitsWellbeingLabel;
+
+  /// No description provided for @familySectionViewColumnLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Перегляд'**
+  String get familySectionViewColumnLabel;
+
+  /// No description provided for @familySectionEditColumnLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Редагування'**
+  String get familySectionEditColumnLabel;
 
   /// No description provided for @permissionDeniedNotYoursBody.
   ///

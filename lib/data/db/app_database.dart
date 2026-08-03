@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 43;
+  int get schemaVersion => 44;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -875,6 +875,26 @@ class AppDatabase extends _$AppDatabase {
             // жодного видимого стрибка для наявних користувачів.
             try {
               await m.addColumn(medcardSections, medcardSections.sortOrder);
+            } catch (_) {}
+          }
+          if (from < 44) {
+            // Крок 4.1 плану: права видимості по розділах (Розклад/Медкартка)
+            // окремо для кожного члена сім'ї. Нові стовпчики зі значенням
+            // false за замовчуванням — до першого grants_summary від піра
+            // після оновлення це безпечно "нічого не видно по розділах",
+            // старі view/editGranted (загальний доступ) продовжують діяти
+            // як і раніше, не чіпаються.
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewScheduleGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editScheduleGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewMedcardGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editMedcardGranted);
             } catch (_) {}
           }
         },

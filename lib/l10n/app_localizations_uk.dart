@@ -947,6 +947,15 @@ class AppLocalizationsUk extends AppLocalizations {
   String get noViewableDataLabel => 'Немає даних, доступних для перегляду';
 
   @override
+  String familySectionAccessClosedTitle(String name, String section) {
+    return '«$name» закрив(-ла) доступ до розділу «$section»';
+  }
+
+  @override
+  String get familySectionAccessClosedBody =>
+      'Попросіть поділитись, якщо хочете бачити ці записи';
+
+  @override
   String get fileRequestSentSnackbar =>
       'Запит надіслано — файл ще потрібно дочекатись';
 
@@ -1401,6 +1410,22 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get viewerViewPermissionLabel => 'Бачить завдання, полички й розклад';
+
+  @override
+  String get familySectionsIntro =>
+      'Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище';
+
+  @override
+  String get familySectionScheduleLabel => 'Розклад';
+
+  @override
+  String get familySectionVisitsWellbeingLabel => 'Візити та самопочуття';
+
+  @override
+  String get familySectionViewColumnLabel => 'Перегляд';
+
+  @override
+  String get familySectionEditColumnLabel => 'Редагування';
 
   @override
   String get permissionDeniedNotYoursBody =>

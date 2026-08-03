@@ -523,6 +523,14 @@
     }
   },
   "noViewableDataLabel": "Нет данных, доступных для просмотра",
+  "familySectionAccessClosedTitle": "«{name}» закрыл(-а) доступ к разделу «{section}»",
+  "@familySectionAccessClosedTitle": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "section": { "type": "String" }
+    }
+  },
+  "familySectionAccessClosedBody": "Попросите поделиться, если хотите видеть эти записи",
   "fileRequestSentSnackbar": "Запрос отправлен — файл ещё нужно дождаться",
   "fileRequestFailedError": "Не удалось отправить запрос: {error}",
   "@fileRequestFailedError": {
@@ -847,6 +855,11 @@
   "viewerNotifyPermissionLabel": "Получает уведомления",
   "viewerEditPermissionLabel": "Может редактировать профиль",
   "viewerViewPermissionLabel": "Видит задачи, полки и расписание",
+  "familySectionsIntro": "Что именно видит и может редактировать этот участник, пока доступ включён выше",
+  "familySectionScheduleLabel": "Расписание",
+  "familySectionVisitsWellbeingLabel": "Визиты и самочувствие",
+  "familySectionViewColumnLabel": "Просмотр",
+  "familySectionEditColumnLabel": "Редактирование",
   "permissionDeniedNotYoursBody": "Не удалось изменить — это не ваш профиль",
   "privacyLabel": "Конфиденциальность",
   "securityLabel": "Безопасность",

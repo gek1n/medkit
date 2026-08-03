@@ -523,6 +523,14 @@
     }
   },
   "noViewableDataLabel": "Немає даних, доступних для перегляду",
+  "familySectionAccessClosedTitle": "«{name}» закрив(-ла) доступ до розділу «{section}»",
+  "@familySectionAccessClosedTitle": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "section": { "type": "String" }
+    }
+  },
+  "familySectionAccessClosedBody": "Попросіть поділитись, якщо хочете бачити ці записи",
   "fileRequestSentSnackbar": "Запит надіслано — файл ще потрібно дочекатись",
   "fileRequestFailedError": "Не вдалося надіслати запит: {error}",
   "@fileRequestFailedError": {
@@ -847,6 +855,11 @@
   "viewerNotifyPermissionLabel": "Отримує сповіщення",
   "viewerEditPermissionLabel": "Може редагувати профіль",
   "viewerViewPermissionLabel": "Бачить завдання, полички й розклад",
+  "familySectionsIntro": "Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище",
+  "familySectionScheduleLabel": "Розклад",
+  "familySectionVisitsWellbeingLabel": "Візити та самопочуття",
+  "familySectionViewColumnLabel": "Перегляд",
+  "familySectionEditColumnLabel": "Редагування",
   "permissionDeniedNotYoursBody": "Не вдалося змінити — це не ваш профіль",
   "privacyLabel": "Конфіденційність",
   "securityLabel": "Безпека",
