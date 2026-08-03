@@ -55,6 +55,7 @@ const _hiddenFromList = {
   'wellbeing_log',
   'medcard_section',
   'reminder_log',
+  'reminder_slot',
 };
 
 /// Читає найбільш "людяне" поле з довільного JSON — записи різних типів

@@ -87,6 +87,7 @@ class FamilySyncService {
     await _assignMissingMedcardSectionUuids(memberId);
     await _assignMissingMedcardEntryUuids(memberId);
     await _assignMissingReminderLogUuids(memberId);
+    await _assignMissingReminderSlotUuids(memberId);
 
     final medications = await (_db.select(_db.medications)..where((t) => t.memberId.equals(memberId))).get();
     for (final m in medications) {
@@ -201,6 +202,19 @@ class FamilySyncService {
       if (l.syncUuid != null) {
         await FamilySyncDeleteQueue.enqueue(
             channelId: channel.channelId, entityType: 'reminder_log', syncUuid: l.syncUuid!);
+      }
+    }
+
+    final reminderSlotRows = await (_db.select(_db.reminderSlots).join([
+      innerJoin(_db.reminders, _db.reminders.id.equalsExp(_db.reminderSlots.reminderId)),
+    ])
+          ..where(_db.reminders.memberId.equals(memberId)))
+        .get();
+    for (final r in reminderSlotRows) {
+      final s = r.readTable(_db.reminderSlots);
+      if (s.syncUuid != null) {
+        await FamilySyncDeleteQueue.enqueue(
+            channelId: channel.channelId, entityType: 'reminder_slot', syncUuid: s.syncUuid!);
       }
     }
 
@@ -386,6 +400,19 @@ class FamilySyncService {
         entities.add({
           'type': 'reminder_log',
           'uuid': l.syncUuid,
+          'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+        });
+      }
+      // Час(и) нагадувань кілька разів на день — Крок 5-6 плану, раніше
+      // не мали жодної технічної підготовки для синхронізації.
+      for (final s in await _reminderSlotsForPush(memberId, since)) {
+        final reminderUuid = await _reminderSyncUuidFor(s.reminderId);
+        if (reminderUuid == null) continue;
+        final json = s.toJson()..remove('id')..remove('reminderId');
+        json['reminderSyncUuid'] = reminderUuid;
+        entities.add({
+          'type': 'reminder_slot',
+          'uuid': s.syncUuid,
           'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
         });
       }
@@ -663,6 +690,31 @@ class FamilySyncService {
     return query.get();
   }
 
+  Future<void> _assignMissingReminderSlotUuids(int memberId) async {
+    final query = _db.select(_db.reminderSlots).join([
+      innerJoin(_db.reminders, _db.reminders.id.equalsExp(_db.reminderSlots.reminderId)),
+    ])
+      ..where(_db.reminders.memberId.equals(memberId) & _db.reminderSlots.syncUuid.isNull());
+    final rows = await query.get();
+    for (final r in rows) {
+      final slot = r.readTable(_db.reminderSlots);
+      await (_db.update(_db.reminderSlots)..where((t) => t.id.equals(slot.id))).write(
+        ReminderSlotsCompanion(syncUuid: Value(_uuid.v4()), updatedAt: Value(DateTime.now())),
+      );
+    }
+  }
+
+  Future<List<ReminderSlot>> _reminderSlotsForPush(int memberId, DateTime? since) async {
+    await _assignMissingReminderSlotUuids(memberId);
+    final query = _db.select(_db.reminderSlots).join([
+      innerJoin(_db.reminders, _db.reminders.id.equalsExp(_db.reminderSlots.reminderId)),
+    ])
+      ..where(_db.reminders.memberId.equals(memberId));
+    if (since != null) query.where(_db.reminderSlots.updatedAt.isBiggerThanValue(since));
+    final rows = await query.get();
+    return rows.map((r) => r.readTable(_db.reminderSlots)).toList();
+  }
+
   Future<void> _assignMissingReminderLogUuids(int memberId) async {
     final rows = await (_db.select(_db.reminderLogs)
           ..where((t) => t.memberId.equals(memberId) & t.syncUuid.isNull()))
@@ -867,7 +919,7 @@ class FamilySyncService {
       'activity', 'activity_slot', 'activity_log',
       'wellbeing_log', 'wellbeing_schedule',
       'doctor_appointment',
-      'reminder_log',
+      'reminder_log', 'reminder_slot',
       'medcard_entry',
     ];
     final byType = <String, List<FamilySyncEntity>>{for (final t in order) t: []};
@@ -1129,6 +1181,25 @@ class FamilySyncService {
           await _db.into(_db.reminderLogs).insert(companion);
         }
 
+      case 'reminder_slot':
+        final reminderUuid = json['reminderSyncUuid'] as String?;
+        final reminderId = reminderUuid == null ? null : await _localReminderIdForUuid(reminderUuid);
+        if (reminderId == null) return;
+        final existing =
+            await (_db.select(_db.reminderSlots)..where((t) => t.syncUuid.equals(syncUuid))).getSingleOrNull();
+        json['id'] = existing?.id ?? 0;
+        json['reminderId'] = reminderId;
+        final row = ReminderSlot.fromJson(json);
+        var companion = row.toCompanion(false);
+        companion = existing != null
+            ? companion.copyWith(id: Value(existing.id))
+            : companion.copyWith(id: const Value.absent());
+        if (existing != null) {
+          await _db.update(_db.reminderSlots).replace(companion);
+        } else {
+          await _db.into(_db.reminderSlots).insert(companion);
+        }
+
       case 'medcard_section':
         final existing = await (_db.select(_db.medcardSections)
               ..where((t) => t.syncUuid.equals(syncUuid)))
@@ -1194,6 +1265,8 @@ class FamilySyncService {
         await (_db.delete(_db.reminders)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'reminder_log':
         await (_db.delete(_db.reminderLogs)..where((t) => t.syncUuid.equals(syncUuid))).go();
+      case 'reminder_slot':
+        await (_db.delete(_db.reminderSlots)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'medcard_section':
         await (_db.delete(_db.medcardSections)..where((t) => t.syncUuid.equals(syncUuid))).go();
       case 'medcard_entry':

@@ -53,6 +53,7 @@ class FamilyPeerSyncService {
     'wellbeing_schedule',
     'doctor_appointment',
     'reminder_log',
+    'reminder_slot',
     'medcard_section',
     'medcard_entry',
   ];
@@ -383,6 +384,18 @@ class FamilyPeerSyncService {
       }
     }
 
+    Future<void> reminderSlots() async {
+      final query = _db.select(_db.reminderSlots).join([
+        innerJoin(_db.reminders, _db.reminders.id.equalsExp(_db.reminderSlots.reminderId)),
+      ])
+        ..where(_db.reminders.memberId.equals(memberId) & _db.reminderSlots.syncUuid.isNull());
+      for (final r in await query.get()) {
+        final s = r.readTable(_db.reminderSlots);
+        await (_db.update(_db.reminderSlots)..where((t) => t.id.equals(s.id)))
+            .write(ReminderSlotsCompanion(syncUuid: Value(_uuid.v4())));
+      }
+    }
+
     await medications();
     await schedules();
     await intakes();
@@ -392,6 +405,7 @@ class FamilyPeerSyncService {
     await wellbeingLogs();
     await wellbeingSchedules();
     await medcardEntries();
+    await reminderSlots();
     for (final t in const ['doctor_appointment', 'medcard_section', 'reminder_log']) {
       await flat(t);
     }
@@ -513,6 +527,21 @@ class FamilyPeerSyncService {
           result.add(json);
         }
         return result;
+      case 'reminder_slot':
+        final rows = await (_db.select(_db.reminderSlots).join([
+          innerJoin(_db.reminders, _db.reminders.id.equalsExp(_db.reminderSlots.reminderId)),
+        ])..where(_db.reminders.memberId.equals(memberId))).get();
+        final slotResult = <Map<String, dynamic>>[];
+        for (final r in rows) {
+          final s = r.readTable(_db.reminderSlots);
+          if (s.syncUuid == null) continue;
+          final reminderUuid = await _reminderSyncUuidFor(s.reminderId);
+          if (reminderUuid == null) continue;
+          final json = _withUuid(s.toJson(), s.syncUuid!)..remove('reminderId');
+          json['reminderSyncUuid'] = reminderUuid;
+          slotResult.add(json);
+        }
+        return slotResult;
       case 'medcard_section':
         final rows = await (_db.select(_db.medcardSections)..where((t) => t.memberId.equals(memberId))).get();
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
