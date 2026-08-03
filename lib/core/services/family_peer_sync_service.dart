@@ -1011,6 +1011,11 @@ class FamilyPeerSyncService {
     }
     await SharedChannelKeyStorage.delete(peer.channelId);
     await repo.delete(personUuid);
+    // Кеш SharedEntities раніше чистився лише на холодному старті
+    // (clearSharedCache) — до наступного перезапуску вихід/виключення з
+    // сім'ї чи відкликаний доступ лишали чужі дані видимими в тій самій
+    // сесії. Прибираємо явно тут же, разом із SharedSubjects.
+    await repo.deleteSharedEntitiesForSubjects(subjects.map((s) => s.personUuid).toList());
     await repo.deleteSharedSubjectsForChannel(peer.channelId);
   }
 

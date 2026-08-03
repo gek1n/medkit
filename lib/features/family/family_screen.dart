@@ -25,7 +25,6 @@ import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../plans/elly_denied_screen.dart';
-import '../plans/plans_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'family_duties_screen.dart';
 import 'family_group_invite_screen.dart';
@@ -567,34 +566,18 @@ class _MemberActionsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final plan = ref.watch(planProvider);
-    // "Автономний" тепер завжди означає незалежний FamilyPeer, а не
-    // локальний Member-рядок — тому ліміт плану рахується за кількістю
-    // пірів, а не за роллю цього профілю (він завжди dependent/owner тут).
-    final peersCount = (ref.watch(_familyPeersProvider).valueOrNull ?? [])
-        .where((p) => !p.invitedMe)
-        .length;
-    final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
-        ? true
-        : peersCount >= plan.limits.maxAutonomousMembers;
     final pendingConversion = ref.watch(_pendingConversionProvider(member.id)).valueOrNull ?? false;
 
     final rows = <_SheetAction>[
-      if (autonomousLimitReached)
-        _SheetAction(
-          icon: Icons.workspace_premium_rounded,
-          label: context.l10n.inviteAction,
-          subtitle: context.l10n.autonomousProfilesPlusOnly,
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const PlansScreen()));
-          },
-        )
-      else
+      // Перехід "Локальний → Автономний" тимчасово заблокований (Крок 1.2
+      // плану) — розкриває багато проблем на приймаючому боці. Уже
+      // розпочату конвертацію (pendingConversion) дозволяємо завершити, щоб
+      // не лишити користувача з "підвислим" запрошенням; нову — не
+      // починаємо, тож кнопка з'являється лише коли конвертація вже йде.
+      if (pendingConversion)
         _SheetAction(
           icon: Icons.person_add_alt_1_rounded,
-          label: pendingConversion ? context.l10n.awaitingJoinLabel : context.l10n.inviteToAppLabel,
+          label: context.l10n.awaitingJoinLabel,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
@@ -716,13 +699,11 @@ class _MemberActionsSheet extends ConsumerWidget {
 class _SheetAction extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String? subtitle;
   final Color color;
   final VoidCallback onTap;
   const _SheetAction({
     required this.icon,
     required this.label,
-    this.subtitle,
     this.color = AppColors.primary,
     required this.onTap,
   });
@@ -754,12 +735,6 @@ class _SheetAction extends StatelessWidget {
                   Text(label,
                       style: AppTextStyles.bodyMd.copyWith(
                           color: color == AppColors.danger ? color : null)),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(subtitle!,
-                        style: AppTextStyles.bodySm
-                            .copyWith(color: AppColors.textMuted)),
-                  ],
                 ],
               ),
             ),
