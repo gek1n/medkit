@@ -16607,6 +16607,18 @@ class $MedcardSectionsTable extends MedcardSections
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -16619,6 +16631,7 @@ class $MedcardSectionsTable extends MedcardSections
     updatedAt,
     syncUuid,
     isDefaultNotes,
+    sortOrder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -16696,6 +16709,12 @@ class $MedcardSectionsTable extends MedcardSections
         ),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     return context;
   }
 
@@ -16745,6 +16764,10 @@ class $MedcardSectionsTable extends MedcardSections
         DriftSqlType.bool,
         data['${effectivePrefix}is_default_notes'],
       )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
     );
   }
 
@@ -16765,6 +16788,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
   final DateTime updatedAt;
   final String? syncUuid;
   final bool isDefaultNotes;
+  final int sortOrder;
   const MedcardSection({
     required this.id,
     required this.memberId,
@@ -16776,6 +16800,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     required this.updatedAt,
     this.syncUuid,
     required this.isDefaultNotes,
+    required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -16794,6 +16819,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       map['sync_uuid'] = Variable<String>(syncUuid);
     }
     map['is_default_notes'] = Variable<bool>(isDefaultNotes);
+    map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
 
@@ -16813,6 +16839,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
           ? const Value.absent()
           : Value(syncUuid),
       isDefaultNotes: Value(isDefaultNotes),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -16832,6 +16859,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncUuid: serializer.fromJson<String?>(json['syncUuid']),
       isDefaultNotes: serializer.fromJson<bool>(json['isDefaultNotes']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -16848,6 +16876,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncUuid': serializer.toJson<String?>(syncUuid),
       'isDefaultNotes': serializer.toJson<bool>(isDefaultNotes),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
@@ -16862,6 +16891,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     DateTime? updatedAt,
     Value<String?> syncUuid = const Value.absent(),
     bool? isDefaultNotes,
+    int? sortOrder,
   }) => MedcardSection(
     id: id ?? this.id,
     memberId: memberId ?? this.memberId,
@@ -16873,6 +16903,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     updatedAt: updatedAt ?? this.updatedAt,
     syncUuid: syncUuid.present ? syncUuid.value : this.syncUuid,
     isDefaultNotes: isDefaultNotes ?? this.isDefaultNotes,
+    sortOrder: sortOrder ?? this.sortOrder,
   );
   MedcardSection copyWithCompanion(MedcardSectionsCompanion data) {
     return MedcardSection(
@@ -16888,6 +16919,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
       isDefaultNotes: data.isDefaultNotes.present
           ? data.isDefaultNotes.value
           : this.isDefaultNotes,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
 
@@ -16903,7 +16935,8 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncUuid: $syncUuid, ')
-          ..write('isDefaultNotes: $isDefaultNotes')
+          ..write('isDefaultNotes: $isDefaultNotes, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -16920,6 +16953,7 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
     updatedAt,
     syncUuid,
     isDefaultNotes,
+    sortOrder,
   );
   @override
   bool operator ==(Object other) =>
@@ -16934,7 +16968,8 @@ class MedcardSection extends DataClass implements Insertable<MedcardSection> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.syncUuid == this.syncUuid &&
-          other.isDefaultNotes == this.isDefaultNotes);
+          other.isDefaultNotes == this.isDefaultNotes &&
+          other.sortOrder == this.sortOrder);
 }
 
 class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
@@ -16948,6 +16983,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
   final Value<DateTime> updatedAt;
   final Value<String?> syncUuid;
   final Value<bool> isDefaultNotes;
+  final Value<int> sortOrder;
   const MedcardSectionsCompanion({
     this.id = const Value.absent(),
     this.memberId = const Value.absent(),
@@ -16959,6 +16995,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
     this.isDefaultNotes = const Value.absent(),
+    this.sortOrder = const Value.absent(),
   });
   MedcardSectionsCompanion.insert({
     this.id = const Value.absent(),
@@ -16971,6 +17008,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     this.updatedAt = const Value.absent(),
     this.syncUuid = const Value.absent(),
     this.isDefaultNotes = const Value.absent(),
+    this.sortOrder = const Value.absent(),
   }) : memberId = Value(memberId),
        name = Value(name);
   static Insertable<MedcardSection> custom({
@@ -16984,6 +17022,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     Expression<DateTime>? updatedAt,
     Expression<String>? syncUuid,
     Expression<bool>? isDefaultNotes,
+    Expression<int>? sortOrder,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -16996,6 +17035,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncUuid != null) 'sync_uuid': syncUuid,
       if (isDefaultNotes != null) 'is_default_notes': isDefaultNotes,
+      if (sortOrder != null) 'sort_order': sortOrder,
     });
   }
 
@@ -17010,6 +17050,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     Value<DateTime>? updatedAt,
     Value<String?>? syncUuid,
     Value<bool>? isDefaultNotes,
+    Value<int>? sortOrder,
   }) {
     return MedcardSectionsCompanion(
       id: id ?? this.id,
@@ -17022,6 +17063,7 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
       updatedAt: updatedAt ?? this.updatedAt,
       syncUuid: syncUuid ?? this.syncUuid,
       isDefaultNotes: isDefaultNotes ?? this.isDefaultNotes,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -17058,6 +17100,9 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
     if (isDefaultNotes.present) {
       map['is_default_notes'] = Variable<bool>(isDefaultNotes.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     return map;
   }
 
@@ -17073,7 +17118,8 @@ class MedcardSectionsCompanion extends UpdateCompanion<MedcardSection> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncUuid: $syncUuid, ')
-          ..write('isDefaultNotes: $isDefaultNotes')
+          ..write('isDefaultNotes: $isDefaultNotes, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
