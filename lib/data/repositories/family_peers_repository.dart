@@ -35,6 +35,10 @@ class FamilyPeersRepository {
     required bool notify,
     required bool view,
     required bool edit,
+    required bool viewSchedule,
+    required bool editSchedule,
+    required bool viewMedcard,
+    required bool editMedcard,
     required bool payerPlanActive,
   }) =>
       (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid))).write(
@@ -42,6 +46,10 @@ class FamilyPeersRepository {
           notifyGranted: Value(notify),
           viewGranted: Value(view),
           editGranted: Value(edit),
+          viewScheduleGranted: Value(viewSchedule),
+          editScheduleGranted: Value(editSchedule),
+          viewMedcardGranted: Value(viewMedcard),
+          editMedcardGranted: Value(editMedcard),
           payerPlanActive: Value(payerPlanActive),
         ),
       );

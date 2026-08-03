@@ -13780,6 +13780,62 @@ class $FamilyPeersTable extends FamilyPeers
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _viewScheduleGrantedMeta =
+      const VerificationMeta('viewScheduleGranted');
+  @override
+  late final GeneratedColumn<bool> viewScheduleGranted = GeneratedColumn<bool>(
+    'view_schedule_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("view_schedule_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _editScheduleGrantedMeta =
+      const VerificationMeta('editScheduleGranted');
+  @override
+  late final GeneratedColumn<bool> editScheduleGranted = GeneratedColumn<bool>(
+    'edit_schedule_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("edit_schedule_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _viewMedcardGrantedMeta =
+      const VerificationMeta('viewMedcardGranted');
+  @override
+  late final GeneratedColumn<bool> viewMedcardGranted = GeneratedColumn<bool>(
+    'view_medcard_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("view_medcard_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _editMedcardGrantedMeta =
+      const VerificationMeta('editMedcardGranted');
+  @override
+  late final GeneratedColumn<bool> editMedcardGranted = GeneratedColumn<bool>(
+    'edit_medcard_granted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("edit_medcard_granted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _invitedMeMeta = const VerificationMeta(
     'invitedMe',
   );
@@ -13822,6 +13878,10 @@ class $FamilyPeersTable extends FamilyPeers
     notifyGranted,
     viewGranted,
     editGranted,
+    viewScheduleGranted,
+    editScheduleGranted,
+    viewMedcardGranted,
+    editMedcardGranted,
     invitedMe,
     payerPlanActive,
   ];
@@ -13920,6 +13980,42 @@ class $FamilyPeersTable extends FamilyPeers
         ),
       );
     }
+    if (data.containsKey('view_schedule_granted')) {
+      context.handle(
+        _viewScheduleGrantedMeta,
+        viewScheduleGranted.isAcceptableOrUnknown(
+          data['view_schedule_granted']!,
+          _viewScheduleGrantedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('edit_schedule_granted')) {
+      context.handle(
+        _editScheduleGrantedMeta,
+        editScheduleGranted.isAcceptableOrUnknown(
+          data['edit_schedule_granted']!,
+          _editScheduleGrantedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('view_medcard_granted')) {
+      context.handle(
+        _viewMedcardGrantedMeta,
+        viewMedcardGranted.isAcceptableOrUnknown(
+          data['view_medcard_granted']!,
+          _viewMedcardGrantedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('edit_medcard_granted')) {
+      context.handle(
+        _editMedcardGrantedMeta,
+        editMedcardGranted.isAcceptableOrUnknown(
+          data['edit_medcard_granted']!,
+          _editMedcardGrantedMeta,
+        ),
+      );
+    }
     if (data.containsKey('invited_me')) {
       context.handle(
         _invitedMeMeta,
@@ -13984,6 +14080,22 @@ class $FamilyPeersTable extends FamilyPeers
         DriftSqlType.bool,
         data['${effectivePrefix}edit_granted'],
       )!,
+      viewScheduleGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}view_schedule_granted'],
+      )!,
+      editScheduleGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}edit_schedule_granted'],
+      )!,
+      viewMedcardGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}view_medcard_granted'],
+      )!,
+      editMedcardGranted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}edit_medcard_granted'],
+      )!,
       invitedMe: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}invited_me'],
@@ -14012,6 +14124,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
   final bool notifyGranted;
   final bool viewGranted;
   final bool editGranted;
+  final bool viewScheduleGranted;
+  final bool editScheduleGranted;
+  final bool viewMedcardGranted;
+  final bool editMedcardGranted;
   final bool invitedMe;
   final bool payerPlanActive;
   const FamilyPeer({
@@ -14025,6 +14141,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     required this.notifyGranted,
     required this.viewGranted,
     required this.editGranted,
+    required this.viewScheduleGranted,
+    required this.editScheduleGranted,
+    required this.viewMedcardGranted,
+    required this.editMedcardGranted,
     required this.invitedMe,
     required this.payerPlanActive,
   });
@@ -14043,6 +14163,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     map['notify_granted'] = Variable<bool>(notifyGranted);
     map['view_granted'] = Variable<bool>(viewGranted);
     map['edit_granted'] = Variable<bool>(editGranted);
+    map['view_schedule_granted'] = Variable<bool>(viewScheduleGranted);
+    map['edit_schedule_granted'] = Variable<bool>(editScheduleGranted);
+    map['view_medcard_granted'] = Variable<bool>(viewMedcardGranted);
+    map['edit_medcard_granted'] = Variable<bool>(editMedcardGranted);
     map['invited_me'] = Variable<bool>(invitedMe);
     map['payer_plan_active'] = Variable<bool>(payerPlanActive);
     return map;
@@ -14062,6 +14186,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       notifyGranted: Value(notifyGranted),
       viewGranted: Value(viewGranted),
       editGranted: Value(editGranted),
+      viewScheduleGranted: Value(viewScheduleGranted),
+      editScheduleGranted: Value(editScheduleGranted),
+      viewMedcardGranted: Value(viewMedcardGranted),
+      editMedcardGranted: Value(editMedcardGranted),
       invitedMe: Value(invitedMe),
       payerPlanActive: Value(payerPlanActive),
     );
@@ -14083,6 +14211,14 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       notifyGranted: serializer.fromJson<bool>(json['notifyGranted']),
       viewGranted: serializer.fromJson<bool>(json['viewGranted']),
       editGranted: serializer.fromJson<bool>(json['editGranted']),
+      viewScheduleGranted: serializer.fromJson<bool>(
+        json['viewScheduleGranted'],
+      ),
+      editScheduleGranted: serializer.fromJson<bool>(
+        json['editScheduleGranted'],
+      ),
+      viewMedcardGranted: serializer.fromJson<bool>(json['viewMedcardGranted']),
+      editMedcardGranted: serializer.fromJson<bool>(json['editMedcardGranted']),
       invitedMe: serializer.fromJson<bool>(json['invitedMe']),
       payerPlanActive: serializer.fromJson<bool>(json['payerPlanActive']),
     );
@@ -14101,6 +14237,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       'notifyGranted': serializer.toJson<bool>(notifyGranted),
       'viewGranted': serializer.toJson<bool>(viewGranted),
       'editGranted': serializer.toJson<bool>(editGranted),
+      'viewScheduleGranted': serializer.toJson<bool>(viewScheduleGranted),
+      'editScheduleGranted': serializer.toJson<bool>(editScheduleGranted),
+      'viewMedcardGranted': serializer.toJson<bool>(viewMedcardGranted),
+      'editMedcardGranted': serializer.toJson<bool>(editMedcardGranted),
       'invitedMe': serializer.toJson<bool>(invitedMe),
       'payerPlanActive': serializer.toJson<bool>(payerPlanActive),
     };
@@ -14117,6 +14257,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     bool? notifyGranted,
     bool? viewGranted,
     bool? editGranted,
+    bool? viewScheduleGranted,
+    bool? editScheduleGranted,
+    bool? viewMedcardGranted,
+    bool? editMedcardGranted,
     bool? invitedMe,
     bool? payerPlanActive,
   }) => FamilyPeer(
@@ -14130,6 +14274,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     notifyGranted: notifyGranted ?? this.notifyGranted,
     viewGranted: viewGranted ?? this.viewGranted,
     editGranted: editGranted ?? this.editGranted,
+    viewScheduleGranted: viewScheduleGranted ?? this.viewScheduleGranted,
+    editScheduleGranted: editScheduleGranted ?? this.editScheduleGranted,
+    viewMedcardGranted: viewMedcardGranted ?? this.viewMedcardGranted,
+    editMedcardGranted: editMedcardGranted ?? this.editMedcardGranted,
     invitedMe: invitedMe ?? this.invitedMe,
     payerPlanActive: payerPlanActive ?? this.payerPlanActive,
   );
@@ -14157,6 +14305,18 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       editGranted: data.editGranted.present
           ? data.editGranted.value
           : this.editGranted,
+      viewScheduleGranted: data.viewScheduleGranted.present
+          ? data.viewScheduleGranted.value
+          : this.viewScheduleGranted,
+      editScheduleGranted: data.editScheduleGranted.present
+          ? data.editScheduleGranted.value
+          : this.editScheduleGranted,
+      viewMedcardGranted: data.viewMedcardGranted.present
+          ? data.viewMedcardGranted.value
+          : this.viewMedcardGranted,
+      editMedcardGranted: data.editMedcardGranted.present
+          ? data.editMedcardGranted.value
+          : this.editMedcardGranted,
       invitedMe: data.invitedMe.present ? data.invitedMe.value : this.invitedMe,
       payerPlanActive: data.payerPlanActive.present
           ? data.payerPlanActive.value
@@ -14177,6 +14337,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ..write('notifyGranted: $notifyGranted, ')
           ..write('viewGranted: $viewGranted, ')
           ..write('editGranted: $editGranted, ')
+          ..write('viewScheduleGranted: $viewScheduleGranted, ')
+          ..write('editScheduleGranted: $editScheduleGranted, ')
+          ..write('viewMedcardGranted: $viewMedcardGranted, ')
+          ..write('editMedcardGranted: $editMedcardGranted, ')
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive')
           ..write(')'))
@@ -14195,6 +14359,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     notifyGranted,
     viewGranted,
     editGranted,
+    viewScheduleGranted,
+    editScheduleGranted,
+    viewMedcardGranted,
+    editMedcardGranted,
     invitedMe,
     payerPlanActive,
   );
@@ -14212,6 +14380,10 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           other.notifyGranted == this.notifyGranted &&
           other.viewGranted == this.viewGranted &&
           other.editGranted == this.editGranted &&
+          other.viewScheduleGranted == this.viewScheduleGranted &&
+          other.editScheduleGranted == this.editScheduleGranted &&
+          other.viewMedcardGranted == this.viewMedcardGranted &&
+          other.editMedcardGranted == this.editMedcardGranted &&
           other.invitedMe == this.invitedMe &&
           other.payerPlanActive == this.payerPlanActive);
 }
@@ -14227,6 +14399,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
   final Value<bool> notifyGranted;
   final Value<bool> viewGranted;
   final Value<bool> editGranted;
+  final Value<bool> viewScheduleGranted;
+  final Value<bool> editScheduleGranted;
+  final Value<bool> viewMedcardGranted;
+  final Value<bool> editMedcardGranted;
   final Value<bool> invitedMe;
   final Value<bool> payerPlanActive;
   final Value<int> rowid;
@@ -14241,6 +14417,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.notifyGranted = const Value.absent(),
     this.viewGranted = const Value.absent(),
     this.editGranted = const Value.absent(),
+    this.viewScheduleGranted = const Value.absent(),
+    this.editScheduleGranted = const Value.absent(),
+    this.viewMedcardGranted = const Value.absent(),
+    this.editMedcardGranted = const Value.absent(),
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -14256,6 +14436,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.notifyGranted = const Value.absent(),
     this.viewGranted = const Value.absent(),
     this.editGranted = const Value.absent(),
+    this.viewScheduleGranted = const Value.absent(),
+    this.editScheduleGranted = const Value.absent(),
+    this.viewMedcardGranted = const Value.absent(),
+    this.editMedcardGranted = const Value.absent(),
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -14274,6 +14458,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Expression<bool>? notifyGranted,
     Expression<bool>? viewGranted,
     Expression<bool>? editGranted,
+    Expression<bool>? viewScheduleGranted,
+    Expression<bool>? editScheduleGranted,
+    Expression<bool>? viewMedcardGranted,
+    Expression<bool>? editMedcardGranted,
     Expression<bool>? invitedMe,
     Expression<bool>? payerPlanActive,
     Expression<int>? rowid,
@@ -14289,6 +14477,14 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       if (notifyGranted != null) 'notify_granted': notifyGranted,
       if (viewGranted != null) 'view_granted': viewGranted,
       if (editGranted != null) 'edit_granted': editGranted,
+      if (viewScheduleGranted != null)
+        'view_schedule_granted': viewScheduleGranted,
+      if (editScheduleGranted != null)
+        'edit_schedule_granted': editScheduleGranted,
+      if (viewMedcardGranted != null)
+        'view_medcard_granted': viewMedcardGranted,
+      if (editMedcardGranted != null)
+        'edit_medcard_granted': editMedcardGranted,
       if (invitedMe != null) 'invited_me': invitedMe,
       if (payerPlanActive != null) 'payer_plan_active': payerPlanActive,
       if (rowid != null) 'rowid': rowid,
@@ -14306,6 +14502,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Value<bool>? notifyGranted,
     Value<bool>? viewGranted,
     Value<bool>? editGranted,
+    Value<bool>? viewScheduleGranted,
+    Value<bool>? editScheduleGranted,
+    Value<bool>? viewMedcardGranted,
+    Value<bool>? editMedcardGranted,
     Value<bool>? invitedMe,
     Value<bool>? payerPlanActive,
     Value<int>? rowid,
@@ -14321,6 +14521,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       notifyGranted: notifyGranted ?? this.notifyGranted,
       viewGranted: viewGranted ?? this.viewGranted,
       editGranted: editGranted ?? this.editGranted,
+      viewScheduleGranted: viewScheduleGranted ?? this.viewScheduleGranted,
+      editScheduleGranted: editScheduleGranted ?? this.editScheduleGranted,
+      viewMedcardGranted: viewMedcardGranted ?? this.viewMedcardGranted,
+      editMedcardGranted: editMedcardGranted ?? this.editMedcardGranted,
       invitedMe: invitedMe ?? this.invitedMe,
       payerPlanActive: payerPlanActive ?? this.payerPlanActive,
       rowid: rowid ?? this.rowid,
@@ -14360,6 +14564,18 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     if (editGranted.present) {
       map['edit_granted'] = Variable<bool>(editGranted.value);
     }
+    if (viewScheduleGranted.present) {
+      map['view_schedule_granted'] = Variable<bool>(viewScheduleGranted.value);
+    }
+    if (editScheduleGranted.present) {
+      map['edit_schedule_granted'] = Variable<bool>(editScheduleGranted.value);
+    }
+    if (viewMedcardGranted.present) {
+      map['view_medcard_granted'] = Variable<bool>(viewMedcardGranted.value);
+    }
+    if (editMedcardGranted.present) {
+      map['edit_medcard_granted'] = Variable<bool>(editMedcardGranted.value);
+    }
     if (invitedMe.present) {
       map['invited_me'] = Variable<bool>(invitedMe.value);
     }
@@ -14385,6 +14601,10 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
           ..write('notifyGranted: $notifyGranted, ')
           ..write('viewGranted: $viewGranted, ')
           ..write('editGranted: $editGranted, ')
+          ..write('viewScheduleGranted: $viewScheduleGranted, ')
+          ..write('editScheduleGranted: $editScheduleGranted, ')
+          ..write('viewMedcardGranted: $viewMedcardGranted, ')
+          ..write('editMedcardGranted: $editMedcardGranted, ')
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive, ')
           ..write('rowid: $rowid')

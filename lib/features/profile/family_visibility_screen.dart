@@ -270,6 +270,8 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
   bool _loading = true;
   bool _denied = false;
   final Map<FamilyPermission, bool> _values = {};
+  final Map<FamilySection, Map<bool, bool>> _sectionValues = {};
+  // _sectionValues[section][edit] — edit:false = перегляд, edit:true = редагування.
 
   @override
   void initState() {
@@ -282,6 +284,14 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
     for (final p in FamilyPermission.values) {
       _values[p] = await FamilyVisibilityService.isAllowed(
           db, widget.subjectPersonUuid, widget.viewer.personUuid, p);
+    }
+    for (final s in FamilySection.values) {
+      _sectionValues[s] = {
+        false: await FamilyVisibilityService.isSectionAllowed(
+            db, widget.subjectPersonUuid, widget.viewer.personUuid, s, edit: false),
+        true: await FamilyVisibilityService.isSectionAllowed(
+            db, widget.subjectPersonUuid, widget.viewer.personUuid, s, edit: true),
+      };
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -306,6 +316,22 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
     if (widget.viewer.isPending && value) {
       await FamilyPeerSyncService(ref.read(databaseProvider))
           .requestIntroduction(widget.viewer.personUuid);
+    }
+  }
+
+  Future<void> _toggleSection(FamilySection section, bool edit, bool value) async {
+    setState(() => _sectionValues[section]![edit] = value);
+    try {
+      await FamilyVisibilityService.setSectionAllowed(
+        ref.read(databaseProvider),
+        subjectPersonUuid: widget.subjectPersonUuid,
+        viewerPersonUuid: widget.viewer.personUuid,
+        section: section,
+        edit: edit,
+        value: value,
+      );
+    } on FamilyGrantDeniedException {
+      if (mounted) setState(() => _denied = true);
     }
   }
 
@@ -370,6 +396,30 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
               value: _values[FamilyPermission.view]!,
               onChanged: (v) => _toggle(FamilyPermission.view, v),
             ),
+            if (_values[FamilyPermission.view] == true) ...[
+              const SizedBox(height: AppDimensions.sm),
+              const Divider(height: 1, color: AppColors.border),
+              const SizedBox(height: AppDimensions.sm),
+              Text(
+                context.l10n.familySectionsIntro,
+                style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+              ),
+              const SizedBox(height: AppDimensions.xs),
+              _SectionPermissionRow(
+                label: context.l10n.familySectionScheduleLabel,
+                viewValue: _sectionValues[FamilySection.schedule]![false]!,
+                editValue: _sectionValues[FamilySection.schedule]![true]!,
+                onViewChanged: (v) => _toggleSection(FamilySection.schedule, false, v),
+                onEditChanged: (v) => _toggleSection(FamilySection.schedule, true, v),
+              ),
+              _SectionPermissionRow(
+                label: context.l10n.familySectionVisitsWellbeingLabel,
+                viewValue: _sectionValues[FamilySection.medcard]![false]!,
+                editValue: _sectionValues[FamilySection.medcard]![true]!,
+                onViewChanged: (v) => _toggleSection(FamilySection.medcard, false, v),
+                onEditChanged: (v) => _toggleSection(FamilySection.medcard, true, v),
+              ),
+            ],
             if (_denied) ...[
               const SizedBox(height: 4),
               Text(
@@ -408,6 +458,66 @@ class _PermissionRow extends StatelessWidget {
             onChanged: onChanged,
             activeThumbColor: AppColors.primary,
             activeTrackColor: AppColors.primaryLight,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Один розділ (Розклад / Візити та самопочуття) — окремо перегляд і
+/// редагування, замість одного спільного перемикача на всю людину.
+class _SectionPermissionRow extends StatelessWidget {
+  final String label;
+  final bool viewValue;
+  final bool editValue;
+  final ValueChanged<bool> onViewChanged;
+  final ValueChanged<bool> onEditChanged;
+  const _SectionPermissionRow({
+    required this.label,
+    required this.viewValue,
+    required this.editValue,
+    required this.onViewChanged,
+    required this.onEditChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: AppTextStyles.bodyMd),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(context.l10n.familySectionViewColumnLabel,
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+              Switch(
+                value: viewValue,
+                onChanged: onViewChanged,
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primaryLight,
+              ),
+            ],
+          ),
+          const SizedBox(width: AppDimensions.sm),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(context.l10n.familySectionEditColumnLabel,
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+              Switch(
+                // Редагування без перегляду не має сенсу — якщо перегляду
+                // нема, вимикаємо й ховаємо можливість увімкнути редагування.
+                value: viewValue && editValue,
+                onChanged: viewValue ? onEditChanged : null,
+                activeThumbColor: AppColors.primary,
+                activeTrackColor: AppColors.primaryLight,
+              ),
+            ],
           ),
         ],
       ),

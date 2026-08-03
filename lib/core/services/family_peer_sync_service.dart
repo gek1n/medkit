@@ -133,6 +133,14 @@ class FamilyPeerSyncService {
       'notify': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.notify),
       'view': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.view),
       'edit': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.edit),
+      'viewSchedule': await FamilyVisibilityService.isSectionAllowed(
+          _db, ownerUuid, peer.personUuid, FamilySection.schedule, edit: false),
+      'editSchedule': await FamilyVisibilityService.isSectionAllowed(
+          _db, ownerUuid, peer.personUuid, FamilySection.schedule, edit: true),
+      'viewMedcard': await FamilyVisibilityService.isSectionAllowed(
+          _db, ownerUuid, peer.personUuid, FamilySection.medcard, edit: false),
+      'editMedcard': await FamilyVisibilityService.isSectionAllowed(
+          _db, ownerUuid, peer.personUuid, FamilySection.medcard, edit: true),
       'payerPlanActive': payerPlanActive,
     };
     final entity = {
@@ -188,8 +196,19 @@ class FamilyPeerSyncService {
       // що й для старого 1:1 SharedChannels, тепер узгоджено і тут.
       final medcardAllowed = await FamilyVisibilityService.isMedcardSyncAllowed(subjectUuid);
 
+      // Крок 4.1: додатковий, ТОЧНІШИЙ бар'єр поверх загального "view" вище —
+      // по кожному з двох розділів окремо для САМЕ ЦЬОГО глядача (view вище
+      // лише "чи бачить мене взагалі", ці — "чи бачить САМЕ ЦЕЙ розділ").
+      final viewScheduleAllowed = await FamilyVisibilityService.isSectionAllowed(
+          _db, subjectUuid, peer.personUuid, FamilySection.schedule, edit: false);
+      final viewMedcardAllowed = await FamilyVisibilityService.isSectionAllowed(
+          _db, subjectUuid, peer.personUuid, FamilySection.medcard, edit: false);
+
       for (final type in _entityTypes) {
         if (!_alwaysSyncedTypes.contains(type) && !medcardAllowed) continue;
+        final sectionAllowed =
+            _alwaysSyncedTypes.contains(type) ? viewScheduleAllowed : viewMedcardAllowed;
+        if (!sectionAllowed) continue;
         final rows = await _rowsFor(type, subject.id);
         for (final row in rows) {
           final id = '$subjectUuid|$type|${row['uuid']}';
@@ -528,6 +547,18 @@ class FamilyPeerSyncService {
     );
     if (!allowed) return;
 
+    // Крок 4.1: точніше, по розділу (medication → Розклад, doctor_appointment
+    // → Медкартка) — той самий бар'єр, що й для push у _push() вище.
+    final section = _alwaysSyncedTypes.contains(entityType) ? FamilySection.schedule : FamilySection.medcard;
+    final sectionAllowed = await FamilyVisibilityService.isSectionAllowed(
+      _db,
+      subjectUuid,
+      fromPeer.personUuid,
+      section,
+      edit: true,
+    );
+    if (!sectionAllowed) return;
+
     final value = json['value'] as String?;
     await _applyFieldIfUnchanged(entityType, targetUuid, subject.id, field, value, baseUpdatedAt);
   }
@@ -611,6 +642,10 @@ class FamilyPeerSyncService {
           notify: json['notify'] as bool? ?? false,
           view: json['view'] as bool? ?? false,
           edit: json['edit'] as bool? ?? false,
+          viewSchedule: json['viewSchedule'] as bool? ?? false,
+          editSchedule: json['editSchedule'] as bool? ?? false,
+          viewMedcard: json['viewMedcard'] as bool? ?? false,
+          editMedcard: json['editMedcard'] as bool? ?? false,
           payerPlanActive: json['payerPlanActive'] as bool? ?? false,
         );
         continue;
