@@ -86,28 +86,30 @@ part 'app_database.g.dart';
 // мали б виправити старі NULL/зіпсовані updated_at в цих таблицях, у
 // логах користувача той самий крах лишався і після onUpgrade-оновлення
 // "на місці", і після повного видалення застосунку + відновлення з
-// хмарного бекапу — тобто одноразовий `if (from < N)` крок у onUpgrade
-// не гарантує застосування до КОЖНОГО можливого шляху появи бази на
-// пристрої (стан user_version у самому файлі бекапу може вже бути
-// рівним поточній schemaVersion, тож `from < N` більше ніколи не
-// спрацює на цьому файлі, хоча дані в ньому фізично лишились
-// зіпсованими). Тому цей самий репар додатково запускається в
-// beforeOpen — воно виконується БЕЗУМОВНО при кожному відкритті з'єднання
-// (не лише при переході між versions), тож самозцілює дані незалежно
-// від того, як саме файл потрапив на пристрій.
-const _kUpdatedAtRepairStatements = [
-  "UPDATE reminder_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE members SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE medications SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE intakes SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE symptoms SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE wellbeing_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE wellbeing_schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE activities SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE activity_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE activity_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-  "UPDATE doctor_appointments SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+// хмарного бекапу. Справжня причина виявилась глибшою — лог з build 67
+// (з активним beforeOpen, коли помилки вже НЕ ковтались мовчки) показав
+// пряме `SqliteException: no such column: updated_at` на reminder_slots:
+// колонка на цьому пристрої фізично відсутня, попри те, що user_version
+// вже давно перейшов позначку 45 (де мав відпрацювати
+// `m.addColumn(reminderSlots, reminderSlots.updatedAt)`). Той addColumn
+// сам колись мовчки впав (той самий `catch (_) {}` — ADD COLUMN з
+// виразом-DEFAULT (`currentDateAndTime`) підтримується не на кожній
+// платформі/версії sqlite3) — тож саму UPDATE-репарацію запускати
+// нема на чому. `doctor_appointments` прибрано зі списку зовсім: ця
+// таблиця перейменована на "reminders" для всіх у міграції 31, на
+// жодному сучасному пристрої її фізично більше не існує.
+const _kUpdatedAtRepairTables = [
+  'reminder_slots',
+  'members',
+  'medications',
+  'schedules',
+  'intakes',
+  'symptoms',
+  'wellbeing_logs',
+  'wellbeing_schedules',
+  'activities',
+  'activity_slots',
+  'activity_logs',
 ];
 
 class AppDatabase extends _$AppDatabase {
@@ -1018,28 +1020,47 @@ class AppDatabase extends _$AppDatabase {
             // старий NULL, і зіпсований текст від v48 одним запитом;
             // unixepoch() — те саме SQLite-вираження, яким drift компілює
             // currentDateAndTime у режимі зберігання як ціле число.
-            for (final stmt in _kUpdatedAtRepairStatements) {
+            for (final table in _kUpdatedAtRepairTables) {
               try {
-                await customStatement(stmt);
+                await customStatement(
+                    "UPDATE $table SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'");
               } catch (_) {}
             }
           }
         },
         beforeOpen: (details) async {
           // Безумовний самоцілющий прохід — див. коментар при
-          // _kUpdatedAtRepairStatements вище. На відміну від onUpgrade,
+          // _kUpdatedAtRepairTables вище. На відміну від onUpgrade,
           // виконується щоразу при відкритті з'єднання (свіжий пристрій,
           // оновлення "на місці", відновлення з бекапу — байдуже), тож не
           // залежить від того, яким шляхом і з яким user_version файл
-          // фізично потрапив на цей пристрій. Помилки тут НЕ ковтаються
-          // мовчки (на відміну від onUpgrade-кроків) — якщо unixepoch()
-          // раптом недоступний на якомусь sqlite3-білді, маємо про це
-          // дізнатись, а не просто мовчки лишити дані зіпсованими.
-          for (final stmt in _kUpdatedAtRepairStatements) {
+          // фізично потрапив на цей пристрій.
+          //
+          // Спершу захисний ALTER TABLE ... ADD COLUMN — реальний випадок з
+          // логів build 67: на пристрої користувача updated_at був не
+          // "зіпсований", а фізично ВІДСУТНІЙ як колонка (m.addColumn у
+          // блоці if (from < 45) сам колись мовчки впав — ADD COLUMN з
+          // виразом-DEFAULT (currentDateAndTime) підтримується не скрізь),
+          // тож будь-який UPDATE на цю колонку одразу падав з
+          // "no such column". Тут — проста форма без виразу-DEFAULT
+          // (сумісніша), і лише якщо колонка вже є — "duplicate column"
+          // ловиться тим самим catch (це штатний випадок для здорових
+          // пристроїв, де колонка вже існує).
+          for (final table in _kUpdatedAtRepairTables) {
             try {
-              await customStatement(stmt);
+              await customStatement('ALTER TABLE $table ADD COLUMN updated_at INTEGER');
+            } catch (_) {}
+          }
+          // Сам UPDATE — помилки тут НЕ ковтаються мовчки (на відміну від
+          // onUpgrade-кроків і ALTER вище) — якщо після захисного ALTER
+          // колонка досі чомусь недоступна, маємо про це дізнатись, а не
+          // просто мовчки лишити дані зіпсованими.
+          for (final table in _kUpdatedAtRepairTables) {
+            try {
+              await customStatement(
+                  "UPDATE $table SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'");
             } catch (e, st) {
-              AppLogger.logError('AppDatabase.beforeOpen repair: $stmt', e, st);
+              AppLogger.logError('AppDatabase.beforeOpen repair ($table)', e, st);
             }
           }
         },
