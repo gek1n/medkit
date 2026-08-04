@@ -1656,6 +1656,22 @@
   },
   "notifBackupReminderTitle": "Protect your data",
   "notifBackupReminderBody": "Backup is off — data is stored only on this device. Turn it on in Profile so you don't lose it.",
+  "notifPeerRecordAddedTitle": "{name} added an entry",
+  "@notifPeerRecordAddedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerRecordEditedTitle": "{name} edited an entry",
+  "@notifPeerRecordEditedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowStockTitle": "⚠️ Running low",
   "notifLowStockBody": "{medName} — {remaining} {unit} left",
   "@notifLowStockBody": {
