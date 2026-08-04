@@ -111,6 +111,7 @@
   "categoryWellbeing": "Настроение",
   "categoryDoctors": "Напоминания",
   "scheduleTitle": "Расписание",
+  "scheduleCategoryPickerTitle": "Раздел",
   "searchAllSections": "Поиск по всем разделам",
   "searchHint": "Поиск",
   "noResultsFoundHint": "Ничего не найдено",
@@ -691,6 +692,7 @@
     }
   },
   "familyGroupSectionLabel": "Семейная группа",
+  "localUsersSectionLabel": "Локальные пользователи",
   "slotsUsedLabel": "{used} из {total}",
   "@slotsUsedLabel": {
     "placeholders": {

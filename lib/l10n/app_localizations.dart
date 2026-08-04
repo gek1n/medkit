@@ -496,6 +496,12 @@ abstract class AppLocalizations {
   /// **'Розклад'**
   String get scheduleTitle;
 
+  /// No description provided for @scheduleCategoryPickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розділ'**
+  String get scheduleCategoryPickerTitle;
+
   /// No description provided for @searchAllSections.
   ///
   /// In uk, this message translates to:
@@ -2073,6 +2079,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Сімейна група'**
   String get familyGroupSectionLabel;
+
+  /// No description provided for @localUsersSectionLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Локальні користувачі'**
+  String get localUsersSectionLabel;
 
   /// No description provided for @slotsUsedLabel.
   ///

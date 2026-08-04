@@ -138,7 +138,14 @@ class _FamilyBody extends ConsumerWidget {
                 ),
               if (blocked || plan == AppPlan.plus)
                 const SizedBox(height: AppDimensions.md),
-              _DraggableMembers(others: others, ownerId: owner.id),
+              if (others.isNotEmpty)
+                _FamilyAccordionSection(
+                  header: Text(
+                    context.l10n.localUsersSectionLabel.toUpperCase(),
+                    style: AppTextStyles.labelSm.copyWith(color: AppColors.textMuted),
+                  ),
+                  child: _DraggableMembers(others: others, ownerId: owner.id),
+                ),
               if (!blocked) const _AddMemberTile(),
               const SizedBox(height: AppDimensions.xl),
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
@@ -1126,9 +1133,8 @@ class _FamilyGroupSubsection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-          child: Row(
+        _FamilyAccordionSection(
+          header: Row(
             children: [
               Text(label, style: AppTextStyles.labelMd.copyWith(color: AppColors.textSub)),
               if (showPayerBadge) ...[
@@ -1143,20 +1149,23 @@ class _FamilyGroupSubsection extends StatelessWidget {
               ],
             ],
           ),
+          // Драг-н-дроп лише для "моєї" секції (пірів, яких я сам запросив) —
+          // порядок гостей у ЧУЖІЙ сім'ї не має чим бути кероване з мого
+          // боку, та й sortOrder тут єдиний спільний простір значень для
+          // ВСІХ пірів одразу (без прив'язки до familyId, бо перемикачі й
+          // так показують їх одним пласким блоком) — реордер лише "своєї"
+          // групи уникає колізій із чужими familyId-групами.
+          child: isOwnFamily
+              ? _DraggablePeers(peers: peers)
+              : Column(
+                  children: peers
+                      .map((p) => Padding(
+                            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                            child: _PeerCard(peer: p),
+                          ))
+                      .toList(),
+                ),
         ),
-        // Драг-н-дроп лише для "моєї" секції (пірів, яких я сам запросив) —
-        // порядок гостей у ЧУЖІЙ сім'ї не має чим бути кероване з мого
-        // боку, та й sortOrder тут єдиний спільний простір значень для
-        // ВСІХ пірів одразу (без прив'язки до familyId, бо перемикачі й
-        // так показують їх одним пласким блоком) — реордер лише "своєї"
-        // групи уникає колізій із чужими familyId-групами.
-        if (isOwnFamily)
-          _DraggablePeers(peers: peers)
-        else
-          ...peers.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                child: _PeerCard(peer: p),
-              )),
         Center(
           child: TextButton(
             onPressed: () => onLeave(label),
@@ -1612,6 +1621,50 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(text, style: AppTextStyles.labelSm);
+}
+
+/// Акордеон для списків членів сім'ї — заголовок у тому самому стилі, що
+/// й "Ранок"/"День"/"Ніч" на Сьогодні (uppercase labelSm), зі стрілкою
+/// розкриття справа скраю. За замовчуванням розкрито.
+class _FamilyAccordionSection extends StatefulWidget {
+  final Widget header;
+  final Widget child;
+  const _FamilyAccordionSection({required this.header, required this.child});
+
+  @override
+  State<_FamilyAccordionSection> createState() => _FamilyAccordionSectionState();
+}
+
+class _FamilyAccordionSectionState extends State<_FamilyAccordionSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppDimensions.sm),
+            child: Row(
+              children: [
+                Expanded(child: widget.header),
+                AnimatedRotation(
+                  turns: _expanded ? 0.25 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: const Icon(Icons.chevron_right_rounded,
+                      size: 20, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded) widget.child,
+      ],
+    );
+  }
 }
 
 // Розділ пікера аватарів на діапазон [start, end) — той самий вигляд плиток,

@@ -111,6 +111,7 @@
   "categoryWellbeing": "Настрій",
   "categoryDoctors": "Нагадування",
   "scheduleTitle": "Розклад",
+  "scheduleCategoryPickerTitle": "Розділ",
   "searchAllSections": "Пошук по всіх розділах",
   "searchHint": "Пошук",
   "noResultsFoundHint": "Нічого не знайдено",
@@ -691,6 +692,7 @@
     }
   },
   "familyGroupSectionLabel": "Сімейна група",
+  "localUsersSectionLabel": "Локальні користувачі",
   "slotsUsedLabel": "{used} з {total}",
   "@slotsUsedLabel": {
     "placeholders": {

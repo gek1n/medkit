@@ -220,6 +220,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get scheduleTitle => 'Розклад';
 
   @override
+  String get scheduleCategoryPickerTitle => 'Розділ';
+
+  @override
   String get searchAllSections => 'Пошук по всіх розділах';
 
   @override
@@ -1151,6 +1154,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get familyGroupSectionLabel => 'Сімейна група';
+
+  @override
+  String get localUsersSectionLabel => 'Локальні користувачі';
 
   @override
   String slotsUsedLabel(int used, int total) {

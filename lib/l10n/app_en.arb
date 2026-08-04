@@ -111,6 +111,7 @@
   "categoryWellbeing": "Mood",
   "categoryDoctors": "Reminders",
   "scheduleTitle": "Schedule",
+  "scheduleCategoryPickerTitle": "Section",
   "searchAllSections": "Search all sections",
   "searchHint": "Search",
   "noResultsFoundHint": "Nothing found",
@@ -691,6 +692,7 @@
     }
   },
   "familyGroupSectionLabel": "Family group",
+  "localUsersSectionLabel": "Local users",
   "slotsUsedLabel": "{used} of {total}",
   "@slotsUsedLabel": {
     "placeholders": {

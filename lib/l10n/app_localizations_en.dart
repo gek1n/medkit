@@ -220,6 +220,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleTitle => 'Schedule';
 
   @override
+  String get scheduleCategoryPickerTitle => 'Section';
+
+  @override
   String get searchAllSections => 'Search all sections';
 
   @override
@@ -1145,6 +1148,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get familyGroupSectionLabel => 'Family group';
+
+  @override
+  String get localUsersSectionLabel => 'Local users';
 
   @override
   String slotsUsedLabel(int used, int total) {
