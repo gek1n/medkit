@@ -204,7 +204,6 @@ final peerActivityAssigneesProvider =
 /// (пір ротує чергу поміж людьми, чиї Members-рядки тут узагалі не
 /// існують) — коректно розв'язати це до "чийогось" id тут нема як, тож поле
 /// свідомо не переносимо (null), а не показуємо оманливо неправильне ім'я.
-/// Точна синхронізація "чия черга" — окремий Крок 7 плану.
 final peerActivityLogsProvider = Provider.family<List<ActivityLog>, String>((ref, personUuid) {
   final memberId = peerSyntheticId(personUuid);
   return ref.watch(_peerSnapshotProvider(personUuid)).valueOrNull?.of('activity_log').map((json) {
@@ -219,6 +218,37 @@ final peerActivityLogsProvider = Provider.family<List<ActivityLog>, String>((ref
         }));
       }).toList() ??
       const [];
+});
+
+/// Крок 7.2 плану: хто ФАКТИЧНО призначений на конкретний вже згенерований
+/// день рутини (на відміну від [peerActivityLogsProvider].memberId вище,
+/// який навмисно синтетичний і завжди вказує на самого subject-а) — той
+/// самий формат identity, що й у [PeerActivityAssignee] ('m123' для
+/// звичайного локального члена subject-а, або personUuid тіньового піра).
+/// Звірянням [identity] із власним Members(role=owner).personUuid пір
+/// впізнає "сьогодні моя черга"; [identity] також те, що передається назад
+/// у [FamilyPeerSyncService.proposeRecord] при передачі черги комусь іншому.
+class PeerActivityLogAssignee {
+  final String identity;
+  final String? name;
+  final int? avatarIndex;
+  const PeerActivityLogAssignee({required this.identity, this.name, this.avatarIndex});
+}
+
+final peerActivityLogAssigneesProvider =
+    Provider.family<Map<int, PeerActivityLogAssignee>, String>((ref, personUuid) {
+  final result = <int, PeerActivityLogAssignee>{};
+  for (final json in ref.watch(_peerSnapshotProvider(personUuid)).valueOrNull?.of('activity_log') ?? const []) {
+    final identity = json['assigneeIdentity'] as String?;
+    if (identity == null) continue;
+    final uuid = json['uuid'] as String;
+    result[peerSyntheticId(uuid)] = PeerActivityLogAssignee(
+      identity: identity,
+      name: json['assigneeName'] as String?,
+      avatarIndex: json['assigneeAvatarIndex'] as int?,
+    );
+  }
+  return result;
 });
 
 // ── Самопочуття ──────────────────────────────────────────────────────────
