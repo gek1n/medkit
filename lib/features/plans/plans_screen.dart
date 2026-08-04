@@ -149,15 +149,15 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         final message = AppEnv.isTestBuild
             ? context.l10n.planActivatedTestSnackbar(plan.displayName(context))
             : context.l10n.planActivatedSnackbar(plan.displayName(context));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -178,11 +178,15 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       if (!mounted) return;
       if (outcomes.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.restorePurchasesNothingFoundSnackbar)),
+          SnackBar(
+            content: Text(context.l10n.restorePurchasesNothingFoundSnackbar),
+          ),
         );
         return;
       }
-      final foundPlans = outcomes.map((o) => _planForProductId(o.status.productId));
+      final foundPlans = outcomes.map(
+        (o) => _planForProductId(o.status.productId),
+      );
       final restoredPlan = foundPlans.contains(AppPlan.family)
           ? AppPlan.family
           : (foundPlans.contains(AppPlan.plus) ? AppPlan.plus : AppPlan.free);
@@ -200,9 +204,9 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -227,21 +231,26 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
       // підписка ще активна, поки користувач сам не завершить скасування
       // там, тож локальний стан МІНЯТИ НЕ МОЖНА (інакше UI показував би
       // "Free", поки Apple/Google досі списують гроші за Plus).
-      final cancelledNow = await SubscriptionService.cancelOrManageSubscription();
+      final cancelledNow =
+          await SubscriptionService.cancelOrManageSubscription();
       if (!mounted) return;
       if (cancelledNow) {
         ref.read(planProvider.notifier).state = AppPlan.free;
         ref.invalidate(realPlanProvider);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.manageSubscriptionExternallyHint(_storeName))),
+          SnackBar(
+            content: Text(
+              context.l10n.manageSubscriptionExternallyHint(_storeName),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.actionFailedError(e.toString()))),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -384,7 +393,6 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
                             selectLabel: context.l10n.selectFamilyAction,
                             onSelect: () =>
                                 _selectPaid(AppPlan.family, currentPlan),
-                            comingSoon: true,
                           ),
                           const SizedBox(height: AppDimensions.md),
                           _LegalLink(
@@ -527,7 +535,6 @@ class _PlanCard extends StatelessWidget {
   final bool isCurrent;
   final String selectLabel;
   final VoidCallback onSelect;
-  final bool comingSoon;
 
   const _PlanCard({
     required this.title,
@@ -539,149 +546,122 @@ class _PlanCard extends StatelessWidget {
     required this.isCurrent,
     required this.selectLabel,
     required this.onSelect,
-    this.comingSoon = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Opacity(
-          opacity: comingSoon ? 0.5 : 1,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppDimensions.lg),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              border: Border.all(
-                color: isCurrent ? AppColors.primary : AppColors.border,
-                width: isCurrent ? 2 : 1,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0F000000),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppDimensions.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(
+          color: isCurrent ? AppColors.primary : AppColors.border,
+          width: isCurrent ? 2 : 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Row(
                   children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              title,
-                              style: AppTextStyles.h3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isPaid) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(
-                                  AppDimensions.radiusSm,
-                                ),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.workspace_premium_rounded,
-                                  size: 15,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          price,
-                          style: AppTextStyles.h2.copyWith(color: AppColors.textMain),
-                        ),
-                        Text(
-                          period,
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppDimensions.md),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Image.asset(illustration, height: 108),
-                    const SizedBox(width: AppDimensions.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [for (final f in features) _FeatureLine(text: f)],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppDimensions.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: GestureDetector(
-                    onTap: (isCurrent || comingSoon) ? null : onSelect,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isCurrent ? AppColors.bgPage : AppColors.primary,
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                      ),
+                    Flexible(
                       child: Text(
-                        isCurrent ? context.l10n.currentPlanLabel : selectLabel,
-                        style: AppTextStyles.labelMd.copyWith(
-                          color: isCurrent ? AppColors.textMuted : Colors.white,
-                          fontWeight: FontWeight.w700,
+                        title,
+                        style: AppTextStyles.h3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isPaid) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(
+                            AppDimensions.radiusSm,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.workspace_premium_rounded,
+                            size: 15,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
+                    ],
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    price,
+                    style: AppTextStyles.h2.copyWith(color: AppColors.textMain),
+                  ),
+                  Text(
+                    period,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.textMuted,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (comingSoon)
-          Positioned(
-            top: AppDimensions.lg,
-            right: AppDimensions.lg,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.warning,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                ],
               ),
-              child: Text(
-                context.l10n.comingSoon,
-                style: AppTextStyles.labelSm.copyWith(
-                  color: Colors.white,
-                  letterSpacing: 0,
+            ],
+          ),
+          const SizedBox(height: AppDimensions.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Image.asset(illustration, height: 108),
+              const SizedBox(width: AppDimensions.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [for (final f in features) _FeatureLine(text: f)],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.md),
+          SizedBox(
+            width: double.infinity,
+            child: GestureDetector(
+              onTap: isCurrent ? null : onSelect,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isCurrent ? AppColors.bgPage : AppColors.primary,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                ),
+                child: Text(
+                  isCurrent ? context.l10n.currentPlanLabel : selectLabel,
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: isCurrent ? AppColors.textMuted : Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
