@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
+import '../../data/repositories/members_repository.dart';
+import '../today/providers/today_providers.dart' show allMembersProvider;
 
 /// Крок 4.3 плану: автономний член сім'ї (окремий пристрій), якого зараз
 /// обрано в перемикачі "переглянути як" — на відміну від
@@ -46,6 +48,26 @@ final activePeerGrantsProvider = Provider<FamilyPeer?>((ref) {
   if (peer == null) return null;
   final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? const [];
   return peers.where((p) => p.personUuid == peer.personUuid).firstOrNull;
+});
+
+/// Крок 7.3 плану: стабільний personUuid ВЛАСНОГО профілю на цьому пристрої
+/// (owner, не dependent) — потрібен, щоб пір міг звірити identity в пулі
+/// ротації ([PeerActivityAssignee.linkedPeerPersonUuid]/
+/// [PeerActivityLogAssignee.identity]) із самим собою і зрозуміти "сьогодні
+/// моя черга", а також щоб передати саме це значення назад у
+/// submitActivityLogReassignProposal.
+final ownPersonUuidProvider = Provider<String?>((ref) {
+  final members = ref.watch(allMembersProvider).valueOrNull ?? const [];
+  return members.where((m) => m.role == 'owner').firstOrNull?.personUuid;
+});
+
+/// Крок 7.3 плану: "тіньові" dependent-рядки (Members.linkedPeerPersonUuid
+/// не null) — на відміну від [allMembersProvider] (звичайні профілі,
+/// шадоу-рядки свідомо виключені) тут навпаки лише вони, для екрана
+/// додавання піра в пул ротації (_AssigneesSheet), щоб показати "цей пір
+/// уже доданий" без повторного MembersRepository.findOrCreateShadowForPeer.
+final shadowMembersProvider = StreamProvider<List<Member>>((ref) {
+  return ref.watch(membersRepositoryProvider).watchShadowMembers();
 });
 
 /// Стабільний, лише В МЕЖАХ ПЕРЕГЛЯДУ, "локальний" номер для запису піра —

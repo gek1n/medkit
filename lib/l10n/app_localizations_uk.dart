@@ -1809,6 +1809,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get routineSkipTurnAction => 'Пропустити чергу';
 
   @override
+  String get routineTakeTurnAction => 'Взяти чергу на себе';
+
+  @override
   String routineWeeklyGoalProgressLabel(int done, int total) {
     return '$done/$total цього тижня';
   }

@@ -1035,6 +1035,7 @@
   },
   "routineSwapTurnAction": "Поменяться",
   "routineSkipTurnAction": "Пропустить очередь",
+  "routineTakeTurnAction": "Взять очередь на себя",
   "routineWeeklyGoalProgressLabel": "{done}/{total} на этой неделе",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {

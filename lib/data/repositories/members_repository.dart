@@ -10,8 +10,17 @@ class MembersRepository {
   MembersRepository(this._db);
   static const _uuid = Uuid();
 
+  // linkedPeerPersonUuid IS NULL — "тіньові" рядки (Крок 7.1 плану, пул
+  // ротації автономного піра) не є реальними профілями і не повинні
+  // з'являтись у жодному з місць, де watchAll() уже використовується
+  // (перемикачі "хто зараз активний", список Сім'ї тощо). Хто саме в пулі
+  // конкретної рутини (включно з тіньовими рядками) читається окремо, через
+  // ActivitiesRepository.getAssignees/watchAssignees за FK, не через цей метод.
   Stream<List<Member>> watchAll() =>
-      _db.select(_db.members).watch();
+      (_db.select(_db.members)..where((t) => t.linkedPeerPersonUuid.isNull())).watch();
+
+  Stream<List<Member>> watchShadowMembers() =>
+      (_db.select(_db.members)..where((t) => t.linkedPeerPersonUuid.isNotNull())).watch();
 
   Future<Member?> getById(int id) =>
       (_db.select(_db.members)..where((t) => t.id.equals(id)))
