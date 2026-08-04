@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 47;
+  int get schemaVersion => 49;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -923,6 +923,55 @@ class AppDatabase extends _$AppDatabase {
             // автономного члена сім'ї в пулі ротації рутинної справи.
             try {
               await m.addColumn(members, members.linkedPeerPersonUuid);
+            } catch (_) {}
+          }
+          if (from < 48) {
+            // Реальний краш у продакшені (04.08): нагадування зі старими
+            // ReminderSlots-рядками (з часів ДО версії 45, коли ця таблиця
+            // ще не мала updatedAt) лишились із NULL у цій колонці —
+            // припущення "DEFAULT currentDateAndTime сам заповнить старі
+            // рядки" (коментар при version 5 вище) на практиці не
+            // спрацювало для кожного пристрою. RemindersRepository читає
+            // ReminderSlots не через nullable-safe шлях, тож NULL валив
+            // Drift-мапер винятком — і через відсутній per-item захист у
+            // watchActiveOnDate (тепер додано окремо) це гасило ВЕСЬ список
+            // нагадувань на Сьогодні для профілю, а не лише зламаний запис.
+            // Явний backfill тут — не покладаємось більше на DEFAULT для
+            // datetime-колонок, доданих через addColumn заднім числом.
+            // Заразом перевіряємо решту колонок, доданих тим самим шляхом
+            // (version 5) — той самий ризик, навіть якщо конкретно ці поки
+            // не спричинили видимого краху.
+            for (final stmt in [
+              'UPDATE reminder_slots SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE members SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE medications SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE schedules SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE intakes SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE symptoms SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE wellbeing_logs SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE wellbeing_schedules SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE activities SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE activity_slots SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE activity_logs SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+              'UPDATE doctor_appointments SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL',
+            ]) {
+              try {
+                await customStatement(stmt);
+              } catch (_) {}
+            }
+          }
+          if (from < 49) {
+            // Драг-н-дроп порядку відображення в перемикачах "хто зараз
+            // активний" (Сьогодні/MemberSwitcherPill) — керується на екрані
+            // Сім'я. members.sortOrder і familyPeers.sortOrder — окремі
+            // простори значень (піри завжди рендеряться власним блоком
+            // ПІСЛЯ локальних членів), тож звичайний addColumn з DEFAULT 0
+            // тут безпечний.
+            try {
+              await m.addColumn(members, members.sortOrder);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.sortOrder);
             } catch (_) {}
           }
         },

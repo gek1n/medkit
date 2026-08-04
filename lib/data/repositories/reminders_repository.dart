@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/services/notification_service.dart';
 
 class RemindersRepository {
@@ -134,9 +135,19 @@ class RemindersRepository {
     return watchByMember(memberId).asyncMap((reminders) async {
       final result = <Reminder>[];
       for (final r in reminders) {
-        final occurrences = await occurrencesOnDate(r, date);
-        for (final at in occurrences) {
-          result.add(r.copyWith(scheduledAt: at));
+        // Одне пошкоджене нагадування (напр. успадкований NULL у службовому
+        // полі ReminderSlots зі старого запису) не повинно ховати з екрана
+        // геть УСІ нагадування цього профілю — без цього try/catch один
+        // такий запис обривав весь стрім (AsyncValue.error), і Сьогодні
+        // мовчки показувало порожній список нагадувань замість здорових
+        // решти. Той самий принцип, що й у ReminderLogGenerator.
+        try {
+          final occurrences = await occurrencesOnDate(r, date);
+          for (final at in occurrences) {
+            result.add(r.copyWith(scheduledAt: at));
+          }
+        } catch (e, st) {
+          AppLogger.logError('RemindersRepository.watchActiveOnDate(reminderId=${r.id})', e, st);
         }
       }
       result.sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
