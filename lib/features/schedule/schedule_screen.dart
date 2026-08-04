@@ -104,6 +104,13 @@ extension on _ScheduleCategory {
       };
 }
 
+// ─── View format ─────────────────────────────────────────────────────────────
+
+// Сам календарний UI — окрема, значно більша задача наступної сесії; зараз
+// лише перемикач і заглушка на місці "Календар", щоб вибір формату вже жив
+// у стані екрана.
+enum _ScheduleViewFormat { list, calendar }
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 class ScheduleScreen extends ConsumerStatefulWidget {
@@ -117,6 +124,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int? _selectedMemberId;
   _ScheduleCategory _category = _ScheduleCategory.all;
   String _search = '';
+  _ScheduleViewFormat _viewFormat = _ScheduleViewFormat.calendar;
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +180,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             onCategoryChanged: (c) => setState(() => _category = c),
             search: _search,
             onSearchChanged: (s) => setState(() => _search = s),
+            viewFormat: _viewFormat,
+            onViewFormatChanged: (f) => setState(() => _viewFormat = f),
             peer: peer,
             peers: peers,
             onSelectPeer: (p) {
@@ -195,6 +205,8 @@ class _ScheduleBody extends ConsumerWidget {
   final void Function(_ScheduleCategory) onCategoryChanged;
   final String search;
   final void Function(String) onSearchChanged;
+  final _ScheduleViewFormat viewFormat;
+  final void Function(_ScheduleViewFormat) onViewFormatChanged;
   final PeerSubject? peer;
   final List<FamilyPeer> peers;
   final void Function(PeerSubject)? onSelectPeer;
@@ -207,6 +219,8 @@ class _ScheduleBody extends ConsumerWidget {
     required this.onCategoryChanged,
     required this.search,
     required this.onSearchChanged,
+    required this.viewFormat,
+    required this.onViewFormatChanged,
     this.peer,
     this.peers = const [],
     this.onSelectPeer,
@@ -412,6 +426,13 @@ class _ScheduleBody extends ConsumerWidget {
                     Expanded(
                       child: Text(context.l10n.scheduleTitle, style: AppTextStyles.h2),
                     ),
+                    _ViewFormatToggle(
+                      value: viewFormat,
+                      onChanged: onViewFormatChanged,
+                    ),
+                    if (members.length > 1 || peers.isNotEmpty) ...[
+                      const SizedBox(width: AppDimensions.sm),
+                    ],
                     if (members.length > 1 || peers.isNotEmpty)
                       MemberSwitcherPill(
                         members: members,
@@ -428,6 +449,28 @@ class _ScheduleBody extends ConsumerWidget {
           ),
         ),
 
+        if (viewFormat == _ScheduleViewFormat.calendar)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset('assets/illustrations/elly-calendar.png', height: 140),
+                    const SizedBox(height: 16),
+                    Text(
+                      context.l10n.comingSoon,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else ...[
         if (!allClosed) ...[
           SliverToBoxAdapter(
             child: Padding(
@@ -806,7 +849,74 @@ class _ScheduleBody extends ConsumerWidget {
             ]),
           ),
         ),
+        ],
       ],
+      ),
+    );
+  }
+}
+
+// ─── View format toggle ───────────────────────────────────────────────────────
+
+class _ViewFormatToggle extends StatelessWidget {
+  final _ScheduleViewFormat value;
+  final ValueChanged<_ScheduleViewFormat> onChanged;
+
+  const _ViewFormatToggle({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ViewFormatButton(
+            active: value == _ScheduleViewFormat.list,
+            onTap: () => onChanged(_ScheduleViewFormat.list),
+            child: const Icon(Icons.view_agenda_rounded, size: 17),
+          ),
+          _ViewFormatButton(
+            active: value == _ScheduleViewFormat.calendar,
+            onTap: () => onChanged(_ScheduleViewFormat.calendar),
+            child: const AssetIcon('calendar', size: 17),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewFormatButton extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+  final Widget child;
+
+  const _ViewFormatButton({required this.active, required this.onTap, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 32,
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        ),
+        child: IconTheme(
+          data: IconThemeData(color: active ? Colors.white : AppColors.textMuted),
+          child: child,
+        ),
       ),
     );
   }
