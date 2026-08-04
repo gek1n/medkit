@@ -220,6 +220,31 @@ Future<void> submitWellbeingScheduleProposal(
   );
 }
 
+/// Крок 7.2 плану: передати чергу в рутинній справі — на відміну від решти
+/// submit*Proposal вище тут немає draft-форми/Companion (реквест іде з
+/// картки конкретного дня, не з екрана редагування), тож targetUuid/
+/// baseUpdatedAt беруться напряму з уже перекладеного [ActivityLog] піра
+/// ([syncUuid]/[updatedAt]), а не генеруються/приходять опційно —
+/// action тут завжди 'edit' (лог завжди вже згенеровано на боці subject-а,
+/// "створити" для цього типу не буває).
+Future<void> submitActivityLogReassignProposal(
+  WidgetRef ref,
+  PeerSubject peer, {
+  required String syncUuid,
+  required DateTime updatedAt,
+  required String assigneeIdentity,
+}) {
+  return _submit(
+    ref,
+    peer,
+    entityType: 'activity_log',
+    action: 'edit',
+    targetUuid: syncUuid,
+    baseUpdatedAt: updatedAt,
+    fields: {'assigneeIdentity': assigneeIdentity},
+  );
+}
+
 Future<void> submitMedcardEntryProposal(
   WidgetRef ref,
   PeerSubject peer,

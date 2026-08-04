@@ -434,11 +434,6 @@ class FamilyPeerSyncService {
     return row?.syncUuid;
   }
 
-  Future<String?> _activitySyncUuidFor(int activityId) async {
-    final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activityId))).getSingleOrNull();
-    return row?.syncUuid;
-  }
-
   Future<String?> _reminderSyncUuidFor(int reminderId) async {
     final row = await (_db.select(_db.reminders)..where((t) => t.id.equals(reminderId))).getSingleOrNull();
     return row?.syncUuid;
@@ -554,16 +549,31 @@ class FamilyPeerSyncService {
         }
         return result;
       case 'activity_log':
-        final rows = await (_db.select(_db.activityLogs)
-              ..where((t) => t.memberId.equals(memberId) & t.scheduledAt.isBiggerOrEqualValue(recentCutoff)))
-            .get();
+        // ⚠️ Фільтруємо по ВЛАСНИКУ РУТИНИ (activities.memberId), а не по
+        // ActivityLogs.memberId — той при ротації може бути будь-ким із
+        // пулу (дитина, тіньовий пір), не обов'язково subject. Фільтр по
+        // власному memberId лога пропускав би саме ті дні, які найбільше
+        // цікавлять піра — коли черга не на subject-а.
+        final query = _db.select(_db.activityLogs).join([
+          innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activityLogs.activityId)),
+        ])
+          ..where(_db.activities.memberId.equals(memberId) &
+              _db.activityLogs.scheduledAt.isBiggerOrEqualValue(recentCutoff));
         final result = <Map<String, dynamic>>[];
-        for (final l in rows) {
-          if (l.syncUuid == null) continue;
-          final actUuid = await _activitySyncUuidFor(l.activityId);
-          if (actUuid == null) continue;
+        for (final r in await query.get()) {
+          final l = r.readTable(_db.activityLogs);
+          final act = r.readTable(_db.activities);
+          if (l.syncUuid == null || act.syncUuid == null) continue;
+          final assigneeMember =
+              await (_db.select(_db.members)..where((t) => t.id.equals(l.memberId))).getSingleOrNull();
           final json = _withUuid(l.toJson(), l.syncUuid!)..remove('activityId');
-          json['activitySyncUuid'] = actUuid;
+          json['activitySyncUuid'] = act.syncUuid;
+          // Крок 7.2 плану: та сама 'identity', що й у push activity_assignee
+          // — щоб пір міг звірити "чи це я" і щоб record_proposal-реквест на
+          // передачу черги знав, кого саме передавати.
+          json['assigneeIdentity'] = assigneeMember?.linkedPeerPersonUuid ?? 'm${l.memberId}';
+          json['assigneeName'] = assigneeMember?.name;
+          json['assigneeAvatarIndex'] = assigneeMember?.avatarIndex;
           result.add(json);
         }
         return result;
@@ -804,6 +814,7 @@ class FamilyPeerSyncService {
     'doctor_appointment',
     'wellbeing_schedule',
     'medcard_entry',
+    'activity_log',
   };
 
   Future<void> proposeRecord({
@@ -1205,8 +1216,43 @@ class FamilyPeerSyncService {
           updatedAt: Value(now),
         ));
         return title;
+      case 'activity_log':
+        // ⚠️ На відміну від решти типів вище, ActivityLogs.memberId — НЕ
+        // subject (memberId тут може бути будь-хто з пулу ротації, зокрема
+        // тіньовий пір чи сам subject) — належність до subject-а
+        // перевіряємо через батьківську Activity, а не напряму.
+        final row = await (_db.select(_db.activityLogs)
+              ..where((t) => t.syncUuid.equals(targetUuid)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        final act = await (_db.select(_db.activities)
+              ..where((t) => t.id.equals(row.activityId) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (act == null) return null;
+        final identity = _fS(f, 'assigneeIdentity');
+        if (identity == null) return null;
+        final newAssigneeId = await _resolveAssigneeIdentity(identity);
+        if (newAssigneeId == null) return null;
+        await (_db.update(_db.activityLogs)..where((t) => t.id.equals(row.id))).write(
+            ActivityLogsCompanion(memberId: Value(newAssigneeId), updatedAt: Value(now)));
+        return act.name;
     }
     return null;
+  }
+
+  /// Крок 7.2 плану: перекладає рядок-ідентичність із пулу ротації
+  /// (той самий формат, що й у push activity_assignee — 'm123' для
+  /// звичайного локального члена, або personUuid для тіньового піра) назад
+  /// у локальний Members.id на боці субʼєкта.
+  Future<int?> _resolveAssigneeIdentity(String identity) async {
+    if (identity.startsWith('m')) {
+      final id = int.tryParse(identity.substring(1));
+      if (id != null) return id;
+    }
+    final row = await (_db.select(_db.members)
+          ..where((t) => t.linkedPeerPersonUuid.equals(identity)))
+        .getSingleOrNull();
+    return row?.id;
   }
 
   // Reminders daily/weekly (кілька разів на день) бере час(и) з окремої
