@@ -1392,6 +1392,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get familySectionEditColumnLabel => 'Edit';
 
   @override
+  String get yesAction => 'Yes';
+
+  @override
+  String familyJoinPopupOwnerBody(String name) {
+    return '$name joined your family. Want to share your records with them?';
+  }
+
+  @override
+  String familyJoinPopupInviteeBody(String name) {
+    return 'You\'ve been added to $name\'s family. Want to share your records with them?';
+  }
+
+  @override
   String get permissionDeniedNotYoursBody =>
       'Couldn\'t change it — this isn\'t your profile';
 

@@ -1401,6 +1401,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get familySectionEditColumnLabel => 'Редактирование';
 
   @override
+  String get yesAction => 'Да';
+
+  @override
+  String familyJoinPopupOwnerBody(String name) {
+    return 'В семью добавился новый участник $name. Хотите поделиться своими записями?';
+  }
+
+  @override
+  String familyJoinPopupInviteeBody(String name) {
+    return 'Вас добавили в семью $name. Хотите поделиться своими записями?';
+  }
+
+  @override
   String get permissionDeniedNotYoursBody =>
       'Не удалось изменить — это не ваш профиль';
 

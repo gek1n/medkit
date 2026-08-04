@@ -838,6 +838,23 @@
   "familySectionShelvesLabel": "Полички",
   "familySectionViewColumnLabel": "Перегляд",
   "familySectionEditColumnLabel": "Редагування",
+  "yesAction": "Так",
+  "familyJoinPopupOwnerBody": "Додався новий член сім'ї {name}. Хочете поділитись своїми записами?",
+  "@familyJoinPopupOwnerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyJoinPopupInviteeBody": "Вас додали у сім'ю {name}. Хочете поділитись своїми записами?",
+  "@familyJoinPopupInviteeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "permissionDeniedNotYoursBody": "Не вдалося змінити — це не ваш профіль",
   "privacyLabel": "Конфіденційність",
   "securityLabel": "Безпека",

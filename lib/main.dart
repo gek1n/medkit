@@ -26,6 +26,7 @@ import 'core/services/backup_settings_service.dart';
 import 'core/services/db_encryption_service.dart';
 import 'core/services/billing_lifecycle_service.dart';
 import 'core/services/family_group_service.dart';
+import 'core/services/family_join_popup_service.dart';
 import 'core/services/family_peer_sync_service.dart';
 import 'core/services/family_sync_service.dart';
 import 'core/services/marketing_topics_service.dart';
@@ -36,6 +37,7 @@ import 'core/services/sync_service.dart';
 import 'core/services/timezone_resync_service.dart';
 import 'data/repositories/family_peers_repository.dart';
 import 'data/repositories/members_repository.dart';
+import 'features/family/family_join_popup.dart';
 import 'features/plans/billing_lifecycle_dialogs.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
@@ -902,7 +904,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       // Легкий обмін візитівками сімейної групи — той самий тригер, що й
       // family_sync вище, але не залежить від нього (працює навіть якщо
       // жодного каналу-дзеркала профілю ще немає).
-      await FamilyGroupService(db).refreshPeers();
+      final newPeers = await FamilyGroupService(db).refreshPeers();
       // Повторна спроба надіслати "візитівку" тим, кого я вже прийняв, але
       // перша спроба (в acceptInvite()) не дійшла до relay — типово
       // push-токен ще не був готовий у момент приєднання. Без цього той,
@@ -911,6 +913,27 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       // Реальні дані (ліки, медкартка) до/від пірів, відфільтровані через
       // FamilyVisibilityService — Фаза 4.
       await FamilyPeerSyncService(db).syncAllPeers();
+
+      // М'яке поп-ап "додався новий член сім'ї" — рівно один раз на кожне
+      // реальне приєднання (дедуп у FamilyJoinPopupService), а не щоразу,
+      // коли refreshPeers() просто підтверджує вже відомого піра.
+      if (newPeers.isNotEmpty && mounted) {
+        final owner = await MembersRepository(db).getOwner();
+        if (owner != null) {
+          for (final peer in newPeers) {
+            if (!mounted) break;
+            if (!await FamilyJoinPopupService.shouldShowForOwner(peer.personUuid)) continue;
+            await FamilyJoinPopupService.markShownForOwner(peer.personUuid);
+            if (!mounted) break;
+            await showFamilyJoinPopup(
+              context,
+              peerName: peer.name,
+              asInvitee: false,
+              ownMemberId: owner.id,
+            );
+          }
+        }
+      }
     } catch (_) {
       // Тиха невдача — див. коментар до _syncIfEnabled.
     } finally {

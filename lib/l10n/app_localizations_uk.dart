@@ -1399,6 +1399,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get familySectionEditColumnLabel => 'Редагування';
 
   @override
+  String get yesAction => 'Так';
+
+  @override
+  String familyJoinPopupOwnerBody(String name) {
+    return 'Додався новий член сім\'ї $name. Хочете поділитись своїми записами?';
+  }
+
+  @override
+  String familyJoinPopupInviteeBody(String name) {
+    return 'Вас додали у сім\'ю $name. Хочете поділитись своїми записами?';
+  }
+
+  @override
   String get permissionDeniedNotYoursBody =>
       'Не вдалося змінити — це не ваш профіль';
 

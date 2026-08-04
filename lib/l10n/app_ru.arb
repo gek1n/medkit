@@ -838,6 +838,23 @@
   "familySectionShelvesLabel": "Полочки",
   "familySectionViewColumnLabel": "Просмотр",
   "familySectionEditColumnLabel": "Редактирование",
+  "yesAction": "Да",
+  "familyJoinPopupOwnerBody": "В семью добавился новый участник {name}. Хотите поделиться своими записями?",
+  "@familyJoinPopupOwnerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyJoinPopupInviteeBody": "Вас добавили в семью {name}. Хотите поделиться своими записями?",
+  "@familyJoinPopupInviteeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "permissionDeniedNotYoursBody": "Не удалось изменить — это не ваш профиль",
   "privacyLabel": "Конфиденциальность",
   "securityLabel": "Безопасность",

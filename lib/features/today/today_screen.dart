@@ -162,6 +162,12 @@ class _TodayContent extends ConsumerWidget {
     final grants = ref.watch(activePeerGrantsProvider);
     final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
     final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
+    // Реальний баг: коли обидва домени закриті, hero-блок ("Все виконано"/
+    // "Зараз ___") і запасна ілюстрація "нічого немає" все одно лишались
+    // видимими — на екрані немає жодних даних піра, тож ці елементи просто
+    // показують порожній/оманливий стан. allClosed ховає обидва, лишаючи
+    // тільки Сім'ю й PeerSectionClosedCard.
+    final allClosed = scheduleClosed && medcardClosed;
 
     final AsyncValue<List<Intake>> intakesAsync;
     final AsyncValue<List<ActivityLog>> activityLogsAsync;
@@ -510,26 +516,29 @@ class _TodayContent extends ConsumerWidget {
                   child: SwitchProfileBanner(name: peer?.name ?? member.name),
                 ),
 
-              // Hero
-              SliverToBoxAdapter(
-                child: _CompactHero(
-                  member: member,
-                  overrideName: peer?.name,
-                  overrideAvatarIndex: peer?.avatarIndex,
-                  taken: taken,
-                  total: total,
-                  nextAt: nextAt,
-                  nextLabel: nextLabel,
-                  onAddWellbeing: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WellbeingCheckScreen(memberId: member.id),
+              // Hero — ховаємо повністю, коли обидва домени закриті
+              // (allClosed): показувати "Все виконано"/"Зараз ___" по
+              // даних, яких у нас фізично немає, вводить в оману.
+              if (!allClosed)
+                SliverToBoxAdapter(
+                  child: _CompactHero(
+                    member: member,
+                    overrideName: peer?.name,
+                    overrideAvatarIndex: peer?.avatarIndex,
+                    taken: taken,
+                    total: total,
+                    nextAt: nextAt,
+                    nextLabel: nextLabel,
+                    onAddWellbeing: readOnly
+                        ? null
+                        : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WellbeingCheckScreen(memberId: member.id),
+                              ),
                             ),
-                          ),
+                  ),
                 ),
-              ),
 
               // 1. Сім'я
               if (members.length > 1 || hasPeers)
@@ -682,7 +691,8 @@ class _TodayContent extends ConsumerWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 40)),
 
-              if (!hasMissed &&
+              if (!allClosed &&
+                  !hasMissed &&
                   !hasActive &&
                   scheduleItems.isEmpty &&
                   doneItems.isEmpty)

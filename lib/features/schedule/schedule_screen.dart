@@ -221,6 +221,11 @@ class _ScheduleBody extends ConsumerWidget {
     final grants = ref.watch(activePeerGrantsProvider);
     final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
     final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
+    // Реальний баг: коли обидва домени закриті, вкладки й поле пошуку все
+    // одно лишались видимими (лише секції під ними — порожні), хоча
+    // дивитись зовсім нема на що. allClosed ховає їх повністю, лишаючи
+    // тільки заголовок і PeerSectionClosedCard-и нижче.
+    final allClosed = scheduleClosed && medcardClosed;
     // Крок 4.3.3 плану: коли обрано автономного піра, читаємо не з
     // локальної бази (той пір фізично не має тут Members-рядка), а з
     // перекладача (peer_view_providers.dart), той самий підхід, що й на
@@ -423,29 +428,31 @@ class _ScheduleBody extends ConsumerWidget {
           ),
         ),
 
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.screenPadding, AppDimensions.md,
-              AppDimensions.screenPadding, 0,
-            ),
-            child: _SearchField(
-              value: search,
-              hint: context.l10n.searchAllSections,
-              onChanged: onSearchChanged,
+        if (!allClosed) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.screenPadding, AppDimensions.md,
+                AppDimensions.screenPadding, 0,
+              ),
+              child: _SearchField(
+                value: search,
+                hint: context.l10n.searchAllSections,
+                onChanged: onSearchChanged,
+              ),
             ),
           ),
-        ),
 
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: AppDimensions.sm),
-            child: _CategoryChipsRow(
-              selected: category,
-              onChanged: onCategoryChanged,
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppDimensions.sm),
+              child: _CategoryChipsRow(
+                selected: category,
+                onChanged: onCategoryChanged,
+              ),
             ),
           ),
-        ),
+        ],
 
         // Content
         SliverPadding(
@@ -478,8 +485,9 @@ class _ScheduleBody extends ConsumerWidget {
                 ),
 
               if (q.isEmpty) ...[
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.meds) ...[
+                if (!scheduleClosed &&
+                    (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.meds)) ...[
                   _SectionHeader(
                     icon: Icons.medication_rounded,
                     iconWidget: const AssetIcon('box', size: 22),
@@ -530,8 +538,9 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.reminders) ...[
+                if (!medcardClosed &&
+                    (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.reminders)) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
                     iconWidget: const AssetIcon('task_reminder', size: 22),
@@ -585,8 +594,9 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.routine) ...[
+                if (!scheduleClosed &&
+                    (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.routine)) ...[
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
                     iconWidget: const AssetIcon('task_routine', size: 22),
@@ -647,8 +657,9 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.wellbeing) ...[
+                if (!medcardClosed &&
+                    (category == _ScheduleCategory.all ||
+                    category == _ScheduleCategory.wellbeing)) ...[
                   _SectionHeader(
                     icon: Icons.favorite_rounded,
                     iconWidget: const AssetIcon('task_wellbeing', size: 22),

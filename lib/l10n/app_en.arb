@@ -838,6 +838,23 @@
   "familySectionShelvesLabel": "Shelves",
   "familySectionViewColumnLabel": "View",
   "familySectionEditColumnLabel": "Edit",
+  "yesAction": "Yes",
+  "familyJoinPopupOwnerBody": "{name} joined your family. Want to share your records with them?",
+  "@familyJoinPopupOwnerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyJoinPopupInviteeBody": "You've been added to {name}'s family. Want to share your records with them?",
+  "@familyJoinPopupInviteeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "permissionDeniedNotYoursBody": "Couldn't change it — this isn't your profile",
   "privacyLabel": "Privacy",
   "securityLabel": "Security",

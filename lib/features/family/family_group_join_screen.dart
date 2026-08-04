@@ -13,10 +13,13 @@ import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/services/family_join_popup_service.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
+import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
+import 'family_join_popup.dart';
 
 enum _Stage { scanning, review, done }
 
@@ -135,6 +138,23 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
         _stage = _Stage.done;
         _submitting = false;
       });
+
+      // М'яке поп-ап "вас додали у сім'ю" — рівно один раз на це
+      // приєднання (дедуп у FamilyJoinPopupService, той самий принцип, що
+      // й на боці інвайтера в main.dart _familySyncIfNeeded).
+      final inviterUuid = _preview!.inviterPersonUuid;
+      if (await FamilyJoinPopupService.shouldShowForInvitee(inviterUuid)) {
+        await FamilyJoinPopupService.markShownForInvitee(inviterUuid);
+        final owner = await MembersRepository(db).getOwner();
+        if (mounted && owner != null) {
+          await showFamilyJoinPopup(
+            context,
+            peerName: _preview!.inviterName,
+            asInvitee: true,
+            ownMemberId: owner.id,
+          );
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {

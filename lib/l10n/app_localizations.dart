@@ -2488,6 +2488,24 @@ abstract class AppLocalizations {
   /// **'Редагування'**
   String get familySectionEditColumnLabel;
 
+  /// No description provided for @yesAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Так'**
+  String get yesAction;
+
+  /// No description provided for @familyJoinPopupOwnerBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додався новий член сім\'ї {name}. Хочете поділитись своїми записами?'**
+  String familyJoinPopupOwnerBody(String name);
+
+  /// No description provided for @familyJoinPopupInviteeBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Вас додали у сім\'ю {name}. Хочете поділитись своїми записами?'**
+  String familyJoinPopupInviteeBody(String name);
+
   /// No description provided for @permissionDeniedNotYoursBody.
   ///
   /// In uk, this message translates to:

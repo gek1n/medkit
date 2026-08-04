@@ -178,56 +178,65 @@ class _MedCardBody extends ConsumerWidget {
               48,
             ),
             children: [
-              _MedCardTile(
-                icon: Icons.inventory_2_rounded,
-                iconWidget: const AssetIcon('box', size: 22),
-                iconColor: AppColors.primary,
-                title: context.l10n.medCardArchiveTitle,
-                subtitle: context.l10n.medCardArchiveSubtitle,
-                // MedicationArchiveScreen/AppointmentsHistoryScreen/
-                // WellbeingHistoryScreen поки не адаптовані під чужі дані
-                // (Крок 4.3.5 плану) — ховаємо тап для піра.
-                onTap: readOnly
-                    ? null
-                    : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => MedicationArchiveScreen(memberId: memberId),
+              // Реальний баг: коли suб'єкт закрив доступ до Поличок
+              // (shelvesClosed), ці три плитки історії раніше все одно
+              // лишались видимими (лише tap ховався через readOnly) —
+              // глядач бачив заголовки й підзаголовки чужих розділів, попри
+              // відсутність доступу. Тепер, як і кастомні розділи нижче,
+              // повністю ховаються — лишається тільки заголовок екрана й
+              // PeerSectionClosedCard.
+              if (!shelvesClosed) ...[
+                _MedCardTile(
+                  icon: Icons.inventory_2_rounded,
+                  iconWidget: const AssetIcon('box', size: 22),
+                  iconColor: AppColors.primary,
+                  title: context.l10n.medCardArchiveTitle,
+                  subtitle: context.l10n.medCardArchiveSubtitle,
+                  // MedicationArchiveScreen/AppointmentsHistoryScreen/
+                  // WellbeingHistoryScreen поки не адаптовані під чужі дані
+                  // (Крок 4.3.5 плану) — ховаємо тап для піра.
+                  onTap: readOnly
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MedicationArchiveScreen(memberId: memberId),
+                            ),
                           ),
-                        ),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-              _MedCardTile(
-                icon: Icons.event_note_rounded,
-                iconWidget: const AssetIcon('task_reminder', size: 22),
-                iconColor: AppColors.primary,
-                title: context.l10n.medCardAppointmentsTitle,
-                subtitle: context.l10n.medCardAppointmentsSubtitle,
-                onTap: readOnly
-                    ? null
-                    : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AppointmentsHistoryScreen(memberId: memberId),
+                ),
+                const SizedBox(height: AppDimensions.sm),
+                _MedCardTile(
+                  icon: Icons.event_note_rounded,
+                  iconWidget: const AssetIcon('task_reminder', size: 22),
+                  iconColor: AppColors.primary,
+                  title: context.l10n.medCardAppointmentsTitle,
+                  subtitle: context.l10n.medCardAppointmentsSubtitle,
+                  onTap: readOnly
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AppointmentsHistoryScreen(memberId: memberId),
+                            ),
                           ),
-                        ),
-              ),
-              const SizedBox(height: AppDimensions.sm),
-              _MedCardTile(
-                icon: Icons.mood_rounded,
-                iconWidget: const AssetIcon('task_wellbeing', size: 22),
-                iconColor: AppColors.primary,
-                title: context.l10n.medCardWellbeingHistoryTitle,
-                subtitle: context.l10n.medCardWellbeingHistorySubtitle,
-                onTap: readOnly
-                    ? null
-                    : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => WellbeingHistoryScreen(memberId: memberId),
+                ),
+                const SizedBox(height: AppDimensions.sm),
+                _MedCardTile(
+                  icon: Icons.mood_rounded,
+                  iconWidget: const AssetIcon('task_wellbeing', size: 22),
+                  iconColor: AppColors.primary,
+                  title: context.l10n.medCardWellbeingHistoryTitle,
+                  subtitle: context.l10n.medCardWellbeingHistorySubtitle,
+                  onTap: readOnly
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WellbeingHistoryScreen(memberId: memberId),
+                            ),
                           ),
-                        ),
-              ),
+                ),
+              ],
 
               if (shelvesClosed)
                 Padding(
