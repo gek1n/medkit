@@ -14126,7 +14126,7 @@ class $FamilyPeersTable extends FamilyPeers
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'CHECK ("introduction_sent" IN (0, 1))',
     ),
-    defaultValue: const Constant(true),
+    defaultValue: const Constant(false),
   );
   @override
   List<GeneratedColumn> get $columns => [

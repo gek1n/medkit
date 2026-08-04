@@ -1029,8 +1029,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 51) {
             // Крок 3.3 (справжня причина): FamilyPeers.introductionSent —
-            // див. коментар при колонці. DEFAULT true покриває вже наявні
-            // рядки автоматично (addColumn), явно перевизначати їх не треба.
+            // див. коментар при колонці. DEFAULT false (не true!) —
+            // навмисно, щоб і вже наявні "мене хтось запросив" рядки теж
+            // отримали одну повторну спробу надіслати картку після цього
+            // фіксу, а не лишились "начебто вже відправленими" назавжди.
             try {
               await m.addColumn(familyPeers, familyPeers.introductionSent);
             } catch (_) {}
@@ -1064,11 +1066,13 @@ class AppDatabase extends _$AppDatabase {
           // згенерованому мапері, тож якщо m.addColumn у if (from < 51)
           // колись мовчки впаде так само, як для updated_at — це зламає
           // ВЕСЬ екран Сім'я (кожен рядок FamilyPeers), не лише повторну
-          // відправку картки. DEFAULT 1 — той самий "true", що й
-          // Constant(true) у Dart-класі.
+          // відправку картки. DEFAULT 0 ("false") — той самий дефолт, що й
+          // Constant(false) у Dart-класі (див. коментар при колонці —
+          // навмисно false, не true, щоб вже наявні рядки теж отримали
+          // повторну спробу).
           try {
             await customStatement(
-                'ALTER TABLE family_peers ADD COLUMN introduction_sent INTEGER DEFAULT 1');
+                'ALTER TABLE family_peers ADD COLUMN introduction_sent INTEGER DEFAULT 0');
           } catch (_) {}
           // Сам UPDATE — помилки тут НЕ ковтаються мовчки (на відміну від
           // onUpgrade-кроків і ALTER вище) — якщо після захисного ALTER
