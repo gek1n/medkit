@@ -3170,6 +3170,16 @@ class AppLocalizationsUk extends AppLocalizations {
       'Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. Увімкніть у Профілі, щоб не втратити їх.';
 
   @override
+  String notifPeerRecordAddedTitle(String name) {
+    return '$name додав(-ла) запис';
+  }
+
+  @override
+  String notifPeerRecordEditedTitle(String name) {
+    return '$name змінив(-ла) запис';
+  }
+
+  @override
   String get notifLowStockTitle => '⚠️ Запас закінчується';
 
   @override

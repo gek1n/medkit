@@ -3175,6 +3175,16 @@ class AppLocalizationsRu extends AppLocalizations {
       'Резервная копия отключена — данные хранятся только на этом устройстве. Включите в Профиле, чтобы не потерять их.';
 
   @override
+  String notifPeerRecordAddedTitle(String name) {
+    return '$name добавил(-а) запись';
+  }
+
+  @override
+  String notifPeerRecordEditedTitle(String name) {
+    return '$name изменил(-а) запись';
+  }
+
+  @override
   String get notifLowStockTitle => '⚠️ Запас заканчивается';
 
   @override

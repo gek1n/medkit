@@ -1656,6 +1656,22 @@
   },
   "notifBackupReminderTitle": "Защитите свои данные",
   "notifBackupReminderBody": "Резервная копия отключена — данные хранятся только на этом устройстве. Включите в Профиле, чтобы не потерять их.",
+  "notifPeerRecordAddedTitle": "{name} добавил(-а) запись",
+  "@notifPeerRecordAddedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerRecordEditedTitle": "{name} изменил(-а) запись",
+  "@notifPeerRecordEditedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowStockTitle": "⚠️ Запас заканчивается",
   "notifLowStockBody": "{medName} — осталось {remaining} {unit}",
   "@notifLowStockBody": {

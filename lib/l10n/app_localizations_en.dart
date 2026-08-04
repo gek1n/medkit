@@ -3160,6 +3160,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Backup is off — data is stored only on this device. Turn it on in Profile so you don\'t lose it.';
 
   @override
+  String notifPeerRecordAddedTitle(String name) {
+    return '$name added an entry';
+  }
+
+  @override
+  String notifPeerRecordEditedTitle(String name) {
+    return '$name edited an entry';
+  }
+
+  @override
   String get notifLowStockTitle => '⚠️ Running low';
 
   @override

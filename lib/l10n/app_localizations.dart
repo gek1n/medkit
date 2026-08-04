@@ -5650,6 +5650,18 @@ abstract class AppLocalizations {
   /// **'Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. Увімкніть у Профілі, щоб не втратити їх.'**
   String get notifBackupReminderBody;
 
+  /// No description provided for @notifPeerRecordAddedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'{name} додав(-ла) запис'**
+  String notifPeerRecordAddedTitle(String name);
+
+  /// No description provided for @notifPeerRecordEditedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'{name} змінив(-ла) запис'**
+  String notifPeerRecordEditedTitle(String name);
+
   /// No description provided for @notifLowStockTitle.
   ///
   /// In uk, this message translates to:

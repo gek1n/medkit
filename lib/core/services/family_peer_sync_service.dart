@@ -756,6 +756,424 @@ class FamilyPeerSyncService {
     }
   }
 
+  // ── Крок 4.4.1 плану: справжнє створення/редагування "за іншого" ────────
+  // На відміну від proposeEdit/_applyEditProposal вище (лише 2 текстові
+  // поля, compare-and-swap), record_proposal несе ПОВНИЙ запис — і для
+  // 'create' (новий запис від імені субʼєкта), і для 'edit' (той самий
+  // compare-and-swap за baseUpdatedAt, але по всіх полях одразу, а не лише
+  // notes/instructions). fields — уже готова, типізована під конкретний
+  // entityType мапа (формує викликач у AddXScreen на боці глядача,
+  // _fieldsFromCompanion-подібним способом — Крок 4.4.2+).
+
+  static const _recordProposalTypes = {
+    'medication',
+    'activity',
+    'doctor_appointment',
+    'wellbeing_schedule',
+    'medcard_entry',
+  };
+
+  Future<void> proposeRecord({
+    required String channelId,
+    required String subjectPersonUuid,
+    required String entityType,
+    required String action, // 'create' | 'edit'
+    required String targetUuid,
+    DateTime? baseUpdatedAt,
+    String? sectionSyncUuid,
+    required Map<String, dynamic> fields,
+  }) async {
+    assert(_recordProposalTypes.contains(entityType));
+    assert(action == 'create' || action == 'edit');
+    final keyBytes = await SharedChannelKeyStorage.read(channelId);
+    if (keyBytes == null) throw StateError('Немає ключа каналу для цього піра');
+    final key = SecretKey(keyBytes);
+
+    final json = <String, dynamic>{
+      'subjectPersonUuid': subjectPersonUuid,
+      'entityType': entityType,
+      'action': action,
+      'uuid': targetUuid,
+      'baseUpdatedAt': ?baseUpdatedAt?.toIso8601String(),
+      'sectionSyncUuid': ?sectionSyncUuid,
+      'fields': fields,
+    };
+    final entity = {
+      'type': 'record_proposal',
+      'uuid': _uuid.v4(),
+      'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
+    };
+    await _api.push(channelId: channelId, entities: [entity]);
+    await _ping(channelId, key);
+  }
+
+  Future<void> _applyRecordProposal(Map<String, dynamic> json, FamilyPeer fromPeer) async {
+    final subjectUuid = json['subjectPersonUuid'] as String?;
+    final entityType = json['entityType'] as String?;
+    final action = json['action'] as String?;
+    final targetUuid = json['uuid'] as String?;
+    final fields = json['fields'] as Map<String, dynamic>?;
+    if (subjectUuid == null ||
+        entityType == null ||
+        !_recordProposalTypes.contains(entityType) ||
+        action == null ||
+        targetUuid == null ||
+        fields == null) {
+      return;
+    }
+
+    // Це справді мій профіль (не чужий subject, про якого пір щось вигадав)?
+    final subject =
+        await (_db.select(_db.members)..where((t) => t.personUuid.equals(subjectUuid))).getSingleOrNull();
+    if (subject == null) return;
+
+    // Пір досі має право edit на цей subject — не довіряємо тому, що
+    // написано в payload, перевіряємо на своєму боці (той самий підхід, що
+    // й у _applyEditProposal).
+    final allowed =
+        await FamilyVisibilityService.isAllowed(_db, subjectUuid, fromPeer.personUuid, FamilyPermission.edit);
+    if (!allowed) return;
+
+    final section = _alwaysSyncedTypes.contains(entityType)
+        ? FamilySection.schedule
+        : entityType == 'medcard_entry'
+            ? FamilySection.shelves
+            : FamilySection.medcard;
+    final sectionAllowed =
+        await FamilyVisibilityService.isSectionAllowed(_db, subjectUuid, fromPeer.personUuid, section, edit: true);
+    if (!sectionAllowed) return;
+
+    final sectionSyncUuid = json['sectionSyncUuid'] as String?;
+    final localSectionId = await _localSectionIdFor(sectionSyncUuid, subject.id);
+    // MedcardEntries.sectionId — NOT NULL у схемі: якщо розділ ще не встиг
+    // дійти до цього пристрою (розсинхрон черговості пушів), краще тихо
+    // пропустити зараз — пір надішле знову на наступному раунді синку
+    // (best-effort, той самий компроміс, що й для photo_request).
+    if (entityType == 'medcard_entry' && localSectionId == null) return;
+
+    String? title;
+    if (action == 'create') {
+      // Idempotent — якщо цей самий uuid уже прилетів раніше (повторний
+      // push після збою мережі), не дублюємо рядок.
+      if (await _recordExistsByUuid(entityType, targetUuid, subject.id)) return;
+      title = await _insertRecord(entityType, subject.id, localSectionId, targetUuid, fields);
+    } else if (action == 'edit') {
+      final baseUpdatedAtRaw = json['baseUpdatedAt'] as String?;
+      final baseUpdatedAt = baseUpdatedAtRaw != null ? DateTime.tryParse(baseUpdatedAtRaw) : null;
+      if (baseUpdatedAt == null) return;
+      title =
+          await _updateRecordIfUnchanged(entityType, targetUuid, subject.id, localSectionId, fields, baseUpdatedAt);
+    } else {
+      return;
+    }
+    if (title == null) return; // не застосувалось (версія розійшлась/не знайдено)
+
+    await NotificationService.showPeerRecordApplied(
+      peerName: fromPeer.name,
+      recordTitle: title,
+      isNew: action == 'create',
+    );
+  }
+
+  Future<int?> _localSectionIdFor(String? sectionSyncUuid, int memberId) async {
+    if (sectionSyncUuid == null) return null;
+    final row = await (_db.select(_db.medcardSections)
+          ..where((t) => t.syncUuid.equals(sectionSyncUuid) & t.memberId.equals(memberId)))
+        .getSingleOrNull();
+    return row?.id;
+  }
+
+  Future<bool> _recordExistsByUuid(String entityType, String uuid, int memberId) async {
+    switch (entityType) {
+      case 'medication':
+        return await (_db.select(_db.medications)
+                  ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
+                .getSingleOrNull() !=
+            null;
+      case 'activity':
+        return await (_db.select(_db.activities)
+                  ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
+                .getSingleOrNull() !=
+            null;
+      case 'doctor_appointment':
+        return await (_db.select(_db.reminders)
+                  ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
+                .getSingleOrNull() !=
+            null;
+      case 'wellbeing_schedule':
+        return await (_db.select(_db.wellbeingSchedules)
+                  ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
+                .getSingleOrNull() !=
+            null;
+      case 'medcard_entry':
+        return await (_db.select(_db.medcardEntries)
+                  ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
+                .getSingleOrNull() !=
+            null;
+    }
+    return false;
+  }
+
+  // ── Читання типізованих полів із fields-мапи (JSON з мережі) ────────────
+
+  String? _fS(Map<String, dynamic> f, String k) => f[k] as String?;
+  String _fSReq(Map<String, dynamic> f, String k, String fallback) => (f[k] as String?) ?? fallback;
+  double _fD(Map<String, dynamic> f, String k, double fallback) => (f[k] as num?)?.toDouble() ?? fallback;
+  int _fI(Map<String, dynamic> f, String k, int fallback) => (f[k] as num?)?.toInt() ?? fallback;
+  bool _fB(Map<String, dynamic> f, String k, bool fallback) => (f[k] as bool?) ?? fallback;
+  DateTime? _fDtN(Map<String, dynamic> f, String k) {
+    final v = f[k] as String?;
+    return v == null ? null : DateTime.tryParse(v);
+  }
+
+  DateTime _fDtReq(Map<String, dynamic> f, String k, DateTime fallback) => _fDtN(f, k) ?? fallback;
+
+  /// Повертає людяну назву застосованого запису (для тексту сповіщення
+  /// власнику) — null, якщо entityType не підтримується.
+  Future<String?> _insertRecord(
+    String entityType,
+    int memberId,
+    int? sectionId,
+    String syncUuid,
+    Map<String, dynamic> f,
+  ) async {
+    final now = DateTime.now();
+    switch (entityType) {
+      case 'medication':
+        final name = _fSReq(f, 'name', '');
+        if (name.isEmpty) return null;
+        await _db.into(_db.medications).insert(MedicationsCompanion.insert(
+              memberId: memberId,
+              sectionId: Value(sectionId),
+              name: name,
+              form: Value(_fSReq(f, 'form', '')),
+              doseAmount: _fD(f, 'doseAmount', 1),
+              doseUnit: Value(_fSReq(f, 'doseUnit', 'мг')),
+              repeatType: Value(_fSReq(f, 'repeatType', 'daily')),
+              repeatConfig: Value(_fSReq(f, 'repeatConfig', '{}')),
+              startDate: _fDtReq(f, 'startDate', now),
+              endDate: Value(_fDtN(f, 'endDate')),
+              totalCount: Value(_fI(f, 'totalCount', 0)),
+              remainingCount: Value(_fI(f, 'remainingCount', 0)),
+              photoPaths: Value(_fSReq(f, 'photoPaths', '[]')),
+              instructions: Value(_fS(f, 'instructions')),
+              phases: Value(_fS(f, 'phases')),
+              trackStock: Value(_fB(f, 'trackStock', false)),
+              stockUnit: Value(_fS(f, 'stockUnit')),
+              iconKey: Value(_fS(f, 'iconKey')),
+              color: Value(_fS(f, 'color')),
+              sideEffects: Value(_fS(f, 'sideEffects')),
+              updatedAt: Value(now),
+              syncUuid: Value(syncUuid),
+            ));
+        return name;
+      case 'activity':
+        final name = _fSReq(f, 'name', '');
+        if (name.isEmpty) return null;
+        await _db.into(_db.activities).insert(ActivitiesCompanion.insert(
+              memberId: memberId,
+              sectionId: Value(sectionId),
+              name: name,
+              type: const Value('routine'),
+              durationMin: Value(_fI(f, 'durationMin', 30)),
+              repeatDays: Value(_fSReq(f, 'repeatDays', '[1,2,3,4,5]')),
+              reminderBeforeMin: Value(_fI(f, 'reminderBeforeMin', 10)),
+              color: Value(_fS(f, 'color')),
+              repeatType: Value(_fSReq(f, 'repeatType', 'weekly')),
+              repeatDayOfMonth: Value(f['repeatDayOfMonth'] as int?),
+              repeatIntervalDays: Value(f['repeatIntervalDays'] as int?),
+              weeklyGoalCount: Value(f['weeklyGoalCount'] as int?),
+              // Ротаційний пул (ActivityAssignees) не входить у цю
+              // пропозицію (взагалі ще не синхронізується між пірами,
+              // задокументований пробіл) — рутина від піра завжди
+              // створюється як 'fixed' на самого субʼєкта.
+              rotationAnchorDate: Value(now),
+              rotationMode: const Value('fixed'),
+              stepsJson: Value(_fS(f, 'stepsJson')),
+              tags: Value(_fSReq(f, 'tags', '[]')),
+              documentPaths: Value(_fSReq(f, 'documentPaths', '[]')),
+              location: Value(_fS(f, 'location')),
+              iconKey: Value(_fSReq(f, 'iconKey', 'task_routine')),
+              updatedAt: Value(now),
+              syncUuid: Value(syncUuid),
+            ));
+        return name;
+      case 'doctor_appointment':
+        final title = _fSReq(f, 'doctorType', '');
+        if (title.isEmpty) return null;
+        await _db.into(_db.reminders).insert(RemindersCompanion.insert(
+              memberId: memberId,
+              sectionId: Value(sectionId),
+              doctorType: title,
+              tags: Value(_fSReq(f, 'tags', '[]')),
+              location: Value(_fS(f, 'location')),
+              scheduledAt: _fDtReq(f, 'scheduledAt', now),
+              remindBeforeMin: Value(_fI(f, 'remindBeforeMin', 60)),
+              notes: Value(_fS(f, 'notes')),
+              documentPaths: Value(_fSReq(f, 'documentPaths', '[]')),
+              color: Value(_fS(f, 'color')),
+              iconKey: Value(_fSReq(f, 'iconKey', 'calendar')),
+              repeatType: Value(_fSReq(f, 'repeatType', 'none')),
+              repeatConfig: Value(_fSReq(f, 'repeatConfig', '{}')),
+              updatedAt: Value(now),
+              syncUuid: Value(syncUuid),
+            ));
+        return title;
+      case 'wellbeing_schedule':
+        await _db.into(_db.wellbeingSchedules).insert(WellbeingSchedulesCompanion.insert(
+              memberId: memberId,
+              sectionId: Value(sectionId),
+              timesPerDay: Value(_fI(f, 'timesPerDay', 2)),
+              times: Value(_fSReq(f, 'times', '["08:00","20:00"]')),
+              isActive: Value(_fB(f, 'isActive', true)),
+              color: Value(_fS(f, 'color')),
+              updatedAt: Value(now),
+              syncUuid: Value(syncUuid),
+            ));
+        return null; // немає окремої "назви" для сповіщення — самопочуття завжди один запис на людину
+      case 'medcard_entry':
+        if (sectionId == null) return null;
+        final title = _fSReq(f, 'title', '');
+        if (title.isEmpty) return null;
+        await _db.into(_db.medcardEntries).insert(MedcardEntriesCompanion.insert(
+              sectionId: sectionId,
+              memberId: memberId,
+              title: title,
+              recordDate: _fDtReq(f, 'recordDate', now),
+              notes: Value(_fS(f, 'notes')),
+              tags: Value(_fSReq(f, 'tags', '[]')),
+              location: Value(_fS(f, 'location')),
+              documentPaths: Value(_fSReq(f, 'documentPaths', '[]')),
+              updatedAt: Value(now),
+              syncUuid: Value(syncUuid),
+            ));
+        return title;
+    }
+    return null;
+  }
+
+  Future<String?> _updateRecordIfUnchanged(
+    String entityType,
+    String targetUuid,
+    int memberId,
+    int? sectionId,
+    Map<String, dynamic> f,
+    DateTime baseUpdatedAt,
+  ) async {
+    final now = DateTime.now();
+    switch (entityType) {
+      case 'medication':
+        final row = await (_db.select(_db.medications)
+              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        final name = _fSReq(f, 'name', row.name);
+        await (_db.update(_db.medications)..where((t) => t.id.equals(row.id))).write(MedicationsCompanion(
+          sectionId: Value(sectionId),
+          name: Value(name),
+          form: Value(_fSReq(f, 'form', row.form)),
+          doseAmount: Value(_fD(f, 'doseAmount', row.doseAmount)),
+          doseUnit: Value(_fSReq(f, 'doseUnit', row.doseUnit)),
+          repeatType: Value(_fSReq(f, 'repeatType', row.repeatType)),
+          repeatConfig: Value(_fSReq(f, 'repeatConfig', row.repeatConfig)),
+          startDate: Value(_fDtReq(f, 'startDate', row.startDate)),
+          endDate: Value(_fDtN(f, 'endDate')),
+          totalCount: Value(_fI(f, 'totalCount', row.totalCount)),
+          remainingCount: Value(_fI(f, 'remainingCount', row.remainingCount)),
+          photoPaths: Value(_fSReq(f, 'photoPaths', row.photoPaths)),
+          instructions: Value(_fS(f, 'instructions') ?? row.instructions),
+          phases: Value(_fS(f, 'phases') ?? row.phases),
+          trackStock: Value(_fB(f, 'trackStock', row.trackStock)),
+          stockUnit: Value(_fS(f, 'stockUnit') ?? row.stockUnit),
+          iconKey: Value(_fS(f, 'iconKey') ?? row.iconKey),
+          color: Value(_fS(f, 'color') ?? row.color),
+          sideEffects: Value(_fS(f, 'sideEffects') ?? row.sideEffects),
+          updatedAt: Value(now),
+        ));
+        return name;
+      case 'activity':
+        final row = await (_db.select(_db.activities)
+              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        final name = _fSReq(f, 'name', row.name);
+        await (_db.update(_db.activities)..where((t) => t.id.equals(row.id))).write(ActivitiesCompanion(
+          sectionId: Value(sectionId),
+          name: Value(name),
+          durationMin: Value(_fI(f, 'durationMin', row.durationMin)),
+          repeatDays: Value(_fSReq(f, 'repeatDays', row.repeatDays)),
+          reminderBeforeMin: Value(_fI(f, 'reminderBeforeMin', row.reminderBeforeMin)),
+          color: Value(_fS(f, 'color') ?? row.color),
+          repeatType: Value(_fSReq(f, 'repeatType', row.repeatType)),
+          repeatDayOfMonth: Value(f['repeatDayOfMonth'] as int? ?? row.repeatDayOfMonth),
+          repeatIntervalDays: Value(f['repeatIntervalDays'] as int? ?? row.repeatIntervalDays),
+          weeklyGoalCount: Value(f['weeklyGoalCount'] as int? ?? row.weeklyGoalCount),
+          stepsJson: Value(_fS(f, 'stepsJson') ?? row.stepsJson),
+          tags: Value(_fSReq(f, 'tags', row.tags)),
+          documentPaths: Value(_fSReq(f, 'documentPaths', row.documentPaths)),
+          location: Value(_fS(f, 'location') ?? row.location),
+          iconKey: Value(_fSReq(f, 'iconKey', row.iconKey)),
+          updatedAt: Value(now),
+        ));
+        return name;
+      case 'doctor_appointment':
+        final row = await (_db.select(_db.reminders)
+              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        final title = _fSReq(f, 'doctorType', row.doctorType);
+        await (_db.update(_db.reminders)..where((t) => t.id.equals(row.id))).write(RemindersCompanion(
+          sectionId: Value(sectionId),
+          doctorType: Value(title),
+          tags: Value(_fSReq(f, 'tags', row.tags)),
+          location: Value(_fS(f, 'location') ?? row.location),
+          scheduledAt: Value(_fDtReq(f, 'scheduledAt', row.scheduledAt)),
+          remindBeforeMin: Value(_fI(f, 'remindBeforeMin', row.remindBeforeMin)),
+          notes: Value(_fS(f, 'notes') ?? row.notes),
+          documentPaths: Value(_fSReq(f, 'documentPaths', row.documentPaths)),
+          color: Value(_fS(f, 'color') ?? row.color),
+          iconKey: Value(_fSReq(f, 'iconKey', row.iconKey)),
+          repeatType: Value(_fSReq(f, 'repeatType', row.repeatType)),
+          repeatConfig: Value(_fSReq(f, 'repeatConfig', row.repeatConfig)),
+          updatedAt: Value(now),
+        ));
+        return title;
+      case 'wellbeing_schedule':
+        final row = await (_db.select(_db.wellbeingSchedules)
+              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        await (_db.update(_db.wellbeingSchedules)..where((t) => t.id.equals(row.id))).write(
+            WellbeingSchedulesCompanion(
+          sectionId: Value(sectionId),
+          timesPerDay: Value(_fI(f, 'timesPerDay', row.timesPerDay)),
+          times: Value(_fSReq(f, 'times', row.times)),
+          isActive: Value(_fB(f, 'isActive', row.isActive)),
+          color: Value(_fS(f, 'color') ?? row.color),
+          updatedAt: Value(now),
+        ));
+        return null;
+      case 'medcard_entry':
+        final row = await (_db.select(_db.medcardEntries)
+              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        final title = _fSReq(f, 'title', row.title);
+        await (_db.update(_db.medcardEntries)..where((t) => t.id.equals(row.id))).write(MedcardEntriesCompanion(
+          sectionId: Value(sectionId ?? row.sectionId),
+          title: Value(title),
+          recordDate: Value(_fDtReq(f, 'recordDate', row.recordDate)),
+          notes: Value(_fS(f, 'notes') ?? row.notes),
+          tags: Value(_fSReq(f, 'tags', row.tags)),
+          location: Value(_fS(f, 'location') ?? row.location),
+          documentPaths: Value(_fSReq(f, 'documentPaths', row.documentPaths)),
+          updatedAt: Value(now),
+        ));
+        return title;
+    }
+    return null;
+  }
+
   Future<void> _ping(String channelId, SecretKey key) async {
     try {
       final token = await PushTokenService.getToken();
@@ -790,6 +1208,12 @@ class FamilyPeerSyncService {
         if (entity.deleted) continue; // tombstone для edit_proposal не буває
         final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
         await _applyEditProposal(json, peer);
+        continue;
+      }
+      if (entity.type == 'record_proposal') {
+        if (entity.deleted) continue; // tombstone для record_proposal не буває
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _applyRecordProposal(json, peer);
         continue;
       }
       if (entity.type == 'grants_summary') {
