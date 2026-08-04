@@ -21,6 +21,7 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
@@ -220,10 +221,11 @@ class _ViewBody extends ConsumerWidget {
         reminder.repeatType == 'monthly' ||
         reminder.repeatType == 'yearly';
     final List<ReminderSlot>? peerSlots = peer != null && hasSlots
-        ? ref
-            .watch(peerReminderSlotsProvider(peer!.personUuid))
-            .where((s) => s.reminderId == reminder.id)
-            .toList()
+        ? (ref
+                .watch(peerReminderSlotsProvider(peer!.personUuid))
+                .where((s) => s.reminderId == reminder.id)
+                .toList()
+              ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)))
         : null;
     final slotsAsync = peer != null
         ? null
@@ -237,6 +239,13 @@ class _ViewBody extends ConsumerWidget {
     final sectionAsync = peer != null
         ? null
         : (reminder.sectionId != null ? ref.watch(_sectionProvider(reminder.sectionId!)) : null);
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Медкартки
+    // (Візити/Самопочуття — грант-бар'єр для reminder, той самий, що й у
+    // FamilyPeerSyncService._push) саме цьому глядачеві — олівець лишається
+    // доступним і для нагадування піра, лише замість прямого запису шле
+    // record_proposal (Крок 4.4.1).
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.viewMedcardGranted && grants.editMedcardGranted;
 
     return Column(
       children: [
@@ -264,6 +273,30 @@ class _ViewBody extends ConsumerWidget {
                             builder: (_) => AddAppointmentScreen(
                               memberId: reminder.memberId,
                               existing: reminder,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (canEditPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddAppointmentScreen(
+                              existing: reminder,
+                              initialSlotTimes: peerSlots
+                                  ?.map((s) => s.timeOfDay)
+                                  .toList(),
+                              onDraftCreated: (draft, slotTimes) =>
+                                  submitReminderProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: reminder.syncUuid,
+                                existingUpdatedAt: reminder.updatedAt,
+                                syntheticSectionId: reminder.sectionId,
+                                slotTimes: slotTimes,
+                              ),
                             ),
                           ),
                         ),

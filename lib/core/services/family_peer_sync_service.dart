@@ -1001,7 +1001,7 @@ class FamilyPeerSyncService {
       case 'doctor_appointment':
         final title = _fSReq(f, 'doctorType', '');
         if (title.isEmpty) return null;
-        await _db.into(_db.reminders).insert(RemindersCompanion.insert(
+        final reminderId = await _db.into(_db.reminders).insert(RemindersCompanion.insert(
               memberId: memberId,
               sectionId: Value(sectionId),
               doctorType: title,
@@ -1018,6 +1018,7 @@ class FamilyPeerSyncService {
               updatedAt: Value(now),
               syncUuid: Value(syncUuid),
             ));
+        await _replaceReminderSlots(reminderId, f);
         return title;
       case 'wellbeing_schedule':
         await _db.into(_db.wellbeingSchedules).insert(WellbeingSchedulesCompanion.insert(
@@ -1137,6 +1138,7 @@ class FamilyPeerSyncService {
           repeatConfig: Value(_fSReq(f, 'repeatConfig', row.repeatConfig)),
           updatedAt: Value(now),
         ));
+        if (f.containsKey('slotTimes')) await _replaceReminderSlots(row.id, f);
         return title;
       case 'wellbeing_schedule':
         final row = await (_db.select(_db.wellbeingSchedules)
@@ -1172,6 +1174,32 @@ class FamilyPeerSyncService {
         return title;
     }
     return null;
+  }
+
+  // Reminders daily/weekly (кілька разів на день) бере час(и) з окремої
+  // дочірньої таблиці ReminderSlots, не з самого запису — без цього рядок
+  // record_proposal лишав би такий peer-нагадування зовсім без часу
+  // спрацювання. 'slotTimes' — необов'язкове поле fields-мапи, json-масив
+  // "HH:mm"; відсутнє в мапі (проти порожнього списку) — не чіпаємо наявні
+  // слоти зовсім (edit міг стосуватись лише інших полів).
+  Future<void> _replaceReminderSlots(int reminderId, Map<String, dynamic> f) async {
+    final raw = f['slotTimes'] as String?;
+    if (raw == null) return;
+    List<String> times;
+    try {
+      times = List<String>.from(jsonDecode(raw) as List);
+    } catch (_) {
+      return;
+    }
+    await (_db.delete(_db.reminderSlots)..where((t) => t.reminderId.equals(reminderId))).go();
+    for (var i = 0; i < times.length; i++) {
+      await _db.into(_db.reminderSlots).insert(ReminderSlotsCompanion.insert(
+            reminderId: reminderId,
+            timeOfDay: times[i],
+            sortOrder: Value(i),
+            syncUuid: Value(_uuid.v4()),
+          ));
+    }
   }
 
   Future<void> _ping(String channelId, SecretKey key) async {
