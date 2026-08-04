@@ -13,6 +13,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/peer_attachment_chip.dart';
+import '../../shared/widgets/peer_section_closed_card.dart';
 
 const _notesFieldByType = {
   'medication': 'instructions',
@@ -240,17 +241,17 @@ class _SubjectEntities extends ConsumerWidget {
     return Column(
       children: [
         if (scheduleClosed)
-          _SectionClosedCard(
+          PeerSectionClosedCard(
             peerName: peerName,
             sectionLabel: context.l10n.familySectionScheduleLabel,
           ),
         if (medcardClosed)
-          _SectionClosedCard(
+          PeerSectionClosedCard(
             peerName: peerName,
             sectionLabel: context.l10n.familySectionVisitsWellbeingLabel,
           ),
         if (shelvesClosed)
-          _SectionClosedCard(
+          PeerSectionClosedCard(
             peerName: peerName,
             sectionLabel: context.l10n.familySectionShelvesLabel,
           ),
@@ -350,60 +351,6 @@ class _SubjectEntities extends ConsumerWidget {
           );
         }),
       ],
-    );
-  }
-}
-
-/// Крок 4.2: невеликий інлайн-блок у стилі EllyDeniedScreen (та сама
-/// ілюстрація, менший розмір) — на відміну від нього, тут немає кнопки
-/// "План" (справа не в тарифі, а в тому, що конкретна людина сама закрила
-/// цей розділ), тому просто інформує й показується разом з рештою розділів,
-/// а не замінює весь екран.
-class _SectionClosedCard extends StatelessWidget {
-  final String peerName;
-  final String sectionLabel;
-  const _SectionClosedCard({
-    required this.peerName,
-    required this.sectionLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppDimensions.sm),
-      padding: const EdgeInsets.all(AppDimensions.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Image.asset('assets/illustrations/elly-denied.png', height: 48),
-          const SizedBox(width: AppDimensions.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.l10n.familySectionAccessClosedTitle(
-                    peerName,
-                    sectionLabel,
-                  ),
-                  style: AppTextStyles.labelMd,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  context.l10n.familySectionAccessClosedBody,
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.textSub,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

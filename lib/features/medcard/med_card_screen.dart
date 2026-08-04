@@ -12,6 +12,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
+import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
@@ -132,6 +133,11 @@ class _MedCardBody extends ConsumerWidget {
     final AsyncValue<List<MedcardSection>> sectionsAsync = peer != null
         ? AsyncValue.data(ref.watch(peerMedcardSectionsProvider(peer!.personUuid)))
         : ref.watch(_medcardSectionsProvider(memberId));
+    // Крок 4.3.6 плану: якщо суб'єкт закрив Полички — розділи взагалі не
+    // потрапляють у кеш піра, тож замість тихо порожнього списку показуємо,
+    // чому саме (той самий принцип, що на Сьогодні/Розкладі).
+    final grants = ref.watch(activePeerGrantsProvider);
+    final shelvesClosed = peer != null && grants != null && !grants.viewShelvesGranted;
     final limits = ref.watch(planProvider).limits;
     final sectionsCount = sectionsAsync.valueOrNull?.length ?? 0;
     final sectionsLimitReached = limits.maxMedcardSections != 0 &&
@@ -222,6 +228,15 @@ class _MedCardBody extends ConsumerWidget {
                           ),
                         ),
               ),
+
+              if (shelvesClosed)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppDimensions.lg),
+                  child: PeerSectionClosedCard(
+                    peerName: peer!.name,
+                    sectionLabel: context.l10n.familySectionShelvesLabel,
+                  ),
+                ),
 
               // ── Довільні розділи, створені користувачем ──
               sectionsAsync.when(

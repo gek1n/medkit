@@ -17,6 +17,7 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
+import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
@@ -213,6 +214,12 @@ class _ScheduleBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final readOnly = peer != null;
+    // Крок 4.3.6 плану: той самий принцип, що на Сьогодні — коли суб'єкт
+    // закрив розділ, дані взагалі не потрапляють у кеш піра, тож замість
+    // тихо порожньої вкладки показуємо, чому саме.
+    final grants = ref.watch(activePeerGrantsProvider);
+    final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
+    final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
     // Крок 4.3.3 плану: коли обрано автономного піра, читаємо не з
     // локальної бази (той пір фізично не має тут Members-рядка), а з
     // перекладача (peer_view_providers.dart), той самий підхід, що й на
@@ -376,6 +383,29 @@ class _ScheduleBody extends ConsumerWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               const SizedBox(height: AppDimensions.lg),
+
+              if (scheduleClosed &&
+                  (category == _ScheduleCategory.all ||
+                      category == _ScheduleCategory.meds ||
+                      category == _ScheduleCategory.routine))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimensions.md),
+                  child: PeerSectionClosedCard(
+                    peerName: peer!.name,
+                    sectionLabel: context.l10n.familySectionScheduleLabel,
+                  ),
+                ),
+              if (medcardClosed &&
+                  (category == _ScheduleCategory.all ||
+                      category == _ScheduleCategory.reminders ||
+                      category == _ScheduleCategory.wellbeing))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppDimensions.md),
+                  child: PeerSectionClosedCard(
+                    peerName: peer!.name,
+                    sectionLabel: context.l10n.familySectionVisitsWellbeingLabel,
+                  ),
+                ),
 
               if (q.isEmpty) ...[
                 if (category == _ScheduleCategory.all ||
