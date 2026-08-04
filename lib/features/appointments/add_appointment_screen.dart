@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/shared_tags_library_service.dart';
@@ -184,8 +185,21 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   }
 
   Future<void> _loadSlots(int reminderId) async {
-    final slots =
-        await ref.read(remindersRepositoryProvider).getSlotsForReminder(reminderId);
+    // Викликається без await з initState — необроблений виняток тут раніше
+    // просто губився у зоні (unhandled Future error), а _loaded так і
+    // лишався false назавжди: форма редагування зависала на спінері,
+    // навіть якщо сам запис (Reminders) прочитався нормально, а зламаний
+    // був лише один ReminderSlots-рядок (напр. успадкований NULL/зіпсований
+    // updated_at зі старого запису — той самий клас багу, що й
+    // watchActiveOnDate). try/catch тут гарантує, що форма ЗАВЖДИ
+    // відкриється — в гіршому разі без раніше збережених часів слотів,
+    // а не зависне назавжди.
+    List<ReminderSlot> slots = const [];
+    try {
+      slots = await ref.read(remindersRepositoryProvider).getSlotsForReminder(reminderId);
+    } catch (e, st) {
+      AppLogger.logError('AddAppointmentScreen._loadSlots(reminderId=$reminderId)', e, st);
+    }
     if (mounted) {
       setState(() {
         if (slots.isNotEmpty) {
