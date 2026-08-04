@@ -3256,6 +3256,12 @@ abstract class AppLocalizations {
   /// **'Пропустити чергу'**
   String get routineSkipTurnAction;
 
+  /// No description provided for @routineTakeTurnAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Взяти чергу на себе'**
+  String get routineTakeTurnAction;
+
   /// No description provided for @routineWeeklyGoalProgressLabel.
   ///
   /// In uk, this message translates to:

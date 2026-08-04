@@ -8,6 +8,7 @@ import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/date_utils.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/plan_access.dart';
@@ -56,10 +57,12 @@ final _streakProvider = FutureProvider.family<int, int>((ref, activityId) {
 ///
 /// Крок 4.3.5 плану: [peer] непорожній — рутина береться не з локальної
 /// бази (id синтетичний), а з перекладача кешу піра; кнопки редагування/
-/// видалення ховаються. "Чия черга"/стрік — не показуються для піра:
-/// ActivityAssignees (пул ротації) взагалі ще не входить у синхронізацію
-/// пірів, а стрік рахується з ЛОКАЛЬНИХ ActivityLogs, тож обидва були б
-/// або порожні, або оманливо неправильні — задокументований пробіл.
+/// видалення ховаються. Стрік не показується для піра — рахується з
+/// ЛОКАЛЬНИХ ActivityLogs, для піра був би оманливо неправильним.
+/// "Чия черга" (Крок 7.3 плану) — тепер показується і для піра
+/// (ActivityAssignees вже синхронізується, Крок 7.1), разом із дією
+/// "взяти чергу на себе", якщо глядач сам є в пулі й сьогодні черга не на
+/// ньому — див. [_PeerTakeTurnRow].
 class RoutineViewScreen extends ConsumerWidget {
   final int activityId;
   final PeerSubject? peer;
@@ -409,7 +412,9 @@ class _ViewBody extends ConsumerWidget {
                         },
                       );
                     },
-                  ),
+                  )
+                else
+                  _PeerRotationInfo(peer: peer!, activity: activity, color: color, canAct: canEditPeer),
                 if (steps.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.routineStepsLabel.toUpperCase(),
@@ -513,6 +518,85 @@ class _ViewBody extends ConsumerWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Крок 7.3 плану: дзеркало блоку "чия черга" вище (для peer == null), лише
+/// джерело даних інше — уже перекладений кеш піра (Крок 7.1/7.2), а не
+/// локальна ActivitiesRepository.assigneeForDate (та формула рахує лише
+/// "теоретичну" чергу за замовчуванням, ігноруючи ручні обміни/пропуски —
+/// на боці субʼєкта саме ActivityLogs.memberId є фактичним результатом).
+/// Дія "взяти чергу на себе" — лише якщо глядач сам є в пулі (звірянням
+/// personUuid) і сьогодні черга не на ньому.
+class _PeerRotationInfo extends ConsumerWidget {
+  final PeerSubject peer;
+  final Activity activity;
+  final Color color;
+  final bool canAct;
+  const _PeerRotationInfo({
+    required this.peer,
+    required this.activity,
+    required this.color,
+    required this.canAct,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pool = ref
+        .watch(peerActivityAssigneesProvider(peer.personUuid))
+        .where((a) => a.activityId == activity.id)
+        .toList();
+    if (pool.length <= 1) return const SizedBox.shrink();
+
+    final todayLog = ref
+        .watch(peerActivityLogsProvider(peer.personUuid))
+        .where((l) => l.activityId == activity.id && MKDateUtils.isToday(l.scheduledAt))
+        .firstOrNull;
+    final assignee = todayLog == null
+        ? null
+        : ref.watch(peerActivityLogAssigneesProvider(peer.personUuid))[todayLog.id];
+    final myUuid = ref.watch(ownPersonUuidProvider);
+    final iAmInPool = myUuid != null && pool.any((a) => a.linkedPeerPersonUuid == myUuid);
+    final isMyTurn = assignee != null && myUuid != null && assignee.identity == myUuid;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.sync_rounded,
+          color: color,
+          text: context.l10n.routineRotationSummary(pool.length),
+        ),
+        if (assignee != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _InfoRow(
+                  icon: Icons.person_outline_rounded,
+                  color: color,
+                  text: context.l10n.routineWhoseTurnLabel(assignee.name ?? ''),
+                ),
+              ),
+              if (canAct && iAmInPool && !isMyTurn && todayLog!.syncUuid != null)
+                GestureDetector(
+                  onTap: () => submitActivityLogReassignProposal(
+                    ref,
+                    peer,
+                    syncUuid: todayLog.syncUuid!,
+                    updatedAt: todayLog.updatedAt,
+                    assigneeIdentity: myUuid,
+                  ),
+                  child: Text(
+                    context.l10n.routineTakeTurnAction,
+                    style: AppTextStyles.labelSm.copyWith(color: color, fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

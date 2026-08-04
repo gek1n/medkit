@@ -1035,6 +1035,7 @@
   },
   "routineSwapTurnAction": "Swap",
   "routineSkipTurnAction": "Skip turn",
+  "routineTakeTurnAction": "Take my turn",
   "routineWeeklyGoalProgressLabel": "{done}/{total} this week",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {

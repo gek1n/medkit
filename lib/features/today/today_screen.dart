@@ -28,6 +28,7 @@ import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_task_screen.dart';
 import '../appointments/reminder_view_screen.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
@@ -2729,6 +2730,73 @@ class _RotationRow extends StatelessWidget {
   }
 }
 
+/// Крок 7.3 плану: дзеркало [_RotationRow] вище, лише для картки, яку
+/// відкрито через "переглянути як [пір]" — на відміну від локальної версії
+/// (яка може передати чергу БУДЬ-КОМУ в пулі напряму, reassignLog/
+/// skipTurn пишуть у ЛОКАЛЬНУ базу), тут глядач може лише взяти чергу НА
+/// СЕБЕ (record_proposal, Крок 7.2) — і лише якщо сам є в пулі й сьогодні
+/// черга не на ньому.
+class _PeerTakeTurnRow extends ConsumerWidget {
+  final PeerSubject peer;
+  final Activity activity;
+  final ActivityLog log;
+  final Color accent;
+  const _PeerTakeTurnRow({
+    required this.peer,
+    required this.activity,
+    required this.log,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pool = ref
+        .watch(peerActivityAssigneesProvider(peer.personUuid))
+        .where((a) => a.activityId == activity.id)
+        .toList();
+    if (pool.length <= 1) return const SizedBox.shrink();
+
+    final myUuid = ref.watch(ownPersonUuidProvider);
+    final iAmInPool = myUuid != null && pool.any((a) => a.linkedPeerPersonUuid == myUuid);
+    if (!iAmInPool) return const SizedBox.shrink();
+
+    final assignee = ref.watch(peerActivityLogAssigneesProvider(peer.personUuid))[log.id];
+    final isMyTurn = assignee != null && assignee.identity == myUuid;
+    final grants = ref.watch(activePeerGrantsProvider);
+    final canAct = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Icon(Icons.sync_rounded, size: 14, color: accent),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              context.l10n.routineWhoseTurnLabel(assignee?.name ?? ''),
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+            ),
+          ),
+          if (canAct && !isMyTurn && log.syncUuid != null)
+            GestureDetector(
+              onTap: () => submitActivityLogReassignProposal(
+                ref,
+                peer,
+                syncUuid: log.syncUuid!,
+                updatedAt: log.updatedAt,
+                assigneeIdentity: myUuid,
+              ),
+              child: Text(
+                context.l10n.routineTakeTurnAction,
+                style: AppTextStyles.labelSm.copyWith(color: accent, fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ActiveActivityCard extends StatefulWidget {
   final ActivityLog log;
   final Activity? activity;
@@ -2858,6 +2926,13 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                 if (widget.activity != null && !widget.readOnly)
                   _RotationRow(
                     ref: widget.ref,
+                    activity: widget.activity!,
+                    log: widget.log,
+                    accent: iconColor,
+                  )
+                else if (widget.activity != null && widget.peer != null)
+                  _PeerTakeTurnRow(
+                    peer: widget.peer!,
                     activity: widget.activity!,
                     log: widget.log,
                     accent: iconColor,
