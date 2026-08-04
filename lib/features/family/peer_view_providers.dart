@@ -37,6 +37,18 @@ final allFamilyPeersProvider = StreamProvider<List<FamilyPeer>>(
   (ref) => ref.watch(familyPeersRepositoryProvider).watchAll(),
 );
 
+/// Крок 4.3.6 плану: щоб реальні екрани могли показати "розділ закрито"
+/// замість тихо порожнього списку, їм потрібні грант-прапорці (view*Granted)
+/// саме обраного зараз піра — той самий рядок [FamilyPeer], що вже читає
+/// SharedFamilyDataScreen, лише через [activePeerProvider] замість
+/// channelId-параметра екрана.
+final activePeerGrantsProvider = Provider<FamilyPeer?>((ref) {
+  final peer = ref.watch(activePeerProvider);
+  if (peer == null) return null;
+  final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? const [];
+  return peers.where((p) => p.personUuid == peer.personUuid).firstOrNull;
+});
+
 /// Стабільний, лише В МЕЖАХ ПЕРЕГЛЯДУ, "локальний" номер для запису піра —
 /// справжнього автоінкрементного id в базі не існує (запис ніколи туди не
 /// пишеться, це чисто відображення), тож беремо детермінований хеш його

@@ -23,6 +23,7 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_task_screen.dart';
@@ -151,6 +152,15 @@ class _TodayContent extends ConsumerWidget {
     final peer = ref.watch(activePeerProvider);
     final readOnly = peer != null;
     final hasPeers = ref.watch(allFamilyPeersProvider).valueOrNull?.isNotEmpty ?? false;
+    // Крок 4.3.6 плану: якщо суб'єкт закрив розділ, дані до кешу піра взагалі
+    // не потрапляють (family_peer_sync_service.dart._push фільтрує ще на
+    // боці суб'єкта) — тож списки нижче тихо лишились би порожніми без
+    // пояснення. grants == null, поки перший рядок FamilyPeer ще не
+    // підвантажився — тоді картку не показуємо (не сплутати з "справді
+    // закрито").
+    final grants = ref.watch(activePeerGrantsProvider);
+    final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
+    final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
 
     final AsyncValue<List<Intake>> intakesAsync;
     final AsyncValue<List<ActivityLog>> activityLogsAsync;
@@ -534,6 +544,27 @@ class _TodayContent extends ConsumerWidget {
                           currentMemberId: member.id,
                           ref: ref,
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              if (scheduleClosed || medcardClosed)
+                SliverToBoxAdapter(
+                  child: _SectionPad(
+                    child: Column(
+                      children: [
+                        if (scheduleClosed)
+                          PeerSectionClosedCard(
+                            peerName: peer.name,
+                            sectionLabel: context.l10n.familySectionScheduleLabel,
+                          ),
+                        if (medcardClosed)
+                          PeerSectionClosedCard(
+                            peerName: peer.name,
+                            sectionLabel:
+                                context.l10n.familySectionVisitsWellbeingLabel,
+                          ),
                       ],
                     ),
                   ),
