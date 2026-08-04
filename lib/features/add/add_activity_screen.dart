@@ -56,19 +56,32 @@ String weekdayLabel(BuildContext context, int weekday) {
 /// повного редактора (сітка типів Спорт, YouTube-посилання) прибрані з UI —
 /// жоден живий виклик цього екрана вже не використовує compactMode:false.
 class AddActivityScreen extends ConsumerStatefulWidget {
-  final int memberId;
+  final int? memberId;
   final Activity? existing;
   final bool hideTypePicker;
   final String? forcedType;
   final bool compactMode;
+  // Крок 4.4.2 плану: коли задано (замість memberId) — замість запису в
+  // локальну базу компаньйон повертається сюди (щоб надіслати як
+  // record_proposal піру), той самий патерн, що вже є в
+  // AddMedicationScreen. Ротаційний пул/фіксований час НЕ переносяться
+  // через чернетку (child-таблиці ActivityAssignees/ActivitySlots не
+  // існують без справжнього activityId) — блок "Хто виконує" в цьому
+  // режимі просто ховається, рутина "за іншого" завжди створюється без
+  // фіксованого часу (уже наявний, повністю робочий режим).
+  final void Function(ActivitiesCompanion draft)? onDraftCreated;
   const AddActivityScreen({
     super.key,
-    required this.memberId,
+    this.memberId,
     this.existing,
     this.hideTypePicker = false,
     this.forcedType,
     this.compactMode = false,
-  });
+    this.onDraftCreated,
+  }) : assert(
+         memberId != null || onDraftCreated != null,
+         'AddActivityScreen needs either memberId or onDraftCreated',
+       );
 
   @override
   ConsumerState<AddActivityScreen> createState() => _AddActivityScreenState();
@@ -135,7 +148,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       } catch (_) {}
       _loadExisting(ex.id);
     } else {
-      _assigneeIds = [widget.memberId];
+      _assigneeIds = widget.memberId != null ? [widget.memberId!] : [];
       _loaded = true;
     }
   }
@@ -224,6 +237,42 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       final locationVal = _locationController.text.trim().isEmpty
           ? null
           : _locationController.text.trim();
+
+      if (widget.onDraftCreated != null) {
+        // Реальний memberId ще невідомий (Крок 4.4.2 плану) — викликач сам
+        // або підставить його (онбординг), або серіалізує компаньйон у
+        // record_proposal (peer-режим). rotationMode/durationMin навмисно
+        // спрощені — без справжнього activityId нема куди писати
+        // ActivityAssignees/ActivitySlots.
+        widget.onDraftCreated!(
+          ActivitiesCompanion.insert(
+            memberId: 0,
+            name: name,
+            type: const Value('routine'),
+            durationMin: Value(activityDuration),
+            repeatDays: Value(repeatDaysJson),
+            repeatType: Value(_repeatType),
+            repeatDayOfMonth:
+                Value(_repeatType == 'monthly' ? _dayOfMonth : null),
+            repeatIntervalDays:
+                Value(_repeatType == 'everyNDays' ? _intervalDays : null),
+            weeklyGoalCount:
+                Value(_repeatType == 'weeklyGoal' ? _weeklyGoalCount : null),
+            rotationAnchorDate: Value(DateTime.now()),
+            rotationMode: const Value('fixed'),
+            stepsJson: Value(stepsJsonStr),
+            reminderBeforeMin: Value(_remindBeforeMin),
+            color: Value(_colorHex),
+            iconKey: Value(_iconKey),
+            tags: Value(tagsJson),
+            documentPaths: Value(jsonEncode(_documentPaths)),
+            location: Value(locationVal),
+          ),
+        );
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
+
       final int activityId;
 
       if (widget.existing != null) {
@@ -257,7 +306,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       } else {
         activityId = await repo.insertActivity(
           ActivitiesCompanion.insert(
-            memberId: widget.memberId,
+            memberId: widget.memberId!,
             name: name,
             type: const Value('routine'),
             durationMin: Value(activityDuration),
@@ -284,7 +333,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         );
       }
 
-      final poolIds = _assigneeIds.isEmpty ? [widget.memberId] : _assigneeIds;
+      final poolIds = _assigneeIds.isEmpty ? [widget.memberId!] : _assigneeIds;
       await repo.replaceAssignees(activityId, poolIds);
 
       final slotsToSave = showTime
@@ -363,7 +412,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
               title: (isEdit
                       ? context.l10n.editActivityTitle
                       : context.l10n.newRoutineTitle) +
-                  memberNameSuffix(context, ref, widget.memberId),
+                  (widget.memberId != null
+                      ? memberNameSuffix(context, ref, widget.memberId!)
+                      : ''),
               onBack: () => Navigator.pop(context),
             ),
             Expanded(
@@ -459,19 +510,25 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 
                     // Хто виконує — теж завжди розгорнутим блоком, одразу
                     // після кроків (сімейна ротація — друга річ, що реально
-                    // відрізняє рутину від разового нагадування).
-                    _Label(context.l10n.routineWhoDoesLabel),
-                    const SizedBox(height: 8),
-                    _AssigneesSheet(
-                      members: members,
-                      initialSelected: _assigneeIds,
-                      initialRotationMode: _rotationMode,
-                      onChanged: (ids, mode) => setState(() {
-                        _assigneeIds = ids;
-                        _rotationMode = mode;
-                      }),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
+                    // відрізняє рутину від разового нагадування). Для
+                    // чернетки (Крок 4.4.2 плану) — приховано: пул ротації
+                    // не переноситься через draft mode (немає activityId,
+                    // ActivityAssignees ще не входить у синхронізацію
+                    // пірів), рутина "за іншого" завжди 'fixed'.
+                    if (widget.memberId != null) ...[
+                      _Label(context.l10n.routineWhoDoesLabel),
+                      const SizedBox(height: 8),
+                      _AssigneesSheet(
+                        members: members,
+                        initialSelected: _assigneeIds,
+                        initialRotationMode: _rotationMode,
+                        onChanged: (ids, mode) => setState(() {
+                          _assigneeIds = ids;
+                          _rotationMode = mode;
+                        }),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                    ],
 
                     Wrap(
                       spacing: 8,
@@ -560,11 +617,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                               ),
                             ),
                           ),
-                        SpaceChip(
-                          memberId: widget.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) => setState(() => _sectionId = id),
-                        ),
+                        if (widget.memberId != null)
+                          SpaceChip(
+                            memberId: widget.memberId!,
+                            sectionId: _sectionId,
+                            onChanged: (id) => setState(() => _sectionId = id),
+                          ),
                         FieldChip(
                           icon: Icons.attach_file_rounded,
                           label: context.l10n.reminderPhotoLabel,
