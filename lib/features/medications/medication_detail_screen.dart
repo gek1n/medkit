@@ -18,6 +18,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -221,6 +222,13 @@ class _DetailBody extends ConsumerWidget {
             .toList()
         : ref.watch(_schedWatchProvider(med.id)).valueOrNull ?? [];
     final accent = colorFromHex(med.color) ?? AppColors.primary;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Розкладу саме
+    // цьому глядачеві — олівець лишається доступним і для ліків піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    // Кнопка "зупинити курс" — свідомо ні: softDelete зараз пише лише в
+    // локальну базу, той самий бар'єр, поки що поза межами цього кроку.
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
 
     return CustomScrollView(
       slivers: [
@@ -231,7 +239,7 @@ class _DetailBody extends ConsumerWidget {
             onBack: () => Navigator.pop(context),
             onEdit: peer == null
                 ? () => _openMedicationEditIfAllowed(context, ref, med)
-                : null,
+                : (canEditPeer ? () => _openMedicationEditAsPeer(context, ref, med, peer!) : null),
             onDelete: peer == null
                 ? () => _confirmStopMedication(context, ref, med)
                 : null,
@@ -1178,6 +1186,35 @@ void _openMedicationEditIfAllowed(
     context,
     MaterialPageRoute(
       builder: (_) => AddMedicationScreen(memberId: med.memberId, existing: med),
+    ),
+  );
+}
+
+// Крок 4.4.4 плану: редагування ліків піра — форма й далі повністю
+// заповнюється з [med] (синтетичні id/sectionId), лише замість прямого
+// запису в базу draft повертається сюди й іде як record_proposal
+// (Крок 4.4.1) — той самий compare-and-swap за syncUuid/updatedAt, що вже
+// є для одноpільних правок нотаток.
+void _openMedicationEditAsPeer(
+  BuildContext context,
+  WidgetRef ref,
+  Medication med,
+  PeerSubject peer,
+) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AddMedicationScreen(
+        existing: med,
+        onDraftCreated: (draft) => submitMedicationProposal(
+          ref,
+          peer,
+          draft,
+          existingSyncUuid: med.syncUuid,
+          existingUpdatedAt: med.updatedAt,
+          syntheticSectionId: med.sectionId,
+        ),
+      ),
     ),
   );
 }

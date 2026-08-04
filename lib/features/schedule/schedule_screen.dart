@@ -26,6 +26,7 @@ import '../add/add_task_screen.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../appointments/reminder_view_screen.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/elly_denied_screen.dart';
@@ -251,8 +252,32 @@ class _ScheduleBody extends ConsumerWidget {
     final routineCount = activitiesAsync.valueOrNull?.length ?? 0;
     final routineLimitReached =
         limits.maxRoutineTasks != 0 && routineCount >= limits.maxRoutineTasks;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування відповідного
+    // розділу саме цьому глядачеві — кнопки "додати" лишаються доступними
+    // і для піра, лише замість прямого запису шлють record_proposal
+    // (Крок 4.4.1). Ліки/рутини — Розклад; нагадування — Медкартка
+    // (Візити/Самопочуття), той самий бар'єр, що й у
+    // FamilyPeerSyncService._push.
+    final canEditSchedulePeer =
+        peer != null && grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
+    final canEditMedcardPeer =
+        peer != null && grants != null && grants.viewMedcardGranted && grants.editMedcardGranted;
 
     void openAddRoutine() {
+      if (peer != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddActivityScreen(
+              hideTypePicker: true,
+              forcedType: _kActivityTypeRoutine,
+              compactMode: true,
+              onDraftCreated: (draft) => submitActivityProposal(ref, peer!, draft),
+            ),
+          ),
+        );
+        return;
+      }
       if (routineLimitReached) {
         Navigator.push(
           context,
@@ -274,6 +299,51 @@ class _ScheduleBody extends ConsumerWidget {
             forcedType: _kActivityTypeRoutine,
             compactMode: true,
           ),
+        ),
+      );
+    }
+
+    void openAddMedication() {
+      if (peer != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddMedicationScreen(
+              onDraftCreated: (draft) => submitMedicationProposal(ref, peer!, draft),
+            ),
+          ),
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddMedicationScreen(memberId: selectedMemberId),
+        ),
+      );
+    }
+
+    void openAddAppointment() {
+      if (peer != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddAppointmentScreen(
+              onDraftCreated: (draft, slotTimes) => submitReminderProposal(
+                ref,
+                peer!,
+                draft,
+                slotTimes: slotTimes,
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddAppointmentScreen(memberId: selectedMemberId),
         ),
       );
     }
@@ -414,15 +484,7 @@ class _ScheduleBody extends ConsumerWidget {
                     icon: Icons.medication_rounded,
                     iconWidget: const AssetIcon('box', size: 22),
                     title: context.l10n.sectionMeds,
-                    onAdd: readOnly
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AddMedicationScreen(memberId: selectedMemberId),
-                              ),
-                            ),
+                    onAdd: (peer == null || canEditSchedulePeer) ? openAddMedication : null,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   medsAsync.when(
@@ -440,15 +502,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (meds.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noActiveMeds,
-                          onAdd: readOnly
-                              ? null
-                              : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          AddMedicationScreen(memberId: selectedMemberId),
-                                    ),
-                                  ),
+                          onAdd: (peer == null || canEditSchedulePeer) ? openAddMedication : null,
                         );
                       }
                       return Column(
@@ -482,15 +536,7 @@ class _ScheduleBody extends ConsumerWidget {
                     icon: Icons.notifications_rounded,
                     iconWidget: const AssetIcon('task_reminder', size: 22),
                     title: context.l10n.reminderCategoryTitle,
-                    onAdd: readOnly
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AddAppointmentScreen(memberId: selectedMemberId),
-                              ),
-                            ),
+                    onAdd: (peer == null || canEditMedcardPeer) ? openAddAppointment : null,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   appointmentsAsync.when(
@@ -512,15 +558,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (appointments.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noScheduledAppointments,
-                          onAdd: readOnly
-                              ? null
-                              : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          AddAppointmentScreen(memberId: selectedMemberId),
-                                    ),
-                                  ),
+                          onAdd: (peer == null || canEditMedcardPeer) ? openAddAppointment : null,
                         );
                       }
                       return Column(
@@ -553,7 +591,7 @@ class _ScheduleBody extends ConsumerWidget {
                     icon: Icons.home_repair_service_rounded,
                     iconWidget: const AssetIcon('task_routine', size: 22),
                     title: context.l10n.taskTypeRoutine,
-                    onAdd: readOnly ? null : openAddRoutine,
+                    onAdd: (peer == null || canEditSchedulePeer) ? openAddRoutine : null,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
@@ -571,7 +609,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (routine.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noRoutineTasksHint,
-                          onAdd: readOnly ? null : openAddRoutine,
+                          onAdd: (peer == null || canEditSchedulePeer) ? openAddRoutine : null,
                         );
                       }
                       return Column(

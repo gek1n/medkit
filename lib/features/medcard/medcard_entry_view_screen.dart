@@ -16,6 +16,7 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import 'add_medcard_entry_screen.dart';
 
@@ -88,7 +89,7 @@ class MedcardEntryViewScreen extends ConsumerWidget {
   }
 }
 
-class _ViewBody extends StatelessWidget {
+class _ViewBody extends ConsumerWidget {
   final MedcardSection section;
   final MedcardEntry entry;
   final Color color;
@@ -120,11 +121,16 @@ class _ViewBody extends StatelessWidget {
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tags = _tags;
     final photos = _photos;
     final hasNote = entry.notes != null && entry.notes!.trim().isNotEmpty;
     final hasLocation = entry.location != null && entry.location!.trim().isNotEmpty;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Поличок саме
+    // цьому глядачеві — олівець лишається доступним і для запису піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.editShelvesGranted;
 
     return Column(
       children: [
@@ -151,6 +157,26 @@ class _ViewBody extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) =>
                                 AddMedcardEntryScreen(section: section, existing: entry),
+                          ),
+                        ),
+                      )
+                    else if (canEditPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddMedcardEntryScreen(
+                              section: section,
+                              existing: entry,
+                              onDraftCreated: (draft) => submitMedcardEntryProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: entry.syncUuid,
+                                existingUpdatedAt: entry.updatedAt,
+                                syntheticSectionId: section.id,
+                              ),
+                            ),
                           ),
                         ),
                       ),

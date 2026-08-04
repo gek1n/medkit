@@ -23,6 +23,7 @@ import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/reminder_view_screen.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import 'add_medcard_entry_screen.dart';
@@ -147,6 +148,12 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
   @override
   Widget build(BuildContext context) {
     final readOnly = widget.peer != null;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Поличок саме
+    // цьому глядачеві — кнопка "додати" лишається доступною і для піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    final grants = ref.watch(activePeerGrantsProvider);
+    final canEditPeer =
+        widget.peer != null && grants != null && grants.editShelvesGranted;
     final AsyncValue<List<MedcardEntry>> entriesAsync;
     final AsyncValue<List<Medication>> medsAsync;
     final AsyncValue<List<Activity>> activitiesAsync;
@@ -175,16 +182,33 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: readOnly
-          ? null
-          : MkAddFab(
+      floatingActionButton: !readOnly
+          ? MkAddFab(
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => AddMedcardEntryScreen(section: section),
                 ),
               ),
-            ),
+            )
+          : canEditPeer
+              ? MkAddFab(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddMedcardEntryScreen(
+                        section: section,
+                        onDraftCreated: (draft) => submitMedcardEntryProposal(
+                          ref,
+                          widget.peer!,
+                          draft,
+                          syntheticSectionId: section.id,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
       body: SafeArea(
         child: Column(
           children: [

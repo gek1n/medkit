@@ -18,6 +18,7 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -231,6 +232,11 @@ class _ViewBody extends ConsumerWidget {
     final photos = _photos;
     final hasLocation =
         activity.location != null && activity.location!.trim().isNotEmpty;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Розкладу саме
+    // цьому глядачеві — олівець лишається доступним і для рутини піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
 
     return Column(
       children: [
@@ -267,6 +273,27 @@ class _ViewBody extends ConsumerWidget {
                                     hideTypePicker: true,
                                     compactMode: true,
                                   ),
+                          ),
+                        ),
+                      )
+                    else if (canEditPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddActivityScreen(
+                              existing: activity,
+                              hideTypePicker: true,
+                              compactMode: true,
+                              onDraftCreated: (draft) => submitActivityProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: activity.syncUuid,
+                                existingUpdatedAt: activity.updatedAt,
+                                syntheticSectionId: activity.sectionId,
+                              ),
+                            ),
                           ),
                         ),
                       ),
