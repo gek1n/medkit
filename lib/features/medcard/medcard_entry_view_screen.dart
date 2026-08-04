@@ -222,8 +222,8 @@ class _ViewBody extends StatelessWidget {
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(), style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
                   // Фото піра ще не лежать локально — підвантажуються за
-                  // запитом (той самий механізм, що вже в SharedFamilyDataScreen),
-                  // тож для піра — чіпи запиту, а не готова сітка мініатюр.
+                  // запитом (PeerAttachmentChip), тож для піра — чіпи
+                  // запиту, а не готова сітка мініатюр.
                   if (peer != null)
                     Wrap(
                       spacing: 8,

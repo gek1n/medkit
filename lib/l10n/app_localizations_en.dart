@@ -928,22 +928,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doctorVisitLabel => 'Doctor visit';
 
   @override
-  String get recordFallbackLabel => 'Record';
-
-  @override
-  String dataFromPeerTitle(String name) {
-    return 'Data from $name';
-  }
-
-  @override
-  String peerNothingSharedYet(String name) {
-    return '$name hasn\'t shared anything with you yet — or access hasn\'t been granted yet.';
-  }
-
-  @override
-  String get noViewableDataLabel => 'No data available to view';
-
-  @override
   String familySectionAccessClosedTitle(String name, String section) {
     return '“$name” closed access to “$section”';
   }
@@ -985,25 +969,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get requestFileAction => 'Request file';
 
   @override
-  String get editNotesTitle => 'Edit notes';
-
-  @override
-  String get editNotesDisclaimer =>
-      'The data owner will see this edit — it applies only if they haven\'t changed this record in the meantime.';
-
-  @override
-  String get notesHintEllipsis => 'Notes…';
-
-  @override
-  String get editSentSnackbar => 'Edit sent';
-
-  @override
   String sendFailedError(String error) {
     return 'Couldn\'t send: $error';
   }
-
-  @override
-  String get sendEditAction => 'Send edit';
 
   @override
   String get familyLabel => 'Family';

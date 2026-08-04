@@ -505,24 +505,6 @@
   "scanQrCodeLabel": "Scan QR code",
   "tapToEnableCameraHint": "Tap to enable the camera",
   "doctorVisitLabel": "Doctor visit",
-  "recordFallbackLabel": "Record",
-  "dataFromPeerTitle": "Data from {name}",
-  "@dataFromPeerTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "peerNothingSharedYet": "{name} hasn't shared anything with you yet — or access hasn't been granted yet.",
-  "@peerNothingSharedYet": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "noViewableDataLabel": "No data available to view",
   "familySectionAccessClosedTitle": "“{name}” closed access to “{section}”",
   "@familySectionAccessClosedTitle": {
     "placeholders": {
@@ -554,10 +536,6 @@
   "photoLabel": "Photo",
   "awaitingFileLabel": "Waiting for the file…",
   "requestFileAction": "Request file",
-  "editNotesTitle": "Edit notes",
-  "editNotesDisclaimer": "The data owner will see this edit — it applies only if they haven't changed this record in the meantime.",
-  "notesHintEllipsis": "Notes…",
-  "editSentSnackbar": "Edit sent",
   "sendFailedError": "Couldn't send: {error}",
   "@sendFailedError": {
     "placeholders": {
@@ -566,7 +544,6 @@
       }
     }
   },
-  "sendEditAction": "Send edit",
   "familyLabel": "Family",
   "familyMembersCountLabel": "{count, plural, one{{count} member} other{{count} members}}",
   "@familyMembersCountLabel": {

@@ -39,9 +39,8 @@ final allFamilyPeersProvider = StreamProvider<List<FamilyPeer>>(
 
 /// Крок 4.3.6 плану: щоб реальні екрани могли показати "розділ закрито"
 /// замість тихо порожнього списку, їм потрібні грант-прапорці (view*Granted)
-/// саме обраного зараз піра — той самий рядок [FamilyPeer], що вже читає
-/// SharedFamilyDataScreen, лише через [activePeerProvider] замість
-/// channelId-параметра екрана.
+/// саме обраного зараз піра — той самий рядок [FamilyPeer], лише через
+/// [activePeerProvider], а не channelId-параметр окремого екрана.
 final activePeerGrantsProvider = Provider<FamilyPeer?>((ref) {
   final peer = ref.watch(activePeerProvider);
   if (peer == null) return null;
