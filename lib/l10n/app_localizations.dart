@@ -1756,30 +1756,6 @@ abstract class AppLocalizations {
   /// **'Візит до лікаря'**
   String get doctorVisitLabel;
 
-  /// No description provided for @recordFallbackLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Запис'**
-  String get recordFallbackLabel;
-
-  /// No description provided for @dataFromPeerTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Дані від {name}'**
-  String dataFromPeerTitle(String name);
-
-  /// No description provided for @peerNothingSharedYet.
-  ///
-  /// In uk, this message translates to:
-  /// **'{name} ще нічого не поділив(-ла) з вами — або доступ ще не надано.'**
-  String peerNothingSharedYet(String name);
-
-  /// No description provided for @noViewableDataLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Немає даних, доступних для перегляду'**
-  String get noViewableDataLabel;
-
   /// No description provided for @familySectionAccessClosedTitle.
   ///
   /// In uk, this message translates to:
@@ -1846,41 +1822,11 @@ abstract class AppLocalizations {
   /// **'Запросити файл'**
   String get requestFileAction;
 
-  /// No description provided for @editNotesTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Редагувати нотатки'**
-  String get editNotesTitle;
-
-  /// No description provided for @editNotesDisclaimer.
-  ///
-  /// In uk, this message translates to:
-  /// **'Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.'**
-  String get editNotesDisclaimer;
-
-  /// No description provided for @notesHintEllipsis.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нотатки…'**
-  String get notesHintEllipsis;
-
-  /// No description provided for @editSentSnackbar.
-  ///
-  /// In uk, this message translates to:
-  /// **'Правку надіслано'**
-  String get editSentSnackbar;
-
   /// No description provided for @sendFailedError.
   ///
   /// In uk, this message translates to:
   /// **'Не вдалося надіслати: {error}'**
   String sendFailedError(String error);
-
-  /// No description provided for @sendEditAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Надіслати правку'**
-  String get sendEditAction;
 
   /// No description provided for @familyLabel.
   ///

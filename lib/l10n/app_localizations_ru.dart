@@ -932,22 +932,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get doctorVisitLabel => 'Визит к врачу';
 
   @override
-  String get recordFallbackLabel => 'Запись';
-
-  @override
-  String dataFromPeerTitle(String name) {
-    return 'Данные от $name';
-  }
-
-  @override
-  String peerNothingSharedYet(String name) {
-    return '$name ещё ничем не поделился(-лась) с вами — или доступ ещё не предоставлен.';
-  }
-
-  @override
-  String get noViewableDataLabel => 'Нет данных, доступных для просмотра';
-
-  @override
   String familySectionAccessClosedTitle(String name, String section) {
     return '«$name» закрыл(-а) доступ к разделу «$section»';
   }
@@ -989,25 +973,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get requestFileAction => 'Запросить файл';
 
   @override
-  String get editNotesTitle => 'Редактировать заметки';
-
-  @override
-  String get editNotesDisclaimer =>
-      'Правку увидит владелец данных — она применится, только если он тем временем сам не изменял эту запись.';
-
-  @override
-  String get notesHintEllipsis => 'Заметки…';
-
-  @override
-  String get editSentSnackbar => 'Правка отправлена';
-
-  @override
   String sendFailedError(String error) {
     return 'Не удалось отправить: $error';
   }
-
-  @override
-  String get sendEditAction => 'Отправить правку';
 
   @override
   String get familyLabel => 'Семья';

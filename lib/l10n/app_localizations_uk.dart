@@ -931,22 +931,6 @@ class AppLocalizationsUk extends AppLocalizations {
   String get doctorVisitLabel => 'Візит до лікаря';
 
   @override
-  String get recordFallbackLabel => 'Запис';
-
-  @override
-  String dataFromPeerTitle(String name) {
-    return 'Дані від $name';
-  }
-
-  @override
-  String peerNothingSharedYet(String name) {
-    return '$name ще нічого не поділив(-ла) з вами — або доступ ще не надано.';
-  }
-
-  @override
-  String get noViewableDataLabel => 'Немає даних, доступних для перегляду';
-
-  @override
   String familySectionAccessClosedTitle(String name, String section) {
     return '«$name» закрив(-ла) доступ до розділу «$section»';
   }
@@ -988,25 +972,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get requestFileAction => 'Запросити файл';
 
   @override
-  String get editNotesTitle => 'Редагувати нотатки';
-
-  @override
-  String get editNotesDisclaimer =>
-      'Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.';
-
-  @override
-  String get notesHintEllipsis => 'Нотатки…';
-
-  @override
-  String get editSentSnackbar => 'Правку надіслано';
-
-  @override
   String sendFailedError(String error) {
     return 'Не вдалося надіслати: $error';
   }
-
-  @override
-  String get sendEditAction => 'Надіслати правку';
 
   @override
   String get familyLabel => 'Сімʼя';

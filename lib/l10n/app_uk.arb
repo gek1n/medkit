@@ -505,24 +505,6 @@
   "scanQrCodeLabel": "Сканувати QR-код",
   "tapToEnableCameraHint": "Натисніть, щоб увімкнути камеру",
   "doctorVisitLabel": "Візит до лікаря",
-  "recordFallbackLabel": "Запис",
-  "dataFromPeerTitle": "Дані від {name}",
-  "@dataFromPeerTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "peerNothingSharedYet": "{name} ще нічого не поділив(-ла) з вами — або доступ ще не надано.",
-  "@peerNothingSharedYet": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "noViewableDataLabel": "Немає даних, доступних для перегляду",
   "familySectionAccessClosedTitle": "«{name}» закрив(-ла) доступ до розділу «{section}»",
   "@familySectionAccessClosedTitle": {
     "placeholders": {
@@ -554,10 +536,6 @@
   "photoLabel": "Фото",
   "awaitingFileLabel": "Очікуємо файл…",
   "requestFileAction": "Запросити файл",
-  "editNotesTitle": "Редагувати нотатки",
-  "editNotesDisclaimer": "Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.",
-  "notesHintEllipsis": "Нотатки…",
-  "editSentSnackbar": "Правку надіслано",
   "sendFailedError": "Не вдалося надіслати: {error}",
   "@sendFailedError": {
     "placeholders": {
@@ -566,7 +544,6 @@
       }
     }
   },
-  "sendEditAction": "Надіслати правку",
   "familyLabel": "Сімʼя",
   "familyMembersCountLabel": "{count, plural, one{{count} член} few{{count} члени} other{{count} членів}}",
   "@familyMembersCountLabel": {
