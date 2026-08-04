@@ -12,25 +12,26 @@ import 'account_service.dart';
 import 'subscription_api_client.dart';
 
 /// Реальний білінг Plus/Family (StoreKit 2 / Play Billing через
-/// `in_app_purchase`) + верифікація на сервері. Написано повністю (розділ 6
-/// docs/multifamily_billing_plan.md), але СВІДОМО ще не викликається з
-/// `PlansScreen` — кнопки там лишаються декоративним перемикачем
-/// `planProvider.notifier`, поки користувач не протестує решту фіч і не
-/// попросить фінальне переключення (одна маленька задача: замінити onSelect
-/// на [buy] тут + активувати [realPlanProvider] замість bare StateProvider).
+/// `in_app_purchase`) + верифікація на сервері (розділ 6
+/// docs/multifamily_billing_plan.md). `PlansScreen._selectPaid` викликає
+/// [purchase] напряму (не декоративний перемикач), а `main.dart`/`_Shell`
+/// міст (`ref.listen(realPlanProvider, ...)`) пише результат у bare
+/// `planProvider`, яким і далі користується решта застосунку.
 class SubscriptionService {
   static const _statusCacheKey = 'subscription_status_cache_v1';
   static const _api = SubscriptionApiClient();
   static final _account = AccountService();
 
-  // TODO: замінити на реальні product ID з App Store Connect/Google Play
-  // Console (адмінська частина, користувач заповнює сам пізніше) — той самий
-  // паттерн-заглушка, що й AccountService._googleServerClientId.
+  // Реальні product ID з App Store Connect/Google Play Console. Family —
+  // family_month/family_year (не family_monthly/family_yearly, як
+  // спочатку) — Plus лишається без змін. Апple/Google жорстко прив'язують
+  // усю історію покупок до точного рядка ID — НІКОЛИ не перейменовувати
+  // вже живий продукт (CLAUDE.md).
   static const _productIds = {
     (AppPlan.plus, false): 'plus_monthly',
     (AppPlan.plus, true): 'plus_yearly',
-    (AppPlan.family, false): 'family_monthly',
-    (AppPlan.family, true): 'family_yearly',
+    (AppPlan.family, false): 'family_month',
+    (AppPlan.family, true): 'family_year',
   };
 
   // Те саме значення, що й BILLING_TEST_SECRET у .env бекенду (DEPLOY.md,
