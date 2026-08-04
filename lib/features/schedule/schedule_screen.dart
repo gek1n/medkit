@@ -435,20 +435,12 @@ class _ScheduleBody extends ConsumerWidget {
                 AppDimensions.screenPadding, AppDimensions.md,
                 AppDimensions.screenPadding, 0,
               ),
-              child: _SearchField(
-                value: search,
-                hint: context.l10n.searchAllSections,
-                onChanged: onSearchChanged,
-              ),
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: AppDimensions.sm),
-              child: _CategoryChipsRow(
-                selected: category,
-                onChanged: onCategoryChanged,
+              child: _CategorySearchBar(
+                search: search,
+                searchHint: context.l10n.searchAllSections,
+                onSearchChanged: onSearchChanged,
+                category: category,
+                onCategoryChanged: onCategoryChanged,
               ),
             ),
           ),
@@ -822,95 +814,42 @@ class _ScheduleBody extends ConsumerWidget {
 
 // ─── Category chips row ──────────────────────────────────────────────────────
 
-class _CategoryChipsRow extends StatelessWidget {
-  final _ScheduleCategory selected;
-  final ValueChanged<_ScheduleCategory> onChanged;
+class _CategorySearchBar extends StatefulWidget {
+  final String search;
+  final String searchHint;
+  final ValueChanged<String> onSearchChanged;
+  final _ScheduleCategory category;
+  final ValueChanged<_ScheduleCategory> onCategoryChanged;
 
-  const _CategoryChipsRow({required this.selected, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.screenPadding),
-        itemCount: _ScheduleCategory.values.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final c = _ScheduleCategory.values[i];
-          final active = c == selected;
-          return GestureDetector(
-            onTap: () => onChanged(c),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: active ? AppColors.primary : AppColors.surface,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                border: Border.all(
-                    color: active ? AppColors.primary : AppColors.border),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  c.assetKey != null
-                      ? AssetIcon(c.assetKey!, size: 20)
-                      : Icon(c.icon,
-                          size: 16,
-                          color: active ? Colors.white : AppColors.textSub),
-                  const SizedBox(width: 6),
-                  Text(
-                    c.label(context),
-                    style: AppTextStyles.labelMd.copyWith(
-                        color: active ? Colors.white : AppColors.textMain),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ─── Search field ─────────────────────────────────────────────────────────────
-
-class _SearchField extends StatefulWidget {
-  final String value;
-  final String hint;
-  final ValueChanged<String> onChanged;
-
-  const _SearchField({
-    required this.value,
-    required this.hint,
-    required this.onChanged,
+  const _CategorySearchBar({
+    required this.search,
+    required this.searchHint,
+    required this.onSearchChanged,
+    required this.category,
+    required this.onCategoryChanged,
   });
 
   @override
-  State<_SearchField> createState() => _SearchFieldState();
+  State<_CategorySearchBar> createState() => _CategorySearchBarState();
 }
 
-class _SearchFieldState extends State<_SearchField> {
+class _CategorySearchBarState extends State<_CategorySearchBar> {
   late final TextEditingController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: widget.value);
+    _ctrl = TextEditingController(text: widget.search);
     _ctrl.addListener(() => setState(() {}));
   }
 
   @override
-  void didUpdateWidget(covariant _SearchField oldWidget) {
+  void didUpdateWidget(covariant _CategorySearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.value != _ctrl.text) {
+    if (widget.search != _ctrl.text) {
       _ctrl.value = _ctrl.value.copyWith(
-        text: widget.value,
-        selection: TextSelection.collapsed(offset: widget.value.length),
+        text: widget.search,
+        selection: TextSelection.collapsed(offset: widget.search.length),
       );
     }
   }
@@ -921,43 +860,180 @@ class _SearchFieldState extends State<_SearchField> {
     super.dispose();
   }
 
+  Future<void> _openCategoryPicker() async {
+    final result = await showModalBottomSheet<_ScheduleCategory>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _CategoryPickerSheet(selected: widget.category),
+    );
+    if (result != null) widget.onCategoryChanged(result);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-        ],
-      ),
-      child: TextField(
-        controller: _ctrl,
-        onChanged: widget.onChanged,
-        style: AppTextStyles.bodyMd,
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
-          prefixIcon: const Icon(Icons.search_rounded,
-              color: AppColors.textMuted, size: 20),
-          suffixIcon: _ctrl.text.isEmpty
-              ? null
-              : GestureDetector(
-                  onTap: () {
-                    _ctrl.clear();
-                    widget.onChanged('');
-                  },
-                  child: const Icon(Icons.close_rounded,
-                      color: AppColors.textMuted, size: 18),
+    final active = widget.category != _ScheduleCategory.all;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _ctrl,
+                    onChanged: widget.onSearchChanged,
+                    style: AppTextStyles.bodySm,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration.collapsed(
+                      hintText: widget.searchHint,
+                      hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                    ).copyWith(
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                    ),
+                  ),
                 ),
-          filled: false,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                if (_ctrl.text.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      _ctrl.clear();
+                      widget.onSearchChanged('');
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 6),
+                      child: Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDimensions.sm),
+        Expanded(
+          flex: 2,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+            onTap: _openCategoryPicker,
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: active ? AppColors.primaryLight : AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                border: Border.all(color: active ? AppColors.primary : AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  widget.category.assetKey != null
+                      ? AssetIcon(widget.category.assetKey!, size: 16)
+                      : Icon(
+                          widget.category.icon,
+                          size: 16,
+                          color: active ? AppColors.primary : AppColors.textMuted,
+                        ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      widget.category.label(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelMd.copyWith(
+                        color: active ? AppColors.primary : AppColors.textSub,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryPickerSheet extends StatelessWidget {
+  final _ScheduleCategory selected;
+
+  const _CategoryPickerSheet({required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      heightFactor: 0.5,
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.l10n.scheduleCategoryPickerTitle,
+                      style: AppTextStyles.h3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: _ScheduleCategory.values.length,
+                itemBuilder: (context, index) {
+                  final c = _ScheduleCategory.values[index];
+                  final active = c == selected;
+                  return ListTile(
+                    onTap: () => Navigator.pop(context, c),
+                    leading: c.assetKey != null
+                        ? AssetIcon(c.assetKey!, size: 22)
+                        : Icon(
+                            c.icon,
+                            size: 20,
+                            color: active ? AppColors.primary : AppColors.textSub,
+                          ),
+                    title: Text(
+                      c.label(context),
+                      style: AppTextStyles.bodyLg.copyWith(
+                        color: active ? AppColors.primary : AppColors.textMain,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: active
+                        ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                        : null,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
