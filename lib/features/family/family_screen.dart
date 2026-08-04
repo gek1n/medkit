@@ -138,11 +138,7 @@ class _FamilyBody extends ConsumerWidget {
                 ),
               if (blocked || plan == AppPlan.plus)
                 const SizedBox(height: AppDimensions.md),
-              ...others.map((m) => Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppDimensions.md),
-                    child: _MemberCard(member: m, ownerId: owner.id),
-                  )),
+              _DraggableMembers(others: others, ownerId: owner.id),
               if (!blocked) const _AddMemberTile(),
               const SizedBox(height: AppDimensions.xl),
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
@@ -543,6 +539,84 @@ class _MemberCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── Локальні члени: драг-н-дроп ──────────────────────────────────────────────
+// Той самий патерн, що й _DraggableSections у med_card_screen.dart —
+// власник НІКОЛИ не входить сюди (завжди перший, поза списком, окремо
+// рендериться в _FamilyBody). Порядок, встановлений тут, автоматично
+// підхоплюють усі інші перемикачі "хто зараз активний" (Сьогодні,
+// MemberSwitcherPill на Розкладі/Медкартці) — вони читають той самий
+// allMembersProvider/MembersRepository.watchAll(), відсортований за
+// sortOrder.
+class _DraggableMembers extends ConsumerStatefulWidget {
+  final List<Member> others;
+  final int ownerId;
+  const _DraggableMembers({required this.others, required this.ownerId});
+
+  @override
+  ConsumerState<_DraggableMembers> createState() => _DraggableMembersState();
+}
+
+class _DraggableMembersState extends ConsumerState<_DraggableMembers> {
+  late List<Member> _local;
+  // Поки триває збереження нового порядку — не підміняти _local вхідними
+  // widget.others (той самий компроміс, що й _DraggableSectionsState).
+  bool _reordering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _local = widget.others;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DraggableMembers oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_reordering) _local = widget.others;
+  }
+
+  Future<void> _handleReorder(int oldIndex, int newIndex) async {
+    setState(() {
+      _reordering = true;
+      final item = _local.removeAt(oldIndex);
+      _local.insert(newIndex, item);
+    });
+    await ref.read(membersRepositoryProvider).reorder(_local.map((m) => m.id).toList());
+    if (mounted) setState(() => _reordering = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_local.isEmpty) return const SizedBox.shrink();
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: _local.length,
+      onReorderItem: _handleReorder,
+      itemBuilder: (context, index) {
+        final m = _local[index];
+        return Padding(
+          key: ValueKey(m.id),
+          padding: const EdgeInsets.only(bottom: AppDimensions.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _MemberCard(member: m, ownerId: widget.ownerId)),
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 6, top: 14),
+                  child: Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1062,10 +1136,19 @@ class _FamilyGroupSubsection extends StatelessWidget {
             ],
           ),
         ),
-        ...peers.map((p) => Padding(
-              padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-              child: _PeerCard(peer: p),
-            )),
+        // Драг-н-дроп лише для "моєї" секції (пірів, яких я сам запросив) —
+        // порядок гостей у ЧУЖІЙ сім'ї не має чим бути кероване з мого
+        // боку, та й sortOrder тут єдиний спільний простір значень для
+        // ВСІХ пірів одразу (без прив'язки до familyId, бо перемикачі й
+        // так показують їх одним пласким блоком) — реордер лише "своєї"
+        // групи уникає колізій із чужими familyId-групами.
+        if (isOwnFamily)
+          _DraggablePeers(peers: peers)
+        else
+          ...peers.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                child: _PeerCard(peer: p),
+              )),
         Center(
           child: TextButton(
             onPressed: () => onLeave(label),
@@ -1081,6 +1164,76 @@ class _FamilyGroupSubsection extends StatelessWidget {
 final _familyPeersProvider = StreamProvider<List<FamilyPeer>>((ref) {
   return ref.watch(familyPeersRepositoryProvider).watchAll();
 });
+
+// ── Автономні піри "моєї" групи: драг-н-дроп ─────────────────────────────────
+class _DraggablePeers extends ConsumerStatefulWidget {
+  final List<FamilyPeer> peers;
+  const _DraggablePeers({required this.peers});
+
+  @override
+  ConsumerState<_DraggablePeers> createState() => _DraggablePeersState();
+}
+
+class _DraggablePeersState extends ConsumerState<_DraggablePeers> {
+  late List<FamilyPeer> _local;
+  bool _reordering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _local = widget.peers;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DraggablePeers oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_reordering) _local = widget.peers;
+  }
+
+  Future<void> _handleReorder(int oldIndex, int newIndex) async {
+    setState(() {
+      _reordering = true;
+      final item = _local.removeAt(oldIndex);
+      _local.insert(newIndex, item);
+    });
+    await ref
+        .read(familyPeersRepositoryProvider)
+        .reorder(_local.map((p) => p.personUuid).toList());
+    if (mounted) setState(() => _reordering = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_local.isEmpty) return const SizedBox.shrink();
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: _local.length,
+      onReorderItem: _handleReorder,
+      itemBuilder: (context, index) {
+        final p = _local[index];
+        return Padding(
+          key: ValueKey(p.personUuid),
+          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _PeerCard(peer: p)),
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 6, top: 10),
+                  child: Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
 
 /// true, якщо для цього локального профілю вже створено (і ще не
 /// підтверджено) запрошення "Локальний → Автономний" — щойно приєднання

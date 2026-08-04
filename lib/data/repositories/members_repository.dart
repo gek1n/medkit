@@ -16,8 +16,17 @@ class MembersRepository {
   // (перемикачі "хто зараз активний", список Сім'ї тощо). Хто саме в пулі
   // конкретної рутини (включно з тіньовими рядками) читається окремо, через
   // ActivitiesRepository.getAssignees/watchAssignees за FK, не через цей метод.
-  Stream<List<Member>> watchAll() =>
-      (_db.select(_db.members)..where((t) => t.linkedPeerPersonUuid.isNull())).watch();
+  // sortOrder — драг-н-дроп на екрані Сім'я; id — стабільний tiebreak для
+  // тих, хто ще на дефолтних 0 (порядок створення, той самий, що й до
+  // появи sortOrder). Власник лишається на дефолтних 0 і сортується першим
+  // природно — реордер серед залежних профілів рахує з 1, див. reorder().
+  Stream<List<Member>> watchAll() => (_db.select(_db.members)
+        ..where((t) => t.linkedPeerPersonUuid.isNull())
+        ..orderBy([
+          (t) => OrderingTerm.asc(t.sortOrder),
+          (t) => OrderingTerm.asc(t.id),
+        ]))
+      .watch();
 
   Stream<List<Member>> watchShadowMembers() =>
       (_db.select(_db.members)..where((t) => t.linkedPeerPersonUuid.isNotNull())).watch();
@@ -33,9 +42,39 @@ class MembersRepository {
   // Кожен профіль — новий чи мігрований зі старої версії — повинен мати
   // стабільний personUuid; жоден із наявних call site-ів це не задає
   // явно, тож підставляємо тут централізовано, щоб не забути десь один.
-  Future<int> insert(MembersCompanion member) {
-    final withUuid = member.personUuid.present ? member : member.copyWith(personUuid: Value(_uuid.v4()));
-    return _db.into(_db.members).insert(withUuid);
+  //
+  // Новий залежний профіль (не owner, не тіньовий рядок піра) додається в
+  // КІНЕЦЬ поточного порядку драг-н-дропу (sortOrder = кількість уже
+  // існуючих залежних + 1) — інакше він default-ним 0 "перестрибнув" би
+  // на початок списку разом із власником. Owner/тіньові рядки лишаються
+  // на дефолтних 0 — перший завжди сортується першим природно, а тіньові
+  // рядки взагалі не потрапляють у жоден sortOrder-based список
+  // (watchAll() їх виключає).
+  Future<int> insert(MembersCompanion member) async {
+    var toInsert = member.personUuid.present ? member : member.copyWith(personUuid: Value(_uuid.v4()));
+    final isRealDependent = !member.role.present || member.role.value != 'owner';
+    if (isRealDependent && !member.sortOrder.present && !member.linkedPeerPersonUuid.present) {
+      final count = await (_db.select(_db.members)
+            ..where((t) => t.linkedPeerPersonUuid.isNull() & t.role.equals('dependent')))
+          .get()
+          .then((rows) => rows.length);
+      toInsert = toInsert.copyWith(sortOrder: Value(count + 1));
+    }
+    return _db.into(_db.members).insert(toInsert);
+  }
+
+  /// Викликати з нового порядку id-шників (лише залежні профілі, БЕЗ
+  /// власника — той ніколи не входить у драг-н-дроп) після реордеру на
+  /// екрані Сім'я. Рахуємо з 1, а не з 0 — щоб жоден залежний профіль не
+  /// міг зрівнятись/обігнати власника (лишається на дефолтних 0) у
+  /// перемикачах, де owner має завжди йти першим.
+  Future<void> reorder(List<int> orderedDependentIds) async {
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedDependentIds.length; i++) {
+        await (_db.update(_db.members)..where((t) => t.id.equals(orderedDependentIds[i])))
+            .write(MembersCompanion(sortOrder: Value(i + 1)));
+      }
+    });
   }
 
   // ⚠️ Навмисно НЕ .replace() — той вимагає всі required-колонки (напр.

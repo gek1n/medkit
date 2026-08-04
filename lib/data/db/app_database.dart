@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 48;
+  int get schemaVersion => 49;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -959,6 +959,20 @@ class AppDatabase extends _$AppDatabase {
                 await customStatement(stmt);
               } catch (_) {}
             }
+          }
+          if (from < 49) {
+            // Драг-н-дроп порядку відображення в перемикачах "хто зараз
+            // активний" (Сьогодні/MemberSwitcherPill) — керується на екрані
+            // Сім'я. members.sortOrder і familyPeers.sortOrder — окремі
+            // простори значень (піри завжди рендеряться власним блоком
+            // ПІСЛЯ локальних членів), тож звичайний addColumn з DEFAULT 0
+            // тут безпечний.
+            try {
+              await m.addColumn(members, members.sortOrder);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.sortOrder);
+            } catch (_) {}
           }
         },
       );
