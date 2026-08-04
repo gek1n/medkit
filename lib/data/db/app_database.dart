@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 46;
+  int get schemaVersion => 47;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -916,6 +916,13 @@ class AppDatabase extends _$AppDatabase {
             } catch (_) {}
             try {
               await m.addColumn(familyPeers, familyPeers.editShelvesGranted);
+            } catch (_) {}
+          }
+          if (from < 47) {
+            // Крок 7.1 плану: "тіньовий" dependent-рядок, що представляє
+            // автономного члена сім'ї в пулі ротації рутинної справи.
+            try {
+              await m.addColumn(members, members.linkedPeerPersonUuid);
             } catch (_) {}
           }
         },

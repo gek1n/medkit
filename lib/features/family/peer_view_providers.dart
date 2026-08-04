@@ -161,6 +161,44 @@ final peerActivitySlotsProvider = Provider.family<List<ActivitySlot>, String>((r
       const [];
 });
 
+/// Крок 7.1 плану: пул ротації рутинної справи — на відміну від решти
+/// перекладених типів це НЕ Drift-рядок (ActivityAssignees ніколи не має
+/// власного syncUuid/updatedAt, весь пул завжди замінюється цілком),
+/// тому легкий власний клас, а не .fromJson() наявної моделі.
+/// [linkedPeerPersonUuid] — не null, лише якщо цей слот пулу представляє
+/// автономного члена сім'ї (а не звичайного локального dependent того,
+/// хто веде рутину) — саме так пір впізнає "це я" (звірянням із власним
+/// Members(role=owner).personUuid, не тут).
+class PeerActivityAssignee {
+  final int activityId;
+  final int sortOrder;
+  final String name;
+  final int avatarIndex;
+  final String? linkedPeerPersonUuid;
+  const PeerActivityAssignee({
+    required this.activityId,
+    required this.sortOrder,
+    required this.name,
+    required this.avatarIndex,
+    this.linkedPeerPersonUuid,
+  });
+}
+
+final peerActivityAssigneesProvider =
+    Provider.family<List<PeerActivityAssignee>, String>((ref, personUuid) {
+  return ref.watch(_peerSnapshotProvider(personUuid)).valueOrNull?.of('activity_assignee').map((json) {
+        final actUuid = json['activitySyncUuid'] as String;
+        return PeerActivityAssignee(
+          activityId: peerSyntheticId(actUuid),
+          sortOrder: json['sortOrder'] as int,
+          name: json['name'] as String,
+          avatarIndex: json['avatarIndex'] as int,
+          linkedPeerPersonUuid: json['assigneeLinkedPeerPersonUuid'] as String?,
+        );
+      }).toList() ??
+      const [];
+});
+
 /// completedByMemberId — це РАЗОВЕ повідомлення "хто саме з сім'ї натиснув
 /// виконано", а не звʼязок із записом якогось профілю на ЦЬОМУ пристрої
 /// (пір ротує чергу поміж людьми, чиї Members-рядки тут узагалі не
