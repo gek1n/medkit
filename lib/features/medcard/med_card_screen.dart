@@ -432,6 +432,14 @@ class _DraggableSectionsState extends ConsumerState<_DraggableSections> {
       buildDefaultDragHandles: false,
       itemCount: _local.length,
       onReorderItem: _handleReorder,
+      // Дефолтний proxy (Material з непрозорим canvasColor-фоном, без
+      // заокруглень) малює прямокутний "ореол" навколо заокругленої картки
+      // під час перетягування — прибираємо його, лишаючи лише власне
+      // оформлення _MedCardTile.
+      proxyDecorator: (child, index, animation) => Material(
+        color: Colors.transparent,
+        child: child,
+      ),
       itemBuilder: (context, index) {
         final s = _local[index];
         return Padding(
