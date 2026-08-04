@@ -82,6 +82,34 @@ part 'app_database.g.dart';
   MedcardSections,
   MedcardEntries,
 ])
+// Реальний баг у продакшені (04.08): попри те, що v48/v50 (onUpgrade)
+// мали б виправити старі NULL/зіпсовані updated_at в цих таблицях, у
+// логах користувача той самий крах лишався і після onUpgrade-оновлення
+// "на місці", і після повного видалення застосунку + відновлення з
+// хмарного бекапу — тобто одноразовий `if (from < N)` крок у onUpgrade
+// не гарантує застосування до КОЖНОГО можливого шляху появи бази на
+// пристрої (стан user_version у самому файлі бекапу може вже бути
+// рівним поточній schemaVersion, тож `from < N` більше ніколи не
+// спрацює на цьому файлі, хоча дані в ньому фізично лишились
+// зіпсованими). Тому цей самий репар додатково запускається в
+// beforeOpen — воно виконується БЕЗУМОВНО при кожному відкритті з'єднання
+// (не лише при переході між versions), тож самозцілює дані незалежно
+// від того, як саме файл потрапив на пристрій.
+const _kUpdatedAtRepairStatements = [
+  "UPDATE reminder_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE members SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE medications SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE intakes SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE symptoms SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE wellbeing_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE wellbeing_schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE activities SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE activity_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE activity_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+  "UPDATE doctor_appointments SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+];
+
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -990,23 +1018,28 @@ class AppDatabase extends _$AppDatabase {
             // старий NULL, і зіпсований текст від v48 одним запитом;
             // unixepoch() — те саме SQLite-вираження, яким drift компілює
             // currentDateAndTime у режимі зберігання як ціле число.
-            for (final stmt in [
-              "UPDATE reminder_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE members SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE medications SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE intakes SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE symptoms SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE wellbeing_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE wellbeing_schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE activities SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE activity_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE activity_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-              "UPDATE doctor_appointments SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
-            ]) {
+            for (final stmt in _kUpdatedAtRepairStatements) {
               try {
                 await customStatement(stmt);
               } catch (_) {}
+            }
+          }
+        },
+        beforeOpen: (details) async {
+          // Безумовний самоцілющий прохід — див. коментар при
+          // _kUpdatedAtRepairStatements вище. На відміну від onUpgrade,
+          // виконується щоразу при відкритті з'єднання (свіжий пристрій,
+          // оновлення "на місці", відновлення з бекапу — байдуже), тож не
+          // залежить від того, яким шляхом і з яким user_version файл
+          // фізично потрапив на цей пристрій. Помилки тут НЕ ковтаються
+          // мовчки (на відміну від onUpgrade-кроків) — якщо unixepoch()
+          // раптом недоступний на якомусь sqlite3-білді, маємо про це
+          // дізнатись, а не просто мовчки лишити дані зіпсованими.
+          for (final stmt in _kUpdatedAtRepairStatements) {
+            try {
+              await customStatement(stmt);
+            } catch (e, st) {
+              AppLogger.logError('AppDatabase.beforeOpen repair: $stmt', e, st);
             }
           }
         },
