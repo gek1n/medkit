@@ -57,6 +57,13 @@ class FamilyPeers extends Table {
   // один рядок invitedMe==true && payerPlanActive==true) — завжди
   // динамічно, ніколи не кешується статичним булевим прапорцем.
 
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  // Порядок відображення серед автономних пірів у перемикачах — той самий
+  // принцип, що й Members.sortOrder, керується драг-н-дропом на екрані
+  // Сім'я. Піри завжди рендеряться ОКРЕМИМ блоком ПІСЛЯ локальних членів
+  // (MemberSwitcherPill/FamilyStatusStrip), тож колізії з їхнім sortOrder
+  // немає — власне поле, власний 0-based простір значень.
+
   @override
   Set<Column> get primaryKey => {personUuid};
 }

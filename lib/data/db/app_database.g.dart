@@ -171,6 +171,18 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _linkedPeerPersonUuidMeta =
       const VerificationMeta('linkedPeerPersonUuid');
   @override
@@ -198,6 +210,7 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
     updatedAt,
     personUuid,
     familyId,
+    sortOrder,
     linkedPeerPersonUuid,
   ];
   @override
@@ -304,6 +317,12 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
         familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     if (data.containsKey('linked_peer_person_uuid')) {
       context.handle(
         _linkedPeerPersonUuidMeta,
@@ -378,6 +397,10 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
         DriftSqlType.string,
         data['${effectivePrefix}family_id'],
       ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
       linkedPeerPersonUuid: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}linked_peer_person_uuid'],
@@ -406,6 +429,7 @@ class Member extends DataClass implements Insertable<Member> {
   final DateTime updatedAt;
   final String? personUuid;
   final String? familyId;
+  final int sortOrder;
   final String? linkedPeerPersonUuid;
   const Member({
     required this.id,
@@ -422,6 +446,7 @@ class Member extends DataClass implements Insertable<Member> {
     required this.updatedAt,
     this.personUuid,
     this.familyId,
+    required this.sortOrder,
     this.linkedPeerPersonUuid,
   });
   @override
@@ -453,6 +478,7 @@ class Member extends DataClass implements Insertable<Member> {
     if (!nullToAbsent || familyId != null) {
       map['family_id'] = Variable<String>(familyId);
     }
+    map['sort_order'] = Variable<int>(sortOrder);
     if (!nullToAbsent || linkedPeerPersonUuid != null) {
       map['linked_peer_person_uuid'] = Variable<String>(linkedPeerPersonUuid);
     }
@@ -487,6 +513,7 @@ class Member extends DataClass implements Insertable<Member> {
       familyId: familyId == null && nullToAbsent
           ? const Value.absent()
           : Value(familyId),
+      sortOrder: Value(sortOrder),
       linkedPeerPersonUuid: linkedPeerPersonUuid == null && nullToAbsent
           ? const Value.absent()
           : Value(linkedPeerPersonUuid),
@@ -515,6 +542,7 @@ class Member extends DataClass implements Insertable<Member> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       personUuid: serializer.fromJson<String?>(json['personUuid']),
       familyId: serializer.fromJson<String?>(json['familyId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       linkedPeerPersonUuid: serializer.fromJson<String?>(
         json['linkedPeerPersonUuid'],
       ),
@@ -538,6 +566,7 @@ class Member extends DataClass implements Insertable<Member> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'personUuid': serializer.toJson<String?>(personUuid),
       'familyId': serializer.toJson<String?>(familyId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'linkedPeerPersonUuid': serializer.toJson<String?>(linkedPeerPersonUuid),
     };
   }
@@ -557,6 +586,7 @@ class Member extends DataClass implements Insertable<Member> {
     DateTime? updatedAt,
     Value<String?> personUuid = const Value.absent(),
     Value<String?> familyId = const Value.absent(),
+    int? sortOrder,
     Value<String?> linkedPeerPersonUuid = const Value.absent(),
   }) => Member(
     id: id ?? this.id,
@@ -575,6 +605,7 @@ class Member extends DataClass implements Insertable<Member> {
     updatedAt: updatedAt ?? this.updatedAt,
     personUuid: personUuid.present ? personUuid.value : this.personUuid,
     familyId: familyId.present ? familyId.value : this.familyId,
+    sortOrder: sortOrder ?? this.sortOrder,
     linkedPeerPersonUuid: linkedPeerPersonUuid.present
         ? linkedPeerPersonUuid.value
         : this.linkedPeerPersonUuid,
@@ -607,6 +638,7 @@ class Member extends DataClass implements Insertable<Member> {
           ? data.personUuid.value
           : this.personUuid,
       familyId: data.familyId.present ? data.familyId.value : this.familyId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       linkedPeerPersonUuid: data.linkedPeerPersonUuid.present
           ? data.linkedPeerPersonUuid.value
           : this.linkedPeerPersonUuid,
@@ -630,6 +662,7 @@ class Member extends DataClass implements Insertable<Member> {
           ..write('updatedAt: $updatedAt, ')
           ..write('personUuid: $personUuid, ')
           ..write('familyId: $familyId, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('linkedPeerPersonUuid: $linkedPeerPersonUuid')
           ..write(')'))
         .toString();
@@ -651,6 +684,7 @@ class Member extends DataClass implements Insertable<Member> {
     updatedAt,
     personUuid,
     familyId,
+    sortOrder,
     linkedPeerPersonUuid,
   );
   @override
@@ -671,6 +705,7 @@ class Member extends DataClass implements Insertable<Member> {
           other.updatedAt == this.updatedAt &&
           other.personUuid == this.personUuid &&
           other.familyId == this.familyId &&
+          other.sortOrder == this.sortOrder &&
           other.linkedPeerPersonUuid == this.linkedPeerPersonUuid);
 }
 
@@ -689,6 +724,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
   final Value<DateTime> updatedAt;
   final Value<String?> personUuid;
   final Value<String?> familyId;
+  final Value<int> sortOrder;
   final Value<String?> linkedPeerPersonUuid;
   const MembersCompanion({
     this.id = const Value.absent(),
@@ -705,6 +741,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     this.updatedAt = const Value.absent(),
     this.personUuid = const Value.absent(),
     this.familyId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.linkedPeerPersonUuid = const Value.absent(),
   });
   MembersCompanion.insert({
@@ -722,6 +759,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     this.updatedAt = const Value.absent(),
     this.personUuid = const Value.absent(),
     this.familyId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.linkedPeerPersonUuid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Member> custom({
@@ -739,6 +777,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     Expression<DateTime>? updatedAt,
     Expression<String>? personUuid,
     Expression<String>? familyId,
+    Expression<int>? sortOrder,
     Expression<String>? linkedPeerPersonUuid,
   }) {
     return RawValuesInsertable({
@@ -757,6 +796,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (personUuid != null) 'person_uuid': personUuid,
       if (familyId != null) 'family_id': familyId,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (linkedPeerPersonUuid != null)
         'linked_peer_person_uuid': linkedPeerPersonUuid,
     });
@@ -777,6 +817,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     Value<DateTime>? updatedAt,
     Value<String?>? personUuid,
     Value<String?>? familyId,
+    Value<int>? sortOrder,
     Value<String?>? linkedPeerPersonUuid,
   }) {
     return MembersCompanion(
@@ -794,6 +835,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
       updatedAt: updatedAt ?? this.updatedAt,
       personUuid: personUuid ?? this.personUuid,
       familyId: familyId ?? this.familyId,
+      sortOrder: sortOrder ?? this.sortOrder,
       linkedPeerPersonUuid: linkedPeerPersonUuid ?? this.linkedPeerPersonUuid,
     );
   }
@@ -845,6 +887,9 @@ class MembersCompanion extends UpdateCompanion<Member> {
     if (familyId.present) {
       map['family_id'] = Variable<String>(familyId.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (linkedPeerPersonUuid.present) {
       map['linked_peer_person_uuid'] = Variable<String>(
         linkedPeerPersonUuid.value,
@@ -870,6 +915,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
           ..write('updatedAt: $updatedAt, ')
           ..write('personUuid: $personUuid, ')
           ..write('familyId: $familyId, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('linkedPeerPersonUuid: $linkedPeerPersonUuid')
           ..write(')'))
         .toString();
@@ -14055,6 +14101,18 @@ class $FamilyPeersTable extends FamilyPeers
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     personUuid,
@@ -14075,6 +14133,7 @@ class $FamilyPeersTable extends FamilyPeers
     editShelvesGranted,
     invitedMe,
     payerPlanActive,
+    sortOrder,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -14240,6 +14299,12 @@ class $FamilyPeersTable extends FamilyPeers
         ),
       );
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     return context;
   }
 
@@ -14321,6 +14386,10 @@ class $FamilyPeersTable extends FamilyPeers
         DriftSqlType.bool,
         data['${effectivePrefix}payer_plan_active'],
       )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
     );
   }
 
@@ -14349,6 +14418,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
   final bool editShelvesGranted;
   final bool invitedMe;
   final bool payerPlanActive;
+  final int sortOrder;
   const FamilyPeer({
     required this.personUuid,
     required this.familyId,
@@ -14368,6 +14438,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     required this.editShelvesGranted,
     required this.invitedMe,
     required this.payerPlanActive,
+    required this.sortOrder,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -14392,6 +14463,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     map['edit_shelves_granted'] = Variable<bool>(editShelvesGranted);
     map['invited_me'] = Variable<bool>(invitedMe);
     map['payer_plan_active'] = Variable<bool>(payerPlanActive);
+    map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
 
@@ -14417,6 +14489,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       editShelvesGranted: Value(editShelvesGranted),
       invitedMe: Value(invitedMe),
       payerPlanActive: Value(payerPlanActive),
+      sortOrder: Value(sortOrder),
     );
   }
 
@@ -14448,6 +14521,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       editShelvesGranted: serializer.fromJson<bool>(json['editShelvesGranted']),
       invitedMe: serializer.fromJson<bool>(json['invitedMe']),
       payerPlanActive: serializer.fromJson<bool>(json['payerPlanActive']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
@@ -14472,6 +14546,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       'editShelvesGranted': serializer.toJson<bool>(editShelvesGranted),
       'invitedMe': serializer.toJson<bool>(invitedMe),
       'payerPlanActive': serializer.toJson<bool>(payerPlanActive),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
@@ -14494,6 +14569,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     bool? editShelvesGranted,
     bool? invitedMe,
     bool? payerPlanActive,
+    int? sortOrder,
   }) => FamilyPeer(
     personUuid: personUuid ?? this.personUuid,
     familyId: familyId ?? this.familyId,
@@ -14513,6 +14589,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     editShelvesGranted: editShelvesGranted ?? this.editShelvesGranted,
     invitedMe: invitedMe ?? this.invitedMe,
     payerPlanActive: payerPlanActive ?? this.payerPlanActive,
+    sortOrder: sortOrder ?? this.sortOrder,
   );
   FamilyPeer copyWithCompanion(FamilyPeersCompanion data) {
     return FamilyPeer(
@@ -14560,6 +14637,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       payerPlanActive: data.payerPlanActive.present
           ? data.payerPlanActive.value
           : this.payerPlanActive,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
 
@@ -14583,7 +14661,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ..write('viewShelvesGranted: $viewShelvesGranted, ')
           ..write('editShelvesGranted: $editShelvesGranted, ')
           ..write('invitedMe: $invitedMe, ')
-          ..write('payerPlanActive: $payerPlanActive')
+          ..write('payerPlanActive: $payerPlanActive, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
@@ -14608,6 +14687,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     editShelvesGranted,
     invitedMe,
     payerPlanActive,
+    sortOrder,
   );
   @override
   bool operator ==(Object other) =>
@@ -14630,7 +14710,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           other.viewShelvesGranted == this.viewShelvesGranted &&
           other.editShelvesGranted == this.editShelvesGranted &&
           other.invitedMe == this.invitedMe &&
-          other.payerPlanActive == this.payerPlanActive);
+          other.payerPlanActive == this.payerPlanActive &&
+          other.sortOrder == this.sortOrder);
 }
 
 class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
@@ -14652,6 +14733,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
   final Value<bool> editShelvesGranted;
   final Value<bool> invitedMe;
   final Value<bool> payerPlanActive;
+  final Value<int> sortOrder;
   final Value<int> rowid;
   const FamilyPeersCompanion({
     this.personUuid = const Value.absent(),
@@ -14672,6 +14754,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.editShelvesGranted = const Value.absent(),
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FamilyPeersCompanion.insert({
@@ -14693,6 +14776,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.editShelvesGranted = const Value.absent(),
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : personUuid = Value(personUuid),
        familyId = Value(familyId),
@@ -14717,6 +14801,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Expression<bool>? editShelvesGranted,
     Expression<bool>? invitedMe,
     Expression<bool>? payerPlanActive,
+    Expression<int>? sortOrder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -14744,6 +14829,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
         'edit_shelves_granted': editShelvesGranted,
       if (invitedMe != null) 'invited_me': invitedMe,
       if (payerPlanActive != null) 'payer_plan_active': payerPlanActive,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -14767,6 +14853,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Value<bool>? editShelvesGranted,
     Value<bool>? invitedMe,
     Value<bool>? payerPlanActive,
+    Value<int>? sortOrder,
     Value<int>? rowid,
   }) {
     return FamilyPeersCompanion(
@@ -14788,6 +14875,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       editShelvesGranted: editShelvesGranted ?? this.editShelvesGranted,
       invitedMe: invitedMe ?? this.invitedMe,
       payerPlanActive: payerPlanActive ?? this.payerPlanActive,
+      sortOrder: sortOrder ?? this.sortOrder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -14849,6 +14937,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     if (payerPlanActive.present) {
       map['payer_plan_active'] = Variable<bool>(payerPlanActive.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -14876,6 +14967,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
           ..write('editShelvesGranted: $editShelvesGranted, ')
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

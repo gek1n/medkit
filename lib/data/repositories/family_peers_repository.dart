@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
@@ -7,9 +7,30 @@ class FamilyPeersRepository {
   final AppDatabase _db;
   FamilyPeersRepository(this._db);
 
-  Stream<List<FamilyPeer>> watchAll() => _db.select(_db.familyPeers).watch();
+  // sortOrder — драг-н-дроп на екрані Сім'я; addedAt — стабільний tiebreak
+  // для тих, хто ще на дефолтних 0 (порядок приєднання, той самий, що й до
+  // появи sortOrder).
+  Stream<List<FamilyPeer>> watchAll() => (_db.select(_db.familyPeers)
+        ..orderBy([
+          (t) => OrderingTerm.asc(t.sortOrder),
+          (t) => OrderingTerm.asc(t.addedAt),
+        ]))
+      .watch();
 
   Future<List<FamilyPeer>> allPeers() => _db.select(_db.familyPeers).get();
+
+  /// Викликати з нового порядку personUuid-ів після реордеру на екрані
+  /// Сім'я (той самий принцип, що й MembersRepository.reorder — тут з 0,
+  /// бо піри завжди рендеряться власним блоком ПІСЛЯ локальних членів,
+  /// колізії sortOrder-просторів немає).
+  Future<void> reorder(List<String> orderedPersonUuids) async {
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedPersonUuids.length; i++) {
+        await (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(orderedPersonUuids[i])))
+            .write(FamilyPeersCompanion(sortOrder: Value(i)));
+      }
+    });
+  }
 
   Future<FamilyPeer?> getByUuid(String personUuid) =>
       (_db.select(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid))).getSingleOrNull();
