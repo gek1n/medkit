@@ -95,10 +95,18 @@ class _MemberPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ⚠️ Без обмеження висоти + скролу тут — при 7+ учасниках (локальних +
+    // автономних разом) список виходив за межі екрана, і нижні рядки не
+    // можна було ні побачити, ні натиснути (сама шторка не скролилась).
+    // maxHeight, а не Expanded/Flexible без нього — Column вище має
+    // mainAxisSize.min (стискається до контенту, коли учасників мало), тож
+    // Flexible-скрол потребує явно обмеженого предка, інакше не спрацює.
+    final maxHeight = MediaQuery.of(context).size.height * 0.7;
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(top: 8),
+        constraints: BoxConstraints(maxHeight: maxHeight),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
@@ -111,45 +119,56 @@ class _MemberPickerSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: SectionLabel(context.l10n.chooseProfileLabel),
             ),
-            ...members.map((m) {
-              final sel = m.id == selectedId;
-              return ListTile(
-                onTap: () {
-                  onSelect(m.id);
-                  Navigator.pop(context);
-                },
-                leading: AvatarImage(index: m.avatarIndex, size: 36),
-                title: Text(m.name,
-                    style: AppTextStyles.bodyMd.copyWith(
-                        fontWeight:
-                            sel ? FontWeight.w700 : FontWeight.w400)),
-                trailing: sel
-                    ? const Icon(Icons.check_rounded, color: AppColors.primary)
-                    : null,
-              );
-            }),
-            ...peers.map((p) {
-              final sel = p.personUuid == selectedPeerUuid;
-              return ListTile(
-                onTap: () {
-                  onSelectPeer?.call(PeerSubject(
-                    personUuid: p.personUuid,
-                    channelId: p.channelId,
-                    name: p.name,
-                    avatarIndex: p.avatarIndex,
-                  ));
-                  Navigator.pop(context);
-                },
-                leading: AvatarImage(index: p.avatarIndex, size: 36),
-                title: Text(p.name,
-                    style: AppTextStyles.bodyMd.copyWith(
-                        fontWeight:
-                            sel ? FontWeight.w700 : FontWeight.w400)),
-                trailing: sel
-                    ? const Icon(Icons.check_rounded, color: AppColors.primary)
-                    : null,
-              );
-            }),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...members.map((m) {
+                      final sel = m.id == selectedId;
+                      return ListTile(
+                        onTap: () {
+                          onSelect(m.id);
+                          Navigator.pop(context);
+                        },
+                        leading: AvatarImage(index: m.avatarIndex, size: 36),
+                        title: Text(m.name,
+                            style: AppTextStyles.bodyMd.copyWith(
+                                fontWeight:
+                                    sel ? FontWeight.w700 : FontWeight.w400)),
+                        trailing: sel
+                            ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                            : null,
+                      );
+                    }),
+                    ...peers.map((p) {
+                      final sel = p.personUuid == selectedPeerUuid;
+                      return ListTile(
+                        onTap: () {
+                          onSelectPeer?.call(PeerSubject(
+                            personUuid: p.personUuid,
+                            channelId: p.channelId,
+                            name: p.name,
+                            avatarIndex: p.avatarIndex,
+                          ));
+                          Navigator.pop(context);
+                        },
+                        leading: AvatarImage(index: p.avatarIndex, size: 36),
+                        title: Text(p.name,
+                            style: AppTextStyles.bodyMd.copyWith(
+                                fontWeight:
+                                    sel ? FontWeight.w700 : FontWeight.w400)),
+                        trailing: sel
+                            ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                            : null,
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
