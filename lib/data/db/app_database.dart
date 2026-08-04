@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 49;
+  int get schemaVersion => 50;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -973,6 +973,41 @@ class AppDatabase extends _$AppDatabase {
             try {
               await m.addColumn(familyPeers, familyPeers.sortOrder);
             } catch (_) {}
+          }
+          if (from < 50) {
+            // Виправлення попереднього backfill'у (v48) — той писав
+            // updated_at через сирий CURRENT_TIMESTAMP (текстовий формат
+            // SQLite), а ця база зберігає DateTime як unix-час у СЕКУНДАХ
+            // (ціле число) — [AppDatabase] не передає storeDateTimeAsText,
+            // тож діє дефолт drift (false = int, не text). currentDateAndTime
+            // з Дart-коду (m.addColumn нижче й раніше) сам підбирає
+            // правильний формат під це налаштування — а от сирий SQL-рядок
+            // v48 такого не робив, тож замість NULL колонка отримала
+            // текстовий рядок, який Drift-мапер так само не міг прочитати
+            // як DateTime (падав так само, лише мовчки — цього разу вже
+            // спіймано новим try/catch у watchActiveOnDate, але дані
+            // лишались зіпсованими). typeof(...) != 'integer' ловить і
+            // старий NULL, і зіпсований текст від v48 одним запитом;
+            // unixepoch() — те саме SQLite-вираження, яким drift компілює
+            // currentDateAndTime у режимі зберігання як ціле число.
+            for (final stmt in [
+              "UPDATE reminder_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE members SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE medications SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE intakes SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE symptoms SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE wellbeing_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE wellbeing_schedules SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE activities SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE activity_slots SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE activity_logs SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+              "UPDATE doctor_appointments SET updated_at = unixepoch() WHERE typeof(updated_at) != 'integer'",
+            ]) {
+              try {
+                await customStatement(stmt);
+              } catch (_) {}
+            }
           }
         },
       );
