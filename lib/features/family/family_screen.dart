@@ -220,7 +220,8 @@ class _FamilyHeader extends StatelessWidget {
 class _MemberCard extends ConsumerWidget {
   final Member member;
   final int ownerId;
-  const _MemberCard({required this.member, required this.ownerId});
+  final Widget? dragHandle;
+  const _MemberCard({required this.member, required this.ownerId, this.dragHandle});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -485,6 +486,10 @@ class _MemberCard extends ConsumerWidget {
                           const Icon(Icons.chevron_right_rounded,
                               color: AppColors.textMuted, size: 22),
                         ],
+                        if (dragHandle != null) ...[
+                          const SizedBox(width: 4),
+                          dragHandle!,
+                        ],
                       ],
                     ),
                     ),
@@ -597,23 +602,26 @@ class _DraggableMembersState extends ConsumerState<_DraggableMembers> {
       buildDefaultDragHandles: false,
       itemCount: _local.length,
       onReorderItem: _handleReorder,
+      // Дефолтний proxy (Material з непрозорим canvasColor-фоном, без
+      // заокруглень) малює прямокутний "ореол" навколо заокругленої картки
+      // під час перетягування — прибираємо його, лишаючи лише власне
+      // оформлення _MemberCard.
+      proxyDecorator: (child, index, animation) => Material(
+        color: Colors.transparent,
+        child: child,
+      ),
       itemBuilder: (context, index) {
         final m = _local[index];
         return Padding(
           key: ValueKey(m.id),
           padding: const EdgeInsets.only(bottom: AppDimensions.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _MemberCard(member: m, ownerId: widget.ownerId)),
-              ReorderableDragStartListener(
-                index: index,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 6, top: 14),
-                  child: Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
-                ),
-              ),
-            ],
+          child: _MemberCard(
+            member: m,
+            ownerId: widget.ownerId,
+            dragHandle: ReorderableDragStartListener(
+              index: index,
+              child: const Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
+            ),
           ),
         );
       },
@@ -1211,23 +1219,21 @@ class _DraggablePeersState extends ConsumerState<_DraggablePeers> {
       buildDefaultDragHandles: false,
       itemCount: _local.length,
       onReorderItem: _handleReorder,
+      proxyDecorator: (child, index, animation) => Material(
+        color: Colors.transparent,
+        child: child,
+      ),
       itemBuilder: (context, index) {
         final p = _local[index];
         return Padding(
           key: ValueKey(p.personUuid),
           padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _PeerCard(peer: p)),
-              ReorderableDragStartListener(
-                index: index,
-                child: const Padding(
-                  padding: EdgeInsets.only(left: 6, top: 10),
-                  child: Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
-                ),
-              ),
-            ],
+          child: _PeerCard(
+            peer: p,
+            dragHandle: ReorderableDragStartListener(
+              index: index,
+              child: const Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
+            ),
           ),
         );
       },
@@ -1403,7 +1409,8 @@ Future<void> _sendPeerReminder(BuildContext context, WidgetRef ref, FamilyPeer p
 
 class _PeerCard extends ConsumerWidget {
   final FamilyPeer peer;
-  const _PeerCard({required this.peer});
+  final Widget? dragHandle;
+  const _PeerCard({required this.peer, this.dragHandle});
 
   Future<void> _confirmRemove(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
@@ -1486,6 +1493,10 @@ class _PeerCard extends ConsumerWidget {
                       child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
                     ),
                   ),
+                  if (dragHandle != null) ...[
+                    const SizedBox(width: 2),
+                    dragHandle!,
+                  ],
                 ],
               ),
             ),
