@@ -903,6 +903,11 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       // family_sync вище, але не залежить від нього (працює навіть якщо
       // жодного каналу-дзеркала профілю ще немає).
       await FamilyGroupService(db).refreshPeers();
+      // Повторна спроба надіслати "візитівку" тим, кого я вже прийняв, але
+      // перша спроба (в acceptInvite()) не дійшла до relay — типово
+      // push-токен ще не був готовий у момент приєднання. Без цього той,
+      // хто мене запросив, ніколи не дізнається про прийняте запрошення.
+      await FamilyGroupService(db).retryPendingIntroductions();
       // Реальні дані (ліки, медкартка) до/від пірів, відфільтровані через
       // FamilyVisibilityService — Фаза 4.
       await FamilyPeerSyncService(db).syncAllPeers();

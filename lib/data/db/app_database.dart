@@ -116,7 +116,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 50;
+  int get schemaVersion => 51;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -1027,6 +1027,14 @@ class AppDatabase extends _$AppDatabase {
               } catch (_) {}
             }
           }
+          if (from < 51) {
+            // Крок 3.3 (справжня причина): FamilyPeers.introductionSent —
+            // див. коментар при колонці. DEFAULT true покриває вже наявні
+            // рядки автоматично (addColumn), явно перевизначати їх не треба.
+            try {
+              await m.addColumn(familyPeers, familyPeers.introductionSent);
+            } catch (_) {}
+          }
         },
         beforeOpen: (details) async {
           // Безумовний самоцілющий прохід — див. коментар при
@@ -1051,6 +1059,17 @@ class AppDatabase extends _$AppDatabase {
               await customStatement('ALTER TABLE $table ADD COLUMN updated_at INTEGER');
             } catch (_) {}
           }
+          // Той самий захист для family_peers.introduction_sent — non-
+          // nullable boolean-колонка читається через такий самий '!' у
+          // згенерованому мапері, тож якщо m.addColumn у if (from < 51)
+          // колись мовчки впаде так само, як для updated_at — це зламає
+          // ВЕСЬ екран Сім'я (кожен рядок FamilyPeers), не лише повторну
+          // відправку картки. DEFAULT 1 — той самий "true", що й
+          // Constant(true) у Dart-класі.
+          try {
+            await customStatement(
+                'ALTER TABLE family_peers ADD COLUMN introduction_sent INTEGER DEFAULT 1');
+          } catch (_) {}
           // Сам UPDATE — помилки тут НЕ ковтаються мовчки (на відміну від
           // onUpgrade-кроків і ALTER вище) — якщо після захисного ALTER
           // колонка досі чомусь недоступна, маємо про це дізнатись, а не

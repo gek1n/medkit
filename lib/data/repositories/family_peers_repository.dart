@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show OrderingTerm, Value;
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
@@ -47,6 +47,17 @@ class FamilyPeersRepository {
   Future<void> updateLastSynced(String personUuid, DateTime at) =>
       (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid)))
           .write(FamilyPeersCompanion(lastSyncedAt: Value(at)));
+
+  /// Ті, кого я прийняв (invitedMe=true), але моя картка-відповідь ще не
+  /// підтверджено пішла — див. коментар при introductionSent у таблиці.
+  Future<List<FamilyPeer>> peersNeedingIntroduction() =>
+      (_db.select(_db.familyPeers)
+            ..where((t) => t.invitedMe.equals(true) & t.introductionSent.equals(false)))
+          .get();
+
+  Future<void> markIntroductionSent(String personUuid) =>
+      (_db.update(_db.familyPeers)..where((t) => t.personUuid.equals(personUuid)))
+          .write(const FamilyPeersCompanion(introductionSent: Value(true)));
 
   /// Що САМ цей пір дозволив мені (+ чи активна його Family-підписка, якщо
   /// саме він мій прямий інвайтер) — прилітає через grants_summary при
