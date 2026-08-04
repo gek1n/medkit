@@ -505,24 +505,14 @@
   "scanQrCodeLabel": "Сканировать QR-код",
   "tapToEnableCameraHint": "Нажмите, чтобы включить камеру",
   "doctorVisitLabel": "Визит к врачу",
-  "recordFallbackLabel": "Запись",
-  "dataFromPeerTitle": "Данные от {name}",
-  "@dataFromPeerTitle": {
+  "familySectionAccessClosedTitle": "«{name}» закрыл(-а) доступ к разделу «{section}»",
+  "@familySectionAccessClosedTitle": {
     "placeholders": {
-      "name": {
-        "type": "String"
-      }
+      "name": { "type": "String" },
+      "section": { "type": "String" }
     }
   },
-  "peerNothingSharedYet": "{name} ещё ничем не поделился(-лась) с вами — или доступ ещё не предоставлен.",
-  "@peerNothingSharedYet": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "noViewableDataLabel": "Нет данных, доступных для просмотра",
+  "familySectionAccessClosedBody": "Попросите поделиться, если хотите видеть эти записи",
   "fileRequestSentSnackbar": "Запрос отправлен — файл ещё нужно дождаться",
   "fileRequestFailedError": "Не удалось отправить запрос: {error}",
   "@fileRequestFailedError": {
@@ -546,10 +536,6 @@
   "photoLabel": "Фото",
   "awaitingFileLabel": "Ожидаем файл…",
   "requestFileAction": "Запросить файл",
-  "editNotesTitle": "Редактировать заметки",
-  "editNotesDisclaimer": "Правку увидит владелец данных — она применится, только если он тем временем сам не изменял эту запись.",
-  "notesHintEllipsis": "Заметки…",
-  "editSentSnackbar": "Правка отправлена",
   "sendFailedError": "Не удалось отправить: {error}",
   "@sendFailedError": {
     "placeholders": {
@@ -558,7 +544,6 @@
       }
     }
   },
-  "sendEditAction": "Отправить правку",
   "familyLabel": "Семья",
   "familyMembersCountLabel": "{count, plural, one{{count} член} few{{count} члена} other{{count} членов}}",
   "@familyMembersCountLabel": {
@@ -847,6 +832,12 @@
   "viewerNotifyPermissionLabel": "Получает уведомления",
   "viewerEditPermissionLabel": "Может редактировать профиль",
   "viewerViewPermissionLabel": "Видит задачи, полки и расписание",
+  "familySectionsIntro": "Что именно видит и может редактировать этот участник, пока доступ включён выше",
+  "familySectionScheduleLabel": "Расписание",
+  "familySectionVisitsWellbeingLabel": "Визиты и самочувствие",
+  "familySectionShelvesLabel": "Полочки",
+  "familySectionViewColumnLabel": "Просмотр",
+  "familySectionEditColumnLabel": "Редактирование",
   "permissionDeniedNotYoursBody": "Не удалось изменить — это не ваш профиль",
   "privacyLabel": "Конфиденциальность",
   "securityLabel": "Безопасность",
@@ -1044,6 +1035,7 @@
   },
   "routineSwapTurnAction": "Поменяться",
   "routineSkipTurnAction": "Пропустить очередь",
+  "routineTakeTurnAction": "Взять очередь на себя",
   "routineWeeklyGoalProgressLabel": "{done}/{total} на этой неделе",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {
@@ -1665,6 +1657,22 @@
   },
   "notifBackupReminderTitle": "Защитите свои данные",
   "notifBackupReminderBody": "Резервная копия отключена — данные хранятся только на этом устройстве. Включите в Профиле, чтобы не потерять их.",
+  "notifPeerRecordAddedTitle": "{name} добавил(-а) запись",
+  "@notifPeerRecordAddedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerRecordEditedTitle": "{name} изменил(-а) запись",
+  "@notifPeerRecordEditedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowStockTitle": "⚠️ Запас заканчивается",
   "notifLowStockBody": "{medName} — осталось {remaining} {unit}",
   "@notifLowStockBody": {

@@ -13,10 +13,13 @@ import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
+import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_medication_screen.dart';
@@ -146,17 +149,37 @@ BoxDecoration _softCard(Color accent) => BoxDecoration(
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
+/// Крок 4.3.5 плану: [peer] непорожній — ліки беруться не з локальної бази
+/// (id синтетичний), а з перекладача кешу піра; кнопки редагування/зупинки/
+/// "Готово"/поповнення запасу ховаються.
 class MedicationDetailScreen extends ConsumerWidget {
   final int medicationId;
   final int memberId;
+  final PeerSubject? peer;
   const MedicationDetailScreen({
     super.key,
     required this.medicationId,
     required this.memberId,
+    this.peer,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (peer != null) {
+      final med = ref
+          .watch(peerMedicationsProvider(peer!.personUuid))
+          .where((m) => m.id == medicationId)
+          .firstOrNull;
+      if (med == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(child: _DetailBody(med: med, memberId: memberId, peer: peer)),
+      );
+    }
+
     final medAsync = ref.watch(_medWatchProvider(medicationId));
 
     return Scaffold(
@@ -187,12 +210,25 @@ class MedicationDetailScreen extends ConsumerWidget {
 class _DetailBody extends ConsumerWidget {
   final Medication med;
   final int memberId;
-  const _DetailBody({required this.med, required this.memberId});
+  final PeerSubject? peer;
+  const _DetailBody({required this.med, required this.memberId, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final schedules = ref.watch(_schedWatchProvider(med.id)).valueOrNull ?? [];
+    final schedules = peer != null
+        ? ref
+            .watch(peerSchedulesProvider(peer!.personUuid))
+            .where((s) => s.medicationId == med.id)
+            .toList()
+        : ref.watch(_schedWatchProvider(med.id)).valueOrNull ?? [];
     final accent = colorFromHex(med.color) ?? AppColors.primary;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Розкладу саме
+    // цьому глядачеві — олівець лишається доступним і для ліків піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    // Кнопка "зупинити курс" — свідомо ні: softDelete зараз пише лише в
+    // локальну базу, той самий бар'єр, поки що поза межами цього кроку.
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
 
     return CustomScrollView(
       slivers: [
@@ -201,12 +237,16 @@ class _DetailBody extends ConsumerWidget {
             title: med.name,
             subtitle: _doseSubtitle(context, med),
             onBack: () => Navigator.pop(context),
-            onEdit: () => _openMedicationEditIfAllowed(context, ref, med),
-            onDelete: () => _confirmStopMedication(context, ref, med),
+            onEdit: peer == null
+                ? () => _openMedicationEditIfAllowed(context, ref, med)
+                : (canEditPeer ? () => _openMedicationEditAsPeer(context, ref, med, peer!) : null),
+            onDelete: peer == null
+                ? () => _confirmStopMedication(context, ref, med)
+                : null,
           ),
         ),
         SliverToBoxAdapter(
-          child: _HeroSection(med: med, accent: accent),
+          child: _HeroSection(med: med, accent: accent, peer: peer),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
@@ -217,7 +257,7 @@ class _DetailBody extends ConsumerWidget {
           ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _TodayScheduleSection(med: med, accent: accent),
+              _TodayScheduleSection(med: med, accent: accent, peer: peer),
               if (_parsePhases(med.phases).isNotEmpty) ...[
                 _PhasesSection(med: med, accent: accent),
                 const SizedBox(height: AppDimensions.xl),
@@ -227,7 +267,12 @@ class _DetailBody extends ConsumerWidget {
               if (med.trackStock)
                 Column(
                   children: [
-                    _StockSection(med: med, schedules: schedules, accent: accent),
+                    _StockSection(
+                      med: med,
+                      schedules: schedules,
+                      accent: accent,
+                      peer: peer,
+                    ),
                     const SizedBox(height: AppDimensions.xl),
                   ],
                 ),
@@ -245,7 +290,8 @@ class _DetailBody extends ConsumerWidget {
 class _HeroSection extends StatelessWidget {
   final Medication med;
   final Color accent;
-  const _HeroSection({required this.med, required this.accent});
+  final PeerSubject? peer;
+  const _HeroSection({required this.med, required this.accent, this.peer});
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +324,7 @@ class _HeroSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _MedPhotoBlock(med: med, accent: accent),
+          _MedPhotoBlock(med: med, accent: accent, peer: peer),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -355,14 +401,29 @@ class _FactChip extends StatelessWidget {
 class _TodayScheduleSection extends ConsumerWidget {
   final Medication med;
   final Color accent;
-  const _TodayScheduleSection({required this.med, required this.accent});
+  final PeerSubject? peer;
+  const _TodayScheduleSection({required this.med, required this.accent, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final intakes = ref
-            .watch(_medTodayIntakesProvider((med.id, med.memberId)))
-            .valueOrNull ??
-        const <Intake>[];
+    List<Intake> intakes;
+    if (peer != null) {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start.add(const Duration(days: 1));
+      intakes = ref
+          .watch(peerIntakesProvider(peer!.personUuid))
+          .where((i) =>
+              i.medicationId == med.id &&
+              !i.scheduledAt.isBefore(start) &&
+              i.scheduledAt.isBefore(end))
+          .toList();
+    } else {
+      intakes = ref
+              .watch(_medTodayIntakesProvider((med.id, med.memberId)))
+              .valueOrNull ??
+          const <Intake>[];
+    }
     if (intakes.isEmpty) return const SizedBox.shrink();
 
     final sorted = [...intakes]
@@ -386,6 +447,7 @@ class _TodayScheduleSection extends ConsumerWidget {
                   intake: sorted[i],
                   accent: accent,
                   isLast: i == sorted.length - 1,
+                  readOnly: peer != null,
                 ),
             ],
           ),
@@ -400,15 +462,18 @@ class _TodayIntakeRow extends ConsumerWidget {
   final Intake intake;
   final Color accent;
   final bool isLast;
+  final bool readOnly;
   const _TodayIntakeRow({
     required this.intake,
     required this.accent,
     required this.isLast,
+    this.readOnly = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final canMark = intake.status == 'pending' || intake.status == 'snoozed';
+    final canMark =
+        !readOnly && (intake.status == 'pending' || intake.status == 'snoozed');
     final (icon, color, label) = switch (intake.status) {
       'taken' => (
           Icons.check_circle_rounded,
@@ -503,10 +568,12 @@ class _StockSection extends ConsumerWidget {
   final Medication med;
   final List<Schedule> schedules;
   final Color accent;
+  final PeerSubject? peer;
   const _StockSection({
     required this.med,
     required this.schedules,
     required this.accent,
+    this.peer,
   });
 
   @override
@@ -654,25 +721,27 @@ class _StockSection extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _showRefillDialog(context, ref),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: accent,
-                side: BorderSide(color: accent.withValues(alpha: 0.4)),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          if (peer == null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _showRefillDialog(context, ref),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: accent,
+                  side: BorderSide(color: accent.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  context.l10n.refillPackageAction,
+                  style: AppTextStyles.labelMd.copyWith(color: accent),
                 ),
               ),
-              child: Text(
-                context.l10n.refillPackageAction,
-                style: AppTextStyles.labelMd.copyWith(color: accent),
-              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -720,7 +789,8 @@ class _StockSection extends ConsumerWidget {
 class _MedPhotoBlock extends StatelessWidget {
   final Medication med;
   final Color accent;
-  const _MedPhotoBlock({required this.med, required this.accent});
+  final PeerSubject? peer;
+  const _MedPhotoBlock({required this.med, required this.accent, this.peer});
 
   String? _firstPhoto(String? json) {
     if (json == null || json == '[]') return null;
@@ -732,31 +802,47 @@ class _MedPhotoBlock extends StatelessWidget {
     }
   }
 
+  // Кольорова смужка-заглушка з іконкою форми ліків — без фото, і як фон
+  // під чіп запиту фото піра (фото піра не лежить локально, лише за запитом).
+  Widget _stub() => Container(
+    width: double.infinity,
+    height: 64,
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(
+      color: accent.withValues(alpha: 0.14),
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x0F000000),
+          blurRadius: 16,
+          offset: Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Center(
+      child: MedcardIcon(med.iconKey ?? 'form_cream', size: 34),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final photoPath = _firstPhoto(med.photoPaths);
 
+    if (peer != null) {
+      if (photoPath == null) return _stub();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _stub(),
+          const SizedBox(height: 8),
+          PeerAttachmentChip(channelId: peer!.channelId, photoPath: photoPath),
+        ],
+      );
+    }
+
     // Без фото — вузька кольорова смужка з іконкою форми ліків (не порожнеча).
     if (photoPath == null) {
-      return Container(
-        width: double.infinity,
-        height: 64,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0F000000),
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Center(
-          child: MedcardIcon(med.iconKey ?? 'form_cream', size: 34),
-        ),
-      );
+      return _stub();
     }
 
     return FutureBuilder<Uint8List>(
@@ -1104,6 +1190,35 @@ void _openMedicationEditIfAllowed(
   );
 }
 
+// Крок 4.4.4 плану: редагування ліків піра — форма й далі повністю
+// заповнюється з [med] (синтетичні id/sectionId), лише замість прямого
+// запису в базу draft повертається сюди й іде як record_proposal
+// (Крок 4.4.1) — той самий compare-and-swap за syncUuid/updatedAt, що вже
+// є для одноpільних правок нотаток.
+void _openMedicationEditAsPeer(
+  BuildContext context,
+  WidgetRef ref,
+  Medication med,
+  PeerSubject peer,
+) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AddMedicationScreen(
+        existing: med,
+        onDraftCreated: (draft) => submitMedicationProposal(
+          ref,
+          peer,
+          draft,
+          existingSyncUuid: med.syncUuid,
+          existingUpdatedAt: med.updatedAt,
+          syntheticSectionId: med.sectionId,
+        ),
+      ),
+    ),
+  );
+}
+
 Future<void> _confirmStopMedication(
   BuildContext context,
   WidgetRef ref,
@@ -1169,8 +1284,8 @@ class _BackHeader extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onBack;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
   const _BackHeader({
     required this.title,
     required this.subtitle,
@@ -1203,7 +1318,7 @@ class _BackHeader extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    MkEditIconButton(onTap: onEdit),
+                    if (onEdit != null) MkEditIconButton(onTap: onEdit!),
                   ],
                 ),
                 Text(
@@ -1217,7 +1332,7 @@ class _BackHeader extends StatelessWidget {
               ],
             ),
           ),
-          MkDeleteIconButton(onTap: onDelete),
+          if (onDelete != null) MkDeleteIconButton(onTap: onDelete!),
         ],
       ),
     );

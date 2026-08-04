@@ -931,20 +931,13 @@ class AppLocalizationsUk extends AppLocalizations {
   String get doctorVisitLabel => 'Візит до лікаря';
 
   @override
-  String get recordFallbackLabel => 'Запис';
-
-  @override
-  String dataFromPeerTitle(String name) {
-    return 'Дані від $name';
+  String familySectionAccessClosedTitle(String name, String section) {
+    return '«$name» закрив(-ла) доступ до розділу «$section»';
   }
 
   @override
-  String peerNothingSharedYet(String name) {
-    return '$name ще нічого не поділив(-ла) з вами — або доступ ще не надано.';
-  }
-
-  @override
-  String get noViewableDataLabel => 'Немає даних, доступних для перегляду';
+  String get familySectionAccessClosedBody =>
+      'Попросіть поділитись, якщо хочете бачити ці записи';
 
   @override
   String get fileRequestSentSnackbar =>
@@ -979,25 +972,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get requestFileAction => 'Запросити файл';
 
   @override
-  String get editNotesTitle => 'Редагувати нотатки';
-
-  @override
-  String get editNotesDisclaimer =>
-      'Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.';
-
-  @override
-  String get notesHintEllipsis => 'Нотатки…';
-
-  @override
-  String get editSentSnackbar => 'Правку надіслано';
-
-  @override
   String sendFailedError(String error) {
     return 'Не вдалося надіслати: $error';
   }
-
-  @override
-  String get sendEditAction => 'Надіслати правку';
 
   @override
   String get familyLabel => 'Сімʼя';
@@ -1401,6 +1378,25 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get viewerViewPermissionLabel => 'Бачить завдання, полички й розклад';
+
+  @override
+  String get familySectionsIntro =>
+      'Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище';
+
+  @override
+  String get familySectionScheduleLabel => 'Розклад';
+
+  @override
+  String get familySectionVisitsWellbeingLabel => 'Візити та самопочуття';
+
+  @override
+  String get familySectionShelvesLabel => 'Полички';
+
+  @override
+  String get familySectionViewColumnLabel => 'Перегляд';
+
+  @override
+  String get familySectionEditColumnLabel => 'Редагування';
 
   @override
   String get permissionDeniedNotYoursBody =>
@@ -1811,6 +1807,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get routineSkipTurnAction => 'Пропустити чергу';
+
+  @override
+  String get routineTakeTurnAction => 'Взяти чергу на себе';
 
   @override
   String routineWeeklyGoalProgressLabel(int done, int total) {
@@ -3172,6 +3171,16 @@ class AppLocalizationsUk extends AppLocalizations {
   @override
   String get notifBackupReminderBody =>
       'Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. Увімкніть у Профілі, щоб не втратити їх.';
+
+  @override
+  String notifPeerRecordAddedTitle(String name) {
+    return '$name додав(-ла) запис';
+  }
+
+  @override
+  String notifPeerRecordEditedTitle(String name) {
+    return '$name змінив(-ла) запис';
+  }
 
   @override
   String get notifLowStockTitle => '⚠️ Запас закінчується';

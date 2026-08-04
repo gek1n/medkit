@@ -1756,29 +1756,17 @@ abstract class AppLocalizations {
   /// **'Візит до лікаря'**
   String get doctorVisitLabel;
 
-  /// No description provided for @recordFallbackLabel.
+  /// No description provided for @familySectionAccessClosedTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Запис'**
-  String get recordFallbackLabel;
+  /// **'«{name}» закрив(-ла) доступ до розділу «{section}»'**
+  String familySectionAccessClosedTitle(String name, String section);
 
-  /// No description provided for @dataFromPeerTitle.
+  /// No description provided for @familySectionAccessClosedBody.
   ///
   /// In uk, this message translates to:
-  /// **'Дані від {name}'**
-  String dataFromPeerTitle(String name);
-
-  /// No description provided for @peerNothingSharedYet.
-  ///
-  /// In uk, this message translates to:
-  /// **'{name} ще нічого не поділив(-ла) з вами — або доступ ще не надано.'**
-  String peerNothingSharedYet(String name);
-
-  /// No description provided for @noViewableDataLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Немає даних, доступних для перегляду'**
-  String get noViewableDataLabel;
+  /// **'Попросіть поділитись, якщо хочете бачити ці записи'**
+  String get familySectionAccessClosedBody;
 
   /// No description provided for @fileRequestSentSnackbar.
   ///
@@ -1834,41 +1822,11 @@ abstract class AppLocalizations {
   /// **'Запросити файл'**
   String get requestFileAction;
 
-  /// No description provided for @editNotesTitle.
-  ///
-  /// In uk, this message translates to:
-  /// **'Редагувати нотатки'**
-  String get editNotesTitle;
-
-  /// No description provided for @editNotesDisclaimer.
-  ///
-  /// In uk, this message translates to:
-  /// **'Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.'**
-  String get editNotesDisclaimer;
-
-  /// No description provided for @notesHintEllipsis.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нотатки…'**
-  String get notesHintEllipsis;
-
-  /// No description provided for @editSentSnackbar.
-  ///
-  /// In uk, this message translates to:
-  /// **'Правку надіслано'**
-  String get editSentSnackbar;
-
   /// No description provided for @sendFailedError.
   ///
   /// In uk, this message translates to:
   /// **'Не вдалося надіслати: {error}'**
   String sendFailedError(String error);
-
-  /// No description provided for @sendEditAction.
-  ///
-  /// In uk, this message translates to:
-  /// **'Надіслати правку'**
-  String get sendEditAction;
 
   /// No description provided for @familyLabel.
   ///
@@ -2493,6 +2451,42 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Бачить завдання, полички й розклад'**
   String get viewerViewPermissionLabel;
+
+  /// No description provided for @familySectionsIntro.
+  ///
+  /// In uk, this message translates to:
+  /// **'Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище'**
+  String get familySectionsIntro;
+
+  /// No description provided for @familySectionScheduleLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розклад'**
+  String get familySectionScheduleLabel;
+
+  /// No description provided for @familySectionVisitsWellbeingLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Візити та самопочуття'**
+  String get familySectionVisitsWellbeingLabel;
+
+  /// No description provided for @familySectionShelvesLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Полички'**
+  String get familySectionShelvesLabel;
+
+  /// No description provided for @familySectionViewColumnLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Перегляд'**
+  String get familySectionViewColumnLabel;
+
+  /// No description provided for @familySectionEditColumnLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Редагування'**
+  String get familySectionEditColumnLabel;
 
   /// No description provided for @permissionDeniedNotYoursBody.
   ///
@@ -3261,6 +3255,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Пропустити чергу'**
   String get routineSkipTurnAction;
+
+  /// No description provided for @routineTakeTurnAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Взяти чергу на себе'**
+  String get routineTakeTurnAction;
 
   /// No description provided for @routineWeeklyGoalProgressLabel.
   ///
@@ -5655,6 +5655,18 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. Увімкніть у Профілі, щоб не втратити їх.'**
   String get notifBackupReminderBody;
+
+  /// No description provided for @notifPeerRecordAddedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'{name} додав(-ла) запис'**
+  String notifPeerRecordAddedTitle(String name);
+
+  /// No description provided for @notifPeerRecordEditedTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'{name} змінив(-ла) запис'**
+  String notifPeerRecordEditedTitle(String name);
 
   /// No description provided for @notifLowStockTitle.
   ///

@@ -23,10 +23,13 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_task_screen.dart';
 import '../appointments/reminder_view_screen.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
@@ -140,27 +143,74 @@ class _TodayContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final intakesAsync = ref.watch(todayIntakesProvider(member.id));
-    final activityLogsAsync = ref.watch(todayActivityLogsProvider(member.id));
-    final medsAsync = ref.watch(todayMedicationsProvider(member.id));
-    final activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
-    final noFixedTimeIdsAsync =
-        ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
-    final appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
-    final reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
+    // Крок 4.3.2 плану: коли обрано автономного піра — усі списки нижче
+    // читаються не з локальної бази (той пір фізично не має тут жодного
+    // Members-рядка), а з "перекладача" кешу SharedEntities
+    // (peer_view_providers.dart). Обгортаємо синхронні peer-списки в
+    // AsyncValue.data(...), щоб решта цієї величезної функції (бакетинг,
+    // сортування, секції) лишалась зовсім не чіпаною — вона і далі працює
+    // з тими самими AsyncValue<List<...>>, просто інше джерело.
+    final peer = ref.watch(activePeerProvider);
+    final readOnly = peer != null;
+    final hasPeers = ref.watch(allFamilyPeersProvider).valueOrNull?.isNotEmpty ?? false;
+    // Крок 4.3.6 плану: якщо суб'єкт закрив розділ, дані до кешу піра взагалі
+    // не потрапляють (family_peer_sync_service.dart._push фільтрує ще на
+    // боці суб'єкта) — тож списки нижче тихо лишились би порожніми без
+    // пояснення. grants == null, поки перший рядок FamilyPeer ще не
+    // підвантажився — тоді картку не показуємо (не сплутати з "справді
+    // закрито").
+    final grants = ref.watch(activePeerGrantsProvider);
+    final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
+    final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
+
+    final AsyncValue<List<Intake>> intakesAsync;
+    final AsyncValue<List<ActivityLog>> activityLogsAsync;
+    final AsyncValue<List<Medication>> medsAsync;
+    final AsyncValue<List<Activity>> activitiesAsync;
+    final AsyncValue<Set<int>> noFixedTimeIdsAsync;
+    final AsyncValue<List<Reminder>> appointmentsAsync;
+    final AsyncValue<List<ReminderLog>> reminderLogsAsync;
+    final AsyncValue<WellbeingSchedule?> wellbeingScheduleAsync;
+    final AsyncValue<List<WellbeingLog>> wellbeingLogsAsync;
+
+    if (peer != null) {
+      final uuid = peer.personUuid;
+      intakesAsync = AsyncValue.data(ref.watch(peerIntakesProvider(uuid)));
+      activityLogsAsync = AsyncValue.data(ref.watch(peerActivityLogsProvider(uuid)));
+      medsAsync = AsyncValue.data(ref.watch(peerMedicationsProvider(uuid)));
+      activitiesAsync = AsyncValue.data(ref.watch(peerActivitiesProvider(uuid)));
+      noFixedTimeIdsAsync = AsyncValue.data(ref.watch(peerNoFixedTimeActivityIdsProvider(uuid)));
+      appointmentsAsync = AsyncValue.data(ref.watch(peerRemindersProvider(uuid)));
+      reminderLogsAsync = AsyncValue.data(ref.watch(peerReminderLogsProvider(uuid)));
+      final schedules = ref.watch(peerWellbeingSchedulesProvider(uuid));
+      wellbeingScheduleAsync = AsyncValue.data(
+        schedules.isEmpty
+            ? null
+            : schedules.reduce((a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b),
+      );
+      wellbeingLogsAsync = AsyncValue.data(ref.watch(peerWellbeingLogsProvider(uuid)));
+    } else {
+      intakesAsync = ref.watch(todayIntakesProvider(member.id));
+      activityLogsAsync = ref.watch(todayActivityLogsProvider(member.id));
+      medsAsync = ref.watch(todayMedicationsProvider(member.id));
+      activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
+      noFixedTimeIdsAsync = ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
+      appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
+      reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
+      wellbeingScheduleAsync = ref.watch(todayWellbeingScheduleProvider(member.id));
+      wellbeingLogsAsync = ref.watch(todayWellbeingLogsProvider(member.id));
+    }
     final membersAsync = ref.watch(allMembersProvider);
-    final wellbeingScheduleAsync = ref.watch(
-      todayWellbeingScheduleProvider(member.id),
-    );
-    final wellbeingLogsAsync = ref.watch(todayWellbeingLogsProvider(member.id));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => openAddTaskScreen(context, memberId: member.id),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add_rounded, color: Colors.white),
-      ),
+      floatingActionButton: readOnly
+          ? null
+          : FloatingActionButton(
+              onPressed: () => openAddTaskScreen(context, memberId: member.id),
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.add_rounded, color: Colors.white),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: intakesAsync.when(
         loading: () => const Center(
@@ -445,38 +495,44 @@ class _TodayContent extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(generateTodayIntakesProvider);
               ref.invalidate(generateTodayActivityLogsProvider);
+              ref.invalidate(generateTodayReminderLogsProvider);
               await Future.wait([
                 ref.read(generateTodayIntakesProvider.future),
                 ref.read(generateTodayActivityLogsProvider.future),
+                ref.read(generateTodayReminderLogsProvider.future),
               ]);
             },
             child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              if (showSwitchBanner)
+              if (showSwitchBanner || readOnly)
                 SliverToBoxAdapter(
-                  child: SwitchProfileBanner(name: member.name),
+                  child: SwitchProfileBanner(name: peer?.name ?? member.name),
                 ),
 
               // Hero
               SliverToBoxAdapter(
                 child: _CompactHero(
                   member: member,
+                  overrideName: peer?.name,
+                  overrideAvatarIndex: peer?.avatarIndex,
                   taken: taken,
                   total: total,
                   nextAt: nextAt,
                   nextLabel: nextLabel,
-                  onAddWellbeing: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WellbeingCheckScreen(memberId: member.id),
-                    ),
-                  ),
+                  onAddWellbeing: readOnly
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WellbeingCheckScreen(memberId: member.id),
+                            ),
+                          ),
                 ),
               ),
 
               // 1. Сім'я
-              if (members.length > 1)
+              if (members.length > 1 || hasPeers)
                 SliverToBoxAdapter(
                   child: _SectionPad(
                     child: Column(
@@ -489,6 +545,27 @@ class _TodayContent extends ConsumerWidget {
                           currentMemberId: member.id,
                           ref: ref,
                         ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              if (scheduleClosed || medcardClosed)
+                SliverToBoxAdapter(
+                  child: _SectionPad(
+                    child: Column(
+                      children: [
+                        if (scheduleClosed)
+                          PeerSectionClosedCard(
+                            peerName: peer.name,
+                            sectionLabel: context.l10n.familySectionScheduleLabel,
+                          ),
+                        if (medcardClosed)
+                          PeerSectionClosedCard(
+                            peerName: peer.name,
+                            sectionLabel:
+                                context.l10n.familySectionVisitsWellbeingLabel,
+                          ),
                       ],
                     ),
                   ),
@@ -508,6 +585,7 @@ class _TodayContent extends ConsumerWidget {
                     activities: activities,
                     activeMemberId: member.id,
                     ref: ref,
+                    readOnly: readOnly,
                   ),
                 ),
 
@@ -524,6 +602,8 @@ class _TodayContent extends ConsumerWidget {
                     memberId: member.id,
                     ref: ref,
                     wellbeingSchedule: schedule,
+                    readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
 
@@ -540,14 +620,23 @@ class _TodayContent extends ConsumerWidget {
                     memberId: member.id,
                     ref: ref,
                     wellbeingSchedule: schedule,
+                    readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
 
               // Цілі тижня (weeklyGoal) — окремо від часового розкладу, бо
-              // не прив'язані до конкретного дня/часу.
-              SliverToBoxAdapter(
-                child: _WeeklyGoalsSection(memberId: member.id, ref: ref),
-              ),
+              // не прив'язані до конкретного дня/часу. Ця секція рахує
+              // прогрес окремим прямим запитом до ЛОКАЛЬНОЇ бази
+              // (_weeklyGoalActivitiesProvider/_weeklyGoalCountProvider),
+              // а не через переданий список — для піра довелось би
+              // окремо переносити й цю логіку на перекладач; поки що
+              // просто ховаємо секцію в readOnly-режимі, лишається
+              // відомим пробілом для наступного проходу.
+              if (!readOnly)
+                SliverToBoxAdapter(
+                  child: _WeeklyGoalsSection(memberId: member.id, ref: ref),
+                ),
 
               // 4. Розклад на сьогодні
               if (scheduleItems.isNotEmpty)
@@ -559,18 +648,25 @@ class _TodayContent extends ConsumerWidget {
                     activities: activities,
                     memberId: member.id,
                     wellbeingSchedule: schedule,
+                    readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
 
-              // 5. Коротко про завтра
-              SliverToBoxAdapter(
-                child: _TomorrowSection(
-                  memberId: member.id,
-                  meds: meds,
-                  activities: activities,
-                  wellbeingSchedule: schedule,
+              // 5. Коротко про завтра — читає окремими провайдерами напряму
+              // з ЛОКАЛЬНОЇ бази за member.id (власника), а не з уже
+              // підготовлених списків вище; для піра довелось би дублювати
+              // цю логіку на перекладач (як і для weeklyGoal-секції) —
+              // поки що просто ховаємо, лишається відомим пробілом.
+              if (!readOnly)
+                SliverToBoxAdapter(
+                  child: _TomorrowSection(
+                    memberId: member.id,
+                    meds: meds,
+                    activities: activities,
+                    wellbeingSchedule: schedule,
+                  ),
                 ),
-              ),
 
               // 6. Виконано / Не виконано
               if (doneItems.isNotEmpty)
@@ -580,6 +676,7 @@ class _TodayContent extends ConsumerWidget {
                     meds: meds,
                     activities: activities,
                     memberId: member.id,
+                    readOnly: readOnly,
                   ),
                 ),
 
@@ -773,13 +870,17 @@ class _AllDoneBanner extends StatelessWidget {
 
 class _CompactHero extends StatelessWidget {
   final Member member;
+  final String? overrideName;
+  final int? overrideAvatarIndex;
   final int taken, total;
   final DateTime? nextAt;
   final String? nextLabel;
-  final VoidCallback onAddWellbeing;
+  final VoidCallback? onAddWellbeing;
 
   const _CompactHero({
     required this.member,
+    this.overrideName,
+    this.overrideAvatarIndex,
     required this.taken,
     required this.total,
     required this.nextAt,
@@ -819,7 +920,7 @@ class _CompactHero extends StatelessWidget {
                       width: 2,
                     ),
                   ),
-                  child: AvatarImage(index: member.avatarIndex, size: 56),
+                  child: AvatarImage(index: overrideAvatarIndex ?? member.avatarIndex, size: 56),
                 ),
                 const SizedBox(width: 12),
 
@@ -829,7 +930,7 @@ class _CompactHero extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        member.name,
+                        overrideName ?? member.name,
                         style: AppTextStyles.bodyMd.copyWith(
                           color: Colors.white,
                           fontSize: 16,
@@ -842,9 +943,11 @@ class _CompactHero extends StatelessWidget {
                   ),
                 ),
 
+                // Quick wellbeing button — читання чужих даних, без запису:
+                // ховаємо для піра (Крок 4.3.2 плану), а не лише візуально
+                // блокуємо тап.
+                if (onAddWellbeing != null) ...[
                 const SizedBox(width: 10),
-
-                // Quick wellbeing button
                 GestureDetector(
                   onTap: onAddWellbeing,
                   child: Container(
@@ -875,6 +978,7 @@ class _CompactHero extends StatelessWidget {
                     ),
                   ),
                 ),
+                ],
               ],
             ),
           ),
@@ -894,12 +998,14 @@ class _AnytimeRoutinesSection extends StatelessWidget {
   final List<Activity> activities;
   final int activeMemberId;
   final WidgetRef ref;
+  final bool readOnly;
 
   const _AnytimeRoutinesSection({
     required this.activityLogs,
     required this.activities,
     required this.activeMemberId,
     required this.ref,
+    this.readOnly = false,
   });
 
   @override
@@ -940,6 +1046,7 @@ class _AnytimeRoutinesSection extends StatelessWidget {
                       activities.where((a) => a.id == l.activityId).firstOrNull,
                   activeMemberId: activeMemberId,
                   anytime: true,
+                  readOnly: readOnly,
                 ),
               )),
         ],
@@ -960,6 +1067,8 @@ class _MissedSection extends StatelessWidget {
   final int memberId;
   final WidgetRef ref;
   final WellbeingSchedule? wellbeingSchedule;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _MissedSection({
     required this.intakes,
@@ -971,6 +1080,8 @@ class _MissedSection extends StatelessWidget {
     required this.memberId,
     required this.ref,
     this.wellbeingSchedule,
+    this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -986,6 +1097,8 @@ class _MissedSection extends StatelessWidget {
               med: meds.where((m) => m.id == i.medicationId).firstOrNull,
               ref: ref,
               missed: true,
+              readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1002,6 +1115,8 @@ class _MissedSection extends StatelessWidget {
                   .firstOrNull,
               activeMemberId: memberId,
               missed: true,
+              readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1015,6 +1130,7 @@ class _MissedSection extends StatelessWidget {
               memberId: memberId,
               missed: true,
               wellbeingSchedule: wellbeingSchedule,
+              readOnly: readOnly,
             ),
           ),
         ),
@@ -1027,6 +1143,8 @@ class _MissedSection extends StatelessWidget {
               occurrence: a,
               ref: ref,
               missed: true,
+              readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1078,6 +1196,8 @@ class _ActiveNowSection extends StatelessWidget {
   final int memberId;
   final WidgetRef ref;
   final WellbeingSchedule? wellbeingSchedule;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveNowSection({
     required this.intakes,
@@ -1089,6 +1209,8 @@ class _ActiveNowSection extends StatelessWidget {
     required this.memberId,
     required this.ref,
     this.wellbeingSchedule,
+    this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -1103,6 +1225,8 @@ class _ActiveNowSection extends StatelessWidget {
               intake: i,
               med: meds.where((m) => m.id == i.medicationId).firstOrNull,
               ref: ref,
+              readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1118,6 +1242,8 @@ class _ActiveNowSection extends StatelessWidget {
                   .where((a) => a.id == l.activityId)
                   .firstOrNull,
               activeMemberId: memberId,
+              readOnly: readOnly,
+              peer: peer,
             ),
           ),
         ),
@@ -1130,6 +1256,7 @@ class _ActiveNowSection extends StatelessWidget {
               scheduledAt: dt,
               memberId: memberId,
               wellbeingSchedule: wellbeingSchedule,
+              readOnly: readOnly,
             ),
           ),
         ),
@@ -1138,7 +1265,12 @@ class _ActiveNowSection extends StatelessWidget {
           a.scheduledAt,
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _ActiveAppointmentCard(occurrence: a, ref: ref),
+            child: _ActiveAppointmentCard(
+              occurrence: a,
+              ref: ref,
+              readOnly: readOnly,
+              peer: peer,
+            ),
           ),
         ),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
@@ -1186,6 +1318,8 @@ class _ScheduleSection extends StatelessWidget {
   final List<Activity> activities;
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _ScheduleSection({
     required this.title,
@@ -1194,6 +1328,8 @@ class _ScheduleSection extends StatelessWidget {
     required this.activities,
     required this.memberId,
     this.wellbeingSchedule,
+    this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -1222,6 +1358,8 @@ class _ScheduleSection extends StatelessWidget {
                     activities: activities,
                     memberId: memberId,
                     wellbeingSchedule: wellbeingSchedule,
+                    readOnly: readOnly,
+                    peer: peer,
                   ),
                 ),
               ),
@@ -1291,6 +1429,8 @@ class _ScheduleCard extends StatelessWidget {
   final List<Activity> activities;
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _ScheduleCard({
     required this.item,
@@ -1298,6 +1438,8 @@ class _ScheduleCard extends StatelessWidget {
     required this.activities,
     required this.memberId,
     this.wellbeingSchedule,
+    this.readOnly = false,
+    this.peer,
   });
 
   Color get _color {
@@ -1324,8 +1466,13 @@ class _ScheduleCard extends StatelessWidget {
     );
     final color = _color;
 
+    // Самопочуття — форма чек-іну, а не картка перегляду, і не вміє
+    // показувати запис піра — лишається заблокованою для readOnly. Решта
+    // (ліки/нагадування/рутина) вже вміють (Крок 4.3.5 плану).
     return GestureDetector(
-      onTap: () => _handleTap(context),
+      onTap: readOnly && item.type == _ItemType.wellbeing
+          ? null
+          : () => _handleTap(context),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -1464,6 +1611,7 @@ class _ScheduleCard extends StatelessWidget {
           builder: (_) => MedicationDetailScreen(
             medicationId: item.intake!.medicationId,
             memberId: memberId,
+            peer: peer,
           ),
         ),
       );
@@ -1475,8 +1623,10 @@ class _ScheduleCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              ReminderViewScreen(reminderId: item.appointment!.id),
+          builder: (_) => ReminderViewScreen(
+            reminderId: item.appointment!.id,
+            peer: peer,
+          ),
         ),
       );
       return;
@@ -1486,8 +1636,10 @@ class _ScheduleCard extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              RoutineViewScreen(activityId: item.activityLog!.activityId),
+          builder: (_) => RoutineViewScreen(
+            activityId: item.activityLog!.activityId,
+            peer: peer,
+          ),
         ),
       );
       return;
@@ -1561,6 +1713,7 @@ class _ScheduleRow extends StatelessWidget {
   final int memberId;
   final bool isLast;
   final bool dimmed;
+  final bool readOnly;
 
   const _ScheduleRow({
     required this.item,
@@ -1569,6 +1722,7 @@ class _ScheduleRow extends StatelessWidget {
     required this.memberId,
     required this.isLast,
     this.dimmed = false,
+    this.readOnly = false,
   });
 
   @override
@@ -1583,7 +1737,7 @@ class _ScheduleRow extends StatelessWidget {
               top: isLast ? Radius.zero : Radius.zero,
               bottom: isLast ? const Radius.circular(16) : Radius.zero,
             ),
-            onTap: item.type == _ItemType.wellbeing
+            onTap: item.type == _ItemType.wellbeing && !readOnly
                 ? () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1775,12 +1929,14 @@ class _DoneAccordion extends StatelessWidget {
   final List<Medication> meds;
   final List<Activity> activities;
   final int memberId;
+  final bool readOnly;
 
   const _DoneAccordion({
     required this.items,
     required this.meds,
     required this.activities,
     required this.memberId,
+    this.readOnly = false,
   });
 
   @override
@@ -1819,6 +1975,7 @@ class _DoneAccordion extends StatelessWidget {
                 memberId: memberId,
                 isLast: e.key == items.length - 1,
                 dimmed: true,
+                readOnly: readOnly,
               );
             }).toList(),
           ),
@@ -1903,12 +2060,16 @@ class _ActiveIntakeCard extends StatelessWidget {
   final Medication? med;
   final WidgetRef ref;
   final bool missed;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveIntakeCard({
     required this.intake,
     this.med,
     required this.ref,
     this.missed = false,
+    this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -1918,6 +2079,7 @@ class _ActiveIntakeCard extends StatelessWidget {
     final iconColor = colorFromHex(med?.color) ?? AppColors.primary;
     final photoPath = _firstMedPhoto(med?.photoPaths);
     final comment = med != null ? _doseComment(med!, intake.scheduledAt) : null;
+    final onZoom = med == null ? null : () => _openDetails(context);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -1928,13 +2090,13 @@ class _ActiveIntakeCard extends StatelessWidget {
             _MediaHeader(
               photoPath: photoPath,
               accent: iconColor,
-              onZoom: () => _openDetails(context),
+              onZoom: onZoom,
             )
           else
             _IconHeader(
               illustration: 'assets/illustrations/elly-its-time.png',
               accent: iconColor,
-              onZoom: med != null ? () => _openDetails(context) : null,
+              onZoom: onZoom,
             ),
           Padding(
             padding: const EdgeInsets.all(14),
@@ -1978,20 +2140,21 @@ class _ActiveIntakeCard extends StatelessWidget {
               ],
             ),
           ),
-          _ActionRow(
-            doneColor: AppColors.primary,
-            skipLabel: context.l10n.skipIntakeAction,
-            onDone: () =>
-                ref.read(intakesRepositoryProvider).markTaken(intake.id),
-            onSkip: () =>
-                ref.read(intakesRepositoryProvider).markSkipped(intake.id),
-            onSnooze: (min) => ref
-                .read(intakesRepositoryProvider)
-                .markSnoozed(
-                  intake.id,
-                  _snoozeFrom(intake.effectiveDue).add(Duration(minutes: min)),
-                ),
-          ),
+          if (!readOnly)
+            _ActionRow(
+              doneColor: AppColors.primary,
+              skipLabel: context.l10n.skipIntakeAction,
+              onDone: () =>
+                  ref.read(intakesRepositoryProvider).markTaken(intake.id),
+              onSkip: () =>
+                  ref.read(intakesRepositoryProvider).markSkipped(intake.id),
+              onSnooze: (min) => ref
+                  .read(intakesRepositoryProvider)
+                  .markSnoozed(
+                    intake.id,
+                    _snoozeFrom(intake.effectiveDue).add(Duration(minutes: min)),
+                  ),
+            ),
         ],
       ),
     );
@@ -2005,6 +2168,7 @@ class _ActiveIntakeCard extends StatelessWidget {
         builder: (_) => MedicationDetailScreen(
           medicationId: intake.medicationId,
           memberId: med!.memberId,
+          peer: peer,
         ),
       ),
     );
@@ -2019,7 +2183,7 @@ class _ActiveIntakeCard extends StatelessWidget {
 class _MediaHeader extends StatelessWidget {
   final String photoPath;
   final Color accent;
-  final VoidCallback onZoom;
+  final VoidCallback? onZoom;
 
   const _MediaHeader({
     required this.photoPath,
@@ -2058,7 +2222,8 @@ class _MediaHeader extends StatelessWidget {
                 );
               },
             ),
-            Positioned(top: 10, right: 10, child: _ZoomButton(onTap: onZoom)),
+            if (onZoom != null)
+              Positioned(top: 10, right: 10, child: _ZoomButton(onTap: onZoom!)),
           ],
         ),
       ),
@@ -2565,6 +2730,73 @@ class _RotationRow extends StatelessWidget {
   }
 }
 
+/// Крок 7.3 плану: дзеркало [_RotationRow] вище, лише для картки, яку
+/// відкрито через "переглянути як [пір]" — на відміну від локальної версії
+/// (яка може передати чергу БУДЬ-КОМУ в пулі напряму, reassignLog/
+/// skipTurn пишуть у ЛОКАЛЬНУ базу), тут глядач може лише взяти чергу НА
+/// СЕБЕ (record_proposal, Крок 7.2) — і лише якщо сам є в пулі й сьогодні
+/// черга не на ньому.
+class _PeerTakeTurnRow extends ConsumerWidget {
+  final PeerSubject peer;
+  final Activity activity;
+  final ActivityLog log;
+  final Color accent;
+  const _PeerTakeTurnRow({
+    required this.peer,
+    required this.activity,
+    required this.log,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pool = ref
+        .watch(peerActivityAssigneesProvider(peer.personUuid))
+        .where((a) => a.activityId == activity.id)
+        .toList();
+    if (pool.length <= 1) return const SizedBox.shrink();
+
+    final myUuid = ref.watch(ownPersonUuidProvider);
+    final iAmInPool = myUuid != null && pool.any((a) => a.linkedPeerPersonUuid == myUuid);
+    if (!iAmInPool) return const SizedBox.shrink();
+
+    final assignee = ref.watch(peerActivityLogAssigneesProvider(peer.personUuid))[log.id];
+    final isMyTurn = assignee != null && assignee.identity == myUuid;
+    final grants = ref.watch(activePeerGrantsProvider);
+    final canAct = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Icon(Icons.sync_rounded, size: 14, color: accent),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              context.l10n.routineWhoseTurnLabel(assignee?.name ?? ''),
+              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
+            ),
+          ),
+          if (canAct && !isMyTurn && log.syncUuid != null)
+            GestureDetector(
+              onTap: () => submitActivityLogReassignProposal(
+                ref,
+                peer,
+                syncUuid: log.syncUuid!,
+                updatedAt: log.updatedAt,
+                assigneeIdentity: myUuid,
+              ),
+              child: Text(
+                context.l10n.routineTakeTurnAction,
+                style: AppTextStyles.labelSm.copyWith(color: accent, fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ActiveActivityCard extends StatefulWidget {
   final ActivityLog log;
   final Activity? activity;
@@ -2574,6 +2806,8 @@ class _ActiveActivityCard extends StatefulWidget {
   // Рутина без фіксованого часу — показує "Будь-коли сьогодні" замість
   // конкретного часу й ігнорує [missed] (див. _AnytimeRoutinesSection).
   final bool anytime;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveActivityCard({
     required this.log,
@@ -2582,6 +2816,8 @@ class _ActiveActivityCard extends StatefulWidget {
     required this.activeMemberId,
     this.missed = false,
     this.anytime = false,
+    this.readOnly = false,
+    this.peer,
   });
 
   @override
@@ -2647,8 +2883,10 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
               onZoom: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      RoutineViewScreen(activityId: widget.log.activityId),
+                  builder: (_) => RoutineViewScreen(
+                    activityId: widget.log.activityId,
+                    peer: widget.peer,
+                  ),
                 ),
               ),
             ),
@@ -2685,9 +2923,16 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                     label: context.l10n.durationMinutes(widget.activity!.durationMin),
                   ),
                 ],
-                if (widget.activity != null)
+                if (widget.activity != null && !widget.readOnly)
                   _RotationRow(
                     ref: widget.ref,
+                    activity: widget.activity!,
+                    log: widget.log,
+                    accent: iconColor,
+                  )
+                else if (widget.activity != null && widget.peer != null)
+                  _PeerTakeTurnRow(
+                    peer: widget.peer!,
                     activity: widget.activity!,
                     log: widget.log,
                     accent: iconColor,
@@ -2705,13 +2950,15 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                       // саме тому чекбокс здавався "неможливо натиснути", а
                       // рутина одразу позначалась виконаною.
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => widget.ref
-                          .read(activitiesRepositoryProvider)
-                          .toggleLogStep(
-                            widget.log.id,
-                            e.key,
-                            actingMemberId: widget.activeMemberId,
-                          ),
+                      onTap: widget.readOnly
+                          ? null
+                          : () => widget.ref
+                              .read(activitiesRepositoryProvider)
+                              .toggleLogStep(
+                                widget.log.id,
+                                e.key,
+                                actingMemberId: widget.activeMemberId,
+                              ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
@@ -2747,33 +2994,34 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
               ],
             ),
           ),
-          _ActionRow(
-            doneColor: AppColors.primary,
-            onDone: () {
-              _stopVideo();
-              widget.ref.read(activitiesRepositoryProvider).markLogDone(
-                    widget.log.id,
-                    actingMemberId: widget.activeMemberId,
-                  );
-            },
-            onSkip: () {
-              _stopVideo();
-              widget.ref
-                  .read(activitiesRepositoryProvider)
-                  .markLogSkipped(widget.log.id);
-            },
-            onSnooze: (min) {
-              _stopVideo();
-              widget.ref
-                  .read(activitiesRepositoryProvider)
-                  .snoozeLog(
-                    widget.log.id,
-                    _snoozeFrom(
-                      widget.log.scheduledAt,
-                    ).add(Duration(minutes: min)),
-                  );
-            },
-          ),
+          if (!widget.readOnly)
+            _ActionRow(
+              doneColor: AppColors.primary,
+              onDone: () {
+                _stopVideo();
+                widget.ref.read(activitiesRepositoryProvider).markLogDone(
+                      widget.log.id,
+                      actingMemberId: widget.activeMemberId,
+                    );
+              },
+              onSkip: () {
+                _stopVideo();
+                widget.ref
+                    .read(activitiesRepositoryProvider)
+                    .markLogSkipped(widget.log.id);
+              },
+              onSnooze: (min) {
+                _stopVideo();
+                widget.ref
+                    .read(activitiesRepositoryProvider)
+                    .snoozeLog(
+                      widget.log.id,
+                      _snoozeFrom(
+                        widget.log.scheduledAt,
+                      ).add(Duration(minutes: min)),
+                    );
+              },
+            ),
         ],
       ),
     );
@@ -2879,12 +3127,14 @@ class _ActiveWellbeingCard extends ConsumerWidget {
   final int memberId;
   final bool missed;
   final WellbeingSchedule? wellbeingSchedule;
+  final bool readOnly;
 
   const _ActiveWellbeingCard({
     required this.scheduledAt,
     required this.memberId,
     this.missed = false,
     this.wellbeingSchedule,
+    this.readOnly = false,
   });
 
   Future<void> _skip(WidgetRef ref) {
@@ -2909,8 +3159,11 @@ class _ActiveWellbeingCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final iconColor =
         colorFromHex(wellbeingSchedule?.color) ?? const Color(0xFF5FAE7C);
+    // Тап-у-запис і кнопки нижче пишуть новий WellbeingLog — для піра це
+    // означало б спробу записати самопочуття під синтетичним, не реальним
+    // memberId, тож блокуємо обидва в readOnly-режимі (Крок 4.3.2 плану).
     return GestureDetector(
-      onTap: () => _open(context),
+      onTap: readOnly ? null : () => _open(context),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: _cardDecoration,
@@ -2954,11 +3207,12 @@ class _ActiveWellbeingCard extends ConsumerWidget {
                 ],
               ),
             ),
-            _ActionRow(
-              doneColor: AppColors.primary,
-              onDone: () => _open(context),
-              onSkip: () => _skip(ref),
-            ),
+            if (!readOnly)
+              _ActionRow(
+                doneColor: AppColors.primary,
+                onDone: () => _open(context),
+                onSkip: () => _skip(ref),
+              ),
           ],
         ),
       ),
@@ -2975,11 +3229,15 @@ class _ActiveAppointmentCard extends StatelessWidget {
   final _ApptOccurrence occurrence;
   final WidgetRef ref;
   final bool missed;
+  final bool readOnly;
+  final PeerSubject? peer;
 
   const _ActiveAppointmentCard({
     required this.occurrence,
     required this.ref,
     this.missed = false,
+    this.readOnly = false,
+    this.peer,
   });
 
   Reminder get appointment => occurrence.reminder;
@@ -3001,7 +3259,10 @@ class _ActiveAppointmentCard extends StatelessWidget {
             onZoom: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => ReminderViewScreen(reminderId: appointment.id),
+                builder: (_) => ReminderViewScreen(
+                  reminderId: appointment.id,
+                  peer: peer,
+                ),
               ),
             ),
           ),
@@ -3054,7 +3315,9 @@ class _ActiveAppointmentCard extends StatelessWidget {
           // локальне зміщення картки на Сьогодні, а не зсув будильника ОС.
           // Поки лог іще не згенерувався (рідкісне вікно одразу після
           // відкриття екрана) — logId==null, кнопки не показуємо.
-          if (!occurrence.isRecurring)
+          if (readOnly)
+            const SizedBox.shrink()
+          else if (!occurrence.isRecurring)
             _ActionRow(
               doneColor: AppColors.primary,
               onDone: () => ref

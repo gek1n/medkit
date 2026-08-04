@@ -14,7 +14,10 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
+import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import 'add_medcard_entry_screen.dart';
 
 final _entryProvider =
@@ -25,19 +28,43 @@ final _entryProvider =
 /// Перегляд збереженого запису — показує лише те, що юзер справді вніс,
 /// без можливості редагувати напряму. Кнопка "Редагувати" веде на
 /// стандартну форму створення/редагування.
+///
+/// Крок 4.3.5 плану: [peer] непорожній — запис береться не з локальної
+/// бази (id синтетичний, реального рядка нема), а з перекладача кешу
+/// піра; кнопка редагування ховається.
 class MedcardEntryViewScreen extends ConsumerWidget {
   final MedcardSection section;
   final int entryId;
+  final PeerSubject? peer;
   const MedcardEntryViewScreen({
     super.key,
     required this.section,
     required this.entryId,
+    this.peer,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entryAsync = ref.watch(_entryProvider(entryId));
     final color = colorFromHex(section.color) ?? AppColors.primary;
+
+    if (peer != null) {
+      final entry = ref
+          .watch(peerMedcardEntriesProvider(peer!.personUuid))
+          .where((e) => e.id == entryId)
+          .firstOrNull;
+      if (entry == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(
+          child: _ViewBody(section: section, entry: entry, color: color, peer: peer),
+        ),
+      );
+    }
+
+    final entryAsync = ref.watch(_entryProvider(entryId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -62,11 +89,17 @@ class MedcardEntryViewScreen extends ConsumerWidget {
   }
 }
 
-class _ViewBody extends StatelessWidget {
+class _ViewBody extends ConsumerWidget {
   final MedcardSection section;
   final MedcardEntry entry;
   final Color color;
-  const _ViewBody({required this.section, required this.entry, required this.color});
+  final PeerSubject? peer;
+  const _ViewBody({
+    required this.section,
+    required this.entry,
+    required this.color,
+    this.peer,
+  });
 
   List<String> get _tags {
     try {
@@ -88,11 +121,16 @@ class _ViewBody extends StatelessWidget {
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tags = _tags;
     final photos = _photos;
     final hasNote = entry.notes != null && entry.notes!.trim().isNotEmpty;
     final hasLocation = entry.location != null && entry.location!.trim().isNotEmpty;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Поличок саме
+    // цьому глядачеві — олівець лишається доступним і для запису піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.editShelvesGranted;
 
     return Column(
       children: [
@@ -112,15 +150,36 @@ class _ViewBody extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    MkEditIconButton(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AddMedcardEntryScreen(section: section, existing: entry),
+                    if (peer == null)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AddMedcardEntryScreen(section: section, existing: entry),
+                          ),
+                        ),
+                      )
+                    else if (canEditPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddMedcardEntryScreen(
+                              section: section,
+                              existing: entry,
+                              onDraftCreated: (draft) => submitMedcardEntryProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: entry.syncUuid,
+                                existingUpdatedAt: entry.updatedAt,
+                                syntheticSectionId: section.id,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -188,31 +247,43 @@ class _ViewBody extends StatelessWidget {
                   const SizedBox(height: 18),
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(), style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: photos.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemBuilder: (context, i) => GestureDetector(
-                      onTap: () => showPhotoGalleryViewer(context, imagePaths: photos, initialIndex: i),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                        child: FutureBuilder<Uint8List>(
-                          future: PhotoService.decryptedBytes(photos[i]),
-                          builder: (context, snap) {
-                            if (!snap.hasData) {
-                              return Container(color: AppColors.surface);
-                            }
-                            return Image.memory(snap.data!, fit: BoxFit.cover);
-                          },
+                  // Фото піра ще не лежать локально — підвантажуються за
+                  // запитом (PeerAttachmentChip), тож для піра — чіпи
+                  // запиту, а не готова сітка мініатюр.
+                  if (peer != null)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: photos
+                          .map((path) => PeerAttachmentChip(channelId: peer!.channelId, photoPath: path))
+                          .toList(),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: photos.length,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemBuilder: (context, i) => GestureDetector(
+                        onTap: () => showPhotoGalleryViewer(context, imagePaths: photos, initialIndex: i),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                          child: FutureBuilder<Uint8List>(
+                            future: PhotoService.decryptedBytes(photos[i]),
+                            builder: (context, snap) {
+                              if (!snap.hasData) {
+                                return Container(color: AppColors.surface);
+                              }
+                              return Image.memory(snap.data!, fit: BoxFit.cover);
+                            },
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ],
             ),

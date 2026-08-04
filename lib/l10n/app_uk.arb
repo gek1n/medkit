@@ -505,24 +505,14 @@
   "scanQrCodeLabel": "Сканувати QR-код",
   "tapToEnableCameraHint": "Натисніть, щоб увімкнути камеру",
   "doctorVisitLabel": "Візит до лікаря",
-  "recordFallbackLabel": "Запис",
-  "dataFromPeerTitle": "Дані від {name}",
-  "@dataFromPeerTitle": {
+  "familySectionAccessClosedTitle": "«{name}» закрив(-ла) доступ до розділу «{section}»",
+  "@familySectionAccessClosedTitle": {
     "placeholders": {
-      "name": {
-        "type": "String"
-      }
+      "name": { "type": "String" },
+      "section": { "type": "String" }
     }
   },
-  "peerNothingSharedYet": "{name} ще нічого не поділив(-ла) з вами — або доступ ще не надано.",
-  "@peerNothingSharedYet": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "noViewableDataLabel": "Немає даних, доступних для перегляду",
+  "familySectionAccessClosedBody": "Попросіть поділитись, якщо хочете бачити ці записи",
   "fileRequestSentSnackbar": "Запит надіслано — файл ще потрібно дочекатись",
   "fileRequestFailedError": "Не вдалося надіслати запит: {error}",
   "@fileRequestFailedError": {
@@ -546,10 +536,6 @@
   "photoLabel": "Фото",
   "awaitingFileLabel": "Очікуємо файл…",
   "requestFileAction": "Запросити файл",
-  "editNotesTitle": "Редагувати нотатки",
-  "editNotesDisclaimer": "Правку побачить власник даних — застосується, лише якщо він тим часом сам не змінював цей запис.",
-  "notesHintEllipsis": "Нотатки…",
-  "editSentSnackbar": "Правку надіслано",
   "sendFailedError": "Не вдалося надіслати: {error}",
   "@sendFailedError": {
     "placeholders": {
@@ -558,7 +544,6 @@
       }
     }
   },
-  "sendEditAction": "Надіслати правку",
   "familyLabel": "Сімʼя",
   "familyMembersCountLabel": "{count, plural, one{{count} член} few{{count} члени} other{{count} членів}}",
   "@familyMembersCountLabel": {
@@ -847,6 +832,12 @@
   "viewerNotifyPermissionLabel": "Отримує сповіщення",
   "viewerEditPermissionLabel": "Може редагувати профіль",
   "viewerViewPermissionLabel": "Бачить завдання, полички й розклад",
+  "familySectionsIntro": "Що саме бачить і може редагувати цей учасник, поки доступ увімкнено вище",
+  "familySectionScheduleLabel": "Розклад",
+  "familySectionVisitsWellbeingLabel": "Візити та самопочуття",
+  "familySectionShelvesLabel": "Полички",
+  "familySectionViewColumnLabel": "Перегляд",
+  "familySectionEditColumnLabel": "Редагування",
   "permissionDeniedNotYoursBody": "Не вдалося змінити — це не ваш профіль",
   "privacyLabel": "Конфіденційність",
   "securityLabel": "Безпека",
@@ -1044,6 +1035,7 @@
   },
   "routineSwapTurnAction": "Поміняти",
   "routineSkipTurnAction": "Пропустити чергу",
+  "routineTakeTurnAction": "Взяти чергу на себе",
   "routineWeeklyGoalProgressLabel": "{done}/{total} цього тижня",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {
@@ -1665,6 +1657,22 @@
   },
   "notifBackupReminderTitle": "Захистіть свої дані",
   "notifBackupReminderBody": "Резервна копія вимкнена — дані зберігаються лише на цьому пристрої. Увімкніть у Профілі, щоб не втратити їх.",
+  "notifPeerRecordAddedTitle": "{name} додав(-ла) запис",
+  "@notifPeerRecordAddedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerRecordEditedTitle": "{name} змінив(-ла) запис",
+  "@notifPeerRecordEditedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowStockTitle": "⚠️ Запас закінчується",
   "notifLowStockBody": "{medName} — залишилось {remaining} {unit}",
   "@notifLowStockBody": {

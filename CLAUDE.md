@@ -39,9 +39,11 @@ Concretely:
   SharedPreferences/secure-storage key** that an already-installed build still reads
   — an in-flight update shouldn't crash or silently reset a user's settings because a
   key it expects has vanished.
-- **In-App Purchase product IDs** (`plus_monthly`, `plus_yearly`, `family_monthly`,
-  `family_yearly`) are now live in App Store Connect — never rename/repurpose one;
-  Apple/Google tie a user's entire purchase and renewal history to the exact string.
+- **In-App Purchase product IDs** (`plus_monthly`, `plus_yearly`, `family_month`,
+  `family_year`) are now live in App Store Connect/Google Play Console — never
+  rename/repurpose one; Apple/Google tie a user's entire purchase and renewal
+  history to the exact string. (Family used to be `family_monthly`/`family_yearly`;
+  those old products are retired/unreferenced now, not reused.)
 - When in doubt whether a change is "safe" for existing users, ask explicitly rather
   than assume — this wasn't a live concern earlier in development (no real users
   yet), it is now.

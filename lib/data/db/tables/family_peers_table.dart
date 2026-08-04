@@ -24,6 +24,24 @@ class FamilyPeers extends Table {
   // живе лише на пристрої субʼєкта, тому без цього обміну я б не мав жодного
   // способу дізнатись, що мені взагалі дозволено.
 
+  BoolColumn get viewScheduleGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get editScheduleGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get viewMedcardGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get editMedcardGranted => boolean().withDefault(const Constant(false))();
+  // Крок 4.1 плану: те саме view/editGranted вище, але по кожному розділу
+  // окремо (Розклад / Медкартка) — старі поля лишаються як "загальний"
+  // дозвіл (чи бачу цю людину взагалі), нові уточнюють, ЩО САМЕ в межах
+  // цього видно/можна редагувати. Той самий принцип "я не вирішую сам за
+  // себе, лише читаю те, що суб'єкт сповістив через grants_summary".
+
+  BoolColumn get viewShelvesGranted => boolean().withDefault(const Constant(false))();
+  BoolColumn get editShelvesGranted => boolean().withDefault(const Constant(false))();
+  // Крок 4.3.4 плану: Полички як окремий розділ, той самий принцип, що й
+  // Розклад/Медкартка вище — додано, коли самі Полички вже синхронізуються
+  // (Крок 5.1), окремо від Медкартки (візити/самопочуття), бо в Поличках
+  // часто вільні особисті нотатки, які людина може захотіти лишити
+  // приватними, навіть ділячись медичною історією.
+
   BoolColumn get invitedMe => boolean().withDefault(const Constant(false))();
   // true — це ВІН мене запросив (я скановував його код, або конверсія
   // "Локальний → Автономний" на його боці); false — це Я його запросив, або

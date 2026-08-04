@@ -505,24 +505,14 @@
   "scanQrCodeLabel": "Scan QR code",
   "tapToEnableCameraHint": "Tap to enable the camera",
   "doctorVisitLabel": "Doctor visit",
-  "recordFallbackLabel": "Record",
-  "dataFromPeerTitle": "Data from {name}",
-  "@dataFromPeerTitle": {
+  "familySectionAccessClosedTitle": "“{name}” closed access to “{section}”",
+  "@familySectionAccessClosedTitle": {
     "placeholders": {
-      "name": {
-        "type": "String"
-      }
+      "name": { "type": "String" },
+      "section": { "type": "String" }
     }
   },
-  "peerNothingSharedYet": "{name} hasn't shared anything with you yet — or access hasn't been granted yet.",
-  "@peerNothingSharedYet": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "noViewableDataLabel": "No data available to view",
+  "familySectionAccessClosedBody": "Ask them to share it if you'd like to see these entries",
   "fileRequestSentSnackbar": "Request sent — the file hasn't arrived yet",
   "fileRequestFailedError": "Couldn't send the request: {error}",
   "@fileRequestFailedError": {
@@ -546,10 +536,6 @@
   "photoLabel": "Photo",
   "awaitingFileLabel": "Waiting for the file…",
   "requestFileAction": "Request file",
-  "editNotesTitle": "Edit notes",
-  "editNotesDisclaimer": "The data owner will see this edit — it applies only if they haven't changed this record in the meantime.",
-  "notesHintEllipsis": "Notes…",
-  "editSentSnackbar": "Edit sent",
   "sendFailedError": "Couldn't send: {error}",
   "@sendFailedError": {
     "placeholders": {
@@ -558,7 +544,6 @@
       }
     }
   },
-  "sendEditAction": "Send edit",
   "familyLabel": "Family",
   "familyMembersCountLabel": "{count, plural, one{{count} member} other{{count} members}}",
   "@familyMembersCountLabel": {
@@ -847,6 +832,12 @@
   "viewerNotifyPermissionLabel": "Receives notifications",
   "viewerEditPermissionLabel": "Can edit the profile",
   "viewerViewPermissionLabel": "Can see tasks, shelves, and schedule",
+  "familySectionsIntro": "Exactly what this member can see and edit, while access is turned on above",
+  "familySectionScheduleLabel": "Schedule",
+  "familySectionVisitsWellbeingLabel": "Visits and wellbeing",
+  "familySectionShelvesLabel": "Shelves",
+  "familySectionViewColumnLabel": "View",
+  "familySectionEditColumnLabel": "Edit",
   "permissionDeniedNotYoursBody": "Couldn't change it — this isn't your profile",
   "privacyLabel": "Privacy",
   "securityLabel": "Security",
@@ -1044,6 +1035,7 @@
   },
   "routineSwapTurnAction": "Swap",
   "routineSkipTurnAction": "Skip turn",
+  "routineTakeTurnAction": "Take my turn",
   "routineWeeklyGoalProgressLabel": "{done}/{total} this week",
   "@routineWeeklyGoalProgressLabel": {
     "placeholders": {
@@ -1665,6 +1657,22 @@
   },
   "notifBackupReminderTitle": "Protect your data",
   "notifBackupReminderBody": "Backup is off — data is stored only on this device. Turn it on in Profile so you don't lose it.",
+  "notifPeerRecordAddedTitle": "{name} added an entry",
+  "@notifPeerRecordAddedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifPeerRecordEditedTitle": "{name} edited an entry",
+  "@notifPeerRecordEditedTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "notifLowStockTitle": "⚠️ Running low",
   "notifLowStockBody": "{medName} — {remaining} {unit} left",
   "@notifLowStockBody": {

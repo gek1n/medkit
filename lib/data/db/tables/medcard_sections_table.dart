@@ -25,4 +25,8 @@ class MedcardSections extends Table {
   // MedcardSectionsRepository.getOrCreateDefaultNotesSection). Пінується
   // вгорі списку "Ваші розділи" на med_card_screen.dart.
   BoolColumn get isDefaultNotes => boolean().withDefault(const Constant(false))();
+  // Порядок показу серед "Ваші розділи" — керується драг-н-дропом
+  // (MedcardSectionsRepository.reorder). isDefaultNotes завжди рендериться
+  // першим окремо від цього поля, тож для нього значення не має сенсу.
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }

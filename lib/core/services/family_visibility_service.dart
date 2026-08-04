@@ -4,6 +4,13 @@ import '../../data/db/app_database.dart';
 
 enum FamilyPermission { notify, edit, view }
 
+/// Крок 4.1 плану: розділи, для яких перегляд/редагування видаються ОКРЕМО
+/// один від одного, а не одним спільним перемикачем на всю людину.
+/// Полички (shelves) додано в Кроку 4.3.4, коли самі Полички вже
+/// синхронізуються (Крок 5.1) — до того перемикач для них не мав би на що
+/// впливати.
+enum FamilySection { schedule, medcard, shelves }
+
 class FamilyGrantDeniedException implements Exception {
   final String message;
   const FamilyGrantDeniedException(this.message);
@@ -79,14 +86,75 @@ class FamilyVisibilityService {
         );
   }
 
+  // ── Крок 4.1: перегляд/редагування по кожному розділу окремо ────────────
+  // Технічно це той самий FamilyGrants.permission (звичайна text-колонка,
+  // без enum на рівні БД) — нові значення виду "view_schedule"/"edit_medcard"
+  // просто лягають поряд зі старими "view"/"edit"/"notify" під тим самим
+  // ключем (subjectPersonUuid, viewerPersonUuid, permission), тому міграція
+  // схеми для цього не потрібна.
+  static String _sectionKey(FamilySection section, {required bool edit}) =>
+      '${edit ? 'edit' : 'view'}_${section.name}';
+
+  /// Якщо для цього розділу ще ніхто явно нічого не налаштовував —
+  /// відкочуємось до старого спільного view/edit (те, що діяло до появи
+  /// розбивки по розділах), а не до "заборонено за замовчуванням": інакше
+  /// той, хто вже відкрив доступ до появи цього кроку, раптово втратив би
+  /// його, поки суб'єкт сам не зайде і не торкнеться нового екрана.
+  static Future<bool> isSectionAllowed(
+    AppDatabase db,
+    String subjectPersonUuid,
+    String viewerPersonUuid,
+    FamilySection section, {
+    required bool edit,
+  }) async {
+    final row = await (db.select(db.familyGrants)
+          ..where((t) =>
+              t.subjectPersonUuid.equals(subjectPersonUuid) &
+              t.viewerPersonUuid.equals(viewerPersonUuid) &
+              t.permission.equals(_sectionKey(section, edit: edit))))
+        .getSingleOrNull();
+    if (row != null) return row.allowed;
+    return isAllowed(db, subjectPersonUuid, viewerPersonUuid,
+        edit ? FamilyPermission.edit : FamilyPermission.view);
+  }
+
+  /// Кидає [FamilyGrantDeniedException] за тим самим правилом, що й
+  /// [setAllowed].
+  static Future<void> setSectionAllowed(
+    AppDatabase db, {
+    required String subjectPersonUuid,
+    required String viewerPersonUuid,
+    required FamilySection section,
+    required bool edit,
+    required bool value,
+  }) async {
+    final subject = await (db.select(db.members)
+          ..where((t) => t.personUuid.equals(subjectPersonUuid)))
+        .getSingleOrNull();
+    if (subject == null) {
+      throw const FamilyGrantDeniedException(
+        'Можна керувати видимістю лише власного профілю чи локальних учасників, яких ви ведете',
+      );
+    }
+    await db.into(db.familyGrants).insertOnConflictUpdate(
+          FamilyGrantsCompanion.insert(
+            subjectPersonUuid: subjectPersonUuid,
+            viewerPersonUuid: viewerPersonUuid,
+            permission: _sectionKey(section, edit: edit),
+            allowed: value,
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+  }
+
   // ── Синхронізація медкартки на інші пристрої сім'ї ─────────────────────
   // Той самий принцип, що й isAllowed вище, але без матриці viewer'ів —
   // єдиний прапорець "пускати медкартку цього профілю за межі пристрою
   // взагалі". FamilySyncService._push() перевіряє це ПЕРЕД формуванням
-  // payload — коли вимкнено, дані медкартки (алергії, хронічні
-  // захворювання, щеплення, операції, аналізи, візити, вкладення) просто
-  // ніколи не потрапляють у payload. Синхронізація ліків і розкладу
-  // прийому від цього прапорця не залежить.
+  // payload — коли вимкнено, дані медкартки (Полички, візити до лікарів,
+  // історія самопочуття, архів ліків, вкладення) просто ніколи не
+  // потрапляють у payload. Синхронізація ліків і розкладу прийому від
+  // цього прапорця не залежить.
   static String _medcardSyncKey(String subjectPersonUuid) => 'family_medcard_sync_$subjectPersonUuid';
 
   static Future<bool> isMedcardSyncAllowed(String subjectPersonUuid) async {

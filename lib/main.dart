@@ -1015,6 +1015,23 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
         ref.read(planProvider.notifier).state = plan;
       }
     });
+    // Крок 2 плану: фонова синхронізація сім'ї (найчастіше — конвертація
+    // Локальний→Автономний) може видалити профіль, на який зараз вказує
+    // activeMemberIdProvider, поки користувач сидить деінде в застосунку.
+    // currentMemberProvider (Сьогодні) сам підміняє неіснуючий activeId на
+    // власника, але Розклад/Медкартка читають activeId напряму для запитів —
+    // без цього скидання вони й далі питали б дані за вже неіснуючим id
+    // (порожньо назавжди, а не "після наступного relaunch"). Скидаємо це
+    // глобальне значення тут же, одразу як список членів сім'ї змінюється,
+    // а не чекаючи, поки конкретний екран сам це помітить.
+    ref.listen(allMembersProvider, (previous, next) {
+      final members = next.valueOrNull;
+      if (members == null) return;
+      final activeId = ref.read(activeMemberIdProvider);
+      if (activeId != null && !members.any((m) => m.id == activeId)) {
+        ref.read(activeMemberIdProvider.notifier).state = null;
+      }
+    });
     return Scaffold(
       body: PageView(
         controller: _pageController,

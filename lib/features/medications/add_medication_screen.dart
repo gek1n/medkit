@@ -17,6 +17,7 @@ import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/member_name_suffix.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/field_sheet.dart';
@@ -396,6 +397,39 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
     _ => {},
   };
 
+  // Скільки днів курсу вже минуло від оригінального старту — щоб "Потрібно
+  // докупити" в _MedStockContent рахувало залишок ВІД СЬОГОДНІ, а не від
+  // початку курсу (актуально, коли відстеження запасу вмикають вже
+  // ПІД ЧАС курсу, не лише при його створенні). 0 для нового запису —
+  // там курс стартує сьогодні, минулих днів ще нема.
+  int _daysElapsedSinceStart() {
+    final start = widget.existing?.startDate;
+    if (start == null) return 0;
+    final startDay = DateTime(start.year, start.month, start.day);
+    final today = DateTime.now();
+    final todayDay = DateTime(today.year, today.month, today.day);
+    final diff = todayDay.difference(startDay).inDays;
+    return diff > 0 ? diff : 0;
+  }
+
+  // Скільки прийомів СЬОГОДНІ вже відмічені (прийнято чи пропущено) — щоб
+  // "Потрібно докупити" не рахувало сьогодні як повний день, якщо частину
+  // вже прийняли до того, як увімкнули відстеження запасу. 0 для нового
+  // запису (ще нема реальних Intake-рядків у БД).
+  Future<int> _todayResolvedIntakesCount() async {
+    final ex = widget.existing;
+    if (ex == null) return 0;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = start.add(const Duration(days: 1));
+    final intakes = await ref
+        .read(intakesRepositoryProvider)
+        .getByMedicationAndDateRange(ex.id, ex.memberId, start, end);
+    return intakes
+        .where((i) => i.status == 'taken' || i.status == 'skipped')
+        .length;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isMemberBlockedByPlan(ref, widget.memberId)) {
@@ -527,32 +561,40 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                           label: context.l10n.trackStockLabel,
                           value: _trackStock ? 'on' : null,
                           forceLabel: true,
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.trackStockLabel,
-                            child: _MedStockContent(
-                              trackStock: _trackStock,
-                              availableCount: _availableCount,
-                              phases: _phases,
-                              doseAmount: _phases.isNotEmpty
-                                  ? _phases.first.doseAmount
-                                  : 1.0,
-                              form: _form,
-                              stockUnit: _stockUnit,
-                              onTrackToggle: (v) =>
-                                  setState(() => _trackStock = v),
-                              onDecrement: () => setState(() {
-                                if (_availableCount > 0) _availableCount--;
-                              }),
-                              onIncrement: () =>
-                                  setState(() => _availableCount++),
-                              onEdit: (v) =>
-                                  setState(() => _availableCount = v),
-                              onFormChanged: (v) => setState(() => _form = v),
-                              onStockUnitChanged: (v) =>
-                                  setState(() => _stockUnit = v),
-                            ),
-                          ),
+                          onTap: () async {
+                            final todayResolved =
+                                await _todayResolvedIntakesCount();
+                            if (!context.mounted) return;
+                            showFieldSheet(
+                              context,
+                              title: context.l10n.trackStockLabel,
+                              child: _MedStockContent(
+                                trackStock: _trackStock,
+                                availableCount: _availableCount,
+                                daysElapsed: _daysElapsedSinceStart(),
+                                todayResolvedCount: todayResolved,
+                                phases: _phases,
+                                doseAmount: _phases.isNotEmpty
+                                    ? _phases.first.doseAmount
+                                    : 1.0,
+                                form: _form,
+                                stockUnit: _stockUnit,
+                                onTrackToggle: (v) =>
+                                    setState(() => _trackStock = v),
+                                onDecrement: () => setState(() {
+                                  if (_availableCount > 0) _availableCount--;
+                                }),
+                                onIncrement: () =>
+                                    setState(() => _availableCount++),
+                                onEdit: (v) =>
+                                    setState(() => _availableCount = v),
+                                onFormChanged: (v) =>
+                                    setState(() => _form = v),
+                                onStockUnitChanged: (v) =>
+                                    setState(() => _stockUnit = v),
+                              ),
+                            );
+                          },
                         ),
                         FieldChip(
                           icon: Icons.palette_outlined,
@@ -2058,6 +2100,8 @@ class _DurationSectionState extends State<_DurationSection> {
 class _MedStockContent extends StatefulWidget {
   final bool trackStock;
   final int availableCount;
+  final int daysElapsed;
+  final int todayResolvedCount;
   final List<_MedPhase> phases;
   final double doseAmount;
   final String form;
@@ -2072,6 +2116,8 @@ class _MedStockContent extends StatefulWidget {
   const _MedStockContent({
     required this.trackStock,
     required this.availableCount,
+    required this.daysElapsed,
+    required this.todayResolvedCount,
     required this.phases,
     required this.doseAmount,
     required this.form,
@@ -2123,13 +2169,31 @@ class _MedStockContentState extends State<_MedStockContent> {
     }
   }
 
-  // Загальна кількість прийомів за курс (одиниць ліків)
+  // Кількість прийомів, що ЛИШИЛАСЬ до кінця курсу — тобто мінус ті дні,
+  // що вже минули від старту курсу (widget.daysElapsed), а не весь курс
+  // від початку. Дні "з'їдаються" по черзі, фаза за фазою, якщо курс
+  // багатофазний. Перший ще не повністю минулий день — це СЬОГОДНІ: якщо
+  // частину прийомів уже відмітили (прийнято/пропущено) ДО того, як
+  // увімкнули відстеження запасу, рахуємо для нього лише те, що ще
+  // залишилось (widget.todayResolvedCount), а не весь день як майбутній.
   int _totalIntakes() {
+    var elapsed = widget.daysElapsed;
+    var todayHandled = false;
     double total = 0;
     for (final phase in widget.phases) {
       final days = phase.durationDays ?? 0;
+      final consumed = elapsed < days ? elapsed : days;
+      final remainingDays = days - consumed;
+      elapsed -= consumed;
       final intakesPerDay = phase.effectiveTimes.length;
-      total += days * intakesPerDay * widget.doseAmount;
+      if (!todayHandled && remainingDays > 0) {
+        todayHandled = true;
+        final todayLeft = intakesPerDay - widget.todayResolvedCount;
+        total += (todayLeft > 0 ? todayLeft : 0) * widget.doseAmount;
+        total += (remainingDays - 1) * intakesPerDay * widget.doseAmount;
+      } else {
+        total += remainingDays * intakesPerDay * widget.doseAmount;
+      }
     }
     return total.ceil();
   }

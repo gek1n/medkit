@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -5,11 +7,13 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/services/camera_permission_service.dart';
 import '../../core/services/family_group_service.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/mk_screen_header.dart';
@@ -72,10 +76,18 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
       // вдруге, наче щось не спрацювало першого разу).
       final existingPeer =
           await FamilyPeersRepository(db).getByUuid(preview.inviterPersonUuid);
-      if (existingPeer != null) {
+      // Крок 3.2: навіть якщо саме ЦЬОГО інвайтера ми ще не сканували, та
+      // сама сімейна група (familyId) може вже бути "нашою" через будь-кого
+      // іншого з неї — інакше можна нескінченно повторно "приєднуватись" до
+      // сім'ї, в якій вже перебуваєш, скануючи коди різних її учасників.
+      final familyPeers = existingPeer == null
+          ? await FamilyPeersRepository(db).getByFamilyId(preview.familyId)
+          : const <FamilyPeer>[];
+      final alreadyInFamily = existingPeer ?? familyPeers.firstOrNull;
+      if (alreadyInFamily != null) {
         if (!mounted) return;
         setState(() {
-          _error = context.l10n.alreadyJoinedFamilyError(preview.inviterName);
+          _error = context.l10n.alreadyJoinedFamilyError(alreadyInFamily.name);
           _submitting = false;
           _handledScan = false;
         });
@@ -111,6 +123,13 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
       // на його боці), не тому, хто приєднується. Приєднаний отримує всі
       // плюшки Family від інвайтера, крім права запрошувати самому.
       await FamilyGroupService(db).acceptInvite(_preview!);
+      // Крок 3.3 плану: не чекаємо пасивно, поки інвайтер сам колись
+      // відкриє застосунок і надішле мій grants_summary — активно питаємо
+      // сам, одразу. Якщо інвайтер ще не встиг дізнатись про мене (типова
+      // ситуація — обидва боки приєднання дізнаються одне про одного
+      // незалежно), цей раунд просто нічого не знайде і мовчки завершиться;
+      // статус підхопиться наступним звичайним тригером синку.
+      unawaited(FamilyPeerSyncService(db).syncAllPeers());
       if (!mounted) return;
       setState(() {
         _stage = _Stage.done;

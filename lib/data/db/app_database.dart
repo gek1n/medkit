@@ -86,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 42;
+  int get schemaVersion => 47;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -865,6 +865,64 @@ class AppDatabase extends _$AppDatabase {
             try {
               await customStatement(
                   'ALTER TABLE medications DROP COLUMN food_relation');
+            } catch (_) {}
+          }
+          if (from < 43) {
+            // Драг-н-дроп для "Ваші розділи" — усі наявні рядки отримують
+            // 0 за замовчуванням, що безпечно: сортування в watchByMember
+            // йде [sortOrder, createdAt], тож поки sortOrder однаковий,
+            // порядок лишається тим самим, що й був (за датою створення) —
+            // жодного видимого стрибка для наявних користувачів.
+            try {
+              await m.addColumn(medcardSections, medcardSections.sortOrder);
+            } catch (_) {}
+          }
+          if (from < 44) {
+            // Крок 4.1 плану: права видимості по розділах (Розклад/Медкартка)
+            // окремо для кожного члена сім'ї. Нові стовпчики зі значенням
+            // false за замовчуванням — до першого grants_summary від піра
+            // після оновлення це безпечно "нічого не видно по розділах",
+            // старі view/editGranted (загальний доступ) продовжують діяти
+            // як і раніше, не чіпаються.
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewScheduleGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editScheduleGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewMedcardGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editMedcardGranted);
+            } catch (_) {}
+          }
+          if (from < 45) {
+            // Крок 5-6 плану: RemindersSlots (час(и) нагадувань кілька разів
+            // на день) раніше взагалі не мали технічної підготовки для
+            // синхронізації — ні syncUuid, ні updatedAt.
+            try {
+              await m.addColumn(reminderSlots, reminderSlots.updatedAt);
+            } catch (_) {}
+            try {
+              await m.addColumn(reminderSlots, reminderSlots.syncUuid);
+            } catch (_) {}
+          }
+          if (from < 46) {
+            // Крок 4.3.4 плану: Полички як окремий розділ прав видимості,
+            // той самий принцип, що й у Кроку 4.1 для Розкладу/Медкартки.
+            try {
+              await m.addColumn(familyPeers, familyPeers.viewShelvesGranted);
+            } catch (_) {}
+            try {
+              await m.addColumn(familyPeers, familyPeers.editShelvesGranted);
+            } catch (_) {}
+          }
+          if (from < 47) {
+            // Крок 7.1 плану: "тіньовий" dependent-рядок, що представляє
+            // автономного члена сім'ї в пулі ротації рутинної справи.
+            try {
+              await m.addColumn(members, members.linkedPeerPersonUuid);
             } catch (_) {}
           }
         },

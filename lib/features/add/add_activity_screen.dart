@@ -11,7 +11,9 @@ import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
+import '../../data/repositories/members_repository.dart';
 import '../../core/utils/avatars.dart';
+import '../family/peer_view_providers.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
@@ -56,19 +58,32 @@ String weekdayLabel(BuildContext context, int weekday) {
 /// повного редактора (сітка типів Спорт, YouTube-посилання) прибрані з UI —
 /// жоден живий виклик цього екрана вже не використовує compactMode:false.
 class AddActivityScreen extends ConsumerStatefulWidget {
-  final int memberId;
+  final int? memberId;
   final Activity? existing;
   final bool hideTypePicker;
   final String? forcedType;
   final bool compactMode;
+  // Крок 4.4.2 плану: коли задано (замість memberId) — замість запису в
+  // локальну базу компаньйон повертається сюди (щоб надіслати як
+  // record_proposal піру), той самий патерн, що вже є в
+  // AddMedicationScreen. Ротаційний пул/фіксований час НЕ переносяться
+  // через чернетку (child-таблиці ActivityAssignees/ActivitySlots не
+  // існують без справжнього activityId) — блок "Хто виконує" в цьому
+  // режимі просто ховається, рутина "за іншого" завжди створюється без
+  // фіксованого часу (уже наявний, повністю робочий режим).
+  final void Function(ActivitiesCompanion draft)? onDraftCreated;
   const AddActivityScreen({
     super.key,
-    required this.memberId,
+    this.memberId,
     this.existing,
     this.hideTypePicker = false,
     this.forcedType,
     this.compactMode = false,
-  });
+    this.onDraftCreated,
+  }) : assert(
+         memberId != null || onDraftCreated != null,
+         'AddActivityScreen needs either memberId or onDraftCreated',
+       );
 
   @override
   ConsumerState<AddActivityScreen> createState() => _AddActivityScreenState();
@@ -135,7 +150,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       } catch (_) {}
       _loadExisting(ex.id);
     } else {
-      _assigneeIds = [widget.memberId];
+      _assigneeIds = widget.memberId != null ? [widget.memberId!] : [];
       _loaded = true;
     }
   }
@@ -224,6 +239,42 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       final locationVal = _locationController.text.trim().isEmpty
           ? null
           : _locationController.text.trim();
+
+      if (widget.onDraftCreated != null) {
+        // Реальний memberId ще невідомий (Крок 4.4.2 плану) — викликач сам
+        // або підставить його (онбординг), або серіалізує компаньйон у
+        // record_proposal (peer-режим). rotationMode/durationMin навмисно
+        // спрощені — без справжнього activityId нема куди писати
+        // ActivityAssignees/ActivitySlots.
+        widget.onDraftCreated!(
+          ActivitiesCompanion.insert(
+            memberId: 0,
+            name: name,
+            type: const Value('routine'),
+            durationMin: Value(activityDuration),
+            repeatDays: Value(repeatDaysJson),
+            repeatType: Value(_repeatType),
+            repeatDayOfMonth:
+                Value(_repeatType == 'monthly' ? _dayOfMonth : null),
+            repeatIntervalDays:
+                Value(_repeatType == 'everyNDays' ? _intervalDays : null),
+            weeklyGoalCount:
+                Value(_repeatType == 'weeklyGoal' ? _weeklyGoalCount : null),
+            rotationAnchorDate: Value(DateTime.now()),
+            rotationMode: const Value('fixed'),
+            stepsJson: Value(stepsJsonStr),
+            reminderBeforeMin: Value(_remindBeforeMin),
+            color: Value(_colorHex),
+            iconKey: Value(_iconKey),
+            tags: Value(tagsJson),
+            documentPaths: Value(jsonEncode(_documentPaths)),
+            location: Value(locationVal),
+          ),
+        );
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
+
       final int activityId;
 
       if (widget.existing != null) {
@@ -257,7 +308,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       } else {
         activityId = await repo.insertActivity(
           ActivitiesCompanion.insert(
-            memberId: widget.memberId,
+            memberId: widget.memberId!,
             name: name,
             type: const Value('routine'),
             durationMin: Value(activityDuration),
@@ -284,7 +335,7 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
         );
       }
 
-      final poolIds = _assigneeIds.isEmpty ? [widget.memberId] : _assigneeIds;
+      final poolIds = _assigneeIds.isEmpty ? [widget.memberId!] : _assigneeIds;
       await repo.replaceAssignees(activityId, poolIds);
 
       final slotsToSave = showTime
@@ -352,6 +403,16 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     }
     final isEdit = widget.existing != null;
     final members = ref.watch(allMembersProvider).valueOrNull ?? [];
+    // Крок 7.3 плану: автономні піри — вибираються в пул ротації тим самим
+    // способом, що й локальні члени, лише "матеріалізуються" в реальний
+    // Members-рядок (тіньовий, findOrCreateShadowForPeer) щойно їх обрано —
+    // до того моменту жодного зайвого рядка в базі не з'являється.
+    final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? [];
+    final shadows = ref.watch(shadowMembersProvider).valueOrNull ?? [];
+    final shadowByPersonUuid = {
+      for (final s in shadows)
+        if (s.linkedPeerPersonUuid != null) s.linkedPeerPersonUuid!: s,
+    };
     final showTime = _hasFixedTime && _repeatType != 'weeklyGoal';
 
     return Scaffold(
@@ -363,7 +424,9 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
               title: (isEdit
                       ? context.l10n.editActivityTitle
                       : context.l10n.newRoutineTitle) +
-                  memberNameSuffix(context, ref, widget.memberId),
+                  (widget.memberId != null
+                      ? memberNameSuffix(context, ref, widget.memberId!)
+                      : ''),
               onBack: () => Navigator.pop(context),
             ),
             Expanded(
@@ -459,19 +522,32 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
 
                     // Хто виконує — теж завжди розгорнутим блоком, одразу
                     // після кроків (сімейна ротація — друга річ, що реально
-                    // відрізняє рутину від разового нагадування).
-                    _Label(context.l10n.routineWhoDoesLabel),
-                    const SizedBox(height: 8),
-                    _AssigneesSheet(
-                      members: members,
-                      initialSelected: _assigneeIds,
-                      initialRotationMode: _rotationMode,
-                      onChanged: (ids, mode) => setState(() {
-                        _assigneeIds = ids;
-                        _rotationMode = mode;
-                      }),
-                    ),
-                    const SizedBox(height: AppDimensions.lg),
+                    // відрізняє рутину від разового нагадування). Для
+                    // чернетки (Крок 4.4.2 плану) — приховано: пул ротації
+                    // не переноситься через draft mode (немає activityId,
+                    // ActivityAssignees ще не входить у синхронізацію
+                    // пірів), рутина "за іншого" завжди 'fixed'.
+                    if (widget.memberId != null) ...[
+                      _Label(context.l10n.routineWhoDoesLabel),
+                      const SizedBox(height: 8),
+                      _AssigneesSheet(
+                        members: members,
+                        peers: peers,
+                        shadowByPersonUuid: shadowByPersonUuid,
+                        ensureShadow: (peer) => ref.read(membersRepositoryProvider).findOrCreateShadowForPeer(
+                              peerPersonUuid: peer.personUuid,
+                              name: peer.name,
+                              avatarIndex: peer.avatarIndex,
+                            ),
+                        initialSelected: _assigneeIds,
+                        initialRotationMode: _rotationMode,
+                        onChanged: (ids, mode) => setState(() {
+                          _assigneeIds = ids;
+                          _rotationMode = mode;
+                        }),
+                      ),
+                      const SizedBox(height: AppDimensions.lg),
+                    ],
 
                     Wrap(
                       spacing: 8,
@@ -560,11 +636,12 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                               ),
                             ),
                           ),
-                        SpaceChip(
-                          memberId: widget.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) => setState(() => _sectionId = id),
-                        ),
+                        if (widget.memberId != null)
+                          SpaceChip(
+                            memberId: widget.memberId!,
+                            sectionId: _sectionId,
+                            onChanged: (id) => setState(() => _sectionId = id),
+                          ),
                         FieldChip(
                           icon: Icons.attach_file_rounded,
                           label: context.l10n.reminderPhotoLabel,
@@ -1200,12 +1277,23 @@ class _StepperButton extends StatelessWidget {
 
 class _AssigneesSheet extends StatefulWidget {
   final List<Member> members;
+  // Крок 7.3 плану: автономні члени сім'ї, яких можна додати в пул ротації
+  // так само, як звичайних локальних членів — [ensureShadow] матеріалізує
+  // "тіньовий" Members-рядок (Крок 7.1) щойно піра справді обрано,
+  // [shadowByPersonUuid] — уже наявні тіньові рядки (щоб не створювати
+  // дублікат і показати "уже обрано" для піра, доданого раніше).
+  final List<FamilyPeer> peers;
+  final Map<String, Member> shadowByPersonUuid;
+  final Future<int> Function(FamilyPeer peer) ensureShadow;
   final List<int> initialSelected;
   final String initialRotationMode;
   final void Function(List<int> ids, String rotationMode) onChanged;
 
   const _AssigneesSheet({
     required this.members,
+    this.peers = const [],
+    this.shadowByPersonUuid = const {},
+    required this.ensureShadow,
     required this.initialSelected,
     required this.initialRotationMode,
     required this.onChanged,
@@ -1228,6 +1316,74 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
 
   void _emit() => widget.onChanged(_selected, _rotationMode);
 
+  Widget _chip({
+    required int? avatarIndex,
+    required String name,
+    required bool sel,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          children: [
+            Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: sel ? AppColors.success : AppColors.border,
+                      width: sel ? 2 : 1.5,
+                    ),
+                  ),
+                  child: AvatarImage(index: avatarIndex ?? 0, size: 52),
+                ),
+                if (sel)
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: const Icon(Icons.check_rounded,
+                        color: Colors.white, size: 12),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              name,
+              style: AppTextStyles.caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _togglePeer(FamilyPeer peer) async {
+    final existingId = widget.shadowByPersonUuid[peer.personUuid]?.id;
+    if (existingId != null && _selected.contains(existingId)) {
+      setState(() => _selected.remove(existingId));
+      _emit();
+      return;
+    }
+    final id = existingId ?? await widget.ensureShadow(peer);
+    if (!mounted) return;
+    setState(() => _selected.add(id));
+    _emit();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1237,65 +1393,36 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
         Wrap(
           spacing: 14,
           runSpacing: 10,
-          children: widget.members.map((m) {
-            final sel = _selected.contains(m.id);
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (sel) {
-                    _selected.remove(m.id);
-                  } else {
-                    _selected.add(m.id);
-                  }
-                });
-                _emit();
-              },
-              child: SizedBox(
-                width: 64,
-                child: Column(
-                  children: [
-                    Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 120),
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: sel ? AppColors.success : AppColors.border,
-                              width: sel ? 2 : 1.5,
-                            ),
-                          ),
-                          child: AvatarImage(index: m.avatarIndex, size: 52),
-                        ),
-                        if (sel)
-                          Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.success,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
-                            ),
-                            child: const Icon(Icons.check_rounded,
-                                color: Colors.white, size: 12),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      m.name,
-                      style: AppTextStyles.caption,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+          children: [
+            ...widget.members.map((m) {
+              final sel = _selected.contains(m.id);
+              return _chip(
+                avatarIndex: m.avatarIndex,
+                name: m.name,
+                sel: sel,
+                onTap: () {
+                  setState(() {
+                    if (sel) {
+                      _selected.remove(m.id);
+                    } else {
+                      _selected.add(m.id);
+                    }
+                  });
+                  _emit();
+                },
+              );
+            }),
+            ...widget.peers.map((p) {
+              final shadowId = widget.shadowByPersonUuid[p.personUuid]?.id;
+              final sel = shadowId != null && _selected.contains(shadowId);
+              return _chip(
+                avatarIndex: p.avatarIndex,
+                name: p.name,
+                sel: sel,
+                onTap: () => _togglePeer(p),
+              );
+            }),
+          ],
         ),
         if (_selected.length > 1) ...[
           const SizedBox(height: 8),

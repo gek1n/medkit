@@ -234,6 +234,27 @@ class NotificationService {
     return _plugin.show(id, title, body, await _details());
   }
 
+  // ── Сім'я: "за іншого" — пір створив/змінив мій запис (Крок 4.4.1) ─────
+  // Показується власнику даних одразу, коли пропозиція піра успішно
+  // застосувалась (record_proposal, FamilyPeerSyncService._applyRecordProposal)
+  // — на відміну від showRemoteReminder, будує title/body сам, з поточної
+  // мови ЦЬОГО пристрою (l10n сповіщення завжди має сенс лише
+  // отримувача, не відправника).
+  static Future<void> showPeerRecordApplied({
+    required String peerName,
+    required String recordTitle,
+    required bool isNew,
+  }) async {
+    final l10n = await _l10n();
+    final id = 9600000 + (DateTime.now().millisecondsSinceEpoch % 300000);
+    return _plugin.show(
+      id,
+      isNew ? l10n.notifPeerRecordAddedTitle(peerName) : l10n.notifPeerRecordEditedTitle(peerName),
+      recordTitle,
+      await _details(),
+    );
+  }
+
   // ── Нагадування про резервну копію ───────────────────────────────────
 
   static const backupReminderNotificationId = 9100000;

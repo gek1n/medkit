@@ -23,7 +23,20 @@ import '../plans/elly_denied_screen.dart';
 class AddMedcardEntryScreen extends ConsumerStatefulWidget {
   final MedcardSection section;
   final MedcardEntry? existing;
-  const AddMedcardEntryScreen({super.key, required this.section, this.existing});
+  // Крок 4.4.3 плану: коли задано — замість запису в локальну базу
+  // компаньйон повертається сюди (щоб надіслати як record_proposal піру),
+  // той самий патерн, що вже є в AddMedicationScreen/AddActivityScreen.
+  // [section] лишається required і в цьому режимі — це синтетичний розділ
+  // піра (peerMedcardSectionsProvider), достатній, щоб знати назву й
+  // sectionSyncUuid, куди саме запис додається; переобрати ІНШИЙ розділ
+  // піра тут не можна (SpaceChip читає лише локальну базу) — ховається.
+  final void Function(MedcardEntriesCompanion draft)? onDraftCreated;
+  const AddMedcardEntryScreen({
+    super.key,
+    required this.section,
+    this.existing,
+    this.onDraftCreated,
+  });
 
   @override
   ConsumerState<AddMedcardEntryScreen> createState() => _AddMedcardEntryScreenState();
@@ -115,6 +128,26 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
           _notesController.text.trim().isEmpty ? null : _notesController.text.trim();
       final locationVal =
           _locationController.text.trim().isEmpty ? null : _locationController.text.trim();
+      if (widget.onDraftCreated != null) {
+        // memberId/sectionId — синтетичні, лише для узгодженості форми;
+        // реальні значення на боці піра підставляться при застосуванні
+        // record_proposal (FamilyPeerSyncService._insertRecord).
+        widget.onDraftCreated!(
+          MedcardEntriesCompanion.insert(
+            sectionId: _sectionId,
+            memberId: widget.section.memberId,
+            title: title,
+            recordDate: _recordDate,
+            notes: Value(notesVal),
+            tags: Value(jsonEncode(_tags)),
+            location: Value(locationVal),
+            documentPaths: Value(jsonEncode(_documentPaths)),
+          ),
+        );
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
+
       final ex = widget.existing;
       if (ex != null) {
         await ref.read(medcardEntriesRepositoryProvider).update(
@@ -177,7 +210,8 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (isMemberBlockedByPlan(ref, widget.section.memberId)) {
+    if (widget.onDraftCreated == null &&
+        isMemberBlockedByPlan(ref, widget.section.memberId)) {
       return const EllyDeniedScreen();
     }
     final isEdit = widget.existing != null;
@@ -246,12 +280,13 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                             ),
                           ),
                         ),
-                        SpaceChip(
-                          memberId: widget.section.memberId,
-                          sectionId: _sectionId,
-                          onChanged: (id) =>
-                              setState(() => _sectionId = id ?? widget.section.id),
-                        ),
+                        if (widget.onDraftCreated == null)
+                          SpaceChip(
+                            memberId: widget.section.memberId,
+                            sectionId: _sectionId,
+                            onChanged: (id) =>
+                                setState(() => _sectionId = id ?? widget.section.id),
+                          ),
                         FieldChip(
                           icon: Icons.location_on_outlined,
                           label: context.l10n.fieldWhere,

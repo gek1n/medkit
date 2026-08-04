@@ -8,6 +8,7 @@ import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/date_utils.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/plan_access.dart';
@@ -16,7 +17,10 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
+import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_activity_screen.dart';
@@ -50,12 +54,37 @@ final _streakProvider = FutureProvider.family<int, int>((ref, activityId) {
 /// MedcardEntryViewScreen: показує все заповнене, кнопка "Редагувати" веде
 /// на форму. Дії відмітити виконано/пропустити/поміняти чергу лишаються на
 /// картках Сьогодні/Розкладу — тут лише перегляд.
+///
+/// Крок 4.3.5 плану: [peer] непорожній — рутина береться не з локальної
+/// бази (id синтетичний), а з перекладача кешу піра; кнопки редагування/
+/// видалення ховаються. Стрік не показується для піра — рахується з
+/// ЛОКАЛЬНИХ ActivityLogs, для піра був би оманливо неправильним.
+/// "Чия черга" (Крок 7.3 плану) — тепер показується і для піра
+/// (ActivityAssignees вже синхронізується, Крок 7.1), разом із дією
+/// "взяти чергу на себе", якщо глядач сам є в пулі й сьогодні черга не на
+/// ньому — див. [_PeerTakeTurnRow].
 class RoutineViewScreen extends ConsumerWidget {
   final int activityId;
-  const RoutineViewScreen({super.key, required this.activityId});
+  final PeerSubject? peer;
+  const RoutineViewScreen({super.key, required this.activityId, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (peer != null) {
+      final activity = ref
+          .watch(peerActivitiesProvider(peer!.personUuid))
+          .where((a) => a.id == activityId)
+          .firstOrNull;
+      if (activity == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(child: _ViewBody(activity: activity, peer: peer)),
+      );
+    }
+
     final activityAsync = ref.watch(_activityProvider(activityId));
 
     return Scaffold(
@@ -83,7 +112,8 @@ class RoutineViewScreen extends ConsumerWidget {
 
 class _ViewBody extends ConsumerWidget {
   final Activity activity;
-  const _ViewBody({required this.activity});
+  final PeerSubject? peer;
+  const _ViewBody({required this.activity, this.peer});
 
   List<String> get _steps {
     try {
@@ -205,6 +235,11 @@ class _ViewBody extends ConsumerWidget {
     final photos = _photos;
     final hasLocation =
         activity.location != null && activity.location!.trim().isNotEmpty;
+    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Розкладу саме
+    // цьому глядачеві — олівець лишається доступним і для рутини піра,
+    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
+    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
+    final canEditPeer = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
 
     return Column(
       children: [
@@ -224,31 +259,54 @@ class _ViewBody extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    MkEditIconButton(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => editBlocked
-                              ? EllyDeniedScreen(
-                                  title: context.l10n.routineTasksLimitDeniedTitle,
-                                  subtitle: context
-                                      .l10n.routineTasksLimitDeniedSubtitle,
-                                )
-                              : AddActivityScreen(
-                                  memberId: activity.memberId,
-                                  existing: activity,
-                                  hideTypePicker: true,
-                                  compactMode: true,
-                                ),
+                    if (peer == null)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => editBlocked
+                                ? EllyDeniedScreen(
+                                    title: context.l10n.routineTasksLimitDeniedTitle,
+                                    subtitle: context
+                                        .l10n.routineTasksLimitDeniedSubtitle,
+                                  )
+                                : AddActivityScreen(
+                                    memberId: activity.memberId,
+                                    existing: activity,
+                                    hideTypePicker: true,
+                                    compactMode: true,
+                                  ),
+                          ),
+                        ),
+                      )
+                    else if (canEditPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddActivityScreen(
+                              existing: activity,
+                              hideTypePicker: true,
+                              compactMode: true,
+                              onDraftCreated: (draft) => submitActivityProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: activity.syncUuid,
+                                existingUpdatedAt: activity.updatedAt,
+                                syntheticSectionId: activity.sectionId,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              MkDeleteIconButton(
-                onTap: () => _delete(context, ref, activity),
-              ),
+              if (peer == null)
+                MkDeleteIconButton(
+                  onTap: () => _delete(context, ref, activity),
+                ),
             ],
           ),
         ),
@@ -292,7 +350,7 @@ class _ViewBody extends ConsumerWidget {
                     ),
                   ],
                 ),
-                if (activity.repeatType != 'weeklyGoal') ...[
+                if (peer == null && activity.repeatType != 'weeklyGoal') ...[
                   const SizedBox(height: 12),
                   _InfoRow(
                     icon: Icons.local_fire_department_rounded,
@@ -303,57 +361,60 @@ class _ViewBody extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 18),
-                assigneesAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, _) => const SizedBox.shrink(),
-                  data: (assignees) {
-                    final members = membersAsync.valueOrNull ?? [];
-                    String nameFor(int id) => members
-                        .where((m) => m.id == id)
-                        .map((m) => m.name)
-                        .firstOrNull ??
-                        '';
-                    if (assignees.length <= 1) {
-                      final id = assignees.isNotEmpty
-                          ? assignees.first.memberId
-                          : activity.memberId;
-                      return _InfoRow(
-                        icon: Icons.person_outline_rounded,
-                        color: color,
-                        text: nameFor(id),
-                      );
-                    }
-                    return FutureBuilder<int>(
-                      future: ref
-                          .read(activitiesRepositoryProvider)
-                          .assigneeForDate(activity, DateTime.now()),
-                      builder: (context, snap) {
-                        final turnName =
-                            snap.hasData ? nameFor(snap.data!) : '';
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _InfoRow(
-                              icon: Icons.sync_rounded,
-                              color: color,
-                              text: context.l10n
-                                  .routineRotationSummary(assignees.length),
-                            ),
-                            if (turnName.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              _InfoRow(
-                                icon: Icons.person_outline_rounded,
-                                color: color,
-                                text:
-                                    context.l10n.routineWhoseTurnLabel(turnName),
-                              ),
-                            ],
-                          ],
+                if (peer == null)
+                  assigneesAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                    data: (assignees) {
+                      final members = membersAsync.valueOrNull ?? [];
+                      String nameFor(int id) => members
+                          .where((m) => m.id == id)
+                          .map((m) => m.name)
+                          .firstOrNull ??
+                          '';
+                      if (assignees.length <= 1) {
+                        final id = assignees.isNotEmpty
+                            ? assignees.first.memberId
+                            : activity.memberId;
+                        return _InfoRow(
+                          icon: Icons.person_outline_rounded,
+                          color: color,
+                          text: nameFor(id),
                         );
-                      },
-                    );
-                  },
-                ),
+                      }
+                      return FutureBuilder<int>(
+                        future: ref
+                            .read(activitiesRepositoryProvider)
+                            .assigneeForDate(activity, DateTime.now()),
+                        builder: (context, snap) {
+                          final turnName =
+                              snap.hasData ? nameFor(snap.data!) : '';
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _InfoRow(
+                                icon: Icons.sync_rounded,
+                                color: color,
+                                text: context.l10n
+                                    .routineRotationSummary(assignees.length),
+                              ),
+                              if (turnName.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _InfoRow(
+                                  icon: Icons.person_outline_rounded,
+                                  color: color,
+                                  text: context.l10n
+                                      .routineWhoseTurnLabel(turnName),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  )
+                else
+                  _PeerRotationInfo(peer: peer!, activity: activity, color: color, canAct: canEditPeer),
                 if (steps.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.routineStepsLabel.toUpperCase(),
@@ -414,37 +475,128 @@ class _ViewBody extends ConsumerWidget {
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(),
                       style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: photos.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemBuilder: (context, i) => GestureDetector(
-                      onTap: () => showPhotoGalleryViewer(
-                          context, imagePaths: photos, initialIndex: i),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                        child: FutureBuilder<Uint8List>(
-                          future: PhotoService.decryptedBytes(photos[i]),
-                          builder: (context, snap) {
-                            if (!snap.hasData) {
-                              return Container(color: AppColors.surface);
-                            }
-                            return Image.memory(snap.data!, fit: BoxFit.cover);
-                          },
+                  if (peer != null)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: photos
+                          .map((path) => PeerAttachmentChip(
+                              channelId: peer!.channelId, photoPath: path))
+                          .toList(),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: photos.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemBuilder: (context, i) => GestureDetector(
+                        onTap: () => showPhotoGalleryViewer(
+                            context, imagePaths: photos, initialIndex: i),
+                        child: ClipRRect(
+                          borderRadius:
+                              BorderRadius.circular(AppDimensions.radiusMd),
+                          child: FutureBuilder<Uint8List>(
+                            future: PhotoService.decryptedBytes(photos[i]),
+                            builder: (context, snap) {
+                              if (!snap.hasData) {
+                                return Container(color: AppColors.surface);
+                              }
+                              return Image.memory(snap.data!, fit: BoxFit.cover);
+                            },
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ],
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Крок 7.3 плану: дзеркало блоку "чия черга" вище (для peer == null), лише
+/// джерело даних інше — уже перекладений кеш піра (Крок 7.1/7.2), а не
+/// локальна ActivitiesRepository.assigneeForDate (та формула рахує лише
+/// "теоретичну" чергу за замовчуванням, ігноруючи ручні обміни/пропуски —
+/// на боці субʼєкта саме ActivityLogs.memberId є фактичним результатом).
+/// Дія "взяти чергу на себе" — лише якщо глядач сам є в пулі (звірянням
+/// personUuid) і сьогодні черга не на ньому.
+class _PeerRotationInfo extends ConsumerWidget {
+  final PeerSubject peer;
+  final Activity activity;
+  final Color color;
+  final bool canAct;
+  const _PeerRotationInfo({
+    required this.peer,
+    required this.activity,
+    required this.color,
+    required this.canAct,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pool = ref
+        .watch(peerActivityAssigneesProvider(peer.personUuid))
+        .where((a) => a.activityId == activity.id)
+        .toList();
+    if (pool.length <= 1) return const SizedBox.shrink();
+
+    final todayLog = ref
+        .watch(peerActivityLogsProvider(peer.personUuid))
+        .where((l) => l.activityId == activity.id && MKDateUtils.isToday(l.scheduledAt))
+        .firstOrNull;
+    final assignee = todayLog == null
+        ? null
+        : ref.watch(peerActivityLogAssigneesProvider(peer.personUuid))[todayLog.id];
+    final myUuid = ref.watch(ownPersonUuidProvider);
+    final iAmInPool = myUuid != null && pool.any((a) => a.linkedPeerPersonUuid == myUuid);
+    final isMyTurn = assignee != null && myUuid != null && assignee.identity == myUuid;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.sync_rounded,
+          color: color,
+          text: context.l10n.routineRotationSummary(pool.length),
+        ),
+        if (assignee != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _InfoRow(
+                  icon: Icons.person_outline_rounded,
+                  color: color,
+                  text: context.l10n.routineWhoseTurnLabel(assignee.name ?? ''),
+                ),
+              ),
+              if (canAct && iAmInPool && !isMyTurn && todayLog!.syncUuid != null)
+                GestureDetector(
+                  onTap: () => submitActivityLogReassignProposal(
+                    ref,
+                    peer,
+                    syncUuid: todayLog.syncUuid!,
+                    updatedAt: todayLog.updatedAt,
+                    assigneeIdentity: myUuid,
+                  ),
+                  child: Text(
+                    context.l10n.routineTakeTurnAction,
+                    style: AppTextStyles.labelSm.copyWith(color: color, fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

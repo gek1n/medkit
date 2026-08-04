@@ -138,6 +138,21 @@ class FamilyGroupService {
   /// ([refreshPeers]) і надалі відносини між двома вже незалежними людьми
   /// живуть через звичайні FamilyPeers/FamilyGrants.
   Future<String> createConversionInvite(Member dependent) async {
+    // Крок 1.2 плану: почати НОВУ конвертацію заборонено — конвертація
+    // розкриває багато проблем на приймаючому боці. UI вже ховає кнопку для
+    // цього випадку; це defense-in-depth на рівні сервісу. Регенерація коду
+    // для ВЖЕ розпочатої конвертації (є рядок PendingGroupInvites з цим
+    // convertingMemberId) лишається дозволеною, щоб не зламати завершення
+    // вже показаного користувачу запрошення.
+    final hasPendingConversion = await (_db.select(_db.pendingGroupInvites)
+          ..where((t) => t.convertingMemberId.equals(dependent.id)))
+        .get()
+        .then((rows) => rows.isNotEmpty);
+    if (!hasPendingConversion) {
+      throw const GroupJoinException(
+          'Перетворення локального профілю на автономний тимчасово недоступне');
+    }
+
     final membersRepo = MembersRepository(_db);
     final owner = await membersRepo.getOwner();
     if (owner == null) throw const GroupJoinException('Немає власного профілю');
@@ -294,10 +309,29 @@ class FamilyGroupService {
   /// Викликати на тих самих тригерах, що й `FamilySyncService.syncAll()`
   /// (відкриття/resume/FCM) — перевіряє, чи хтось відповів на запрошення,
   /// що очікують відповіді.
+  // Крок 3.1 плану: код запрошення на сервері мертвий вже через 30 хвилин
+  // (одноразовий pairing-blob, див. inviteCodeExpiryNotice) — тож перевіряти
+  // мережею запрошення, старіше за це, гарантовано марно. Даємо запас на
+  // повільну мережу/розсинхронізований годинник і однаково прибираємо
+  // застарілий рядок локально, а не лишаємо його рости в списку назавжди.
+  static const _pendingInviteTtl = Duration(hours: 2);
+
   Future<void> refreshPeers() async {
     final repo = FamilyPeersRepository(_db);
 
     for (final invite in await repo.pendingInvites()) {
+      if (DateTime.now().difference(invite.createdAt) > _pendingInviteTtl) {
+        await repo.removePendingInvite(invite.channelId);
+        // Конверсія, яку так ніхто й не завершив, — прибираємо одноразовий
+        // канал передачі історії; сам локальний профіль лишається як є (він
+        // ніколи не переставав бути локальним, конверсія просто не сталась).
+        final convertingId = invite.convertingMemberId;
+        if (convertingId != null) {
+          await SharedChannelsRepository(_db).unbind(convertingId);
+        }
+        await SharedChannelKeyStorage.delete(invite.channelId);
+        continue;
+      }
       try {
         final keyBytes = await SharedChannelKeyStorage.read(invite.channelId);
         if (keyBytes == null) continue;

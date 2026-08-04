@@ -928,20 +928,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doctorVisitLabel => 'Doctor visit';
 
   @override
-  String get recordFallbackLabel => 'Record';
-
-  @override
-  String dataFromPeerTitle(String name) {
-    return 'Data from $name';
+  String familySectionAccessClosedTitle(String name, String section) {
+    return '“$name” closed access to “$section”';
   }
 
   @override
-  String peerNothingSharedYet(String name) {
-    return '$name hasn\'t shared anything with you yet — or access hasn\'t been granted yet.';
-  }
-
-  @override
-  String get noViewableDataLabel => 'No data available to view';
+  String get familySectionAccessClosedBody =>
+      'Ask them to share it if you\'d like to see these entries';
 
   @override
   String get fileRequestSentSnackbar =>
@@ -976,25 +969,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get requestFileAction => 'Request file';
 
   @override
-  String get editNotesTitle => 'Edit notes';
-
-  @override
-  String get editNotesDisclaimer =>
-      'The data owner will see this edit — it applies only if they haven\'t changed this record in the meantime.';
-
-  @override
-  String get notesHintEllipsis => 'Notes…';
-
-  @override
-  String get editSentSnackbar => 'Edit sent';
-
-  @override
   String sendFailedError(String error) {
     return 'Couldn\'t send: $error';
   }
-
-  @override
-  String get sendEditAction => 'Send edit';
 
   @override
   String get familyLabel => 'Family';
@@ -1394,6 +1371,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get viewerViewPermissionLabel =>
       'Can see tasks, shelves, and schedule';
+
+  @override
+  String get familySectionsIntro =>
+      'Exactly what this member can see and edit, while access is turned on above';
+
+  @override
+  String get familySectionScheduleLabel => 'Schedule';
+
+  @override
+  String get familySectionVisitsWellbeingLabel => 'Visits and wellbeing';
+
+  @override
+  String get familySectionShelvesLabel => 'Shelves';
+
+  @override
+  String get familySectionViewColumnLabel => 'View';
+
+  @override
+  String get familySectionEditColumnLabel => 'Edit';
 
   @override
   String get permissionDeniedNotYoursBody =>
@@ -1804,6 +1800,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineSkipTurnAction => 'Skip turn';
+
+  @override
+  String get routineTakeTurnAction => 'Take my turn';
 
   @override
   String routineWeeklyGoalProgressLabel(int done, int total) {
@@ -3162,6 +3161,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notifBackupReminderBody =>
       'Backup is off — data is stored only on this device. Turn it on in Profile so you don\'t lose it.';
+
+  @override
+  String notifPeerRecordAddedTitle(String name) {
+    return '$name added an entry';
+  }
+
+  @override
+  String notifPeerRecordEditedTitle(String name) {
+    return '$name edited an entry';
+  }
 
   @override
   String get notifLowStockTitle => '⚠️ Running low';

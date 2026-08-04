@@ -65,6 +65,11 @@ class ReminderSlots extends Table {
   TextColumn get timeOfDay => text()();
   // "08:30" — застосовується лише коли Reminders.repeatType == daily/weekly
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get syncUuid => text().nullable().unique()();
+  // для family_sync — див. коментар у medications_table.dart. Крок 5-6
+  // плану: раніше ця таблиця взагалі не мала синк-підготовки, тож
+  // час(и) нагадувань кілька разів на день не передавались між пристроями.
 }
 
 // Стан ВИКОНАННЯ конкретного випадку повторюваного нагадування (daily/

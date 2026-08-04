@@ -46,11 +46,16 @@ class AddAppointmentScreen extends ConsumerStatefulWidget {
   // одразу закривається — той самий патерн, що й AddMedicationScreen.
   final void Function(RemindersCompanion draft, List<String> slotTimes)?
       onDraftCreated;
+  // Крок 4.4.4 плану: [existing] піра має синтетичний id — локальний запит
+  // "часи для цього reminderId" (_loadSlots) нічого не знайшов би. Коли
+  // задано, підставляється напряму замість походу в локальну базу.
+  final List<String>? initialSlotTimes;
   const AddAppointmentScreen({
     super.key,
     this.memberId,
     this.existing,
     this.onDraftCreated,
+    this.initialSlotTimes,
   }) : assert(
           memberId != null || onDraftCreated != null,
           'AddAppointmentScreen needs either memberId or onDraftCreated',
@@ -157,7 +162,17 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         _dayOfMonth = ex.scheduledAt.day;
       }
       if (_repeatType == 'daily' || _repeatType == 'weekly') {
-        _loadSlots(ex.id);
+        if (widget.initialSlotTimes != null) {
+          if (widget.initialSlotTimes!.isNotEmpty) {
+            _slots = widget.initialSlotTimes!.map((t) {
+              final parts = t.split(':');
+              return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+            }).toList();
+          }
+          _loaded = true;
+        } else {
+          _loadSlots(ex.id);
+        }
       } else {
         _loaded = true;
       }
