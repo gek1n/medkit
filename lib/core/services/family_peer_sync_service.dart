@@ -48,6 +48,7 @@ class FamilyPeerSyncService {
     'intake',
     'activity',
     'activity_slot',
+    'activity_assignee',
     'activity_log',
     'wellbeing_log',
     'wellbeing_schedule',
@@ -63,7 +64,7 @@ class FamilyPeerSyncService {
   // взагалі створюється зв'язок; решта підпорядкована прапорцю "Синхронізувати
   // медкартку".
   static const _alwaysSyncedTypes = {
-    'medication', 'schedule', 'intake', 'activity', 'activity_slot', 'activity_log',
+    'medication', 'schedule', 'intake', 'activity', 'activity_slot', 'activity_assignee', 'activity_log',
   };
 
   // Intake/activity_log генеруються щодня — без вікна кеш SharedEntities на
@@ -518,6 +519,38 @@ class FamilyPeerSyncService {
           final json = _withUuid(slot.toJson(), slot.syncUuid!)..remove('activityId');
           json['activitySyncUuid'] = act.syncUuid;
           result.add(json);
+        }
+        return result;
+      case 'activity_assignee':
+        // Крок 7.1 плану: пул ротації рутинної справи — на відміну від
+        // решти типів тут немає власного syncUuid/updatedAt (весь пул
+        // завжди замінюється цілком через ActivitiesRepository.
+        // replaceAssignees, окремого редагування "на місці" не буває),
+        // тож "uuid" для дифу пушів — детермінований, зібраний із
+        // syncUuid активності + стабільної ідентичності самого рядка
+        // (personUuid дійсного члена/тіньового піра), а не autoincrement
+        // id (той міняється щоразу, як пул перезаписують).
+        final query = _db.select(_db.activityAssignees).join([
+          innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activityAssignees.activityId)),
+          innerJoin(_db.members, _db.members.id.equalsExp(_db.activityAssignees.memberId)),
+        ])
+          ..where(_db.activities.memberId.equals(memberId));
+        final result = <Map<String, dynamic>>[];
+        for (final r in await query.get()) {
+          final assignee = r.readTable(_db.activityAssignees);
+          final act = r.readTable(_db.activities);
+          final assigneeMember = r.readTable(_db.members);
+          if (act.syncUuid == null) continue;
+          final identity = assigneeMember.linkedPeerPersonUuid ?? 'm${assigneeMember.id}';
+          result.add({
+            'uuid': '${act.syncUuid}:$identity',
+            'activitySyncUuid': act.syncUuid,
+            'sortOrder': assignee.sortOrder,
+            'name': assigneeMember.name,
+            'avatarIndex': assigneeMember.avatarIndex,
+            'assigneeLinkedPeerPersonUuid': assigneeMember.linkedPeerPersonUuid,
+            'updatedAt': act.updatedAt.toIso8601String(),
+          });
         }
         return result;
       case 'activity_log':

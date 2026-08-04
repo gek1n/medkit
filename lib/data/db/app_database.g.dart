@@ -171,6 +171,17 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _linkedPeerPersonUuidMeta =
+      const VerificationMeta('linkedPeerPersonUuid');
+  @override
+  late final GeneratedColumn<String> linkedPeerPersonUuid =
+      GeneratedColumn<String>(
+        'linked_peer_person_uuid',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -187,6 +198,7 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
     updatedAt,
     personUuid,
     familyId,
+    linkedPeerPersonUuid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -292,6 +304,15 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
         familyId.isAcceptableOrUnknown(data['family_id']!, _familyIdMeta),
       );
     }
+    if (data.containsKey('linked_peer_person_uuid')) {
+      context.handle(
+        _linkedPeerPersonUuidMeta,
+        linkedPeerPersonUuid.isAcceptableOrUnknown(
+          data['linked_peer_person_uuid']!,
+          _linkedPeerPersonUuidMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -357,6 +378,10 @@ class $MembersTable extends Members with TableInfo<$MembersTable, Member> {
         DriftSqlType.string,
         data['${effectivePrefix}family_id'],
       ),
+      linkedPeerPersonUuid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_peer_person_uuid'],
+      ),
     );
   }
 
@@ -381,6 +406,7 @@ class Member extends DataClass implements Insertable<Member> {
   final DateTime updatedAt;
   final String? personUuid;
   final String? familyId;
+  final String? linkedPeerPersonUuid;
   const Member({
     required this.id,
     required this.name,
@@ -396,6 +422,7 @@ class Member extends DataClass implements Insertable<Member> {
     required this.updatedAt,
     this.personUuid,
     this.familyId,
+    this.linkedPeerPersonUuid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -425,6 +452,9 @@ class Member extends DataClass implements Insertable<Member> {
     }
     if (!nullToAbsent || familyId != null) {
       map['family_id'] = Variable<String>(familyId);
+    }
+    if (!nullToAbsent || linkedPeerPersonUuid != null) {
+      map['linked_peer_person_uuid'] = Variable<String>(linkedPeerPersonUuid);
     }
     return map;
   }
@@ -457,6 +487,9 @@ class Member extends DataClass implements Insertable<Member> {
       familyId: familyId == null && nullToAbsent
           ? const Value.absent()
           : Value(familyId),
+      linkedPeerPersonUuid: linkedPeerPersonUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedPeerPersonUuid),
     );
   }
 
@@ -482,6 +515,9 @@ class Member extends DataClass implements Insertable<Member> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       personUuid: serializer.fromJson<String?>(json['personUuid']),
       familyId: serializer.fromJson<String?>(json['familyId']),
+      linkedPeerPersonUuid: serializer.fromJson<String?>(
+        json['linkedPeerPersonUuid'],
+      ),
     );
   }
   @override
@@ -502,6 +538,7 @@ class Member extends DataClass implements Insertable<Member> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'personUuid': serializer.toJson<String?>(personUuid),
       'familyId': serializer.toJson<String?>(familyId),
+      'linkedPeerPersonUuid': serializer.toJson<String?>(linkedPeerPersonUuid),
     };
   }
 
@@ -520,6 +557,7 @@ class Member extends DataClass implements Insertable<Member> {
     DateTime? updatedAt,
     Value<String?> personUuid = const Value.absent(),
     Value<String?> familyId = const Value.absent(),
+    Value<String?> linkedPeerPersonUuid = const Value.absent(),
   }) => Member(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -537,6 +575,9 @@ class Member extends DataClass implements Insertable<Member> {
     updatedAt: updatedAt ?? this.updatedAt,
     personUuid: personUuid.present ? personUuid.value : this.personUuid,
     familyId: familyId.present ? familyId.value : this.familyId,
+    linkedPeerPersonUuid: linkedPeerPersonUuid.present
+        ? linkedPeerPersonUuid.value
+        : this.linkedPeerPersonUuid,
   );
   Member copyWithCompanion(MembersCompanion data) {
     return Member(
@@ -566,6 +607,9 @@ class Member extends DataClass implements Insertable<Member> {
           ? data.personUuid.value
           : this.personUuid,
       familyId: data.familyId.present ? data.familyId.value : this.familyId,
+      linkedPeerPersonUuid: data.linkedPeerPersonUuid.present
+          ? data.linkedPeerPersonUuid.value
+          : this.linkedPeerPersonUuid,
     );
   }
 
@@ -585,7 +629,8 @@ class Member extends DataClass implements Insertable<Member> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('personUuid: $personUuid, ')
-          ..write('familyId: $familyId')
+          ..write('familyId: $familyId, ')
+          ..write('linkedPeerPersonUuid: $linkedPeerPersonUuid')
           ..write(')'))
         .toString();
   }
@@ -606,6 +651,7 @@ class Member extends DataClass implements Insertable<Member> {
     updatedAt,
     personUuid,
     familyId,
+    linkedPeerPersonUuid,
   );
   @override
   bool operator ==(Object other) =>
@@ -624,7 +670,8 @@ class Member extends DataClass implements Insertable<Member> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.personUuid == this.personUuid &&
-          other.familyId == this.familyId);
+          other.familyId == this.familyId &&
+          other.linkedPeerPersonUuid == this.linkedPeerPersonUuid);
 }
 
 class MembersCompanion extends UpdateCompanion<Member> {
@@ -642,6 +689,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
   final Value<DateTime> updatedAt;
   final Value<String?> personUuid;
   final Value<String?> familyId;
+  final Value<String?> linkedPeerPersonUuid;
   const MembersCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -657,6 +705,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     this.updatedAt = const Value.absent(),
     this.personUuid = const Value.absent(),
     this.familyId = const Value.absent(),
+    this.linkedPeerPersonUuid = const Value.absent(),
   });
   MembersCompanion.insert({
     this.id = const Value.absent(),
@@ -673,6 +722,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     this.updatedAt = const Value.absent(),
     this.personUuid = const Value.absent(),
     this.familyId = const Value.absent(),
+    this.linkedPeerPersonUuid = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Member> custom({
     Expression<int>? id,
@@ -689,6 +739,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     Expression<DateTime>? updatedAt,
     Expression<String>? personUuid,
     Expression<String>? familyId,
+    Expression<String>? linkedPeerPersonUuid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -706,6 +757,8 @@ class MembersCompanion extends UpdateCompanion<Member> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (personUuid != null) 'person_uuid': personUuid,
       if (familyId != null) 'family_id': familyId,
+      if (linkedPeerPersonUuid != null)
+        'linked_peer_person_uuid': linkedPeerPersonUuid,
     });
   }
 
@@ -724,6 +777,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
     Value<DateTime>? updatedAt,
     Value<String?>? personUuid,
     Value<String?>? familyId,
+    Value<String?>? linkedPeerPersonUuid,
   }) {
     return MembersCompanion(
       id: id ?? this.id,
@@ -740,6 +794,7 @@ class MembersCompanion extends UpdateCompanion<Member> {
       updatedAt: updatedAt ?? this.updatedAt,
       personUuid: personUuid ?? this.personUuid,
       familyId: familyId ?? this.familyId,
+      linkedPeerPersonUuid: linkedPeerPersonUuid ?? this.linkedPeerPersonUuid,
     );
   }
 
@@ -790,6 +845,11 @@ class MembersCompanion extends UpdateCompanion<Member> {
     if (familyId.present) {
       map['family_id'] = Variable<String>(familyId.value);
     }
+    if (linkedPeerPersonUuid.present) {
+      map['linked_peer_person_uuid'] = Variable<String>(
+        linkedPeerPersonUuid.value,
+      );
+    }
     return map;
   }
 
@@ -809,7 +869,8 @@ class MembersCompanion extends UpdateCompanion<Member> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('personUuid: $personUuid, ')
-          ..write('familyId: $familyId')
+          ..write('familyId: $familyId, ')
+          ..write('linkedPeerPersonUuid: $linkedPeerPersonUuid')
           ..write(')'))
         .toString();
   }
