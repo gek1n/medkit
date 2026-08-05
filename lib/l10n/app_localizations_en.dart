@@ -220,6 +220,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleTitle => 'Schedule';
 
   @override
+  String get scheduleCategoryPickerTitle => 'Section';
+
+  @override
+  String get calendarNoTimeLabel => 'No time';
+
+  @override
   String get searchAllSections => 'Search all sections';
 
   @override
@@ -381,10 +387,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medCardWellbeingHistorySubtitle => 'Mood over time';
 
   @override
-  String get customSectionsHeader => 'Your sections';
+  String get customSectionsHeader => 'Your shelves';
 
   @override
-  String get addSectionAction => 'Add section';
+  String get addSectionAction => 'Add shelf';
+
+  @override
+  String get shelfTypeTitle => 'Shelf';
+
+  @override
+  String get shelfTypeSub => 'Your own section with an icon and color';
 
   @override
   String get newSectionTitle => 'New section';
@@ -1147,6 +1159,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get familyGroupSectionLabel => 'Family group';
 
   @override
+  String get localUsersSectionLabel => 'Local users';
+
+  @override
   String slotsUsedLabel(int used, int total) {
     return '$used of $total';
   }
@@ -1390,6 +1405,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get familySectionEditColumnLabel => 'Edit';
+
+  @override
+  String get yesAction => 'Yes';
+
+  @override
+  String familyJoinPopupOwnerBody(String name) {
+    return '$name joined your family. Want to share your records with them?';
+  }
+
+  @override
+  String familyJoinPopupInviteeBody(String name) {
+    return 'You\'ve been added to $name\'s family. Want to share your records with them?';
+  }
 
   @override
   String get permissionDeniedNotYoursBody =>

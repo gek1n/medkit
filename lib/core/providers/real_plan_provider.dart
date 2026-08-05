@@ -31,7 +31,7 @@ final realPlanProvider = FutureProvider<AppPlan>((ref) async {
   // watch (не read) — перераховується, коли приходить свіжий grants_summary
   // від будь-якого піра (payerPlanActive/invitedMe могли змінитись).
   final peers = ref.watch(_familyPeersStreamProvider).valueOrNull ?? const [];
-  final own = await SubscriptionService.cachedPlan();
+  final own = await ref.watch(ownPlanProvider.future);
 
   final hasActiveFamilyGift = peers.any((p) => p.invitedMe && p.payerPlanActive);
   if (hasActiveFamilyGift && own != AppPlan.family) {
@@ -39,3 +39,14 @@ final realPlanProvider = FutureProvider<AppPlan>((ref) async {
   }
   return own;
 });
+
+/// Мій ВЛАСНИЙ куплений план — без "подарунка" від сім'ї, до якої мене
+/// запросили. [realPlanProvider] (а через нього — bridged `planProvider`)
+/// свідомо піднімає ефективний план до Family для всіх плюшок ліміту
+/// (локальні профілі, рутини, розділи Поличок тощо) — так і задумано, кожен
+/// запрошений отримує весь тариф сім'ї, крім самого статусу адміністратора.
+/// Але можливість запросити когось у СВОЮ (окрему) сім'ю — це і є той самий
+/// статус адміністратора, тож вона має спиратись лише на реальну покупку,
+/// а не на подарунок: інакше запрошений зміг би плодити власні сім'ї на
+/// чужому тарифі.
+final ownPlanProvider = FutureProvider<AppPlan>((ref) => SubscriptionService.cachedPlan());

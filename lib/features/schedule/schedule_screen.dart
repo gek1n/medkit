@@ -10,6 +10,8 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/asset_icon.dart';
+import 'schedule_calendar_view.dart';
+import 'schedule_category.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
@@ -68,41 +70,14 @@ final _scheduleWellbeingScheduleProvider =
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-// 4 типізовані категорії (той самий порядок, що й у пікері створення
-// завдання) + "Всі". Нагадування — об'єднана форма (заміна Зустрічі/Спорт/
-// Прості завдання), завжди з таблиці Reminders. Рутинні справи — окремо,
-// це Activities зі службовим (прихованим від юзера) type == 'routine'.
-enum _ScheduleCategory { all, meds, reminders, routine, wellbeing }
-
 const _kActivityTypeRoutine = 'routine';
 
-extension on _ScheduleCategory {
-  IconData get icon => switch (this) {
-        _ScheduleCategory.all => Icons.grid_view_rounded,
-        _ScheduleCategory.meds => Icons.medication_rounded,
-        _ScheduleCategory.reminders => Icons.notifications_rounded,
-        _ScheduleCategory.routine => Icons.home_repair_service_rounded,
-        _ScheduleCategory.wellbeing => Icons.favorite_rounded,
-      };
+// ─── View format ─────────────────────────────────────────────────────────────
 
-  // "Всі" не має власного task_*-асета (це не окремий тип, а перемикач
-  // показу всіх одразу) — лишається на Material-іконці.
-  String? get assetKey => switch (this) {
-        _ScheduleCategory.all => null,
-        _ScheduleCategory.meds => 'box',
-        _ScheduleCategory.reminders => 'task_reminder',
-        _ScheduleCategory.routine => 'task_routine',
-        _ScheduleCategory.wellbeing => 'task_wellbeing',
-      };
-
-  String label(BuildContext context) => switch (this) {
-        _ScheduleCategory.all => context.l10n.categoryAll,
-        _ScheduleCategory.meds => context.l10n.categoryMeds,
-        _ScheduleCategory.reminders => context.l10n.reminderCategoryTitle,
-        _ScheduleCategory.routine => context.l10n.taskTypeRoutine,
-        _ScheduleCategory.wellbeing => context.l10n.categoryWellbeing,
-      };
-}
+// Сам календарний UI — окрема, значно більша задача наступної сесії; зараз
+// лише перемикач і заглушка на місці "Календар", щоб вибір формату вже жив
+// у стані екрана.
+enum _ScheduleViewFormat { list, calendar }
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
@@ -115,8 +90,9 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int? _selectedMemberId;
-  _ScheduleCategory _category = _ScheduleCategory.all;
+  ScheduleCategory _category = ScheduleCategory.all;
   String _search = '';
+  _ScheduleViewFormat _viewFormat = _ScheduleViewFormat.calendar;
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +148,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             onCategoryChanged: (c) => setState(() => _category = c),
             search: _search,
             onSearchChanged: (s) => setState(() => _search = s),
+            viewFormat: _viewFormat,
+            onViewFormatChanged: (f) => setState(() => _viewFormat = f),
             peer: peer,
             peers: peers,
             onSelectPeer: (p) {
@@ -191,10 +169,12 @@ class _ScheduleBody extends ConsumerWidget {
   final List<Member> members;
   final int selectedMemberId;
   final void Function(int) onMemberChanged;
-  final _ScheduleCategory category;
-  final void Function(_ScheduleCategory) onCategoryChanged;
+  final ScheduleCategory category;
+  final void Function(ScheduleCategory) onCategoryChanged;
   final String search;
   final void Function(String) onSearchChanged;
+  final _ScheduleViewFormat viewFormat;
+  final void Function(_ScheduleViewFormat) onViewFormatChanged;
   final PeerSubject? peer;
   final List<FamilyPeer> peers;
   final void Function(PeerSubject)? onSelectPeer;
@@ -207,6 +187,8 @@ class _ScheduleBody extends ConsumerWidget {
     required this.onCategoryChanged,
     required this.search,
     required this.onSearchChanged,
+    required this.viewFormat,
+    required this.onViewFormatChanged,
     this.peer,
     this.peers = const [],
     this.onSelectPeer,
@@ -221,6 +203,11 @@ class _ScheduleBody extends ConsumerWidget {
     final grants = ref.watch(activePeerGrantsProvider);
     final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
     final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
+    // Реальний баг: коли обидва домени закриті, вкладки й поле пошуку все
+    // одно лишались видимими (лише секції під ними — порожні), хоча
+    // дивитись зовсім нема на що. allClosed ховає їх повністю, лишаючи
+    // тільки заголовок і PeerSectionClosedCard-и нижче.
+    final allClosed = scheduleClosed && medcardClosed;
     // Крок 4.3.3 плану: коли обрано автономного піра, читаємо не з
     // локальної бази (той пір фізично не має тут Members-рядка), а з
     // перекладача (peer_view_providers.dart), той самий підхід, що й на
@@ -362,6 +349,84 @@ class _ScheduleBody extends ConsumerWidget {
       }
     }
 
+    // Календарний вигляд керує власним вертикальним скролом (кожна
+    // 2-денна сторінка гортається окремо), тож не влазить у той самий
+    // CustomScrollView, що й списковий — окрема гілка Column замість
+    // слайверів. Пір поки що лишається на списковому вигляді (Крок 4.3-
+    // подібна робота з перекладачем дат для автономного піра — окрема
+    // майбутня задача, не тут).
+    if (viewFormat == _ScheduleViewFormat.calendar && peer == null) {
+      return Column(
+        children: [
+          if (owner != null && member.id != owner.id)
+            SwitchProfileBanner(
+              name: member.name,
+              onReturn: () {
+                ref.read(activeMemberIdProvider.notifier).state = null;
+                if (owner != null) onMemberChanged(owner.id);
+              },
+            ),
+          Container(
+            color: AppColors.bg,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimensions.screenPadding,
+                  AppDimensions.lg,
+                  AppDimensions.screenPadding,
+                  AppDimensions.md,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(context.l10n.scheduleTitle, style: AppTextStyles.h2),
+                    ),
+                    _ViewFormatToggle(
+                      value: viewFormat,
+                      onChanged: onViewFormatChanged,
+                    ),
+                    if (members.length > 1 || peers.isNotEmpty) ...[
+                      const SizedBox(width: AppDimensions.sm),
+                    ],
+                    if (members.length > 1 || peers.isNotEmpty)
+                      MemberSwitcherPill(
+                        members: members,
+                        selected: member,
+                        onSelect: onMemberChanged,
+                        peers: peers,
+                        selectedPeer: peer,
+                        onSelectPeer: onSelectPeer,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.screenPadding, 0,
+              AppDimensions.screenPadding, AppDimensions.sm,
+            ),
+            child: _CategorySearchBar(
+              search: search,
+              searchHint: context.l10n.searchAllSections,
+              onSearchChanged: onSearchChanged,
+              category: category,
+              onCategoryChanged: onCategoryChanged,
+            ),
+          ),
+          Expanded(
+            child: ScheduleCalendarView(
+              memberId: selectedMemberId,
+              category: category,
+              search: q,
+            ),
+          ),
+        ],
+      );
+    }
+
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () async {
@@ -407,6 +472,13 @@ class _ScheduleBody extends ConsumerWidget {
                     Expanded(
                       child: Text(context.l10n.scheduleTitle, style: AppTextStyles.h2),
                     ),
+                    _ViewFormatToggle(
+                      value: viewFormat,
+                      onChanged: onViewFormatChanged,
+                    ),
+                    if (members.length > 1 || peers.isNotEmpty) ...[
+                      const SizedBox(width: AppDimensions.sm),
+                    ],
                     if (members.length > 1 || peers.isNotEmpty)
                       MemberSwitcherPill(
                         members: members,
@@ -423,29 +495,23 @@ class _ScheduleBody extends ConsumerWidget {
           ),
         ),
 
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.screenPadding, AppDimensions.md,
-              AppDimensions.screenPadding, 0,
-            ),
-            child: _SearchField(
-              value: search,
-              hint: context.l10n.searchAllSections,
-              onChanged: onSearchChanged,
-            ),
-          ),
-        ),
-
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: AppDimensions.sm),
-            child: _CategoryChipsRow(
-              selected: category,
-              onChanged: onCategoryChanged,
+        if (!allClosed) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.screenPadding, AppDimensions.md,
+                AppDimensions.screenPadding, 0,
+              ),
+              child: _CategorySearchBar(
+                search: search,
+                searchHint: context.l10n.searchAllSections,
+                onSearchChanged: onSearchChanged,
+                category: category,
+                onCategoryChanged: onCategoryChanged,
+              ),
             ),
           ),
-        ),
+        ],
 
         // Content
         SliverPadding(
@@ -455,9 +521,9 @@ class _ScheduleBody extends ConsumerWidget {
               const SizedBox(height: AppDimensions.lg),
 
               if (scheduleClosed &&
-                  (category == _ScheduleCategory.all ||
-                      category == _ScheduleCategory.meds ||
-                      category == _ScheduleCategory.routine))
+                  (category == ScheduleCategory.all ||
+                      category == ScheduleCategory.meds ||
+                      category == ScheduleCategory.routine))
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimensions.md),
                   child: PeerSectionClosedCard(
@@ -466,9 +532,9 @@ class _ScheduleBody extends ConsumerWidget {
                   ),
                 ),
               if (medcardClosed &&
-                  (category == _ScheduleCategory.all ||
-                      category == _ScheduleCategory.reminders ||
-                      category == _ScheduleCategory.wellbeing))
+                  (category == ScheduleCategory.all ||
+                      category == ScheduleCategory.reminders ||
+                      category == ScheduleCategory.wellbeing))
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimensions.md),
                   child: PeerSectionClosedCard(
@@ -478,8 +544,9 @@ class _ScheduleBody extends ConsumerWidget {
                 ),
 
               if (q.isEmpty) ...[
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.meds) ...[
+                if (!scheduleClosed &&
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.meds)) ...[
                   _SectionHeader(
                     icon: Icons.medication_rounded,
                     iconWidget: const AssetIcon('box', size: 22),
@@ -530,8 +597,9 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.reminders) ...[
+                if (!medcardClosed &&
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.reminders)) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
                     iconWidget: const AssetIcon('task_reminder', size: 22),
@@ -585,8 +653,9 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.routine) ...[
+                if (!scheduleClosed &&
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.routine)) ...[
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
                     iconWidget: const AssetIcon('task_routine', size: 22),
@@ -647,8 +716,9 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.wellbeing) ...[
+                if (!medcardClosed &&
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.wellbeing)) ...[
                   _SectionHeader(
                     icon: Icons.favorite_rounded,
                     iconWidget: const AssetIcon('task_wellbeing', size: 22),
@@ -809,97 +879,110 @@ class _ScheduleBody extends ConsumerWidget {
   }
 }
 
-// ─── Category chips row ──────────────────────────────────────────────────────
+// ─── View format toggle ───────────────────────────────────────────────────────
 
-class _CategoryChipsRow extends StatelessWidget {
-  final _ScheduleCategory selected;
-  final ValueChanged<_ScheduleCategory> onChanged;
+class _ViewFormatToggle extends StatelessWidget {
+  final _ScheduleViewFormat value;
+  final ValueChanged<_ScheduleViewFormat> onChanged;
 
-  const _CategoryChipsRow({required this.selected, required this.onChanged});
+  const _ViewFormatToggle({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.screenPadding),
-        itemCount: _ScheduleCategory.values.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final c = _ScheduleCategory.values[i];
-          final active = c == selected;
-          return GestureDetector(
-            onTap: () => onChanged(c),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: active ? AppColors.primary : AppColors.surface,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                border: Border.all(
-                    color: active ? AppColors.primary : AppColors.border),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  c.assetKey != null
-                      ? AssetIcon(c.assetKey!, size: 20)
-                      : Icon(c.icon,
-                          size: 16,
-                          color: active ? Colors.white : AppColors.textSub),
-                  const SizedBox(width: 6),
-                  Text(
-                    c.label(context),
-                    style: AppTextStyles.labelMd.copyWith(
-                        color: active ? Colors.white : AppColors.textMain),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ViewFormatButton(
+            active: value == _ScheduleViewFormat.list,
+            onTap: () => onChanged(_ScheduleViewFormat.list),
+            child: const Icon(Icons.view_agenda_rounded, size: 17),
+          ),
+          _ViewFormatButton(
+            active: value == _ScheduleViewFormat.calendar,
+            onTap: () => onChanged(_ScheduleViewFormat.calendar),
+            child: const AssetIcon('calendar', size: 17),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── Search field ─────────────────────────────────────────────────────────────
+class _ViewFormatButton extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+  final Widget child;
 
-class _SearchField extends StatefulWidget {
-  final String value;
-  final String hint;
-  final ValueChanged<String> onChanged;
+  const _ViewFormatButton({required this.active, required this.onTap, required this.child});
 
-  const _SearchField({
-    required this.value,
-    required this.hint,
-    required this.onChanged,
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 32,
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+        ),
+        child: IconTheme(
+          data: IconThemeData(color: active ? Colors.white : AppColors.textMuted),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Category chips row ──────────────────────────────────────────────────────
+
+class _CategorySearchBar extends StatefulWidget {
+  final String search;
+  final String searchHint;
+  final ValueChanged<String> onSearchChanged;
+  final ScheduleCategory category;
+  final ValueChanged<ScheduleCategory> onCategoryChanged;
+
+  const _CategorySearchBar({
+    required this.search,
+    required this.searchHint,
+    required this.onSearchChanged,
+    required this.category,
+    required this.onCategoryChanged,
   });
 
   @override
-  State<_SearchField> createState() => _SearchFieldState();
+  State<_CategorySearchBar> createState() => _CategorySearchBarState();
 }
 
-class _SearchFieldState extends State<_SearchField> {
+class _CategorySearchBarState extends State<_CategorySearchBar> {
   late final TextEditingController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: widget.value);
+    _ctrl = TextEditingController(text: widget.search);
     _ctrl.addListener(() => setState(() {}));
   }
 
   @override
-  void didUpdateWidget(covariant _SearchField oldWidget) {
+  void didUpdateWidget(covariant _CategorySearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.value != _ctrl.text) {
+    if (widget.search != _ctrl.text) {
       _ctrl.value = _ctrl.value.copyWith(
-        text: widget.value,
-        selection: TextSelection.collapsed(offset: widget.value.length),
+        text: widget.search,
+        selection: TextSelection.collapsed(offset: widget.search.length),
       );
     }
   }
@@ -910,43 +993,180 @@ class _SearchFieldState extends State<_SearchField> {
     super.dispose();
   }
 
+  Future<void> _openCategoryPicker() async {
+    final result = await showModalBottomSheet<ScheduleCategory>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _CategoryPickerSheet(selected: widget.category),
+    );
+    if (result != null) widget.onCategoryChanged(result);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x0F000000), blurRadius: 16, offset: Offset(0, 6)),
-        ],
-      ),
-      child: TextField(
-        controller: _ctrl,
-        onChanged: widget.onChanged,
-        style: AppTextStyles.bodyMd,
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
-          prefixIcon: const Icon(Icons.search_rounded,
-              color: AppColors.textMuted, size: 20),
-          suffixIcon: _ctrl.text.isEmpty
-              ? null
-              : GestureDetector(
-                  onTap: () {
-                    _ctrl.clear();
-                    widget.onChanged('');
-                  },
-                  child: const Icon(Icons.close_rounded,
-                      color: AppColors.textMuted, size: 18),
+    final active = widget.category != ScheduleCategory.all;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _ctrl,
+                    onChanged: widget.onSearchChanged,
+                    style: AppTextStyles.bodySm,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration.collapsed(
+                      hintText: widget.searchHint,
+                      hintStyle: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+                    ).copyWith(
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                    ),
+                  ),
                 ),
-          filled: false,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                if (_ctrl.text.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      _ctrl.clear();
+                      widget.onSearchChanged('');
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 6),
+                      child: Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: AppDimensions.sm),
+        Expanded(
+          flex: 2,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+            onTap: _openCategoryPicker,
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: active ? AppColors.primaryLight : AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                border: Border.all(color: active ? AppColors.primary : AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  widget.category.assetKey != null
+                      ? AssetIcon(widget.category.assetKey!, size: 16)
+                      : Icon(
+                          widget.category.icon,
+                          size: 16,
+                          color: active ? AppColors.primary : AppColors.textMuted,
+                        ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      widget.category.label(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelMd.copyWith(
+                        color: active ? AppColors.primary : AppColors.textSub,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CategoryPickerSheet extends StatelessWidget {
+  final ScheduleCategory selected;
+
+  const _CategoryPickerSheet({required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      heightFactor: 0.5,
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.l10n.scheduleCategoryPickerTitle,
+                      style: AppTextStyles.h3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: ScheduleCategory.values.length,
+                itemBuilder: (context, index) {
+                  final c = ScheduleCategory.values[index];
+                  final active = c == selected;
+                  return ListTile(
+                    onTap: () => Navigator.pop(context, c),
+                    leading: c.assetKey != null
+                        ? AssetIcon(c.assetKey!, size: 22)
+                        : Icon(
+                            c.icon,
+                            size: 20,
+                            color: active ? AppColors.primary : AppColors.textSub,
+                          ),
+                    title: Text(
+                      c.label(context),
+                      style: AppTextStyles.bodyLg.copyWith(
+                        color: active ? AppColors.primary : AppColors.textMain,
+                        fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: active
+                        ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                        : null,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

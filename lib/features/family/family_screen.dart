@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/providers/real_plan_provider.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
@@ -69,6 +70,11 @@ class _FamilyBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(planProvider);
     final limits = plan.limits;
+    // Реальний, НЕ "подарований" сім'єю план — можливість запросити когось
+    // у свою окрему сім'ю прирівнюється до статусу адміністратора і має
+    // спиратись лише на власну покупку (docs/multifamily_billing_plan.md,
+    // Крок 4: адміністратором може бути лише той, хто платить).
+    final ownPlan = ref.watch(ownPlanProvider).valueOrNull ?? AppPlan.free;
     // Власник рахується як локальний профіль — той самий слот, що і раніше
     // займав "maxMembers" на Free-плані. "Автономний" тепер завжди означає
     // незалежний FamilyPeer (Members більше не мають ролі 'member'), тому
@@ -83,9 +89,9 @@ class _FamilyBody extends ConsumerWidget {
     final localLimitReached =
         limits.maxLocalMembers != 0 && localCount >= limits.maxLocalMembers;
     if (localLimitReached) unawaited(MarketingTopicsService.markHitLocalLimit());
-    final autonomousLimitReached = limits.maxAutonomousMembers == 0
+    final autonomousLimitReached = ownPlan.limits.maxAutonomousMembers == 0
         ? true
-        : peersCount >= limits.maxAutonomousMembers;
+        : peersCount >= ownPlan.limits.maxAutonomousMembers;
     final familyAvailable = !localLimitReached || !autonomousLimitReached;
     final activeId = ref.watch(activeMemberIdProvider);
     Member? activeMember;
@@ -138,7 +144,14 @@ class _FamilyBody extends ConsumerWidget {
                 ),
               if (blocked || plan == AppPlan.plus)
                 const SizedBox(height: AppDimensions.md),
-              _DraggableMembers(others: others, ownerId: owner.id),
+              if (others.isNotEmpty)
+                _FamilyAccordionSection(
+                  header: Text(
+                    context.l10n.localUsersSectionLabel.toUpperCase(),
+                    style: AppTextStyles.labelSm.copyWith(color: AppColors.textMuted),
+                  ),
+                  child: _DraggableMembers(others: others, ownerId: owner.id),
+                ),
               if (!blocked) const _AddMemberTile(),
               const SizedBox(height: AppDimensions.xl),
               if (others.isNotEmpty) _CareSummaryCard(count: others.length),
@@ -447,6 +460,10 @@ class _MemberCard extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                     child: Row(
                       children: [
+                        if (dragHandle != null) ...[
+                          dragHandle!,
+                          const SizedBox(width: 4),
+                        ],
                         AvatarImage(index: member.avatarIndex, size: 52),
                         const SizedBox(width: 14),
                         Expanded(
@@ -485,10 +502,6 @@ class _MemberCard extends ConsumerWidget {
                           const SizedBox(width: 8),
                           const Icon(Icons.chevron_right_rounded,
                               color: AppColors.textMuted, size: 22),
-                        ],
-                        if (dragHandle != null) ...[
-                          const SizedBox(width: 4),
-                          dragHandle!,
                         ],
                       ],
                     ),
@@ -1020,13 +1033,16 @@ class _FamilyGroupSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final peersAsync = ref.watch(_familyPeersProvider);
     final peers = peersAsync.valueOrNull ?? [];
-    final plan = ref.watch(planProvider);
+    // Реальний, НЕ "подарований" сім'єю план — те саме обмеження, що й у
+    // _FamilyBody: запросити когось у СВОЮ сім'ю можна лише на власному
+    // тарифі, подарунок від чужого адміністратора цього не дає.
+    final ownPlan = ref.watch(ownPlanProvider).valueOrNull ?? AppPlan.free;
     // Слоти рахуються лише за тими, кого запросив Я (invitedMe==false) —
     // вхідні запрошення до чужих груп ліміт не займають.
     final invitedByMeCount = peers.where((p) => !p.invitedMe).length;
-    final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
+    final autonomousLimitReached = ownPlan.limits.maxAutonomousMembers == 0
         ? true
-        : invitedByMeCount >= plan.limits.maxAutonomousMembers;
+        : invitedByMeCount >= ownPlan.limits.maxAutonomousMembers;
 
     // Мультисемейність: один пристрій може одночасно вести власну сім'ю і
     // бути гостем у довільній кількості чужих — кожна familyId стає своєю
@@ -1054,9 +1070,9 @@ class _FamilyGroupSection extends ConsumerWidget {
             // Лічильник слотів і корона — лише для "моєї" секції (я
             // платящий саме тут); у чужій сім'ї я гість, це не моя квота.
             slotsLabel: entry.key == ownerFamilyId
-                ? context.l10n.slotsUsedLabel(invitedByMeCount, plan.limits.maxAutonomousMembers)
+                ? context.l10n.slotsUsedLabel(invitedByMeCount, ownPlan.limits.maxAutonomousMembers)
                 : null,
-            showPayerBadge: entry.key == ownerFamilyId && plan == AppPlan.family,
+            showPayerBadge: entry.key == ownerFamilyId && ownPlan == AppPlan.family,
             onLeave: (label) =>
                 _confirmLeaveGroup(context, ref, entry.key, label),
           ),
@@ -1126,9 +1142,8 @@ class _FamilyGroupSubsection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-          child: Row(
+        _FamilyAccordionSection(
+          header: Row(
             children: [
               Text(label, style: AppTextStyles.labelMd.copyWith(color: AppColors.textSub)),
               if (showPayerBadge) ...[
@@ -1143,20 +1158,23 @@ class _FamilyGroupSubsection extends StatelessWidget {
               ],
             ],
           ),
+          // Драг-н-дроп лише для "моєї" секції (пірів, яких я сам запросив) —
+          // порядок гостей у ЧУЖІЙ сім'ї не має чим бути кероване з мого
+          // боку, та й sortOrder тут єдиний спільний простір значень для
+          // ВСІХ пірів одразу (без прив'язки до familyId, бо перемикачі й
+          // так показують їх одним пласким блоком) — реордер лише "своєї"
+          // групи уникає колізій із чужими familyId-групами.
+          child: isOwnFamily
+              ? _DraggablePeers(peers: peers)
+              : Column(
+                  children: peers
+                      .map((p) => Padding(
+                            padding: const EdgeInsets.only(bottom: AppDimensions.sm),
+                            child: _PeerCard(peer: p),
+                          ))
+                      .toList(),
+                ),
         ),
-        // Драг-н-дроп лише для "моєї" секції (пірів, яких я сам запросив) —
-        // порядок гостей у ЧУЖІЙ сім'ї не має чим бути кероване з мого
-        // боку, та й sortOrder тут єдиний спільний простір значень для
-        // ВСІХ пірів одразу (без прив'язки до familyId, бо перемикачі й
-        // так показують їх одним пласким блоком) — реордер лише "своєї"
-        // групи уникає колізій із чужими familyId-групами.
-        if (isOwnFamily)
-          _DraggablePeers(peers: peers)
-        else
-          ...peers.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                child: _PeerCard(peer: p),
-              )),
         Center(
           child: TextButton(
             onPressed: () => onLeave(label),
@@ -1401,16 +1419,60 @@ Future<void> _sendPeerReminder(BuildContext context, WidgetRef ref, FamilyPeer p
       title: l10n.reminderPushTitle,
       body: body,
     );
-    messenger.showSnackBar(SnackBar(content: Text(l10n.reminderSentSnackbar(peer.name))));
+    // Підтвердження, що ми успішно достукались до relay — не гарантія, що
+    // сповіщення вже показалось на екрані піра (це залежить від того, чи
+    // його застосунок зараз здатний прийняти push, поза нашим контролем).
+    messenger.showSnackBar(SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(l10n.reminderSentSnackbar(peer.name))),
+        ],
+      ),
+      backgroundColor: AppColors.primary,
+    ));
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(l10n.sendFailedError('$e'))));
+    messenger.showSnackBar(SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(l10n.sendFailedError('$e'))),
+        ],
+      ),
+      backgroundColor: AppColors.danger,
+    ));
   }
 }
 
-class _PeerCard extends ConsumerWidget {
+class _PeerCard extends ConsumerStatefulWidget {
   final FamilyPeer peer;
   final Widget? dragHandle;
   const _PeerCard({required this.peer, this.dragHandle});
+
+  @override
+  ConsumerState<_PeerCard> createState() => _PeerCardState();
+}
+
+class _PeerCardState extends ConsumerState<_PeerCard> {
+  FamilyPeer get peer => widget.peer;
+  Widget? get dragHandle => widget.dragHandle;
+
+  // "Стоппер" на подвійний тап, поки перше надсилання ще в польоті — без
+  // цього швидкі повторні тапи (напр. поки чекаємо мережу) відправили б
+  // кілька копій одного й того самого нагадування.
+  bool _sending = false;
+
+  Future<void> _remind(_MissedItem firstMissed) async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    try {
+      await _sendPeerReminder(context, ref, peer, firstMissed);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   Future<void> _confirmRemove(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
@@ -1435,7 +1497,7 @@ class _PeerCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final missed = ref.watch(_peerMissedProvider(peer.personUuid)).valueOrNull ?? const [];
     final firstMissed = missed.isNotEmpty ? missed.first : null;
 
@@ -1470,6 +1532,10 @@ class _PeerCard extends ConsumerWidget {
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
+                  if (dragHandle != null) ...[
+                    dragHandle!,
+                    const SizedBox(width: 2),
+                  ],
                   AvatarImage(index: peer.avatarIndex, size: 40),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1493,10 +1559,6 @@ class _PeerCard extends ConsumerWidget {
                       child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
                     ),
                   ),
-                  if (dragHandle != null) ...[
-                    const SizedBox(width: 2),
-                    dragHandle!,
-                  ],
                 ],
               ),
             ),
@@ -1537,20 +1599,29 @@ class _PeerCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
-                    onTap: () => _sendPeerReminder(context, ref, peer, firstMissed),
+                    onTap: _sending ? null : () => _remind(firstMissed),
                     child: Container(
                       width: double.infinity,
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(vertical: 7),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: _sending ? AppColors.primary.withValues(alpha: 0.5) : AppColors.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        context.l10n.remindAction,
-                        style: AppTextStyles.bodyMd
-                            .copyWith(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
+                      child: _sending
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              context.l10n.remindAction,
+                              style: AppTextStyles.bodyMd.copyWith(
+                                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
                     ),
                   ),
                 ],
@@ -1612,6 +1683,50 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(text, style: AppTextStyles.labelSm);
+}
+
+/// Акордеон для списків членів сім'ї — заголовок у тому самому стилі, що
+/// й "Ранок"/"День"/"Ніч" на Сьогодні (uppercase labelSm), зі стрілкою
+/// розкриття справа скраю. За замовчуванням розкрито.
+class _FamilyAccordionSection extends StatefulWidget {
+  final Widget header;
+  final Widget child;
+  const _FamilyAccordionSection({required this.header, required this.child});
+
+  @override
+  State<_FamilyAccordionSection> createState() => _FamilyAccordionSectionState();
+}
+
+class _FamilyAccordionSectionState extends State<_FamilyAccordionSection> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppDimensions.sm),
+            child: Row(
+              children: [
+                Expanded(child: widget.header),
+                AnimatedRotation(
+                  turns: _expanded ? 0.25 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: const Icon(Icons.chevron_right_rounded,
+                      size: 20, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded) widget.child,
+      ],
+    );
+  }
 }
 
 // Розділ пікера аватарів на діапазон [start, end) — той самий вигляд плиток,

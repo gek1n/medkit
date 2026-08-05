@@ -14113,6 +14113,21 @@ class $FamilyPeersTable extends FamilyPeers
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _introductionSentMeta = const VerificationMeta(
+    'introductionSent',
+  );
+  @override
+  late final GeneratedColumn<bool> introductionSent = GeneratedColumn<bool>(
+    'introduction_sent',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("introduction_sent" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     personUuid,
@@ -14134,6 +14149,7 @@ class $FamilyPeersTable extends FamilyPeers
     invitedMe,
     payerPlanActive,
     sortOrder,
+    introductionSent,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -14305,6 +14321,15 @@ class $FamilyPeersTable extends FamilyPeers
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('introduction_sent')) {
+      context.handle(
+        _introductionSentMeta,
+        introductionSent.isAcceptableOrUnknown(
+          data['introduction_sent']!,
+          _introductionSentMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -14390,6 +14415,10 @@ class $FamilyPeersTable extends FamilyPeers
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      introductionSent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}introduction_sent'],
+      )!,
     );
   }
 
@@ -14419,6 +14448,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
   final bool invitedMe;
   final bool payerPlanActive;
   final int sortOrder;
+  final bool introductionSent;
   const FamilyPeer({
     required this.personUuid,
     required this.familyId,
@@ -14439,6 +14469,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     required this.invitedMe,
     required this.payerPlanActive,
     required this.sortOrder,
+    required this.introductionSent,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -14464,6 +14495,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     map['invited_me'] = Variable<bool>(invitedMe);
     map['payer_plan_active'] = Variable<bool>(payerPlanActive);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['introduction_sent'] = Variable<bool>(introductionSent);
     return map;
   }
 
@@ -14490,6 +14522,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       invitedMe: Value(invitedMe),
       payerPlanActive: Value(payerPlanActive),
       sortOrder: Value(sortOrder),
+      introductionSent: Value(introductionSent),
     );
   }
 
@@ -14522,6 +14555,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       invitedMe: serializer.fromJson<bool>(json['invitedMe']),
       payerPlanActive: serializer.fromJson<bool>(json['payerPlanActive']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      introductionSent: serializer.fromJson<bool>(json['introductionSent']),
     );
   }
   @override
@@ -14547,6 +14581,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
       'invitedMe': serializer.toJson<bool>(invitedMe),
       'payerPlanActive': serializer.toJson<bool>(payerPlanActive),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'introductionSent': serializer.toJson<bool>(introductionSent),
     };
   }
 
@@ -14570,6 +14605,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     bool? invitedMe,
     bool? payerPlanActive,
     int? sortOrder,
+    bool? introductionSent,
   }) => FamilyPeer(
     personUuid: personUuid ?? this.personUuid,
     familyId: familyId ?? this.familyId,
@@ -14590,6 +14626,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     invitedMe: invitedMe ?? this.invitedMe,
     payerPlanActive: payerPlanActive ?? this.payerPlanActive,
     sortOrder: sortOrder ?? this.sortOrder,
+    introductionSent: introductionSent ?? this.introductionSent,
   );
   FamilyPeer copyWithCompanion(FamilyPeersCompanion data) {
     return FamilyPeer(
@@ -14638,6 +14675,9 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ? data.payerPlanActive.value
           : this.payerPlanActive,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      introductionSent: data.introductionSent.present
+          ? data.introductionSent.value
+          : this.introductionSent,
     );
   }
 
@@ -14662,7 +14702,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           ..write('editShelvesGranted: $editShelvesGranted, ')
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('introductionSent: $introductionSent')
           ..write(')'))
         .toString();
   }
@@ -14688,6 +14729,7 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
     invitedMe,
     payerPlanActive,
     sortOrder,
+    introductionSent,
   );
   @override
   bool operator ==(Object other) =>
@@ -14711,7 +14753,8 @@ class FamilyPeer extends DataClass implements Insertable<FamilyPeer> {
           other.editShelvesGranted == this.editShelvesGranted &&
           other.invitedMe == this.invitedMe &&
           other.payerPlanActive == this.payerPlanActive &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.introductionSent == this.introductionSent);
 }
 
 class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
@@ -14734,6 +14777,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
   final Value<bool> invitedMe;
   final Value<bool> payerPlanActive;
   final Value<int> sortOrder;
+  final Value<bool> introductionSent;
   final Value<int> rowid;
   const FamilyPeersCompanion({
     this.personUuid = const Value.absent(),
@@ -14755,6 +14799,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.introductionSent = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FamilyPeersCompanion.insert({
@@ -14777,6 +14822,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     this.invitedMe = const Value.absent(),
     this.payerPlanActive = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.introductionSent = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : personUuid = Value(personUuid),
        familyId = Value(familyId),
@@ -14802,6 +14848,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Expression<bool>? invitedMe,
     Expression<bool>? payerPlanActive,
     Expression<int>? sortOrder,
+    Expression<bool>? introductionSent,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -14830,6 +14877,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       if (invitedMe != null) 'invited_me': invitedMe,
       if (payerPlanActive != null) 'payer_plan_active': payerPlanActive,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (introductionSent != null) 'introduction_sent': introductionSent,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -14854,6 +14902,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     Value<bool>? invitedMe,
     Value<bool>? payerPlanActive,
     Value<int>? sortOrder,
+    Value<bool>? introductionSent,
     Value<int>? rowid,
   }) {
     return FamilyPeersCompanion(
@@ -14876,6 +14925,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
       invitedMe: invitedMe ?? this.invitedMe,
       payerPlanActive: payerPlanActive ?? this.payerPlanActive,
       sortOrder: sortOrder ?? this.sortOrder,
+      introductionSent: introductionSent ?? this.introductionSent,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -14940,6 +14990,9 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (introductionSent.present) {
+      map['introduction_sent'] = Variable<bool>(introductionSent.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -14968,6 +15021,7 @@ class FamilyPeersCompanion extends UpdateCompanion<FamilyPeer> {
           ..write('invitedMe: $invitedMe, ')
           ..write('payerPlanActive: $payerPlanActive, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('introductionSent: $introductionSent, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();

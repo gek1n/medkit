@@ -268,40 +268,91 @@ class FamilyGroupService {
         channelId: preview.channelId,
         // Я скановував ЙОГО код — це він мене запросив, не витрачає мій ліміт.
         invitedMe: const Value(true),
+        // Реальний баг у продакшені (04.08): картка нижче раніше надсилалась
+        // РІВНО ОДИН раз, тут-таки. Якщо push-токен ще не готовий (типово на
+        // iOS одразу після приєднання, поки дозвіл не надано) — інвайтер
+        // навіки лишався без сліду, що запрошення прийняли. false — ще
+        // спробувати при наступних sync-раундах (retryPendingIntroductions).
+        introductionSent: const Value(false),
       ),
     );
 
+    final sent = await _sendMyCard(
+      channelId: preview.channelId,
+      syncKey: preview.syncKey,
+      familyId: preview.familyId,
+      owner: owner,
+    );
+    if (sent) {
+      await FamilyPeersRepository(_db).markIntroductionSent(preview.inviterPersonUuid);
+    }
+  }
+
+  /// Надсилає мою "візитівку" у відповідь каналом [channelId] — той самий
+  /// крок, що й наприкінці acceptInvite(), винесений окремо, щоб
+  /// [retryPendingIntroductions] міг повторювати його для пірів, чия перша
+  /// спроба не пройшла. Повертає true лише якщо реально дійшло до relay.
+  Future<bool> _sendMyCard({
+    required String channelId,
+    required List<int> syncKey,
+    required String familyId,
+    required Member owner,
+  }) async {
     String? token;
     try {
       token = await PushTokenService.getToken();
-      if (token != null) {
-        await _relayApi.register(channelId: preview.channelId, pushToken: token, platform: _platform);
-      }
-    } catch (_) {
-      // Не критично — токен можна зареєструвати пізніше.
+      if (token == null) return false;
+      await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+    } catch (e, st) {
+      AppLogger.logError('FamilyGroupService._sendMyCard.register(channelId=$channelId)', e, st);
+      return false;
     }
 
-    // Одразу надсилаємо СВОЮ картку у відповідь, щоб інвайтер дізнався про
-    // нового учасника — той самий канал і ключ, лише в інший бік.
-    if (token != null) {
-      try {
-        final key = SecretKey(preview.syncKey);
-        final myCard = {
-          'v': 3,
-          'familyId': preview.familyId,
-          'personUuid': owner.personUuid,
-          'name': owner.name,
-          'avatarIndex': owner.avatarIndex,
-        };
-        final encrypted = await SyncCryptoService.encryptEntity(key, myCard);
-        await _relayApi.send(
-          channelId: preview.channelId,
-          senderToken: token,
-          encryptedPayloadBase64: base64Encode(encrypted),
-        );
-      } catch (_) {
-        // Інвайтер підхопить картку при наступному відкритті застосунку —
-        // relay/state не залежить від миттєвої доставки пушу.
+    try {
+      final key = SecretKey(syncKey);
+      final myCard = {
+        'v': 3,
+        'familyId': familyId,
+        'personUuid': owner.personUuid,
+        'name': owner.name,
+        'avatarIndex': owner.avatarIndex,
+      };
+      final encrypted = await SyncCryptoService.encryptEntity(key, myCard);
+      await _relayApi.send(
+        channelId: channelId,
+        senderToken: token,
+        encryptedPayloadBase64: base64Encode(encrypted),
+      );
+      return true;
+    } catch (e, st) {
+      AppLogger.logError('FamilyGroupService._sendMyCard.send(channelId=$channelId)', e, st);
+      return false;
+    }
+  }
+
+  /// Викликати на тих самих тригерах, що й refreshPeers()/syncAllPeers() —
+  /// повторює надсилання моєї картки для пірів, чия перша спроба (в
+  /// acceptInvite()) не дійшла до relay (типово: push-токен ще не був
+  /// готовий у момент приєднання). Без цього такий пір назавжди лишається
+  /// невидимим на пристрої того, хто мене запросив, попри те, що я сам вже
+  /// бачу його в себе — саме це й сталось у реальному репорті користувача.
+  Future<void> retryPendingIntroductions() async {
+    final repo = FamilyPeersRepository(_db);
+    final membersRepo = MembersRepository(_db);
+    final owner = await membersRepo.getOwner();
+    if (owner == null) return;
+
+    for (final peer in await repo.peersNeedingIntroduction()) {
+      final syncKey = await SharedChannelKeyStorage.read(peer.channelId);
+      if (syncKey == null) continue;
+      final sent = await _sendMyCard(
+        channelId: peer.channelId,
+        syncKey: syncKey,
+        familyId: peer.familyId,
+        owner: owner,
+      );
+      if (sent) {
+        await repo.markIntroductionSent(peer.personUuid);
       }
     }
   }
@@ -316,8 +367,12 @@ class FamilyGroupService {
   // застарілий рядок локально, а не лишаємо його рости в списку назавжди.
   static const _pendingInviteTtl = Duration(hours: 2);
 
-  Future<void> refreshPeers() async {
+  /// Повертає щойно виявлених нових пірів (тих, хто відповів на МОЄ
+  /// запрошення саме в цьому виклику) — [main.dart] використовує це, щоб
+  /// показати одноразовий поп-ап "додався новий член сім'ї" (family_join_popup.dart).
+  Future<List<FamilyPeer>> refreshPeers() async {
     final repo = FamilyPeersRepository(_db);
+    final newlyAdded = <FamilyPeer>[];
 
     for (final invite in await repo.pendingInvites()) {
       if (DateTime.now().difference(invite.createdAt) > _pendingInviteTtl) {
@@ -339,8 +394,9 @@ class FamilyGroupService {
         final key = SecretKey(keyBytes);
         final card = await SyncCryptoService.decryptEntity(key, base64Decode(state.encryptedPayloadBase64));
         if (card['v'] != 3) continue;
+        final joinedPersonUuid = card['personUuid'] as String;
         await repo.upsert(FamilyPeersCompanion.insert(
-          personUuid: card['personUuid'] as String,
+          personUuid: joinedPersonUuid,
           familyId: card['familyId'] as String,
           name: card['name'] as String? ?? 'Учасник родини',
           avatarIndex: Value(card['avatarIndex'] as int? ?? 0),
@@ -349,6 +405,8 @@ class FamilyGroupService {
           // не запрошував, я запросив ЙОГО, тому invitedMe=false (за
           // замовчуванням), витрачає мій ліміт слотів.
         ));
+        final savedPeer = await repo.getByUuid(joinedPersonUuid);
+        if (savedPeer != null) newlyAdded.add(savedPeer);
 
         // Я (хаб цієї сім'ї) знайомлю нового учасника з усіма, хто вже в
         // групі, і навпаки — обміном візитівок (Фаза 5, автопредставлення).
@@ -383,5 +441,6 @@ class FamilyGroupService {
         );
       }
     }
+    return newlyAdded;
   }
 }

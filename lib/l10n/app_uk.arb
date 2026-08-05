@@ -111,6 +111,8 @@
   "categoryWellbeing": "Настрій",
   "categoryDoctors": "Нагадування",
   "scheduleTitle": "Розклад",
+  "scheduleCategoryPickerTitle": "Розділ",
+  "calendarNoTimeLabel": "Без часу",
   "searchAllSections": "Пошук по всіх розділах",
   "searchHint": "Пошук",
   "noResultsFoundHint": "Нічого не знайдено",
@@ -173,8 +175,10 @@
   "medCardAppointmentsSubtitle": "Зустрічі, прості завдання, рутинні справи",
   "medCardWellbeingHistoryTitle": "Історія настрою",
   "medCardWellbeingHistorySubtitle": "Настрій за весь час",
-  "customSectionsHeader": "Ваші розділи",
-  "addSectionAction": "Додати розділ",
+  "customSectionsHeader": "Ваші полички",
+  "addSectionAction": "Додати поличку",
+  "shelfTypeTitle": "Поличка",
+  "shelfTypeSub": "Свій розділ з іконкою та кольором",
   "newSectionTitle": "Новий розділ",
   "editSectionTitle": "Редагувати розділ",
   "sectionNameFieldLabel": "Назва",
@@ -691,6 +695,7 @@
     }
   },
   "familyGroupSectionLabel": "Сімейна група",
+  "localUsersSectionLabel": "Локальні користувачі",
   "slotsUsedLabel": "{used} з {total}",
   "@slotsUsedLabel": {
     "placeholders": {
@@ -838,6 +843,23 @@
   "familySectionShelvesLabel": "Полички",
   "familySectionViewColumnLabel": "Перегляд",
   "familySectionEditColumnLabel": "Редагування",
+  "yesAction": "Так",
+  "familyJoinPopupOwnerBody": "Додався новий член сім'ї {name}. Хочете поділитись своїми записами?",
+  "@familyJoinPopupOwnerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyJoinPopupInviteeBody": "Вас додали у сім'ю {name}. Хочете поділитись своїми записами?",
+  "@familyJoinPopupInviteeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "permissionDeniedNotYoursBody": "Не вдалося змінити — це не ваш профіль",
   "privacyLabel": "Конфіденційність",
   "securityLabel": "Безпека",

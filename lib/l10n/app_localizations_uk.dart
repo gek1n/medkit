@@ -220,6 +220,12 @@ class AppLocalizationsUk extends AppLocalizations {
   String get scheduleTitle => 'Розклад';
 
   @override
+  String get scheduleCategoryPickerTitle => 'Розділ';
+
+  @override
+  String get calendarNoTimeLabel => 'Без часу';
+
+  @override
   String get searchAllSections => 'Пошук по всіх розділах';
 
   @override
@@ -383,10 +389,16 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medCardWellbeingHistorySubtitle => 'Настрій за весь час';
 
   @override
-  String get customSectionsHeader => 'Ваші розділи';
+  String get customSectionsHeader => 'Ваші полички';
 
   @override
-  String get addSectionAction => 'Додати розділ';
+  String get addSectionAction => 'Додати поличку';
+
+  @override
+  String get shelfTypeTitle => 'Поличка';
+
+  @override
+  String get shelfTypeSub => 'Свій розділ з іконкою та кольором';
 
   @override
   String get newSectionTitle => 'Новий розділ';
@@ -1153,6 +1165,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get familyGroupSectionLabel => 'Сімейна група';
 
   @override
+  String get localUsersSectionLabel => 'Локальні користувачі';
+
+  @override
   String slotsUsedLabel(int used, int total) {
     return '$used з $total';
   }
@@ -1397,6 +1412,19 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get familySectionEditColumnLabel => 'Редагування';
+
+  @override
+  String get yesAction => 'Так';
+
+  @override
+  String familyJoinPopupOwnerBody(String name) {
+    return 'Додався новий член сім\'ї $name. Хочете поділитись своїми записами?';
+  }
+
+  @override
+  String familyJoinPopupInviteeBody(String name) {
+    return 'Вас додали у сім\'ю $name. Хочете поділитись своїми записами?';
+  }
 
   @override
   String get permissionDeniedNotYoursBody =>

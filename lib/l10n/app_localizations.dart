@@ -496,6 +496,18 @@ abstract class AppLocalizations {
   /// **'Розклад'**
   String get scheduleTitle;
 
+  /// No description provided for @scheduleCategoryPickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Розділ'**
+  String get scheduleCategoryPickerTitle;
+
+  /// No description provided for @calendarNoTimeLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Без часу'**
+  String get calendarNoTimeLabel;
+
   /// No description provided for @searchAllSections.
   ///
   /// In uk, this message translates to:
@@ -787,14 +799,26 @@ abstract class AppLocalizations {
   /// No description provided for @customSectionsHeader.
   ///
   /// In uk, this message translates to:
-  /// **'Ваші розділи'**
+  /// **'Ваші полички'**
   String get customSectionsHeader;
 
   /// No description provided for @addSectionAction.
   ///
   /// In uk, this message translates to:
-  /// **'Додати розділ'**
+  /// **'Додати поличку'**
   String get addSectionAction;
+
+  /// No description provided for @shelfTypeTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поличка'**
+  String get shelfTypeTitle;
+
+  /// No description provided for @shelfTypeSub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Свій розділ з іконкою та кольором'**
+  String get shelfTypeSub;
 
   /// No description provided for @newSectionTitle.
   ///
@@ -2074,6 +2098,12 @@ abstract class AppLocalizations {
   /// **'Сімейна група'**
   String get familyGroupSectionLabel;
 
+  /// No description provided for @localUsersSectionLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Локальні користувачі'**
+  String get localUsersSectionLabel;
+
   /// No description provided for @slotsUsedLabel.
   ///
   /// In uk, this message translates to:
@@ -2487,6 +2517,24 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Редагування'**
   String get familySectionEditColumnLabel;
+
+  /// No description provided for @yesAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Так'**
+  String get yesAction;
+
+  /// No description provided for @familyJoinPopupOwnerBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Додався новий член сім\'ї {name}. Хочете поділитись своїми записами?'**
+  String familyJoinPopupOwnerBody(String name);
+
+  /// No description provided for @familyJoinPopupInviteeBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'Вас додали у сім\'ю {name}. Хочете поділитись своїми записами?'**
+  String familyJoinPopupInviteeBody(String name);
 
   /// No description provided for @permissionDeniedNotYoursBody.
   ///
