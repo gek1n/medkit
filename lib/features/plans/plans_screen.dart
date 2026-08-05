@@ -7,6 +7,7 @@ import '../../core/config/app_env.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/providers/real_plan_provider.dart';
+import '../../core/services/app_logger.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/review_prompt_service.dart';
@@ -137,6 +138,11 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
         plan,
         yearly: _isYearly,
       );
+      // Тимчасове діагностичне логування (баг: "успіх" у снекбарі, але
+      // тариф фактично не перемикається) — той самий вузол, що й
+      // AppLogger-виклики в SubscriptionService._persistStatus.
+      AppLogger.log(
+          'PlansScreen._selectPaid: purchase outcome status=${outcome.status.status} productId=${outcome.status.productId}');
       ref.read(planProvider.notifier).state = plan;
       ref.invalidate(realPlanProvider);
       unawaited(MarketingTopicsService.clearPurchaseIntentTopics());

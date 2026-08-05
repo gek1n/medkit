@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_env.dart';
 import '../providers/plan_provider.dart';
 import 'account_service.dart';
+import 'app_logger.dart';
 import 'subscription_api_client.dart';
 
 /// Реальний білінг Plus/Family (StoreKit 2 / Play Billing через
@@ -75,7 +76,15 @@ class SubscriptionService {
 
   // ── Кеш статусу (SharedPreferences) — читає realPlanProvider ────────────
 
-  static Future<void> _persistStatus(SubscriptionStatusResult status) async {
+  static Future<void> _persistStatus(SubscriptionStatusResult status, {required String source}) async {
+    // Тимчасове діагностичне логування (баг: "Plans" показує успіх покупки,
+    // але тариф фактично не перемикається) — щоб побачити, чи справжня
+    // причина в тому, що сервер повертає не-active статус ще на самій
+    // verify-test-відповіді, чи в тому, що _billingSyncIfNeeded (боевий
+    // refreshFromServer, тригериться на кожному resume/cold-start) наздоганяє
+    // й перезаписує щойно встановлений тестовий статус назад.
+    AppLogger.log(
+        'SubscriptionService._persistStatus source=$source status=${status.status} productId=${status.productId} expiresAt=${status.expiresAt}');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_statusCacheKey, jsonEncode({
       'status': status.status,
@@ -144,7 +153,7 @@ class SubscriptionService {
 
     try {
       final status = await _api.status(accountId: accountId, recoveryKeyHash: hash);
-      await _persistStatus(status);
+      await _persistStatus(status, source: 'refreshFromServer');
     } catch (_) {
       // Мережа недоступна чи сервер тимчасово не відповідає — кеш лишається
       // попереднім (планProvider не мигне назад на free через тимчасовий збій).
@@ -295,7 +304,7 @@ class SubscriptionService {
       productId: productId,
       receipt: receipt,
     );
-    await _persistStatus(status);
+    await _persistStatus(status, source: '_verifyPurchase');
     await InAppPurchase.instance.completePurchase(purchase);
 
     return PurchaseOutcome(status: status, newRecoveryKeyDisplay: account.newRecoveryKeyDisplay);
@@ -344,7 +353,7 @@ class SubscriptionService {
       productId: productId,
       testSecret: _testSecret,
     );
-    await _persistStatus(status);
+    await _persistStatus(status, source: 'buyTest');
     return PurchaseOutcome(status: status, newRecoveryKeyDisplay: account.newRecoveryKeyDisplay);
   }
 
@@ -357,7 +366,7 @@ class SubscriptionService {
     if (accountId == null || hash == null) return;
 
     await _api.cancelTest(accountId: accountId, recoveryKeyHash: hash, testSecret: _testSecret);
-    await _persistStatus(const SubscriptionStatusResult(status: 'none'));
+    await _persistStatus(const SubscriptionStatusResult(status: 'none'), source: 'cancelTest');
   }
 }
 
