@@ -166,25 +166,28 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       }
       await ref.read(sharedChannelsRepositoryProvider).unbind(memberId);
 
-      if (token != null) {
-        try {
-          final key = SecretKey(syncKeyBytes);
-          final myCard = {
-            'v': 3,
-            'familyId': familyId,
-            'personUuid': myPersonUuid,
-            'name': profileName,
-            'avatarIndex': profileAvatarIndex,
-          };
-          final encrypted = await SyncCryptoService.encryptEntity(key, myCard);
-          await _relayApi.send(
-            channelId: channelId,
-            senderToken: token,
-            encryptedPayloadBase64: base64Encode(encrypted),
-          );
-        } catch (_) {
-          // Запрошувач підхопить картку на наступному тригері refreshPeers().
-        }
+      // Push-токен потрібен лише для миттєвого "розбудити" запрошувача —
+      // сама відправка картки НЕ має від нього залежати (той самий фікс, що
+      // й у FamilyGroupService._sendMyCard): без токена запрошувач все одно
+      // підхопить дані через звичайний polling на своєму наступному
+      // відкритті застосунку.
+      try {
+        final key = SecretKey(syncKeyBytes);
+        final myCard = {
+          'v': 3,
+          'familyId': familyId,
+          'personUuid': myPersonUuid,
+          'name': profileName,
+          'avatarIndex': profileAvatarIndex,
+        };
+        final encrypted = await SyncCryptoService.encryptEntity(key, myCard);
+        await _relayApi.send(
+          channelId: channelId,
+          senderToken: token ?? 'no-token-${DateTime.now().microsecondsSinceEpoch}',
+          encryptedPayloadBase64: base64Encode(encrypted),
+        );
+      } catch (_) {
+        // Запрошувач підхопить картку на наступному тригері refreshPeers().
       }
       unawaited(FamilyPeerSyncService(db).syncAllPeers());
 

@@ -306,23 +306,26 @@ class FamilyGroupService {
     required String familyId,
     required Member owner,
   }) async {
-    String? token;
-    try {
-      token = await PushTokenService.getToken();
-      if (token == null) {
-        // Мовчазний вихід тут — найімовірніша причина того, що інвайтер
-        // ніколи не бачить піра, а в логах запрошеного при цьому НІЧОГО
-        // немає: типово на iOS одразу після встановлення, поки дозвіл на
-        // сповіщення ще не надано, PushTokenService.getToken() повертає
-        // null, і раніше цей шлях не лишав жодного сліду для діагностики.
-        AppLogger.log(
-            'FamilyGroupService._sendMyCard: SKIPPED (push token null) channelId=$channelId personUuid=${owner.personUuid}');
-        return false;
+    // Push-токен потрібен лише для миттєвого "розбудити" іншу сторону —
+    // сама відправка картки (нижче) НЕ має від нього залежати: channel_state
+    // на сервері однаково читається звичайним polling'ом на кожному
+    // відкритті застосунку будь-якою стороною (FamilyGroupService.refreshPeers),
+    // а senderToken серверу не потрібен як справжній push-токен — це лише
+    // службова позначка "хто востаннє писав", не автентифікація (перевірено
+    // в RelayController.php: жодної звірки з реальними токенами). Раніше
+    // null-токен (типово нестабільна APNs-реєстрація на iOS) повністю
+    // скасовував відправку — і саме це, а не сам push, було справжньою
+    // причиною того, що інвайтер ніколи не бачив піра.
+    final token = await PushTokenService.getToken();
+    if (token == null) {
+      AppLogger.log(
+          'FamilyGroupService._sendMyCard: no push token, sending without push wake-up channelId=$channelId personUuid=${owner.personUuid}');
+    } else {
+      try {
+        await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+      } catch (e, st) {
+        AppLogger.logError('FamilyGroupService._sendMyCard.register(channelId=$channelId)', e, st);
       }
-      await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
-    } catch (e, st) {
-      AppLogger.logError('FamilyGroupService._sendMyCard.register(channelId=$channelId)', e, st);
-      return false;
     }
 
     try {
@@ -337,7 +340,7 @@ class FamilyGroupService {
       final encrypted = await SyncCryptoService.encryptEntity(key, myCard);
       await _relayApi.send(
         channelId: channelId,
-        senderToken: token,
+        senderToken: token ?? 'no-token-${DateTime.now().microsecondsSinceEpoch}',
         encryptedPayloadBase64: base64Encode(encrypted),
       );
       // Симетрична до логу невдачі нижче — без цього немає жодного сліду в
