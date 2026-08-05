@@ -50,13 +50,15 @@ class ScheduleCalendarView extends ConsumerStatefulWidget {
 }
 
 class _ScheduleCalendarViewState extends ConsumerState<ScheduleCalendarView> {
-  // Свайп рухає пару днів ЦІЛКОМ (по 2 дні за раз, без повторення спільного
-  // дня між сусідніми сторінками) — на відміну від "rolling" по 1 дню, де
-  // сторінки завжди ділять один день. _anchorDate — dayA для індексу
-  // _kOrigin; свайп лише змінює _pageIndex, а явний перехід (Сьогодні,
-  // тижнева стрічка) зсуває сам якір і скидає індекс назад до _kOrigin —
-  // так дата під пальцем завжди стає ЛІВОЮ колонкою одразу, без
-  // прив'язки до жорсткої парної сітки від фіксованої епохи.
+  // Свайп рухає вікно "rolling" по 1 дню — сусідні сторінки завжди ділять
+  // один спільний день (було [5,6], вправо → [6,7], вліво з [5,6] → [4,5]),
+  // це навмисно, не баг. _anchorDate — dayA для індексу _kOrigin; свайп
+  // лише змінює _pageIndex, а явний перехід (Сьогодні, тижнева стрічка)
+  // зсуває сам якір і скидає індекс назад до _kOrigin — так дата під
+  // пальцем завжди стає ЛІВОЮ колонкою одразу, без прив'язки до жорсткої
+  // сітки від фіксованої епохи (це й було джерелом старого DST-бага з
+  // неправильним дефолтним днем — .difference(epoch).inDays міг зсуватись
+  // на добу навколо переходів на літній/зимовий час).
   static const _kOrigin = 5000;
 
   late final PageController _pageController;
@@ -67,8 +69,7 @@ class _ScheduleCalendarViewState extends ConsumerState<ScheduleCalendarView> {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  DateTime _dateForPage(int page) =>
-      _anchorDate.add(Duration(days: (page - _kOrigin) * 2));
+  DateTime _dateForPage(int page) => _anchorDate.add(Duration(days: page - _kOrigin));
 
   @override
   void initState() {
