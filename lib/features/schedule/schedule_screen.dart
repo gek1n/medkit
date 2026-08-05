@@ -882,12 +882,8 @@ class _ScheduleBody extends ConsumerWidget {
 // ─── View format toggle ───────────────────────────────────────────────────────
 
 extension on _ScheduleViewFormat {
-  // TODO: 'list' зараз падає на дефолтну Material-іконку — власного
-  // асета "список" ще нема в assets/icons/ (лише task_*, box, calendar
-  // тощо). Підмінити на AssetIcon('list', ...), щойно з'явиться файл.
   Widget icon({double size = 17, Color? color}) => switch (this) {
-        _ScheduleViewFormat.list =>
-          Icon(Icons.view_agenda_rounded, size: size, color: color ?? AppColors.textMuted),
+        _ScheduleViewFormat.list => AssetIcon('document', size: size),
         _ScheduleViewFormat.calendar => AssetIcon('calendar', size: size),
       };
 
