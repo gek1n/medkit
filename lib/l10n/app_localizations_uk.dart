@@ -223,6 +223,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get scheduleCategoryPickerTitle => 'Розділ';
 
   @override
+  String get calendarNoTimeLabel => 'Без часу';
+
+  @override
   String get searchAllSections => 'Пошук по всіх розділах';
 
   @override

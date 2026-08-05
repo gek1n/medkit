@@ -502,6 +502,12 @@ abstract class AppLocalizations {
   /// **'Розділ'**
   String get scheduleCategoryPickerTitle;
 
+  /// No description provided for @calendarNoTimeLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Без часу'**
+  String get calendarNoTimeLabel;
+
   /// No description provided for @searchAllSections.
   ///
   /// In uk, this message translates to:

@@ -10,6 +10,8 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../shared/widgets/asset_icon.dart';
+import 'schedule_calendar_view.dart';
+import 'schedule_category.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
@@ -68,41 +70,7 @@ final _scheduleWellbeingScheduleProvider =
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-// 4 типізовані категорії (той самий порядок, що й у пікері створення
-// завдання) + "Всі". Нагадування — об'єднана форма (заміна Зустрічі/Спорт/
-// Прості завдання), завжди з таблиці Reminders. Рутинні справи — окремо,
-// це Activities зі службовим (прихованим від юзера) type == 'routine'.
-enum _ScheduleCategory { all, meds, reminders, routine, wellbeing }
-
 const _kActivityTypeRoutine = 'routine';
-
-extension on _ScheduleCategory {
-  IconData get icon => switch (this) {
-        _ScheduleCategory.all => Icons.grid_view_rounded,
-        _ScheduleCategory.meds => Icons.medication_rounded,
-        _ScheduleCategory.reminders => Icons.notifications_rounded,
-        _ScheduleCategory.routine => Icons.home_repair_service_rounded,
-        _ScheduleCategory.wellbeing => Icons.favorite_rounded,
-      };
-
-  // "Всі" не має власного task_*-асета (це не окремий тип, а перемикач
-  // показу всіх одразу) — лишається на Material-іконці.
-  String? get assetKey => switch (this) {
-        _ScheduleCategory.all => null,
-        _ScheduleCategory.meds => 'box',
-        _ScheduleCategory.reminders => 'task_reminder',
-        _ScheduleCategory.routine => 'task_routine',
-        _ScheduleCategory.wellbeing => 'task_wellbeing',
-      };
-
-  String label(BuildContext context) => switch (this) {
-        _ScheduleCategory.all => context.l10n.categoryAll,
-        _ScheduleCategory.meds => context.l10n.categoryMeds,
-        _ScheduleCategory.reminders => context.l10n.reminderCategoryTitle,
-        _ScheduleCategory.routine => context.l10n.taskTypeRoutine,
-        _ScheduleCategory.wellbeing => context.l10n.categoryWellbeing,
-      };
-}
 
 // ─── View format ─────────────────────────────────────────────────────────────
 
@@ -122,7 +90,7 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int? _selectedMemberId;
-  _ScheduleCategory _category = _ScheduleCategory.all;
+  ScheduleCategory _category = ScheduleCategory.all;
   String _search = '';
   _ScheduleViewFormat _viewFormat = _ScheduleViewFormat.calendar;
 
@@ -201,8 +169,8 @@ class _ScheduleBody extends ConsumerWidget {
   final List<Member> members;
   final int selectedMemberId;
   final void Function(int) onMemberChanged;
-  final _ScheduleCategory category;
-  final void Function(_ScheduleCategory) onCategoryChanged;
+  final ScheduleCategory category;
+  final void Function(ScheduleCategory) onCategoryChanged;
   final String search;
   final void Function(String) onSearchChanged;
   final _ScheduleViewFormat viewFormat;
@@ -381,6 +349,84 @@ class _ScheduleBody extends ConsumerWidget {
       }
     }
 
+    // Календарний вигляд керує власним вертикальним скролом (кожна
+    // 2-денна сторінка гортається окремо), тож не влазить у той самий
+    // CustomScrollView, що й списковий — окрема гілка Column замість
+    // слайверів. Пір поки що лишається на списковому вигляді (Крок 4.3-
+    // подібна робота з перекладачем дат для автономного піра — окрема
+    // майбутня задача, не тут).
+    if (viewFormat == _ScheduleViewFormat.calendar && peer == null) {
+      return Column(
+        children: [
+          if (owner != null && member.id != owner.id)
+            SwitchProfileBanner(
+              name: member.name,
+              onReturn: () {
+                ref.read(activeMemberIdProvider.notifier).state = null;
+                if (owner != null) onMemberChanged(owner.id);
+              },
+            ),
+          Container(
+            color: AppColors.bg,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppDimensions.screenPadding,
+                  AppDimensions.lg,
+                  AppDimensions.screenPadding,
+                  AppDimensions.md,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(context.l10n.scheduleTitle, style: AppTextStyles.h2),
+                    ),
+                    _ViewFormatToggle(
+                      value: viewFormat,
+                      onChanged: onViewFormatChanged,
+                    ),
+                    if (members.length > 1 || peers.isNotEmpty) ...[
+                      const SizedBox(width: AppDimensions.sm),
+                    ],
+                    if (members.length > 1 || peers.isNotEmpty)
+                      MemberSwitcherPill(
+                        members: members,
+                        selected: member,
+                        onSelect: onMemberChanged,
+                        peers: peers,
+                        selectedPeer: peer,
+                        onSelectPeer: onSelectPeer,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.screenPadding, 0,
+              AppDimensions.screenPadding, AppDimensions.sm,
+            ),
+            child: _CategorySearchBar(
+              search: search,
+              searchHint: context.l10n.searchAllSections,
+              onSearchChanged: onSearchChanged,
+              category: category,
+              onCategoryChanged: onCategoryChanged,
+            ),
+          ),
+          Expanded(
+            child: ScheduleCalendarView(
+              memberId: selectedMemberId,
+              category: category,
+              search: q,
+            ),
+          ),
+        ],
+      );
+    }
+
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () async {
@@ -449,28 +495,6 @@ class _ScheduleBody extends ConsumerWidget {
           ),
         ),
 
-        if (viewFormat == _ScheduleViewFormat.calendar)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset('assets/illustrations/elly-calendar.png', height: 140),
-                    const SizedBox(height: 16),
-                    Text(
-                      context.l10n.comingSoon,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else ...[
         if (!allClosed) ...[
           SliverToBoxAdapter(
             child: Padding(
@@ -497,9 +521,9 @@ class _ScheduleBody extends ConsumerWidget {
               const SizedBox(height: AppDimensions.lg),
 
               if (scheduleClosed &&
-                  (category == _ScheduleCategory.all ||
-                      category == _ScheduleCategory.meds ||
-                      category == _ScheduleCategory.routine))
+                  (category == ScheduleCategory.all ||
+                      category == ScheduleCategory.meds ||
+                      category == ScheduleCategory.routine))
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimensions.md),
                   child: PeerSectionClosedCard(
@@ -508,9 +532,9 @@ class _ScheduleBody extends ConsumerWidget {
                   ),
                 ),
               if (medcardClosed &&
-                  (category == _ScheduleCategory.all ||
-                      category == _ScheduleCategory.reminders ||
-                      category == _ScheduleCategory.wellbeing))
+                  (category == ScheduleCategory.all ||
+                      category == ScheduleCategory.reminders ||
+                      category == ScheduleCategory.wellbeing))
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppDimensions.md),
                   child: PeerSectionClosedCard(
@@ -521,8 +545,8 @@ class _ScheduleBody extends ConsumerWidget {
 
               if (q.isEmpty) ...[
                 if (!scheduleClosed &&
-                    (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.meds)) ...[
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.meds)) ...[
                   _SectionHeader(
                     icon: Icons.medication_rounded,
                     iconWidget: const AssetIcon('box', size: 22),
@@ -574,8 +598,8 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (!medcardClosed &&
-                    (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.reminders)) ...[
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.reminders)) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
                     iconWidget: const AssetIcon('task_reminder', size: 22),
@@ -630,8 +654,8 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (!scheduleClosed &&
-                    (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.routine)) ...[
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.routine)) ...[
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
                     iconWidget: const AssetIcon('task_routine', size: 22),
@@ -693,8 +717,8 @@ class _ScheduleBody extends ConsumerWidget {
                 ],
 
                 if (!medcardClosed &&
-                    (category == _ScheduleCategory.all ||
-                    category == _ScheduleCategory.wellbeing)) ...[
+                    (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.wellbeing)) ...[
                   _SectionHeader(
                     icon: Icons.favorite_rounded,
                     iconWidget: const AssetIcon('task_wellbeing', size: 22),
@@ -849,7 +873,6 @@ class _ScheduleBody extends ConsumerWidget {
             ]),
           ),
         ),
-        ],
       ],
       ),
     );
@@ -928,8 +951,8 @@ class _CategorySearchBar extends StatefulWidget {
   final String search;
   final String searchHint;
   final ValueChanged<String> onSearchChanged;
-  final _ScheduleCategory category;
-  final ValueChanged<_ScheduleCategory> onCategoryChanged;
+  final ScheduleCategory category;
+  final ValueChanged<ScheduleCategory> onCategoryChanged;
 
   const _CategorySearchBar({
     required this.search,
@@ -971,7 +994,7 @@ class _CategorySearchBarState extends State<_CategorySearchBar> {
   }
 
   Future<void> _openCategoryPicker() async {
-    final result = await showModalBottomSheet<_ScheduleCategory>(
+    final result = await showModalBottomSheet<ScheduleCategory>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -984,7 +1007,7 @@ class _CategorySearchBarState extends State<_CategorySearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    final active = widget.category != _ScheduleCategory.all;
+    final active = widget.category != ScheduleCategory.all;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -1080,7 +1103,7 @@ class _CategorySearchBarState extends State<_CategorySearchBar> {
 }
 
 class _CategoryPickerSheet extends StatelessWidget {
-  final _ScheduleCategory selected;
+  final ScheduleCategory selected;
 
   const _CategoryPickerSheet({required this.selected});
 
@@ -1116,9 +1139,9 @@ class _CategoryPickerSheet extends StatelessWidget {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: _ScheduleCategory.values.length,
+                itemCount: ScheduleCategory.values.length,
                 itemBuilder: (context, index) {
-                  final c = _ScheduleCategory.values[index];
+                  final c = ScheduleCategory.values[index];
                   final active = c == selected;
                   return ListTile(
                     onTap: () => Navigator.pop(context, c),

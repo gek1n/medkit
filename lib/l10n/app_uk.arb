@@ -112,6 +112,7 @@
   "categoryDoctors": "Нагадування",
   "scheduleTitle": "Розклад",
   "scheduleCategoryPickerTitle": "Розділ",
+  "calendarNoTimeLabel": "Без часу",
   "searchAllSections": "Пошук по всіх розділах",
   "searchHint": "Пошук",
   "noResultsFoundHint": "Нічого не знайдено",

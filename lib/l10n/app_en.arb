@@ -112,6 +112,7 @@
   "categoryDoctors": "Reminders",
   "scheduleTitle": "Schedule",
   "scheduleCategoryPickerTitle": "Section",
+  "calendarNoTimeLabel": "No time",
   "searchAllSections": "Search all sections",
   "searchHint": "Search",
   "noResultsFoundHint": "Nothing found",

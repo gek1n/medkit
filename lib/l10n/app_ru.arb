@@ -112,6 +112,7 @@
   "categoryDoctors": "Напоминания",
   "scheduleTitle": "Расписание",
   "scheduleCategoryPickerTitle": "Раздел",
+  "calendarNoTimeLabel": "Без времени",
   "searchAllSections": "Поиск по всем разделам",
   "searchHint": "Поиск",
   "noResultsFoundHint": "Ничего не найдено",

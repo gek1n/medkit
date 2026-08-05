@@ -223,6 +223,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleCategoryPickerTitle => 'Section';
 
   @override
+  String get calendarNoTimeLabel => 'No time';
+
+  @override
   String get searchAllSections => 'Search all sections';
 
   @override
