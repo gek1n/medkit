@@ -1419,16 +1419,60 @@ Future<void> _sendPeerReminder(BuildContext context, WidgetRef ref, FamilyPeer p
       title: l10n.reminderPushTitle,
       body: body,
     );
-    messenger.showSnackBar(SnackBar(content: Text(l10n.reminderSentSnackbar(peer.name))));
+    // Підтвердження, що ми успішно достукались до relay — не гарантія, що
+    // сповіщення вже показалось на екрані піра (це залежить від того, чи
+    // його застосунок зараз здатний прийняти push, поза нашим контролем).
+    messenger.showSnackBar(SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(l10n.reminderSentSnackbar(peer.name))),
+        ],
+      ),
+      backgroundColor: AppColors.primary,
+    ));
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(l10n.sendFailedError('$e'))));
+    messenger.showSnackBar(SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.error_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(l10n.sendFailedError('$e'))),
+        ],
+      ),
+      backgroundColor: AppColors.danger,
+    ));
   }
 }
 
-class _PeerCard extends ConsumerWidget {
+class _PeerCard extends ConsumerStatefulWidget {
   final FamilyPeer peer;
   final Widget? dragHandle;
   const _PeerCard({required this.peer, this.dragHandle});
+
+  @override
+  ConsumerState<_PeerCard> createState() => _PeerCardState();
+}
+
+class _PeerCardState extends ConsumerState<_PeerCard> {
+  FamilyPeer get peer => widget.peer;
+  Widget? get dragHandle => widget.dragHandle;
+
+  // "Стоппер" на подвійний тап, поки перше надсилання ще в польоті — без
+  // цього швидкі повторні тапи (напр. поки чекаємо мережу) відправили б
+  // кілька копій одного й того самого нагадування.
+  bool _sending = false;
+
+  Future<void> _remind(_MissedItem firstMissed) async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    try {
+      await _sendPeerReminder(context, ref, peer, firstMissed);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   Future<void> _confirmRemove(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
@@ -1453,7 +1497,7 @@ class _PeerCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final missed = ref.watch(_peerMissedProvider(peer.personUuid)).valueOrNull ?? const [];
     final firstMissed = missed.isNotEmpty ? missed.first : null;
 
@@ -1555,20 +1599,29 @@ class _PeerCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
-                    onTap: () => _sendPeerReminder(context, ref, peer, firstMissed),
+                    onTap: _sending ? null : () => _remind(firstMissed),
                     child: Container(
                       width: double.infinity,
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(vertical: 7),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: _sending ? AppColors.primary.withValues(alpha: 0.5) : AppColors.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        context.l10n.remindAction,
-                        style: AppTextStyles.bodyMd
-                            .copyWith(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                      ),
+                      child: _sending
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              context.l10n.remindAction,
+                              style: AppTextStyles.bodyMd.copyWith(
+                                  color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
                     ),
                   ),
                 ],

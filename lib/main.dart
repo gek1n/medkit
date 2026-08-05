@@ -52,7 +52,41 @@ import 'features/today/today_screen.dart';
 import 'features/today/providers/today_providers.dart';
 import 'features/profile/debug_log_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'data/db/app_database.dart';
 import 'shared/widgets/app_bottom_nav.dart';
+
+// Обробник FCM data-пушу "розбуди сім'ю" (family_peer_sync_service.dart
+// _ping), коли застосунок згорнутий чи повністю закритий — Android виділяє
+// під це окремий headless-ізолят, тож жодного стану з головного ізоляту
+// (Riverpod ProviderScope, _crashReportingReady тощо) тут нема, все, що
+// потрібно, ініціалізується наново. iOS теж викликає це, поки увімкнено
+// "Background Modes → Remote notifications" (вже є в Info.plist), але сам
+// факт виклику для повністю "вбитого" (force-quit) застосунку — рішення
+// ОС/Apple, не гарантується жодним кодом тут.
+//
+// Навмисно лише syncAllPeers() (не весь _familySyncIfNeeded) — решта кроків
+// там (акаунт-синк, попапи "додався новий член сім'ї") потребують
+// BuildContext/Navigator, яких тут немає, і не стосуються самого доставлення
+// "Нагадати" (воно приходить саме через remind_now-обробку в syncAllPeers).
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    return;
+  }
+  await NotificationService.init();
+  final db = AppDatabase();
+  try {
+    await FamilyPeerSyncService(db).syncAllPeers();
+  } catch (_) {
+    // Тиха невдача — пір підхопить "Нагадати" при наступному відкритті
+    // застосунку, той самий компроміс, що й у _familySyncIfNeeded.
+  } finally {
+    await db.close();
+  }
+}
 
 // Стає true лише якщо Firebase.initializeApp() реально відпрацював —
 // без цього виклик будь-якого методу FirebaseCrashlytics.instance впаде.
@@ -101,6 +135,7 @@ void main() {
         // Поки google-services.json/GoogleService-Info.plist не додані в
         // нативні проєкти, це кине виняток, який тут навмисно не фатальний.
         await Firebase.initializeApp();
+        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
         await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
         _crashReportingReady = true;
       } catch (e) {
