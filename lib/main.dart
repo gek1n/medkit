@@ -31,6 +31,7 @@ import 'core/services/family_peer_sync_service.dart';
 import 'core/services/family_sync_service.dart';
 import 'core/services/marketing_topics_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/push_token_service.dart';
 import 'core/services/review_prompt_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/services/sync_service.dart';
@@ -135,6 +136,7 @@ void main() {
         // Поки google-services.json/GoogleService-Info.plist не додані в
         // нативні проєкти, це кине виняток, який тут навмисно не фатальний.
         await Firebase.initializeApp();
+        PushTokenService.installNativeDiagnostics();
         FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
         await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
         _crashReportingReady = true;

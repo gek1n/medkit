@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 
 import 'app_logger.dart';
 
@@ -9,6 +10,34 @@ import 'app_logger.dart';
 /// "розбуди" пуш. Firebase тут використовується лише заради FCM — жодних
 /// Firestore/Firebase Auth.
 class PushTokenService {
+  static const _nativeChannel = MethodChannel('com.ellyapp.medkit/apns_debug');
+  static bool _nativeDiagnosticsInstalled = false;
+
+  /// Слухає підтвердження від AppDelegate.swift, що ОС реально викликала
+  /// `didRegisterForRemoteNotificationsWithDeviceToken` — незалежно від
+  /// того, чи вдалось Firebase-плагіну підхопити цей токен зі свого боку.
+  /// Дозволяє відрізнити в логах "ОС взагалі не видає токен" від "ОС видає,
+  /// але Dart-сторона (getAPNSToken) його не бачить". Викликати раз при
+  /// старті застосунку, після Firebase.initializeApp().
+  static void installNativeDiagnostics() {
+    if (!Platform.isIOS || _nativeDiagnosticsInstalled) return;
+    _nativeDiagnosticsInstalled = true;
+    _nativeChannel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'nativeApnsTokenRegistered':
+          final hex = call.arguments as String? ?? '';
+          final fingerprint = hex.length >= 8 ? hex.substring(0, 8) : hex;
+          AppLogger.log(
+              'AppDelegate(native): didRegisterForRemoteNotificationsWithDeviceToken FIRED, len=${hex.length} fingerprint=$fingerprint');
+          break;
+        case 'nativeApnsTokenFailed':
+          AppLogger.log(
+              'AppDelegate(native): didFailToRegisterForRemoteNotificationsWithError: ${call.arguments}');
+          break;
+      }
+    });
+  }
+
   /// Повертає токен або null, якщо користувач не дав дозвіл (типово на iOS
   /// до першого запиту) чи Firebase не налаштований на цьому білді.
   static Future<String?> getToken() async {
@@ -48,8 +77,13 @@ class PushTokenService {
           AppLogger.log('PushTokenService.getToken: APNs token still null after retries');
           return null;
         }
+        AppLogger.log(
+            'PushTokenService.getToken: APNs token OBTAINED after $attempts retries, len=${apnsToken.length}');
       }
-      return await FirebaseMessaging.instance.getToken();
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      AppLogger.log(
+          'PushTokenService.getToken: FCM token ${fcmToken == null ? "NULL" : "obtained, len=${fcmToken.length}"}');
+      return fcmToken;
     } catch (e, st) {
       AppLogger.logError('PushTokenService.getToken', e, st);
       return null;

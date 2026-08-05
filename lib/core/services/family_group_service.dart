@@ -118,6 +118,8 @@ class FamilyGroupService {
       final token = await PushTokenService.getToken();
       if (token != null) {
         await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+        AppLogger.log(
+            'FamilyGroupService.createInvite: registered on relay with real push token channelId=$channelId');
       } else {
         // Той самий "тихий" випадок, що й у _sendMyCard — без логу тут
         // неможливо відрізнити "запрошення взагалі не реєструвалось на
@@ -212,9 +214,14 @@ class FamilyGroupService {
       final token = await PushTokenService.getToken();
       if (token != null) {
         await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+        AppLogger.log(
+            'FamilyGroupService.createConversionInvite: registered on relay with real push token channelId=$channelId');
+      } else {
+        AppLogger.log(
+            'FamilyGroupService.createConversionInvite: SKIPPED register (push token null) channelId=$channelId');
       }
-    } catch (_) {
-      // Не критично для самого запрошення.
+    } catch (e, st) {
+      AppLogger.logError('FamilyGroupService.createConversionInvite.register(channelId=$channelId)', e, st);
     }
 
     // Штовхаємо історію на сервер одразу, не чекаючи наступного звичайного
@@ -323,6 +330,8 @@ class FamilyGroupService {
     } else {
       try {
         await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+        AppLogger.log(
+            'FamilyGroupService._sendMyCard: registered on relay with real push token channelId=$channelId');
       } catch (e, st) {
         AppLogger.logError('FamilyGroupService._sendMyCard.register(channelId=$channelId)', e, st);
       }
