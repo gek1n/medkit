@@ -30,4 +30,14 @@ class FamilyJoinPopupService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('$_inviteePrefix$personUuid', true);
   }
+
+  /// Викликати при видаленні піра (вихід/виключення) — інакше повторне
+  /// приєднання тієї самої людини (той самий personUuid) назавжди лишається
+  /// без поп-апу "налаштувати видимість", бо прапорець "уже показано"
+  /// пережив саме видалення зв'язку.
+  static Future<void> clearShownFor(String personUuid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_ownerPrefix$personUuid');
+    await prefs.remove('$_inviteePrefix$personUuid');
+  }
 }

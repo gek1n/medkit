@@ -11,6 +11,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../providers/notification_settings_provider.dart';
 import '../providers/plan_provider.dart';
+import 'family_join_popup_service.dart';
 import 'family_sync_api_client.dart';
 import 'family_visibility_service.dart';
 import 'file_encryption_service.dart';
@@ -1780,6 +1781,19 @@ class FamilyPeerSyncService {
     // сесії. Прибираємо явно тут же, разом із SharedSubjects.
     await repo.deleteSharedEntitiesForSubjects(subjects.map((s) => s.personUuid).toList());
     await repo.deleteSharedSubjectsForChannel(peer.channelId);
+    // Реальний баг (05.08): без цього старі дозволи (FamilyGrants) і
+    // прапорець "поп-ап уже показано" (FamilyJoinPopupService) переживали
+    // видалення піра — при повторному приєднанні тієї самої людини (той
+    // самий personUuid) поп-ап "налаштувати видимість" більше не з'являвся,
+    // а щойно приєднаному могли тихо лишитись старі права доступу, ніколи
+    // явно не надані заново. Обидва напрями (я комусь дозволяв / хтось мені)
+    // прибираються тут — цей рядок в FamilyGrants виникає лише на пристрої,
+    // що керує subject'ом, тож symmetric-виклик з боку іншої людини (коли
+    // вона отримає peer_left і сама викличе removePeer) прибере свою половину.
+    await (_db.delete(_db.familyGrants)
+          ..where((t) => t.viewerPersonUuid.equals(personUuid) | t.subjectPersonUuid.equals(personUuid)))
+        .go();
+    await FamilyJoinPopupService.clearShownFor(personUuid);
   }
 
   /// Вийти з ОДНІЄЇ конкретної сімейної групи: відʼєднатись лише від пірів
