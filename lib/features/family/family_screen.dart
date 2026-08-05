@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/providers/real_plan_provider.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/family_sync_service.dart';
@@ -69,6 +70,11 @@ class _FamilyBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(planProvider);
     final limits = plan.limits;
+    // Реальний, НЕ "подарований" сім'єю план — можливість запросити когось
+    // у свою окрему сім'ю прирівнюється до статусу адміністратора і має
+    // спиратись лише на власну покупку (docs/multifamily_billing_plan.md,
+    // Крок 4: адміністратором може бути лише той, хто платить).
+    final ownPlan = ref.watch(ownPlanProvider).valueOrNull ?? AppPlan.free;
     // Власник рахується як локальний профіль — той самий слот, що і раніше
     // займав "maxMembers" на Free-плані. "Автономний" тепер завжди означає
     // незалежний FamilyPeer (Members більше не мають ролі 'member'), тому
@@ -83,9 +89,9 @@ class _FamilyBody extends ConsumerWidget {
     final localLimitReached =
         limits.maxLocalMembers != 0 && localCount >= limits.maxLocalMembers;
     if (localLimitReached) unawaited(MarketingTopicsService.markHitLocalLimit());
-    final autonomousLimitReached = limits.maxAutonomousMembers == 0
+    final autonomousLimitReached = ownPlan.limits.maxAutonomousMembers == 0
         ? true
-        : peersCount >= limits.maxAutonomousMembers;
+        : peersCount >= ownPlan.limits.maxAutonomousMembers;
     final familyAvailable = !localLimitReached || !autonomousLimitReached;
     final activeId = ref.watch(activeMemberIdProvider);
     Member? activeMember;
@@ -1027,13 +1033,16 @@ class _FamilyGroupSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final peersAsync = ref.watch(_familyPeersProvider);
     final peers = peersAsync.valueOrNull ?? [];
-    final plan = ref.watch(planProvider);
+    // Реальний, НЕ "подарований" сім'єю план — те саме обмеження, що й у
+    // _FamilyBody: запросити когось у СВОЮ сім'ю можна лише на власному
+    // тарифі, подарунок від чужого адміністратора цього не дає.
+    final ownPlan = ref.watch(ownPlanProvider).valueOrNull ?? AppPlan.free;
     // Слоти рахуються лише за тими, кого запросив Я (invitedMe==false) —
     // вхідні запрошення до чужих груп ліміт не займають.
     final invitedByMeCount = peers.where((p) => !p.invitedMe).length;
-    final autonomousLimitReached = plan.limits.maxAutonomousMembers == 0
+    final autonomousLimitReached = ownPlan.limits.maxAutonomousMembers == 0
         ? true
-        : invitedByMeCount >= plan.limits.maxAutonomousMembers;
+        : invitedByMeCount >= ownPlan.limits.maxAutonomousMembers;
 
     // Мультисемейність: один пристрій може одночасно вести власну сім'ю і
     // бути гостем у довільній кількості чужих — кожна familyId стає своєю
@@ -1061,9 +1070,9 @@ class _FamilyGroupSection extends ConsumerWidget {
             // Лічильник слотів і корона — лише для "моєї" секції (я
             // платящий саме тут); у чужій сім'ї я гість, це не моя квота.
             slotsLabel: entry.key == ownerFamilyId
-                ? context.l10n.slotsUsedLabel(invitedByMeCount, plan.limits.maxAutonomousMembers)
+                ? context.l10n.slotsUsedLabel(invitedByMeCount, ownPlan.limits.maxAutonomousMembers)
                 : null,
-            showPayerBadge: entry.key == ownerFamilyId && plan == AppPlan.family,
+            showPayerBadge: entry.key == ownerFamilyId && ownPlan == AppPlan.family,
             onLeave: (label) =>
                 _confirmLeaveGroup(context, ref, entry.key, label),
           ),
