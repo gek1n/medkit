@@ -367,8 +367,12 @@ class FamilyGroupService {
   // застарілий рядок локально, а не лишаємо його рости в списку назавжди.
   static const _pendingInviteTtl = Duration(hours: 2);
 
-  Future<void> refreshPeers() async {
+  /// Повертає щойно виявлених нових пірів (тих, хто відповів на МОЄ
+  /// запрошення саме в цьому виклику) — [main.dart] використовує це, щоб
+  /// показати одноразовий поп-ап "додався новий член сім'ї" (family_join_popup.dart).
+  Future<List<FamilyPeer>> refreshPeers() async {
     final repo = FamilyPeersRepository(_db);
+    final newlyAdded = <FamilyPeer>[];
 
     for (final invite in await repo.pendingInvites()) {
       if (DateTime.now().difference(invite.createdAt) > _pendingInviteTtl) {
@@ -390,8 +394,9 @@ class FamilyGroupService {
         final key = SecretKey(keyBytes);
         final card = await SyncCryptoService.decryptEntity(key, base64Decode(state.encryptedPayloadBase64));
         if (card['v'] != 3) continue;
+        final joinedPersonUuid = card['personUuid'] as String;
         await repo.upsert(FamilyPeersCompanion.insert(
-          personUuid: card['personUuid'] as String,
+          personUuid: joinedPersonUuid,
           familyId: card['familyId'] as String,
           name: card['name'] as String? ?? 'Учасник родини',
           avatarIndex: Value(card['avatarIndex'] as int? ?? 0),
@@ -400,6 +405,8 @@ class FamilyGroupService {
           // не запрошував, я запросив ЙОГО, тому invitedMe=false (за
           // замовчуванням), витрачає мій ліміт слотів.
         ));
+        final savedPeer = await repo.getByUuid(joinedPersonUuid);
+        if (savedPeer != null) newlyAdded.add(savedPeer);
 
         // Я (хаб цієї сім'ї) знайомлю нового учасника з усіма, хто вже в
         // групі, і навпаки — обміном візитівок (Фаза 5, автопредставлення).
@@ -434,5 +441,6 @@ class FamilyGroupService {
         );
       }
     }
+    return newlyAdded;
   }
 }

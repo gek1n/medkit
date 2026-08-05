@@ -111,6 +111,8 @@
   "categoryWellbeing": "Mood",
   "categoryDoctors": "Reminders",
   "scheduleTitle": "Schedule",
+  "scheduleCategoryPickerTitle": "Section",
+  "calendarNoTimeLabel": "No time",
   "searchAllSections": "Search all sections",
   "searchHint": "Search",
   "noResultsFoundHint": "Nothing found",
@@ -173,8 +175,10 @@
   "medCardAppointmentsSubtitle": "Meetings, simple tasks, routine chores",
   "medCardWellbeingHistoryTitle": "Mood history",
   "medCardWellbeingHistorySubtitle": "Mood over time",
-  "customSectionsHeader": "Your sections",
-  "addSectionAction": "Add section",
+  "customSectionsHeader": "Your shelves",
+  "addSectionAction": "Add shelf",
+  "shelfTypeTitle": "Shelf",
+  "shelfTypeSub": "Your own section with an icon and color",
   "newSectionTitle": "New section",
   "editSectionTitle": "Edit section",
   "sectionNameFieldLabel": "Name",
@@ -691,6 +695,7 @@
     }
   },
   "familyGroupSectionLabel": "Family group",
+  "localUsersSectionLabel": "Local users",
   "slotsUsedLabel": "{used} of {total}",
   "@slotsUsedLabel": {
     "placeholders": {
@@ -838,6 +843,23 @@
   "familySectionShelvesLabel": "Shelves",
   "familySectionViewColumnLabel": "View",
   "familySectionEditColumnLabel": "Edit",
+  "yesAction": "Yes",
+  "familyJoinPopupOwnerBody": "{name} joined your family. Want to share your records with them?",
+  "@familyJoinPopupOwnerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyJoinPopupInviteeBody": "You've been added to {name}'s family. Want to share your records with them?",
+  "@familyJoinPopupInviteeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "permissionDeniedNotYoursBody": "Couldn't change it — this isn't your profile",
   "privacyLabel": "Privacy",
   "securityLabel": "Security",

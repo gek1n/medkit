@@ -111,6 +111,8 @@
   "categoryWellbeing": "Настроение",
   "categoryDoctors": "Напоминания",
   "scheduleTitle": "Расписание",
+  "scheduleCategoryPickerTitle": "Раздел",
+  "calendarNoTimeLabel": "Без времени",
   "searchAllSections": "Поиск по всем разделам",
   "searchHint": "Поиск",
   "noResultsFoundHint": "Ничего не найдено",
@@ -173,8 +175,10 @@
   "medCardAppointmentsSubtitle": "Встречи, простые задачи, рутинные дела",
   "medCardWellbeingHistoryTitle": "История настроения",
   "medCardWellbeingHistorySubtitle": "Настроение за всё время",
-  "customSectionsHeader": "Ваши разделы",
-  "addSectionAction": "Добавить раздел",
+  "customSectionsHeader": "Ваши полочки",
+  "addSectionAction": "Добавить полочку",
+  "shelfTypeTitle": "Полочка",
+  "shelfTypeSub": "Свой раздел со значком и цветом",
   "newSectionTitle": "Новый раздел",
   "editSectionTitle": "Редактировать раздел",
   "sectionNameFieldLabel": "Название",
@@ -691,6 +695,7 @@
     }
   },
   "familyGroupSectionLabel": "Семейная группа",
+  "localUsersSectionLabel": "Локальные пользователи",
   "slotsUsedLabel": "{used} из {total}",
   "@slotsUsedLabel": {
     "placeholders": {
@@ -838,6 +843,23 @@
   "familySectionShelvesLabel": "Полочки",
   "familySectionViewColumnLabel": "Просмотр",
   "familySectionEditColumnLabel": "Редактирование",
+  "yesAction": "Да",
+  "familyJoinPopupOwnerBody": "В семью добавился новый участник {name}. Хотите поделиться своими записями?",
+  "@familyJoinPopupOwnerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "familyJoinPopupInviteeBody": "Вас добавили в семью {name}. Хотите поделиться своими записями?",
+  "@familyJoinPopupInviteeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "permissionDeniedNotYoursBody": "Не удалось изменить — это не ваш профиль",
   "privacyLabel": "Конфиденциальность",
   "securityLabel": "Безопасность",
