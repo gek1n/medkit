@@ -21,6 +21,7 @@ import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
 import 'add_medcard_section_screen.dart';
+import 'add_shelves_type_screen.dart';
 import 'medcard_section_screen.dart';
 import 'medication_archive_screen.dart';
 
@@ -56,8 +57,17 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
     final peer = ref.watch(activePeerProvider);
     final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? const [];
 
+    final fabMemberId = _selectedMemberId ?? memberAsync.valueOrNull?.id;
+
     return Scaffold(
       backgroundColor: AppColors.bg,
+      floatingActionButton: (peer != null || fabMemberId == null)
+          ? null
+          : FloatingActionButton(
+              onPressed: () => openAddShelvesTypeScreen(context, memberId: fabMemberId),
+              backgroundColor: AppColors.primary,
+              child: const Icon(Icons.add_rounded, color: Colors.white),
+            ),
       body: SafeArea(
         child: memberAsync.when(
           loading: () => const Center(

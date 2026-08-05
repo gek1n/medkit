@@ -799,14 +799,26 @@ abstract class AppLocalizations {
   /// No description provided for @customSectionsHeader.
   ///
   /// In uk, this message translates to:
-  /// **'Ваші розділи'**
+  /// **'Ваші полички'**
   String get customSectionsHeader;
 
   /// No description provided for @addSectionAction.
   ///
   /// In uk, this message translates to:
-  /// **'Додати розділ'**
+  /// **'Додати поличку'**
   String get addSectionAction;
+
+  /// No description provided for @shelfTypeTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поличка'**
+  String get shelfTypeTitle;
+
+  /// No description provided for @shelfTypeSub.
+  ///
+  /// In uk, this message translates to:
+  /// **'Свій розділ з іконкою та кольором'**
+  String get shelfTypeSub;
 
   /// No description provided for @newSectionTitle.
   ///

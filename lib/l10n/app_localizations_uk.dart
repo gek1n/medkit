@@ -389,10 +389,16 @@ class AppLocalizationsUk extends AppLocalizations {
   String get medCardWellbeingHistorySubtitle => 'Настрій за весь час';
 
   @override
-  String get customSectionsHeader => 'Ваші розділи';
+  String get customSectionsHeader => 'Ваші полички';
 
   @override
-  String get addSectionAction => 'Додати розділ';
+  String get addSectionAction => 'Додати поличку';
+
+  @override
+  String get shelfTypeTitle => 'Поличка';
+
+  @override
+  String get shelfTypeSub => 'Свій розділ з іконкою та кольором';
 
   @override
   String get newSectionTitle => 'Новий розділ';

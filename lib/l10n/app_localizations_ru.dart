@@ -389,10 +389,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get medCardWellbeingHistorySubtitle => 'Настроение за всё время';
 
   @override
-  String get customSectionsHeader => 'Ваши разделы';
+  String get customSectionsHeader => 'Ваши полочки';
 
   @override
-  String get addSectionAction => 'Добавить раздел';
+  String get addSectionAction => 'Добавить полочку';
+
+  @override
+  String get shelfTypeTitle => 'Полочка';
+
+  @override
+  String get shelfTypeSub => 'Свой раздел со значком и цветом';
 
   @override
   String get newSectionTitle => 'Новый раздел';

@@ -387,10 +387,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medCardWellbeingHistorySubtitle => 'Mood over time';
 
   @override
-  String get customSectionsHeader => 'Your sections';
+  String get customSectionsHeader => 'Your shelves';
 
   @override
-  String get addSectionAction => 'Add section';
+  String get addSectionAction => 'Add shelf';
+
+  @override
+  String get shelfTypeTitle => 'Shelf';
+
+  @override
+  String get shelfTypeSub => 'Your own section with an icon and color';
 
   @override
   String get newSectionTitle => 'New section';
