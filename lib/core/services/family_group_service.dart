@@ -118,9 +118,17 @@ class FamilyGroupService {
       final token = await PushTokenService.getToken();
       if (token != null) {
         await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
+      } else {
+        // Той самий "тихий" випадок, що й у _sendMyCard — без логу тут
+        // неможливо відрізнити "запрошення взагалі не реєструвалось на
+        // relay" від "усе працює, просто ніхто ще не відповів".
+        AppLogger.log(
+            'FamilyGroupService.createInvite: SKIPPED register (push token null) channelId=$channelId');
       }
-    } catch (_) {
-      // Не критично для самого запрошення — просто не буде push-пробудження.
+    } catch (e, st) {
+      // Не критично для самого запрошення — просто не буде push-пробудження,
+      // але лишаємо слід у логах, а не проковтуємо мовчки.
+      AppLogger.logError('FamilyGroupService.createInvite.register(channelId=$channelId)', e, st);
     }
 
     return code;
@@ -301,7 +309,16 @@ class FamilyGroupService {
     String? token;
     try {
       token = await PushTokenService.getToken();
-      if (token == null) return false;
+      if (token == null) {
+        // Мовчазний вихід тут — найімовірніша причина того, що інвайтер
+        // ніколи не бачить піра, а в логах запрошеного при цьому НІЧОГО
+        // немає: типово на iOS одразу після встановлення, поки дозвіл на
+        // сповіщення ще не надано, PushTokenService.getToken() повертає
+        // null, і раніше цей шлях не лишав жодного сліду для діагностики.
+        AppLogger.log(
+            'FamilyGroupService._sendMyCard: SKIPPED (push token null) channelId=$channelId personUuid=${owner.personUuid}');
+        return false;
+      }
       await _relayApi.register(channelId: channelId, pushToken: token, platform: _platform);
     } catch (e, st) {
       AppLogger.logError('FamilyGroupService._sendMyCard.register(channelId=$channelId)', e, st);
@@ -323,6 +340,12 @@ class FamilyGroupService {
         senderToken: token,
         encryptedPayloadBase64: base64Encode(encrypted),
       );
+      // Симетрична до логу невдачі нижче — без цього немає жодного сліду в
+      // логах, що клієнт реально відправив картку (лише мовчазна відсутність
+      // помилки), тож "надіслав, а інвайтер так і не побачив" неможливо
+      // відрізнити від "взагалі не намагався" при діагностиці за логами.
+      AppLogger.log(
+          'FamilyGroupService._sendMyCard: sent OK channelId=$channelId personUuid=${owner.personUuid}');
       return true;
     } catch (e, st) {
       AppLogger.logError('FamilyGroupService._sendMyCard.send(channelId=$channelId)', e, st);

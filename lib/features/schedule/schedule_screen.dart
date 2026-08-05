@@ -881,65 +881,111 @@ class _ScheduleBody extends ConsumerWidget {
 
 // ─── View format toggle ───────────────────────────────────────────────────────
 
+extension on _ScheduleViewFormat {
+  Widget icon({double size = 17, Color? color}) => switch (this) {
+        _ScheduleViewFormat.list => AssetIcon('document', size: size),
+        _ScheduleViewFormat.calendar => AssetIcon('calendar', size: size),
+      };
+
+  String label(BuildContext context) => switch (this) {
+        _ScheduleViewFormat.list => context.l10n.scheduleViewList,
+        _ScheduleViewFormat.calendar => context.l10n.scheduleViewCalendar,
+      };
+}
+
 class _ViewFormatToggle extends StatelessWidget {
   final _ScheduleViewFormat value;
   final ValueChanged<_ScheduleViewFormat> onChanged;
 
   const _ViewFormatToggle({required this.value, required this.onChanged});
 
+  Future<void> _open(BuildContext context) async {
+    final result = await showModalBottomSheet<_ScheduleViewFormat>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _ViewFormatPickerSheet(selected: value),
+    );
+    if (result != null) onChanged(result);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ViewFormatButton(
-            active: value == _ScheduleViewFormat.list,
-            onTap: () => onChanged(_ScheduleViewFormat.list),
-            child: const Icon(Icons.view_agenda_rounded, size: 17),
-          ),
-          _ViewFormatButton(
-            active: value == _ScheduleViewFormat.calendar,
-            onTap: () => onChanged(_ScheduleViewFormat.calendar),
-            child: const AssetIcon('calendar', size: 17),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => _open(context),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            value.icon(color: AppColors.textMain),
+            const SizedBox(width: 6),
+            Text(value.label(context), style: AppTextStyles.labelMd),
+            const SizedBox(width: 2),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.textMuted),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ViewFormatButton extends StatelessWidget {
-  final bool active;
-  final VoidCallback onTap;
-  final Widget child;
+class _ViewFormatPickerSheet extends StatelessWidget {
+  final _ScheduleViewFormat selected;
 
-  const _ViewFormatButton({required this.active, required this.onTap, required this.child});
+  const _ViewFormatPickerSheet({required this.selected});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 32,
-        height: 30,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-        ),
-        child: IconTheme(
-          data: IconThemeData(color: active ? Colors.white : AppColors.textMuted),
-          child: child,
-        ),
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(context.l10n.scheduleViewPickerTitle, style: AppTextStyles.h3),
+                ),
+              ],
+            ),
+          ),
+          ..._ScheduleViewFormat.values.map((f) {
+            final active = f == selected;
+            return ListTile(
+              onTap: () => Navigator.pop(context, f),
+              leading: f.icon(size: 22, color: active ? AppColors.primary : AppColors.textSub),
+              title: Text(
+                f.label(context),
+                style: AppTextStyles.bodyLg.copyWith(
+                  color: active ? AppColors.primary : AppColors.textMain,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+              trailing:
+                  active ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+            );
+          }),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
