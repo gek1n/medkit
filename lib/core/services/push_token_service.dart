@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
+
+import 'app_logger.dart';
 
 /// Отримання FCM push-токена цього пристрою — потрібен лише для реєстрації
 /// в relay-каналі (`RelayApiClient.register`), щоб сервер знав, куди слати
@@ -9,11 +13,35 @@ class PushTokenService {
   /// до першого запиту) чи Firebase не налаштований на цьому білді.
   static Future<String?> getToken() async {
     try {
-      // На iOS getToken() поверне null, поки не дано дозвіл — на Android
-      // цей виклик просто ні на що не впливає.
-      await FirebaseMessaging.instance.requestPermission(alert: false, badge: false, sound: false);
+      final settings = await FirebaseMessaging.instance
+          .requestPermission(alert: false, badge: false, sound: false);
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        AppLogger.log('PushTokenService.getToken: SKIPPED (permission denied)');
+        return null;
+      }
+      if (Platform.isIOS) {
+        // На iOS FCM getToken() кидає "apns-token-not-set", якщо звернутись
+        // до нього до того, як ОС встигла видати APNs-токен Firebase'у — це
+        // відбувається з невеликою затримкою після requestPermission(),
+        // не миттєво. Без цього очікування getToken() на iOS падає майже
+        // щоразу при першому запуску, і catch нижче тихо перетворював це на
+        // null — реальні дані з relay_channels підтвердили: реєстрації
+        // приходили ЛИШЕ з Android, жодної з iOS.
+        var apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        var attempts = 0;
+        while (apnsToken == null && attempts < 10) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+          attempts++;
+        }
+        if (apnsToken == null) {
+          AppLogger.log('PushTokenService.getToken: APNs token still null after retries');
+          return null;
+        }
+      }
       return await FirebaseMessaging.instance.getToken();
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.logError('PushTokenService.getToken', e, st);
       return null;
     }
   }
