@@ -460,6 +460,10 @@ class _MemberCard extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                     child: Row(
                       children: [
+                        if (dragHandle != null) ...[
+                          dragHandle!,
+                          const SizedBox(width: 4),
+                        ],
                         AvatarImage(index: member.avatarIndex, size: 52),
                         const SizedBox(width: 14),
                         Expanded(
@@ -498,10 +502,6 @@ class _MemberCard extends ConsumerWidget {
                           const SizedBox(width: 8),
                           const Icon(Icons.chevron_right_rounded,
                               color: AppColors.textMuted, size: 22),
-                        ],
-                        if (dragHandle != null) ...[
-                          const SizedBox(width: 4),
-                          dragHandle!,
                         ],
                       ],
                     ),
@@ -1488,6 +1488,10 @@ class _PeerCard extends ConsumerWidget {
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
+                  if (dragHandle != null) ...[
+                    dragHandle!,
+                    const SizedBox(width: 2),
+                  ],
                   AvatarImage(index: peer.avatarIndex, size: 40),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1511,10 +1515,6 @@ class _PeerCard extends ConsumerWidget {
                       child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
                     ),
                   ),
-                  if (dragHandle != null) ...[
-                    const SizedBox(width: 2),
-                    dragHandle!,
-                  ],
                 ],
               ),
             ),
