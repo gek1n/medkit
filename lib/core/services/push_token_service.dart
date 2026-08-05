@@ -15,6 +15,16 @@ class PushTokenService {
     try {
       final settings = await FirebaseMessaging.instance
           .requestPermission(alert: false, badge: false, sound: false);
+      // Тимчасове діагностичне логування (баг: APNs token лишається null
+      // навіть після entitlements/capability фіксів, підтверджених у
+      // Xcode/Apple Developer Portal) — без кабелю немає доступу до живого
+      // Console.app/apsd-логів пристрою, тож перевіряємо тут єдине, що
+      // могло б пояснити стабільний null БЕЗ жодного стосунку до
+      // entitlements: чи authorizationStatus взагалі authorized (не
+      // notDetermined/provisional) — якщо дозвіл фактично не наданий, iOS
+      // ніколи не видасть APNs-токен, скільки не чекай.
+      AppLogger.log(
+          'PushTokenService.getToken: authorizationStatus=${settings.authorizationStatus}');
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
         AppLogger.log('PushTokenService.getToken: SKIPPED (permission denied)');
         return null;
