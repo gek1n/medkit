@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/services/activity_log_generator.dart';
 import '../../core/services/intake_generator.dart';
+import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -61,34 +62,75 @@ int compareCalendarItems(CalendarItem a, CalendarItem b) {
   return a.sortId.compareTo(b.sortId);
 }
 
+typedef _DayKey = ({int memberId, DateTime date});
+
+// Проміжні "живі" (Stream) джерела для scheduleCalendarDayProvider нижче —
+// watchByMember/watchXxxByMemberAndDate замість одноразового Future-читання,
+// щоб щойно додане завдання (ліки/рутина/нагадування) з'являлось в
+// календарі одразу, а не лише після перезапуску застосунку.
+final _intakesForDayProvider =
+    StreamProvider.family<List<Intake>, _DayKey>((ref, key) {
+  return ref.watch(intakesRepositoryProvider).watchByMemberAndDate(key.memberId, key.date);
+});
+
+final _activityLogsForDayProvider =
+    StreamProvider.family<List<ActivityLog>, _DayKey>((ref, key) {
+  return ref
+      .watch(activitiesRepositoryProvider)
+      .watchLogsByMemberAndDate(key.memberId, key.date);
+});
+
+final _remindersActiveOnDayProvider =
+    StreamProvider.family<List<Reminder>, _DayKey>((ref, key) {
+  return ref.watch(remindersRepositoryProvider).watchActiveOnDate(key.memberId, key.date);
+});
+
+final _medsForMemberProvider = StreamProvider.family<List<Medication>, int>((ref, memberId) {
+  return ref.watch(medicationsRepositoryProvider).watchByMember(memberId);
+});
+
+final _activitiesForMemberProvider = StreamProvider.family<List<Activity>, int>((ref, memberId) {
+  return ref.watch(activitiesRepositoryProvider).watchByMember(memberId);
+});
+
+final _noFixedTimeIdsForMemberProvider =
+    StreamProvider.family<Set<int>, int>((ref, memberId) {
+  return ref.watch(activitiesRepositoryProvider).watchNoFixedTimeActivityIds(memberId);
+});
+
+final _wellbeingScheduleForMemberProvider =
+    StreamProvider.family<WellbeingSchedule?, int>((ref, memberId) {
+  return ref.watch(wellbeingRepositoryProvider).watchScheduleByMember(memberId);
+});
+
 // Всі пункти конкретного дня для конкретного профілю — ліки, рутини,
 // нагадування (включно з daily/weekly/yearly повторами) і слоти
-// самопочуття. Той самий підхід, що й tomorrowXxxProvider у
-// today_providers.dart: FutureProvider (не Stream) — довільний день, не
-// лише "сьогодні"/"завтра", генератори викликаються перед читанням, щоб
-// Intakes/ActivityLogs для цього дня вже існували в базі.
+// самопочуття. На відміну від першої версії (одноразовий Future-зліпок,
+// як tomorrowXxxProvider у today_providers.dart) — тут ref.watch на живі
+// Stream-провайдери вище, тож щойно з'являється нове завдання (чи міняється
+// існуюче), увесь список для цього дня перераховується сам, без потреби
+// перезапускати застосунок чи вручну інвалідувати провайдер.
 final scheduleCalendarDayProvider =
-    FutureProvider.family<List<CalendarItem>, ({int memberId, DateTime date})>(
-        (ref, params) async {
+    FutureProvider.family<List<CalendarItem>, _DayKey>((ref, params) async {
   final date = DateTime(params.date.year, params.date.month, params.date.day);
   final memberId = params.memberId;
 
+  // Побічний ефект — дозаповнити Intakes/ActivityLogs для цього дня, якщо
+  // генератор ще не встиг. Ідемпотентно (вставляє лише відсутнє), тож
+  // безпечно викликати щоразу, коли провайдер перераховується через будь-
+  // який watch нижче.
   await ref.read(intakeGeneratorProvider).generateForDay(date);
   await ref.read(activityLogGeneratorProvider).generateForDay(date);
 
-  final intakesRepo = ref.read(intakesRepositoryProvider);
-  final activitiesRepo = ref.read(activitiesRepositoryProvider);
-  final remindersRepo = ref.read(remindersRepositoryProvider);
-  final wellbeingRepo = ref.read(wellbeingRepositoryProvider);
-  final medsRepo = ref.read(medicationsRepositoryProvider);
-
-  final intakes = await intakesRepo.getByMemberAndDate(memberId, date);
-  final activityLogs = await activitiesRepo.getLogsByMemberAndDate(memberId, date);
-  final reminders = await remindersRepo.watchActiveOnDate(memberId, date).first;
-  final wbSchedule = await wellbeingRepo.watchScheduleByMember(memberId).first;
-  final meds = await medsRepo.watchByMember(memberId).first;
-  final activities = await activitiesRepo.watchByMember(memberId).first;
-  final noFixedTimeIds = await activitiesRepo.watchNoFixedTimeActivityIds(memberId).first;
+  final dayKey = (memberId: memberId, date: date);
+  final intakes = ref.watch(_intakesForDayProvider(dayKey)).valueOrNull ?? const [];
+  final activityLogs = ref.watch(_activityLogsForDayProvider(dayKey)).valueOrNull ?? const [];
+  final reminders = ref.watch(_remindersActiveOnDayProvider(dayKey)).valueOrNull ?? const [];
+  final wbSchedule = ref.watch(_wellbeingScheduleForMemberProvider(memberId)).valueOrNull;
+  final meds = ref.watch(_medsForMemberProvider(memberId)).valueOrNull ?? const [];
+  final activities = ref.watch(_activitiesForMemberProvider(memberId)).valueOrNull ?? const [];
+  final noFixedTimeIds =
+      ref.watch(_noFixedTimeIdsForMemberProvider(memberId)).valueOrNull ?? const {};
 
   final medsById = {for (final m in meds) m.id: m};
   final activitiesById = {for (final a in activities) a.id: a};

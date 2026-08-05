@@ -508,6 +508,24 @@ abstract class AppLocalizations {
   /// **'Без часу'**
   String get calendarNoTimeLabel;
 
+  /// No description provided for @scheduleViewList.
+  ///
+  /// In uk, this message translates to:
+  /// **'Список'**
+  String get scheduleViewList;
+
+  /// No description provided for @scheduleViewCalendar.
+  ///
+  /// In uk, this message translates to:
+  /// **'Календар'**
+  String get scheduleViewCalendar;
+
+  /// No description provided for @scheduleViewPickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Формат перегляду'**
+  String get scheduleViewPickerTitle;
+
   /// No description provided for @searchAllSections.
   ///
   /// In uk, this message translates to:

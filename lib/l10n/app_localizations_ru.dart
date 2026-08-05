@@ -226,6 +226,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarNoTimeLabel => 'Без времени';
 
   @override
+  String get scheduleViewList => 'Список';
+
+  @override
+  String get scheduleViewCalendar => 'Календарь';
+
+  @override
+  String get scheduleViewPickerTitle => 'Формат просмотра';
+
+  @override
   String get searchAllSections => 'Поиск по всем разделам';
 
   @override

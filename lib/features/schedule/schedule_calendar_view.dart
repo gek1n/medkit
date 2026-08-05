@@ -50,22 +50,32 @@ class ScheduleCalendarView extends ConsumerStatefulWidget {
 }
 
 class _ScheduleCalendarViewState extends ConsumerState<ScheduleCalendarView> {
-  static final DateTime _epoch = DateTime(2000, 1, 1);
+  // Свайп рухає пару днів ЦІЛКОМ (по 2 дні за раз, без повторення спільного
+  // дня між сусідніми сторінками) — на відміну від "rolling" по 1 дню, де
+  // сторінки завжди ділять один день. _anchorDate — dayA для індексу
+  // _kOrigin; свайп лише змінює _pageIndex, а явний перехід (Сьогодні,
+  // тижнева стрічка) зсуває сам якір і скидає індекс назад до _kOrigin —
+  // так дата під пальцем завжди стає ЛІВОЮ колонкою одразу, без
+  // прив'язки до жорсткої парної сітки від фіксованої епохи.
+  static const _kOrigin = 5000;
 
   late final PageController _pageController;
+  late DateTime _anchorDate;
   late int _pageIndex;
   Timer? _nowTimer;
   DateTime _now = DateTime.now();
 
-  static int _pageForDate(DateTime d) =>
-      DateTime(d.year, d.month, d.day).difference(_epoch).inDays;
-  static DateTime _dateForPage(int page) => _epoch.add(Duration(days: page));
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime _dateForPage(int page) =>
+      _anchorDate.add(Duration(days: (page - _kOrigin) * 2));
 
   @override
   void initState() {
     super.initState();
-    _pageIndex = _pageForDate(_now);
-    _pageController = PageController(initialPage: _pageIndex);
+    _anchorDate = _dateOnly(_now);
+    _pageIndex = _kOrigin;
+    _pageController = PageController(initialPage: _kOrigin);
     // Полоска поточного часу оновлюється сама — раз на хвилину достатньо,
     // це не секундна стрілка.
     _nowTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -81,13 +91,14 @@ class _ScheduleCalendarViewState extends ConsumerState<ScheduleCalendarView> {
   }
 
   void _jumpToDate(DateTime date) {
-    final target = _pageForDate(date);
-    if (target == _pageIndex) return;
-    _pageController.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
+    final target = _dateOnly(date);
+    if (_isSameDay(target, _anchorDate) && _pageIndex == _kOrigin) return;
+    final needsPageJump = _pageIndex != _kOrigin;
+    setState(() {
+      _anchorDate = target;
+      _pageIndex = _kOrigin;
+    });
+    if (needsPageJump) _pageController.jumpToPage(_kOrigin);
   }
 
   void _goToToday() => _jumpToDate(DateTime.now());
@@ -404,39 +415,49 @@ class _CalendarTwoDayGridState extends ConsumerState<_CalendarTwoDayGrid> {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
-    return SingleChildScrollView(
-      controller: _scroll,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (noTimeA.isNotEmpty || noTimeB.isNotEmpty)
-            _CalendarNoTimeRow(itemsA: noTimeA, itemsB: noTimeB, onTap: _openItem),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final dayColWidth = (constraints.maxWidth - _kTimeColWidth - 1) / 2;
-              return Stack(
-                children: [
-                  Column(
-                    children: List.generate(24, (hour) {
-                      return _CalendarHourRow(
-                        hour: hour,
-                        itemsA: hourlyA[hour],
-                        itemsB: hourlyB[hour],
-                        onTap: _openItem,
-                      );
-                    }),
-                  ),
-                  if (_isSameDay(widget.dayA, widget.now))
-                    _CurrentTimeLine(now: widget.now, dayIndex: 0, dayColWidth: dayColWidth),
-                  if (_isSameDay(widget.dayB, widget.now))
-                    _CurrentTimeLine(now: widget.now, dayIndex: 1, dayColWidth: dayColWidth),
-                ],
-              );
-            },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Закріплено ПОЗА скролом (не всередині SingleChildScrollView
+        // нижче) — щоб рутина "будь-коли сьогодні" лишалась видимою навіть
+        // коли користувач прогорнув годинну сітку вниз.
+        if (noTimeA.isNotEmpty || noTimeB.isNotEmpty)
+          _CalendarNoTimeRow(itemsA: noTimeA, itemsB: noTimeB, onTap: _openItem),
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _scroll,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final dayColWidth = (constraints.maxWidth - _kTimeColWidth - 1) / 2;
+                    return Stack(
+                      children: [
+                        Column(
+                          children: List.generate(24, (hour) {
+                            return _CalendarHourRow(
+                              hour: hour,
+                              itemsA: hourlyA[hour],
+                              itemsB: hourlyB[hour],
+                              onTap: _openItem,
+                            );
+                          }),
+                        ),
+                        if (_isSameDay(widget.dayA, widget.now))
+                          _CurrentTimeLine(now: widget.now, dayIndex: 0, dayColWidth: dayColWidth),
+                        if (_isSameDay(widget.dayB, widget.now))
+                          _CurrentTimeLine(now: widget.now, dayIndex: 1, dayColWidth: dayColWidth),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: AppDimensions.xl),
+              ],
+            ),
           ),
-          const SizedBox(height: AppDimensions.xl),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

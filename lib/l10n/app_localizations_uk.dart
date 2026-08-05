@@ -226,6 +226,15 @@ class AppLocalizationsUk extends AppLocalizations {
   String get calendarNoTimeLabel => 'Без часу';
 
   @override
+  String get scheduleViewList => 'Список';
+
+  @override
+  String get scheduleViewCalendar => 'Календар';
+
+  @override
+  String get scheduleViewPickerTitle => 'Формат перегляду';
+
+  @override
   String get searchAllSections => 'Пошук по всіх розділах';
 
   @override

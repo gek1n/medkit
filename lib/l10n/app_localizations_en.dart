@@ -226,6 +226,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarNoTimeLabel => 'No time';
 
   @override
+  String get scheduleViewList => 'List';
+
+  @override
+  String get scheduleViewCalendar => 'Calendar';
+
+  @override
+  String get scheduleViewPickerTitle => 'View format';
+
+  @override
   String get searchAllSections => 'Search all sections';
 
   @override
