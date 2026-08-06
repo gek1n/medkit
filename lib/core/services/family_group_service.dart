@@ -409,7 +409,12 @@ class FamilyGroupService {
     final repo = FamilyPeersRepository(_db);
     final newlyAdded = <FamilyPeer>[];
 
-    for (final invite in await repo.pendingInvites()) {
+    final pending = await repo.pendingInvites();
+    // Тимчасове діагностичне логування — щоб бачити, чи взагалі є цей канал
+    // у списку очікуваних запрошень на момент виклику (а не лише результат).
+    AppLogger.log(
+        'FamilyGroupService.refreshPeers: checking ${pending.length} pending invite(s): ${pending.map((i) => i.channelId).join(", ")}');
+    for (final invite in pending) {
       if (DateTime.now().difference(invite.createdAt) > _pendingInviteTtl) {
         await repo.removePendingInvite(invite.channelId);
         // Конверсія, яку так ніхто й не завершив, — прибираємо одноразовий
@@ -442,6 +447,13 @@ class FamilyGroupService {
         ));
         final savedPeer = await repo.getByUuid(joinedPersonUuid);
         if (savedPeer != null) newlyAdded.add(savedPeer);
+        // Тимчасове діагностичне логування (баг: інвайтер не бачить піра
+        // навіть коли channel_state на сервері вже підтверджено має дані) —
+        // refreshPeers() досі не мав жодного логу на успішній гілці, лише
+        // на помилці, тож неможливо було відрізнити "ще не відповів" від
+        // "відповів, зберіг, але це не показалось" за самими логами.
+        AppLogger.log(
+            'FamilyGroupService.refreshPeers: SAVED peer channelId=${invite.channelId} personUuid=$joinedPersonUuid familyId=${card['familyId']} savedPeerIsNull=${savedPeer == null}');
 
         // Я (хаб цієї сім'ї) знайомлю нового учасника з усіма, хто вже в
         // групі, і навпаки — обміном візитівок (Фаза 5, автопредставлення).
