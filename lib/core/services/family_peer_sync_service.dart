@@ -75,6 +75,11 @@ class FamilyPeerSyncService {
   static const _recentWindow = Duration(days: 2);
   static const _wellbeingWindow = Duration(days: 7);
 
+  // Типи, чий payload у _rowsFor обрізається за віком (recentCutoff/
+  // wellbeingCutoff) — для них diff видалень у _push() довіряє НЕ лише
+  // rows звідти (див. _existingUuidsFor нижче).
+  static const _windowedTypes = {'intake', 'activity_log', 'reminder_log', 'wellbeing_log'};
+
   Future<void> syncAllPeers() async {
     final peers = await FamilyPeersRepository(_db).allPeers();
     AppLogger.log('FamilyPeerSyncService.syncAllPeers: syncing ${peers.length} peer(s): '
@@ -300,6 +305,22 @@ class FamilyPeerSyncService {
             'uuid': row['uuid'],
             'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
           });
+        }
+        // Реальний баг (07.08): _rowsFor для intake/activity_log/
+        // reminder_log/wellbeing_log обрізає за віком (recentCutoff/
+        // wellbeingCutoff) — щойно виконаному запису виповнюється 2-7 днів,
+        // він випадає з rows вище й diff нижче (previouslyPushed мінус
+        // currentIds) сприймає це як "видалено", шле tombstone. Пір
+        // втрачає доказ "виконано" для старого, але СПРАВДІ ще наявного
+        // запису — на його екрані та сама позиція знову виглядає активною/
+        // пропущеною. currentIds тут довнаповнюється тим, що РЕАЛЬНО ще є
+        // в локальній базі (без обрізання за віком, без payload) — лише
+        // щоб diff не плутав "давно" з "видалено"; сам payload для дуже
+        // старих записів і далі не пересилається щоразу.
+        if (_windowedTypes.contains(type)) {
+          for (final uuid in await _existingUuidsFor(type, subject.id)) {
+            currentIds.add('$subjectUuid|$type|$uuid');
+          }
         }
       }
     }
@@ -717,6 +738,35 @@ class FamilyPeerSyncService {
         return result;
     }
     return const [];
+  }
+
+  // Той самий набір типів, що обрізаються за віком у _rowsFor вище — але
+  // тут БЕЗ обрізання, лише uuid, лише щоб diff у _push() не плутав "давно
+  // не пушилось (вийшло за вікно)" із "видалено" (07.08 фікс).
+  Future<Set<String>> _existingUuidsFor(String type, int memberId) async {
+    switch (type) {
+      case 'intake':
+        final rows = await (_db.select(_db.intakes)..where((t) => t.memberId.equals(memberId))).get();
+        return rows.where((r) => r.syncUuid != null).map((r) => r.syncUuid!).toSet();
+      case 'activity_log':
+        final query = _db.select(_db.activityLogs).join([
+          innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activityLogs.activityId)),
+        ])
+          ..where(_db.activities.memberId.equals(memberId));
+        final result = <String>{};
+        for (final r in await query.get()) {
+          final l = r.readTable(_db.activityLogs);
+          if (l.syncUuid != null) result.add(l.syncUuid!);
+        }
+        return result;
+      case 'reminder_log':
+        final rows = await (_db.select(_db.reminderLogs)..where((t) => t.memberId.equals(memberId))).get();
+        return rows.where((r) => r.syncUuid != null).map((r) => r.syncUuid!).toSet();
+      case 'wellbeing_log':
+        final rows = await (_db.select(_db.wellbeingLogs)..where((t) => t.memberId.equals(memberId))).get();
+        return rows.where((r) => r.syncUuid != null).map((r) => r.syncUuid!).toSet();
+    }
+    return const {};
   }
 
   Future<String?> _medcardSectionSyncUuidFor(int sectionId) async {
@@ -1402,6 +1452,10 @@ class FamilyPeerSyncService {
     final result = await _api.pull(channelId: peer.channelId, since: peer.lastSyncedAt);
     final repo = FamilyPeersRepository(_db);
     var peerLeft = false;
+    // Зібрані тут, а не застосовані одразу — див. коментар при transaction()
+    // в кінці методу (07.08 фікс "миготіння" на Сьогодні/Розкладі).
+    final pendingDeletes = <String>[];
+    final pendingUpserts = <({SharedSubjectsCompanion subject, SharedEntitiesCompanion entity})>[];
 
     // Тимчасове діагностичне логування — одне зведення на раунд синку (не
     // на кожну сутність), щоб бачити, що САМЕ прилетіло цим каналом: чи
@@ -1496,26 +1550,49 @@ class FamilyPeerSyncService {
         continue;
       }
       if (entity.deleted) {
-        await repo.deleteSharedEntity(entity.uuid);
+        pendingDeletes.add(entity.uuid);
         continue;
       }
       final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
       final subjectUuid = json['subjectPersonUuid'] as String?;
       if (subjectUuid == null) continue;
 
-      await repo.upsertSharedSubject(SharedSubjectsCompanion.insert(
-        personUuid: subjectUuid,
-        peerChannelId: peer.channelId,
-        name: json['subjectName'] as String? ?? peer.name,
-        avatarIndex: Value(json['subjectAvatarIndex'] as int? ?? peer.avatarIndex),
+      pendingUpserts.add((
+        subject: SharedSubjectsCompanion.insert(
+          personUuid: subjectUuid,
+          peerChannelId: peer.channelId,
+          name: json['subjectName'] as String? ?? peer.name,
+          avatarIndex: Value(json['subjectAvatarIndex'] as int? ?? peer.avatarIndex),
+        ),
+        entity: SharedEntitiesCompanion.insert(
+          subjectPersonUuid: subjectUuid,
+          entityType: entity.type,
+          uuid: entity.uuid,
+          dataJson: jsonEncode(json),
+          updatedAt: Value(DateTime.now()),
+        ),
       ));
-      await repo.upsertSharedEntity(SharedEntitiesCompanion.insert(
-        subjectPersonUuid: subjectUuid,
-        entityType: entity.type,
-        uuid: entity.uuid,
-        dataJson: jsonEncode(json),
-        updatedAt: Value(DateTime.now()),
-      ));
+    }
+
+    // Реальний баг (07.08): кожен upsert/delete раніше комітився й
+    // повідомляв watchSharedEntities() (StreamProvider Today/Розкладу/
+    // Поличок) окремо, по одному рядку за раз — під час одного раунду
+    // синку екран встигав побачити кілька проміжних "напівпорожніх" станів
+    // (старе вже видалили, нове ще не вставили), що й читалось як "зникло —
+    // за секунду зʼявилось знову". Один transaction() — один коміт, watcher
+    // бачить лише фінальний стан. Мережеві виклики (напр. photo_request
+    // вище) свідомо лишились ПОЗА транзакцією — тримати з'єднання з БД
+    // відкритим під час мережевого round-trip не варто.
+    if (pendingDeletes.isNotEmpty || pendingUpserts.isNotEmpty) {
+      await _db.transaction(() async {
+        for (final uuid in pendingDeletes) {
+          await repo.deleteSharedEntity(uuid);
+        }
+        for (final p in pendingUpserts) {
+          await repo.upsertSharedSubject(p.subject);
+          await repo.upsertSharedEntity(p.entity);
+        }
+      });
     }
     return peerLeft;
   }
@@ -1604,6 +1681,16 @@ class FamilyPeerSyncService {
     }
     for (final e in await _db.select(_db.medcardEntries).get()) {
       if (_documentPathsContain(e.documentPaths, photoPath) && await memberAllowed(e.memberId)) return true;
+    }
+    // Реальний баг (07.08): фото на ліках (Medications.photoPaths) і на
+    // рутинах (Activities.documentPaths) тут узагалі не перевірялись —
+    // запит на такі фото мовчки відхилявся, піру відповідь ніколи не
+    // приходила.
+    for (final m in await _db.select(_db.activities).get()) {
+      if (_documentPathsContain(m.documentPaths, photoPath) && await memberAllowed(m.memberId)) return true;
+    }
+    for (final med in await _db.select(_db.medications).get()) {
+      if (_documentPathsContain(med.photoPaths, photoPath) && await memberAllowed(med.memberId)) return true;
     }
     return false;
   }

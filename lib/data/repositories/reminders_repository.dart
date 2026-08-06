@@ -77,13 +77,25 @@ class RemindersRepository {
   // ReminderLogGenerator (per-occurrence лог виконання), щоб їхня логіка
   // не розходилась.
   Future<List<DateTime>> occurrencesOnDate(Reminder r, DateTime date) async {
+    // slots потрібні лише для daily/weekly — не питаємо БД для решти типів.
+    final needsSlots = r.repeatType == 'daily' || r.repeatType == 'weekly';
+    final slots = needsSlots ? await getSlotsForReminder(r.id) : const <ReminderSlot>[];
+    return occurrencesOnDateForSlots(r, date, slots);
+  }
+
+  // Той самий розрахунок, що й occurrencesOnDate вище, але слоти передаються
+  // напряму — єдине джерело правди і для локальних нагадувань (через
+  // occurrencesOnDate, БД), і для календарного вигляду піра (Крок 4.3-подібна
+  // робота, schedule_calendar_data.dart), де слотів у локальній БД взагалі
+  // нема — лише вже перекладений peerReminderSlotsProvider.
+  List<DateTime> occurrencesOnDateForSlots(
+      Reminder r, DateTime date, List<ReminderSlot> slots) {
     final dayStart = DateTime(date.year, date.month, date.day);
     final anchorDay =
         DateTime(r.scheduledAt.year, r.scheduledAt.month, r.scheduledAt.day);
     switch (r.repeatType) {
       case 'daily':
         if (anchorDay.isAfter(dayStart)) return const [];
-        final slots = await getSlotsForReminder(r.id);
         if (slots.isEmpty) return [dayStart];
         return slots.map((s) => _atTimeOfDay(dayStart, s.timeOfDay)).toList();
       case 'weekly':
@@ -94,7 +106,6 @@ class RemindersRepository {
           days = Set<int>.from(cfg['days'] as List);
         } catch (_) {}
         if (!days.contains(date.weekday)) return const [];
-        final slots = await getSlotsForReminder(r.id);
         if (slots.isEmpty) return [dayStart];
         return slots.map((s) => _atTimeOfDay(dayStart, s.timeOfDay)).toList();
       case 'yearly':

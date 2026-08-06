@@ -1093,6 +1093,27 @@ class AppDatabase extends _$AppDatabase {
           try {
             await customStatement('ALTER TABLE reminder_slots ADD COLUMN sync_uuid TEXT');
           } catch (_) {}
+          // Той самий клас багу (07.08): 6 boolean-колонок дозволів по
+          // розділах (view/editScheduleGranted, view/editMedcardGranted з
+          // if (from < 44), view/editShelvesGranted з if (from < 46)) теж
+          // додавались через m.addColumn у мовчазному try/catch вище.
+          // FamilyPeersRepository.updateGrantedToMe записує всі 10
+          // прапорців ОДНИМ UPDATE — якщо бодай однієї з цих 6 колонок
+          // фізично нема, весь запит падає з "no such column", і жоден
+          // грант від піра більше ніколи не застосовується на цьому
+          // пристрої, скільки б piр не пересилав коректний grants_summary.
+          for (final col in [
+            'view_schedule_granted',
+            'edit_schedule_granted',
+            'view_medcard_granted',
+            'edit_medcard_granted',
+            'view_shelves_granted',
+            'edit_shelves_granted',
+          ]) {
+            try {
+              await customStatement('ALTER TABLE family_peers ADD COLUMN $col INTEGER DEFAULT 0');
+            } catch (_) {}
+          }
           // Сам UPDATE — помилки тут НЕ ковтаються мовчки (на відміну від
           // onUpgrade-кроків і ALTER вище) — якщо після захисного ALTER
           // колонка досі чомусь недоступна, маємо про це дізнатись, а не

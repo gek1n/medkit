@@ -354,16 +354,18 @@ class _ScheduleBody extends ConsumerWidget {
     // Календарний вигляд керує власним вертикальним скролом (кожна
     // 2-денна сторінка гортається окремо), тож не влазить у той самий
     // CustomScrollView, що й списковий — окрема гілка Column замість
-    // слайверів. Пір поки що лишається на списковому вигляді (Крок 4.3-
-    // подібна робота з перекладачем дат для автономного піра — окрема
-    // майбутня задача, не тут).
-    if (viewFormat == _ScheduleViewFormat.calendar && peer == null) {
+    // слайверів. Крок 4.3-подібна робота (07.08): тепер працює і для
+    // автономного піра — через peerScheduleCalendarDayProvider
+    // (schedule_calendar_data.dart), той самий перекладач кешу, що й решта
+    // Розкладу/Поличок.
+    if (viewFormat == _ScheduleViewFormat.calendar) {
       return Column(
         children: [
-          if (owner != null && member.id != owner.id)
+          if (peer != null || (owner != null && member.id != owner.id))
             SwitchProfileBanner(
-              name: member.name,
+              name: peer?.name ?? member.name,
               onReturn: () {
+                ref.read(activePeerProvider.notifier).state = null;
                 ref.read(activeMemberIdProvider.notifier).state = null;
                 if (owner != null) onMemberChanged(owner.id);
               },
@@ -421,6 +423,7 @@ class _ScheduleBody extends ConsumerWidget {
           Expanded(
             child: ScheduleCalendarView(
               memberId: selectedMemberId,
+              peer: peer,
               category: category,
               search: q,
             ),

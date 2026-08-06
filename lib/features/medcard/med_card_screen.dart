@@ -264,6 +264,12 @@ class _MedCardBody extends ConsumerWidget {
                 ),
 
               // ── Довільні розділи, створені користувачем ──
+              // Реальний баг: цей блок раніше рендерився БЕЗ урахування
+              // shelvesClosed — глядач без доступу міг бачити свої вже
+              // закешовані розділи (і навіть заходити в них) одночасно з
+              // банером "доступ закрито" вище. Тепер той самий гейт, що й
+              // для вбудованих плиток.
+              if (!shelvesClosed)
               sectionsAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),

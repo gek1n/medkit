@@ -505,6 +505,13 @@ class _TodayContent extends ConsumerWidget {
               // свіжий стан від пірів (дозволи/payerPlanActive/дані), а не
               // чекаємо наступного пасивного тригера (resume/FCM).
               await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
+              // Реальний баг (07.08): syncAllPeers() — мережевий раунд, може
+              // тривати кілька секунд; якщо користувач встигає піти з
+              // екрана саме зараз (свайп назад, смена вкладки), ref тут уже
+              // "мертвий" — invalidate/read нижче кидали
+              // "Cannot use ref after the widget was disposed", обриваючи
+              // оновлення на середині.
+              if (!context.mounted) return;
               ref.invalidate(generateTodayIntakesProvider);
               ref.invalidate(generateTodayActivityLogsProvider);
               ref.invalidate(generateTodayReminderLogsProvider);

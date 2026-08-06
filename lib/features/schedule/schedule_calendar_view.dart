@@ -10,6 +10,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/reminder_view_screen.dart';
+import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import 'schedule_calendar_data.dart';
@@ -37,12 +38,18 @@ class ScheduleCalendarView extends ConsumerStatefulWidget {
   final int memberId;
   final ScheduleCategory category;
   final String search; // вже .trim().toLowerCase()
+  // Крок 4.3-подібна робота (07.08): непорожній — календар читає дані з
+  // уже перекладеного кешу піра (peerScheduleCalendarDayProvider), а не з
+  // локальної БД за memberId (memberId тоді — лише синтетичний ідентифікатор
+  // для CalendarItem, не реальний запис у Members).
+  final PeerSubject? peer;
 
   const ScheduleCalendarView({
     super.key,
     required this.memberId,
     required this.category,
     required this.search,
+    this.peer,
   });
 
   @override
@@ -132,6 +139,7 @@ class _ScheduleCalendarViewState extends ConsumerState<ScheduleCalendarView> {
                   return _CalendarTwoDayGrid(
                     key: ValueKey(index),
                     memberId: widget.memberId,
+                    peer: widget.peer,
                     dayA: a,
                     dayB: b,
                     category: widget.category,
@@ -304,6 +312,7 @@ class _TodayButton extends StatelessWidget {
 
 class _CalendarTwoDayGrid extends ConsumerStatefulWidget {
   final int memberId;
+  final PeerSubject? peer;
   final DateTime dayA;
   final DateTime dayB;
   final ScheduleCategory category;
@@ -313,6 +322,7 @@ class _CalendarTwoDayGrid extends ConsumerStatefulWidget {
   const _CalendarTwoDayGrid({
     super.key,
     required this.memberId,
+    this.peer,
     required this.dayA,
     required this.dayB,
     required this.category,
@@ -360,21 +370,26 @@ class _CalendarTwoDayGridState extends ConsumerState<_CalendarTwoDayGrid> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                MedicationDetailScreen(medicationId: item.id, memberId: item.memberId),
+            builder: (_) => MedicationDetailScreen(
+                medicationId: item.id, memberId: item.memberId, peer: widget.peer),
           ),
         );
       case CalendarItemType.reminder:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => ReminderViewScreen(reminderId: item.id)),
+          MaterialPageRoute(
+              builder: (_) => ReminderViewScreen(reminderId: item.id, peer: widget.peer)),
         );
       case CalendarItemType.routine:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => RoutineViewScreen(activityId: item.id)),
+          MaterialPageRoute(
+              builder: (_) => RoutineViewScreen(activityId: item.id, peer: widget.peer)),
         );
       case CalendarItemType.wellbeing:
+        // AddWellbeingScheduleScreen тут виступає і як редактор — немає
+        // режиму піра (той самий гейт, що й у списковому вигляді Розкладу).
+        if (widget.peer != null) return;
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -386,12 +401,22 @@ class _CalendarTwoDayGridState extends ConsumerState<_CalendarTwoDayGrid> {
 
   @override
   Widget build(BuildContext context) {
-    final itemsA = ref
-        .watch(scheduleCalendarDayProvider((memberId: widget.memberId, date: widget.dayA)))
-        .valueOrNull;
-    final itemsB = ref
-        .watch(scheduleCalendarDayProvider((memberId: widget.memberId, date: widget.dayB)))
-        .valueOrNull;
+    final peer = widget.peer;
+    final List<CalendarItem>? itemsA;
+    final List<CalendarItem>? itemsB;
+    if (peer != null) {
+      itemsA = ref.watch(
+          peerScheduleCalendarDayProvider((personUuid: peer.personUuid, date: widget.dayA)));
+      itemsB = ref.watch(
+          peerScheduleCalendarDayProvider((personUuid: peer.personUuid, date: widget.dayB)));
+    } else {
+      itemsA = ref
+          .watch(scheduleCalendarDayProvider((memberId: widget.memberId, date: widget.dayA)))
+          .valueOrNull;
+      itemsB = ref
+          .watch(scheduleCalendarDayProvider((memberId: widget.memberId, date: widget.dayB)))
+          .valueOrNull;
+    }
 
     final loading = itemsA == null || itemsB == null;
     final aFiltered = loading ? const <CalendarItem>[] : _filter(itemsA);

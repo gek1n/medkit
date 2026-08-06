@@ -280,6 +280,18 @@ class _RootRouter extends ConsumerWidget {
     final memberAsync = ref.watch(currentMemberProvider);
 
     return memberAsync.when(
+      // Реальний баг (07.08, знайдено через Explore-агента): currentMemberProvider
+      // сам watch'ить activeMemberIdProvider — щойно перемикач профілю/піра
+      // (MemberSwitcherPill на Розкладі/Поличках) записує туди нове значення,
+      // StreamProvider "перезапускається" (seamless: false, це reload, не
+      // refresh) і на мить emits AsyncLoading. Без skipLoadingOnReload це
+      // потрапляло у loading:-гілку нижче — _LoadingScreen() ЗАМІНЯЄ _Shell()
+      // (інший тип віджета!), Flutter знищує _ShellState разом із його полем
+      // _index (поточна вкладка), і коли currentMemberProvider за мить
+      // видає новий стан, монтується НОВИЙ _ShellState з _index за
+      // замовчуванням = 2 (Сьогодні) — саме тому будь-яке перемикання
+      // користувача на Розкладі/Поличках виглядало як "стрибок на Сьогодні".
+      skipLoadingOnReload: true,
       loading: () => const _LoadingScreen(),
       // НІКОЛИ не показувати онбординг при помилці читання БД — дані
       // фізично на диску, просто зараз не читаються (напр. розсинхрон
@@ -789,6 +801,13 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   late final PageController _pageController;
   bool _syncing = false;
   bool _familySyncing = false;
+  DateTime? _lastFamilySyncAt;
+  // Швидке згортання/розгортання застосунку (кілька разів поспіль) раніше
+  // запускало повний раунд (push+pull+grants+перевірка сповіщень для
+  // КОЖНОГО піра) щоразу заново — навантаження й ризик "занадто багато
+  // запитів" (той самий клас проблеми, що вже ловили на несписаних
+  // запрошеннях). 10с — узгоджено як прийнятний інтервал.
+  static const _familySyncCooldown = Duration(seconds: 10);
   bool _billingSyncing = false;
   bool _backingUp = false;
   StreamSubscription<RemoteMessage>? _fcmSubscription;
@@ -934,6 +953,8 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   /// якщо облікова синхронізація взагалі вимкнена.
   Future<void> _familySyncIfNeeded() async {
     if (_familySyncing) return;
+    final lastAt = _lastFamilySyncAt;
+    if (lastAt != null && DateTime.now().difference(lastAt) < _familySyncCooldown) return;
     _familySyncing = true;
     try {
       final db = ref.read(databaseProvider);
@@ -981,6 +1002,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       AppLogger.logError('_ShellState._familySyncIfNeeded', e, st);
     } finally {
       _familySyncing = false;
+      _lastFamilySyncAt = DateTime.now();
     }
   }
 
