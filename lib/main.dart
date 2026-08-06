@@ -971,8 +971,14 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
           }
         }
       }
-    } catch (_) {
-      // Тиха невдача — див. коментар до _syncIfEnabled.
+    } catch (e, st) {
+      // Раніше повністю мовчазний catch — якщо syncAll()/refreshPeers()/
+      // retryPendingIntroductions() кидали виняток РАНІШЕ, ніж доходило до
+      // syncAllPeers() (реальні дані/дозволи), останній просто НІКОЛИ не
+      // викликався цього раунду — без жодного сліду в логах. Локальні дані
+      // лишаються джерелом правди, тож і далі не ретраїмо тут же — лише
+      // тепер видно причину, а не морочимось здогадками з відсутності логів.
+      AppLogger.logError('_ShellState._familySyncIfNeeded', e, st);
     } finally {
       _familySyncing = false;
     }

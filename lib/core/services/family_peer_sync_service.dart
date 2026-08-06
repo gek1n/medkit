@@ -77,12 +77,20 @@ class FamilyPeerSyncService {
 
   Future<void> syncAllPeers() async {
     final peers = await FamilyPeersRepository(_db).allPeers();
+    AppLogger.log('FamilyPeerSyncService.syncAllPeers: syncing ${peers.length} peer(s): '
+        '${peers.map((p) => "${p.personUuid}(${p.channelId})").join(", ")}');
     for (final peer in peers) {
       try {
         await _syncPeer(peer);
-      } catch (_) {
-        // Локальні дані лишаються джерелом правди — спробуємо ще раз при
-        // наступному тригері, той самий підхід, що й FamilySyncService.
+      } catch (e, st) {
+        // Раніше повністю мовчазний catch — якщо _push()/_pull() кидали
+        // виняток (мережа, таймаут, будь-що), решта раунду (зокрема
+        // _pushGrantsSummary) просто не відбувалась БЕЗ жодного сліду, тож
+        // "дозволи не долетіли" було неможливо відрізнити від "успішно
+        // нічого нового". Локальні дані лишаються джерелом правди —
+        // спробуємо ще раз при наступному тригері, той самий підхід, що й
+        // FamilySyncService — але тепер хоча б видно, чому саме.
+        AppLogger.logError('FamilyPeerSyncService.syncAllPeers(personUuid=${peer.personUuid})', e, st);
       }
     }
   }
