@@ -112,6 +112,7 @@ class _FamilyBody extends ConsumerWidget {
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () async {
+        await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
         ref.invalidate(allMembersProvider);
         ref.invalidate(_familyPeersProvider);
       },

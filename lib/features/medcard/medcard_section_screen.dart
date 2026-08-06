@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/database_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/shared_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -277,6 +279,7 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
               child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: () async {
+                  await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
                   ref.invalidate(_sectionEntriesProvider(section.id));
                   ref.invalidate(_sectionMedicationsProvider(section.id));
                   ref.invalidate(_sectionActivitiesProvider(section.id));

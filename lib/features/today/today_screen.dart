@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
+import '../../core/providers/database_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
@@ -499,6 +501,10 @@ class _TodayContent extends ConsumerWidget {
           return RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () async {
+              // Не лише перечитуємо локальну базу — а й активно тягнемо
+              // свіжий стан від пірів (дозволи/payerPlanActive/дані), а не
+              // чекаємо наступного пасивного тригера (resume/FCM).
+              await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
               ref.invalidate(generateTodayIntakesProvider);
               ref.invalidate(generateTodayActivityLogsProvider);
               ref.invalidate(generateTodayReminderLogsProvider);

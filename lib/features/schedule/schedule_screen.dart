@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/services/family_peer_sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -430,6 +432,7 @@ class _ScheduleBody extends ConsumerWidget {
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () async {
+        await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
         ref.invalidate(_scheduleMedsProvider(selectedMemberId));
         ref.invalidate(_scheduleActivitiesProvider(selectedMemberId));
         ref.invalidate(_scheduleAppointmentsProvider(selectedMemberId));
