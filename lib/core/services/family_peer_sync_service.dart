@@ -170,9 +170,16 @@ class FamilyPeerSyncService {
           _db, ownerUuid, peer.personUuid, FamilySection.shelves, edit: true),
       'payerPlanActive': payerPlanActive,
     };
+    // Реальний баг (06.08): (channel_id, entity_type, entity_uuid) — це
+    // ПЕРВИННИЙ КЛЮЧ на сервері (REPLACE INTO), а grants_summary раніше мав
+    // ОДИН статичний seed для обох напрямків одного каналу — тобто мої
+    // дозволи піру й дозволи піра мені писались в ОДИН і той самий рядок,
+    // і хто з двох пристроїв пушив останнім, той і "переміг", стерши
+    // дозволи іншого напрямку без жодного сліду. Додаю ownerUuid (МОЮ
+    // власну особу) в seed — тепер напрямки більше не перетинаються.
     final entity = {
       'type': 'grants_summary',
-      'uuid': _stableUuid('grants_summary'),
+      'uuid': _stableUuid('grants_summary_$ownerUuid'),
       'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
     };
     try {

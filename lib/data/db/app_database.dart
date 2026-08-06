@@ -1074,6 +1074,25 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
                 'ALTER TABLE family_peers ADD COLUMN introduction_sent INTEGER DEFAULT 0');
           } catch (_) {}
+          // Реальний краш у продакшені (06.08, з логів build 80): та сама
+          // причина, що й для updated_at вище, але інший механізм —
+          // reminderSlots.syncUuid оголошений як `.unique()()` у Dart-класі,
+          // а SQLite В ПРИНЦИПІ забороняє додавати UNIQUE-колонку через
+          // ALTER TABLE ADD COLUMN (лише через CREATE TABLE) — тож
+          // `m.addColumn(reminderSlots, reminderSlots.syncUuid)` у
+          // `if (from < 45)` вище падав на КОЖНОМУ пристрої, який пройшов
+          // цей крок оновлення "на місці" (не лише на "деяких платформах",
+          // як для updated_at), а не лише мовчки ковтався. Без цієї колонки
+          // FamilyPeerSyncService._assignMissingUuids кидав виняток при
+          // спробі призначити syncUuid новим рядкам — і через відсутній
+          // try/catch навколо ЦІЄЇ конкретної підфункції (на відміну від
+          // самого _push) валив УВЕСЬ раунд синку з пірами на кожному
+          // тригері, назавжди. Без UNIQUE тут (ALTER TABLE фізично не може
+          // її додати) — прийнятний компроміс, значення й так генеруються
+          // клієнтом як UUID v4, практично гарантовано унікальні.
+          try {
+            await customStatement('ALTER TABLE reminder_slots ADD COLUMN sync_uuid TEXT');
+          } catch (_) {}
           // Сам UPDATE — помилки тут НЕ ковтаються мовчки (на відміну від
           // onUpgrade-кроків і ALTER вище) — якщо після захисного ALTER
           // колонка досі чомусь недоступна, маємо про це дізнатись, а не
