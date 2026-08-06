@@ -172,7 +172,7 @@ class FamilyPeerSyncService {
     };
     final entity = {
       'type': 'grants_summary',
-      'uuid': 'grants_summary',
+      'uuid': _stableUuid('grants_summary'),
       'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, json)),
     };
     try {
@@ -187,6 +187,20 @@ class FamilyPeerSyncService {
   // ── Push: мої субʼєкти → цей пір, лише те, що дозволено ─────────────────
 
   String _pushedKey(String channelId) => 'family_peer_pushed_$channelId';
+
+  // Реальний баг (06.08, знайдено через логи): row['updatedAt'] тут —
+  // значення з Drift-згенерованого .toJson(), а НЕ типізований DateTime із
+  // самого рядка. Drift за замовчуванням серіалізує DateTime у
+  // millisecondsSinceEpoch (int), не в ISO-рядок (див.
+  // ValueSerializer._DefaultValueSerializer у пакеті drift) — окрім
+  // activity_assignee нижче, де рядок будується вручну й updatedAt навмисно
+  // вже String. DateTime.parse(... as String) падав на КОЖНОМУ інкрементному
+  // раунді синку (since != null) для будь-якого типу, окрім самого першого
+  // разу (since == null пропускає цю гілку через короткий цикл ||) — тобто
+  // жодна family-sync пара ніколи не переживала другий раунд push. Приймаємо
+  // обидва формати замість здогадуватись, який саме Drift поверне цього разу.
+  DateTime _rowUpdatedAt(dynamic value) =>
+      value is int ? DateTime.fromMillisecondsSinceEpoch(value) : DateTime.parse(value as String);
 
   Future<Set<String>> _previouslyPushed(String channelId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -251,7 +265,7 @@ class FamilyPeerSyncService {
           final id = '$subjectUuid|$type|${row['uuid']}';
           currentIds.add(id);
           final changed = !previouslyPushed.contains(id) ||
-              (since == null || DateTime.parse(row['updatedAt'] as String).isAfter(since));
+              (since == null || _rowUpdatedAt(row['updatedAt']).isAfter(since));
           if (!changed) continue;
 
           final json = Map<String, dynamic>.from(row)
@@ -292,6 +306,20 @@ class FamilyPeerSyncService {
   // без пари ніколи не мали 1:1 SharedChannel просто ніколи не набули б
   // uuid і мовчки не потрапляли б у групу.
   static const _uuid = Uuid();
+
+  // Сервер (FamilySyncController.upsertEntity) валідує ЗОВНІШНІЙ 'uuid'
+  // сутності суворим регекспом справжнього UUID — а частина типів тут
+  // історично використовувала стабільні смислові рядки замість нього
+  // ('grants_summary', 'peer_removed_$uuid' тощо, навмисно завжди
+  // ОДНАКОВІ для одного й того самого логічного слоту, щоб REPLACE INTO на
+  // сервері перезаписував той самий рядок, а не плодив нові). v5
+  // (детермінований, за іменем) зберігає цю властивість "той самий вхід →
+  // той самий вихід", але вже проходить валідацію. Реальний баг (06.08),
+  // знайдено через логи: без цього push_grantsSummary/peer_left/
+  // known_member/introduction/kicked_from_family/peer_removed і
+  // activity_assignee (ротація) отримували 422 "uuid має бути UUID" на
+  // КОЖНОМУ раунді синку, назавжди.
+  static String _stableUuid(String seed) => const Uuid().v5(Namespace.url.value, seed);
 
   Future<void> _assignMissingUuids(int memberId) async {
     Future<void> medications() async {
@@ -558,7 +586,7 @@ class FamilyPeerSyncService {
           if (act.syncUuid == null) continue;
           final identity = assigneeMember.linkedPeerPersonUuid ?? 'm${assigneeMember.id}';
           result.add({
-            'uuid': '${act.syncUuid}:$identity',
+            'uuid': _stableUuid('${act.syncUuid}:$identity'),
             'activitySyncUuid': act.syncUuid,
             'sortOrder': assignee.sortOrder,
             'name': assigneeMember.name,
@@ -1811,7 +1839,7 @@ class FamilyPeerSyncService {
       await _sendCard(
         toChannelId: sibling.channelId,
         type: 'peer_removed',
-        uuid: 'peer_removed_$personUuid',
+        uuid: _stableUuid('peer_removed_$personUuid'),
         json: {'removedPersonUuid': personUuid},
       );
       final keyBytes = await SharedChannelKeyStorage.read(sibling.channelId);
@@ -1827,7 +1855,7 @@ class FamilyPeerSyncService {
       await _sendCard(
         toChannelId: target.channelId,
         type: 'kicked_from_family',
-        uuid: 'kicked_from_family_${target.familyId}',
+        uuid: _stableUuid('kicked_from_family_${target.familyId}'),
         json: {'familyId': target.familyId},
       );
       await _ping(target.channelId, SecretKey(targetKeyBytes));
@@ -1880,7 +1908,7 @@ class FamilyPeerSyncService {
         await _api.push(channelId: peer.channelId, entities: [
           {
             'type': 'peer_left',
-            'uuid': 'peer_left',
+            'uuid': _stableUuid('peer_left'),
             'ciphertext': base64Encode(await SyncCryptoService.encryptEntity(key, {})),
           }
         ]);
@@ -2000,13 +2028,13 @@ class FamilyPeerSyncService {
       await _sendCard(
         toChannelId: existing.channelId,
         type: 'known_member',
-        uuid: 'known_member_${newPeer.personUuid}',
+        uuid: _stableUuid('known_member_${newPeer.personUuid}'),
         json: cardOf(newPeer),
       );
       await _sendCard(
         toChannelId: newPeer.channelId,
         type: 'known_member',
-        uuid: 'known_member_${existing.personUuid}',
+        uuid: _stableUuid('known_member_${existing.personUuid}'),
         json: cardOf(existing),
       );
     }
@@ -2064,7 +2092,7 @@ class FamilyPeerSyncService {
     await _sendCard(
       toChannelId: fromPeer.channelId,
       type: 'introduction',
-      uuid: 'introduction_${target.personUuid}',
+      uuid: _stableUuid('introduction_${target.personUuid}'),
       json: {
         'peerPersonUuid': target.personUuid,
         'peerName': target.name,
@@ -2076,7 +2104,7 @@ class FamilyPeerSyncService {
     await _sendCard(
       toChannelId: target.channelId,
       type: 'introduction',
-      uuid: 'introduction_${fromPeer.personUuid}',
+      uuid: _stableUuid('introduction_${fromPeer.personUuid}'),
       json: {
         'peerPersonUuid': fromPeer.personUuid,
         'peerName': fromPeer.name,
