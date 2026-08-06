@@ -11,6 +11,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../providers/notification_settings_provider.dart';
 import '../providers/plan_provider.dart';
+import 'app_logger.dart';
 import 'family_join_popup_service.dart';
 import 'family_sync_api_client.dart';
 import 'family_visibility_service.dart';
@@ -88,7 +89,13 @@ class FamilyPeerSyncService {
 
   Future<void> _syncPeer(FamilyPeer peer) async {
     final keyBytes = await SharedChannelKeyStorage.read(peer.channelId);
-    if (keyBytes == null) return;
+    if (keyBytes == null) {
+      // Тимчасове діагностичне логування (той самий клас багів, що й
+      // refreshPeers: "ще нема ключа" — тихий continue раніше без сліду).
+      AppLogger.log(
+          'FamilyPeerSyncService._syncPeer: SKIP (no local sync key) channelId=${peer.channelId} personUuid=${peer.personUuid}');
+      return;
+    }
     final key = SecretKey(keyBytes);
 
     await _push(peer, key);
@@ -98,6 +105,8 @@ class FamilyPeerSyncService {
       // Симетрична частина Кроку 3.4: пір сам вийшов із сім'ї чи був
       // виключений на своєму боці — прибираємо його тут же, а не чекаємо,
       // поки хтось помітить застарілий рядок вручну.
+      AppLogger.log(
+          'FamilyPeerSyncService._syncPeer: peer signaled peer_left, removing channelId=${peer.channelId} personUuid=${peer.personUuid}');
       await removePeer(peer.personUuid);
       return;
     }
@@ -1307,6 +1316,15 @@ class FamilyPeerSyncService {
     final repo = FamilyPeersRepository(_db);
     var peerLeft = false;
 
+    // Тимчасове діагностичне логування — одне зведення на раунд синку (не
+    // на кожну сутність), щоб бачити, що САМЕ прилетіло цим каналом: чи
+    // взагалі дійшли grants_summary/peer_removed/kicked_from_family/
+    // introduction тощо, перш ніж копатись у кожному обробнику окремо.
+    if (result.entities.isNotEmpty) {
+      AppLogger.log(
+          'FamilyPeerSyncService._pull: channelId=${peer.channelId} personUuid=${peer.personUuid} got ${result.entities.length} entities: ${result.entities.map((e) => "${e.type}${e.deleted ? "(tombstone)" : ""}").join(", ")}');
+    }
+
     for (final entity in result.entities) {
       if (entity.type == 'peer_left') {
         if (!entity.deleted) peerLeft = true;
@@ -1741,10 +1759,15 @@ class FamilyPeerSyncService {
   Future<void> kickPeer(String personUuid) async {
     final repo = FamilyPeersRepository(_db);
     final target = await repo.getByUuid(personUuid);
-    if (target == null) return;
+    if (target == null) {
+      AppLogger.log('FamilyPeerSyncService.kickPeer: target not found personUuid=$personUuid');
+      return;
+    }
     final siblings = (await repo.allPeers())
         .where((p) => p.familyId == target.familyId && p.personUuid != personUuid)
         .toList();
+    AppLogger.log(
+        'FamilyPeerSyncService.kickPeer: kicking personUuid=$personUuid familyId=${target.familyId}, notifying ${siblings.length} sibling(s)');
     for (final sibling in siblings) {
       await _sendCard(
         toChannelId: sibling.channelId,
@@ -1771,24 +1794,6 @@ class FamilyPeerSyncService {
       await _ping(target.channelId, SecretKey(targetKeyBytes));
     }
     await removePeer(personUuid);
-  }
-
-  /// Прийшло від МОГО прямого адміністратора (invitedMe==true) — він
-  /// виключив мене з УСІЄЇ сімейної групи (не просто розірвав зв'язок зі
-  /// мною особисто через [kickPeer]): прибираю кожного учасника цього
-  /// familyId зі свого списку, включно з самим адміном, а не чекаю на
-  /// окремий 'peer_left' по кожному з них. Той самий захист від підробки
-  /// (лише від справжнього invitedMe-адміна), що й у [_handlePeerRemoved].
-  Future<void> _handleKickedFromFamily(Map<String, dynamic> json, FamilyPeer fromPeer) async {
-    if (!fromPeer.invitedMe) return;
-    final familyId = json['familyId'] as String?;
-    if (familyId == null || familyId != fromPeer.familyId) return;
-    final toRemove = (await FamilyPeersRepository(_db).allPeers())
-        .where((p) => p.familyId == familyId)
-        .toList();
-    for (final p in toRemove) {
-      await removePeer(p.personUuid);
-    }
   }
 
   Future<void> removePeer(String personUuid) async {
@@ -1900,6 +1905,9 @@ class FamilyPeerSyncService {
     return Uint8List.fromList(List.generate(length, (_) => random.nextInt(256)));
   }
 
+  // Спільна точка відправки для автопредставлення (Фаза 5) І для
+  // kickPeer()'s peer_removed/kicked_from_family — тому логування тут одразу
+  // покриває всі ці типи повідомлень, а не лише один.
   Future<void> _sendCard({
     required String toChannelId,
     required String type,
@@ -1907,7 +1915,10 @@ class FamilyPeerSyncService {
     required Map<String, dynamic> json,
   }) async {
     final keyBytes = await SharedChannelKeyStorage.read(toChannelId);
-    if (keyBytes == null) return;
+    if (keyBytes == null) {
+      AppLogger.log('FamilyPeerSyncService._sendCard: SKIP (no local sync key) type=$type toChannelId=$toChannelId');
+      return;
+    }
     final key = SecretKey(keyBytes);
     final entity = {
       'type': type,
@@ -1916,11 +1927,13 @@ class FamilyPeerSyncService {
     };
     try {
       await _api.push(channelId: toChannelId, entities: [entity]);
-    } catch (_) {
+      AppLogger.log('FamilyPeerSyncService._sendCard: sent OK type=$type toChannelId=$toChannelId');
+    } catch (e, st) {
       // Best-effort, той самий компроміс, що й для proposeEdit/photo_request —
       // без черги повторних спроб. Пропущене знайомство не критичне: людина
       // просто не побачить цього учасника у списку "Видимість", поки не
       // станеться інший привід для синку (напр. ще один новий учасник).
+      AppLogger.logError('FamilyPeerSyncService._sendCard(type=$type, toChannelId=$toChannelId)', e, st);
     }
   }
 
@@ -2066,11 +2079,44 @@ class FamilyPeerSyncService {
   /// звичайний співучасник міг би підробити чуже виключення через наш
   /// спільний (брокерений) канал.
   Future<void> _handlePeerRemoved(Map<String, dynamic> json, FamilyPeer fromPeer) async {
-    if (!fromPeer.invitedMe) return;
+    if (!fromPeer.invitedMe) {
+      AppLogger.log(
+          'FamilyPeerSyncService._handlePeerRemoved: IGNORED (sender is not my admin, invitedMe=false) fromPersonUuid=${fromPeer.personUuid}');
+      return;
+    }
     final removedUuid = json['removedPersonUuid'] as String?;
     if (removedUuid == null || removedUuid == fromPeer.personUuid) return;
     final target = await FamilyPeersRepository(_db).getByUuid(removedUuid);
-    if (target == null || target.familyId != fromPeer.familyId) return;
+    if (target == null || target.familyId != fromPeer.familyId) {
+      AppLogger.log(
+          'FamilyPeerSyncService._handlePeerRemoved: SKIP (target unknown or familyId mismatch) removedUuid=$removedUuid');
+      return;
+    }
+    AppLogger.log('FamilyPeerSyncService._handlePeerRemoved: removing personUuid=$removedUuid on admin instruction');
     await removePeer(removedUuid);
+  }
+
+  /// Прийшло від МОГО прямого адміністратора (invitedMe==true) — він
+  /// виключив мене з УСІЄЇ сімейної групи (не просто розірвав зв'язок зі
+  /// мною особисто через [kickPeer]): прибираю кожного учасника цього
+  /// familyId зі свого списку, включно з самим адміном, а не чекаю на
+  /// окремий 'peer_left' по кожному з них. Той самий захист від підробки
+  /// (лише від справжнього invitedMe-адміна), що й у [_handlePeerRemoved].
+  Future<void> _handleKickedFromFamily(Map<String, dynamic> json, FamilyPeer fromPeer) async {
+    if (!fromPeer.invitedMe) {
+      AppLogger.log(
+          'FamilyPeerSyncService._handleKickedFromFamily: IGNORED (sender is not my admin, invitedMe=false) fromPersonUuid=${fromPeer.personUuid}');
+      return;
+    }
+    final familyId = json['familyId'] as String?;
+    if (familyId == null || familyId != fromPeer.familyId) return;
+    final toRemove = (await FamilyPeersRepository(_db).allPeers())
+        .where((p) => p.familyId == familyId)
+        .toList();
+    AppLogger.log(
+        'FamilyPeerSyncService._handleKickedFromFamily: removing ${toRemove.length} peer(s) from familyId=$familyId');
+    for (final p in toRemove) {
+      await removePeer(p.personUuid);
+    }
   }
 }

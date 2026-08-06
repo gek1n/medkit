@@ -429,11 +429,19 @@ class FamilyGroupService {
       }
       try {
         final keyBytes = await SharedChannelKeyStorage.read(invite.channelId);
-        if (keyBytes == null) continue;
+        if (keyBytes == null) {
+          AppLogger.log(
+              'FamilyGroupService.refreshPeers: SKIP (no local sync key) channelId=${invite.channelId}');
+          continue;
+        }
         final state = await _relayApi.fetchState(channelId: invite.channelId);
         final key = SecretKey(keyBytes);
         final card = await SyncCryptoService.decryptEntity(key, base64Decode(state.encryptedPayloadBase64));
-        if (card['v'] != 3) continue;
+        if (card['v'] != 3) {
+          AppLogger.log(
+              'FamilyGroupService.refreshPeers: SKIP (unexpected card version=${card['v']}) channelId=${invite.channelId}');
+          continue;
+        }
         final joinedPersonUuid = card['personUuid'] as String;
         await repo.upsert(FamilyPeersCompanion.insert(
           personUuid: joinedPersonUuid,

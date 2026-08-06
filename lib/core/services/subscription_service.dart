@@ -114,10 +114,18 @@ class SubscriptionService {
     final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
     // 'active' з простроченим expiresAt (кеш не оновлювався якийсь час) —
     // трактуємо як 'expired', щоб не довіряти застарілому "активний" вічно.
-    final effectiveStatus =
-        (status == 'active' && expiresAt != null && expiresAt.isBefore(DateTime.now()))
-            ? 'expired'
-            : status;
+    final isDowngraded =
+        status == 'active' && expiresAt != null && expiresAt.isBefore(DateTime.now());
+    if (isDowngraded) {
+      // Тимчасове діагностичне логування — раніше висунута, ніколи не
+      // підтверджена гіпотеза (розсинхронізація годинника/часового поясу
+      // сервера могла робити щойно активований статус миттєво "простроченим").
+      // Якщо ця гілка спрацьовує одразу після успішної покупки/verifyTest —
+      // ось причина "показало успіх, а план не перемкнувся".
+      AppLogger.log(
+          'SubscriptionService.cachedRawStatus: DOWNGRADING active->expired, expiresAt=$expiresAt now=${DateTime.now()}');
+    }
+    final effectiveStatus = isDowngraded ? 'expired' : status;
 
     return CachedSubscriptionStatus(
       status: effectiveStatus,
