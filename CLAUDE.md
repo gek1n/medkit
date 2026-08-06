@@ -303,6 +303,26 @@ test/            narrow unit tests for crypto/sync services — no widget test c
    client, API enablement, service account) — several past features shipped code
    that then needed a manual console step the AI cannot perform (see "Known
    external dependencies" below).
+6. **New entity type pushed through family-sync** (any new `'type': '...'` value
+   sent via `FamilySyncApiClient.push` in `family_peer_sync_service.dart` — a new
+   schedulable/syncable table like Полички/reminders/wellbeing, OR a new signal
+   type like `grants_summary`/`peer_removed`/`introduction`/`known_member`)?
+   **Must also add it to `ALLOWED_ENTITY_TYPES` in `medkit-backend/medkit_private/
+   src/Modules/Relay/FamilySyncController.php`.** The two repos share no type
+   system and there is no build-time check linking them — this drifts silently.
+   Worse than a missing feature: the server rejects the **entire push batch**
+   (HTTP 422) the moment it sees even one unrecognized type, which silently kills
+   the *rest of that sync round for that peer* too — including unrelated entities
+   already in the same batch, like `grants_summary` sent right after. Confirmed
+   real incident (2026-08-06): the whitelist had been frozen at
+   `['medication', 'schedule', 'intake', 'symptom']` since before Полички sync
+   (Крок 5.1) — every Крок since then added client-side types without mirroring
+   here, silently breaking family data/grants sharing for any peer with newer
+   data. Same rule applies to `Modules/Sync/SyncController.php`'s own
+   `ALLOWED_ENTITY_TYPES` (account-sync, a separate whitelist) if you ever touch
+   that path instead. `medkit-backend` has no git/CI here — after fixing the PHP
+   source, it still needs manual upload via cPanel File Manager (see its
+   `DEPLOY.md`) before the fix is actually live.
 
 ## Collaboration / working-style notes
 
