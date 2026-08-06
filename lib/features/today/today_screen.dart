@@ -513,7 +513,12 @@ class _TodayContent extends ConsumerWidget {
             slivers: [
               if (showSwitchBanner || readOnly)
                 SliverToBoxAdapter(
-                  child: SwitchProfileBanner(name: peer?.name ?? member.name),
+                  child: SwitchProfileBanner(
+                    name: peer?.name ?? member.name,
+                    onReturn: peer != null
+                        ? () => ref.read(activePeerProvider.notifier).state = null
+                        : null,
+                  ),
                 ),
 
               // Hero — ховаємо повністю, коли обидва домени закриті

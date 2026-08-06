@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
@@ -317,6 +319,9 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
       await FamilyPeerSyncService(ref.read(databaseProvider))
           .requestIntroduction(widget.viewer.personUuid);
     }
+    // Без цього зміна долетить до піра лише на наступному пасивному
+    // тригері (resume/FCM) — новий дозвіл лежав би непереданим до тих пір.
+    unawaited(FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers());
   }
 
   Future<void> _toggleSection(FamilySection section, bool edit, bool value) async {
@@ -330,6 +335,7 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
         edit: edit,
         value: value,
       );
+      unawaited(FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers());
     } on FamilyGrantDeniedException {
       if (mounted) setState(() => _denied = true);
     }

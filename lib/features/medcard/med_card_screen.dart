@@ -156,7 +156,13 @@ class _MedCardBody extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showSwitchBanner) SwitchProfileBanner(name: memberName),
+        if (showSwitchBanner)
+          SwitchProfileBanner(
+            name: memberName,
+            onReturn: peer != null
+                ? () => ref.read(activePeerProvider.notifier).state = null
+                : null,
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppDimensions.screenPadding,

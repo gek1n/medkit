@@ -169,8 +169,10 @@ class FamilyPeerSyncService {
     };
     try {
       await _api.push(channelId: peer.channelId, entities: [entity]);
-    } catch (_) {
-      // Пір отримає актуальний стан на наступному раунді синку.
+      AppLogger.log(
+          'FamilyPeerSyncService._pushGrantsSummary: sent OK channelId=${peer.channelId} personUuid=${peer.personUuid} $json');
+    } catch (e, st) {
+      AppLogger.logError('FamilyPeerSyncService._pushGrantsSummary(channelId=${peer.channelId})', e, st);
     }
   }
 
