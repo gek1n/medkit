@@ -1171,8 +1171,22 @@ class _FamilyGroupSubsection extends StatelessWidget {
           // ВСІХ пірів одразу (без прив'язки до familyId, бо перемикачі й
           // так показують їх одним пласким блоком) — реордер лише "своєї"
           // групи уникає колізій із чужими familyId-групами.
+          // "Покинути" для власної сім'ї — усередині акордеона (згортається
+          // разом із рештою), для чужої — лишається зовні: гість не керує
+          // видимістю цієї секції так само вільно, як платящий власною.
           child: isOwnFamily
-              ? _DraggablePeers(peers: peers)
+              ? Column(
+                  children: [
+                    _DraggablePeers(peers: peers),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => onLeave(label),
+                        style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                        child: Text(context.l10n.leaveAction),
+                      ),
+                    ),
+                  ],
+                )
               : Column(
                   children: peers
                       .map((p) => Padding(
@@ -1185,13 +1199,14 @@ class _FamilyGroupSubsection extends StatelessWidget {
                       .toList(),
                 ),
         ),
-        Center(
-          child: TextButton(
-            onPressed: () => onLeave(label),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: Text(context.l10n.leaveAction),
+        if (!isOwnFamily)
+          Center(
+            child: TextButton(
+              onPressed: () => onLeave(label),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: Text(context.l10n.leaveAction),
+            ),
           ),
-        ),
       ],
     );
   }
