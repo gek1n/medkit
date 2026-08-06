@@ -209,6 +209,19 @@ class FamilyPeerSyncService {
   DateTime _rowUpdatedAt(dynamic value) =>
       value is int ? DateTime.fromMillisecondsSinceEpoch(value) : DateTime.parse(value as String);
 
+  // Той самий баг, інша точка виявлення (06.08, наступний раунд логів):
+  // _scheduleMissedChecks декодує JSON-пейлоади SharedEntities, збудовані
+  // через .toJson() на боці піра (той самий int-формат дат, що й вище), і
+  // досі робив `json['...'] as String?` напряму — падало на wellbeing_log
+  // (loggedAt) і на intake/activity_log/doctor_appointment (scheduledAt).
+  // Nullable-варіант _rowUpdatedAt — для полів, яких у записі може не бути.
+  DateTime? _parseDateAny(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
   Future<Set<String>> _previouslyPushed(String channelId) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_pushedKey(channelId));
@@ -1707,8 +1720,7 @@ class FamilyPeerSyncService {
       for (final e in entities) {
         if (e.entityType == 'wellbeing_log') {
           final json = decode(e);
-          final loggedAtRaw = json?['loggedAt'] as String?;
-          final loggedAt = loggedAtRaw != null ? DateTime.tryParse(loggedAtRaw) : null;
+          final loggedAt = _parseDateAny(json?['loggedAt']);
           if (loggedAt != null && !loggedAt.isBefore(todayStart)) hasWellbeingLogToday = true;
         }
       }
@@ -1724,8 +1736,7 @@ class FamilyPeerSyncService {
           case 'intake':
             final status = json['status'] as String?;
             if (status == null || status == 'pending') {
-              final scheduledAtRaw = json['scheduledAt'] as String?;
-              final scheduledAt = scheduledAtRaw != null ? DateTime.tryParse(scheduledAtRaw) : null;
+              final scheduledAt = _parseDateAny(json['scheduledAt']);
               if (scheduledAt == null) break;
               final medName = nameFor('medication', json['medicationSyncUuid'] as String?) ?? 'Ліки';
               final doseAmount = json['doseAmount'];
@@ -1743,8 +1754,7 @@ class FamilyPeerSyncService {
           case 'activity_log':
             final status = json['status'] as String?;
             if (status == null || status == 'pending') {
-              final scheduledAtRaw = json['scheduledAt'] as String?;
-              final scheduledAt = scheduledAtRaw != null ? DateTime.tryParse(scheduledAtRaw) : null;
+              final scheduledAt = _parseDateAny(json['scheduledAt']);
               if (scheduledAt == null) break;
               final activityName = nameFor('activity', json['activitySyncUuid'] as String?) ?? 'Активність';
               await NotificationService.schedulePeerActivityCheck(
@@ -1759,8 +1769,7 @@ class FamilyPeerSyncService {
           case 'doctor_appointment':
             final status = json['status'] as String?;
             if (status == null || status == 'pending') {
-              final scheduledAtRaw = json['scheduledAt'] as String?;
-              final scheduledAt = scheduledAtRaw != null ? DateTime.tryParse(scheduledAtRaw) : null;
+              final scheduledAt = _parseDateAny(json['scheduledAt']);
               if (scheduledAt == null) break;
               final doctorType = json['doctorType'] as String? ?? 'Лікар';
               await NotificationService.schedulePeerAppointmentCheck(
