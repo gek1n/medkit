@@ -121,7 +121,7 @@ class FamilyPeerSyncService {
     // з'явленого піра ще не налаштована), тож пінг мовчки пропускався — а
     // без нього пір дізнавався про свій новий Family-статус лише
     // випадково, при наступному самостійному відкритті застосунку.
-    await _ping(peer.channelId, key);
+    await _ping(peer.channelId, key, identityFamilyId: peer.familyId);
   }
 
   // ── Grants summary: "що я дозволив цьому піру" → його пристрій ─────────
@@ -1291,11 +1291,40 @@ class FamilyPeerSyncService {
     }
   }
 
-  Future<void> _ping(String channelId, SecretKey key) async {
+  // Реальний баг (06.08, знайдено через діагностичні логи): channel_state на
+  // сервері — ОДИН рядок на канал (REPLACE, не черга). _syncPeer() викликає
+  // _ping() НАПРИКІНЦІ кожного раунду синку для ВЖЕ підтвердженого локально
+  // піра — але щойно прийняте запрошення (acceptInvite()) створює FamilyPeers
+  // запис МИТТЄВО й АСИМЕТРИЧНО лише на боці того, хто приєднався: той самий
+  // channelId, яким щойно пішла картка знайомства (_sendMyCard), для
+  // адміністратора все ще лише "очікує на відповідь" (PendingGroupInvites),
+  // поки він сам не встигне її прочитати через refreshPeers(). Якщо
+  // запрошений відкриє застосунок ще раз до того — його ж _ping() перезаписує
+  // channel_state порожнім {'t': ...}, назавжди стираючи непрочитану картку
+  // (introductionSent вже true, повторної відправки більше не буде —
+  // постійний глухий кут). Рішення: коли викликач знає familyId цього
+  // конкретного зв'язку (лише _syncPeer — там пір уже є), пінг несе ту саму
+  // картку ідентичності, що й _sendMyCard, а не порожній таймстамп — тоді
+  // навіть перезапис ніколи не губить корисні дані.
+  Future<void> _ping(String channelId, SecretKey key, {String? identityFamilyId}) async {
     try {
       final token = await PushTokenService.getToken();
       if (token == null) return;
-      final ping = await SyncCryptoService.encryptEntity(key, {'t': DateTime.now().toIso8601String()});
+      Map<String, dynamic> payload = {'t': DateTime.now().toIso8601String()};
+      if (identityFamilyId != null) {
+        final owner =
+            await (_db.select(_db.members)..where((t) => t.role.equals('owner'))).getSingleOrNull();
+        if (owner != null) {
+          payload = {
+            'v': 3,
+            'familyId': identityFamilyId,
+            'personUuid': owner.personUuid,
+            'name': owner.name,
+            'avatarIndex': owner.avatarIndex,
+          };
+        }
+      }
+      final ping = await SyncCryptoService.encryptEntity(key, payload);
       await _relayApi.send(
         channelId: channelId,
         senderToken: token,
