@@ -1243,7 +1243,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get removePeerConfirmBody =>
-      'You\'ll both lose access to the data you shared with each other.';
+      'This removes them from the family for everyone — all members will lose access to the data they shared with each other.';
 
   @override
   String get confirmGuardianConsentSnackbar =>

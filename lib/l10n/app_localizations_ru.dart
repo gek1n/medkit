@@ -1251,7 +1251,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get removePeerConfirmBody =>
-      'Вы оба потеряете доступ к данным, которыми делились друг с другом.';
+      'Этот человек будет исключён из семьи для всех участников — все потеряют доступ к данным, которыми с ним делились.';
 
   @override
   String get confirmGuardianConsentSnackbar =>

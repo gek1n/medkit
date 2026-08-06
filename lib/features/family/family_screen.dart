@@ -1067,12 +1067,18 @@ class _FamilyGroupSection extends ConsumerWidget {
             familyId: entry.key,
             peers: entry.value,
             isOwnFamily: entry.key == ownerFamilyId,
-            // Лічильник слотів і корона — лише для "моєї" секції (я
-            // платящий саме тут); у чужій сім'ї я гість, це не моя квота.
+            // Лічильник слотів — лише для "моєї" секції (я платящий саме
+            // тут); у чужій сім'ї я гість, це не моя квота.
             slotsLabel: entry.key == ownerFamilyId
                 ? context.l10n.slotsUsedLabel(invitedByMeCount, ownPlan.limits.maxAutonomousMembers)
                 : null,
-            showPayerBadge: entry.key == ownerFamilyId && ownPlan == AppPlan.family,
+            // Корона — у "моїй" секції за МОЇМ тарифом, у чужій — за
+            // payerPlanActive того, хто мене сюди запросив (той самий
+            // прапорець, яким рахується "подарунок" Family-плюшок,
+            // realPlanProvider).
+            showPayerBadge: entry.key == ownerFamilyId
+                ? ownPlan == AppPlan.family
+                : (entry.value.where((p) => p.invitedMe).firstOrNull?.payerPlanActive ?? false),
             onLeave: (label) =>
                 _confirmLeaveGroup(context, ref, entry.key, label),
           ),
@@ -1170,7 +1176,10 @@ class _FamilyGroupSubsection extends StatelessWidget {
                   children: peers
                       .map((p) => Padding(
                             padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                            child: _PeerCard(peer: p),
+                            // Гість (я в чужій групі) не адмініструє інших
+                            // учасників цієї сім'ї — лише сам себе (кнопка
+                            // "Покинути" нижче).
+                            child: _PeerCard(peer: p, isAdmin: false),
                           ))
                       .toList(),
                 ),
@@ -1248,6 +1257,10 @@ class _DraggablePeersState extends ConsumerState<_DraggablePeers> {
           padding: const EdgeInsets.only(bottom: AppDimensions.sm),
           child: _PeerCard(
             peer: p,
+            // Ця гілка (_DraggablePeers) використовується виключно для
+            // "моєї" секції (isOwnFamily==true в _FamilyGroupSubsection) —
+            // тут я завжди адміністратор.
+            isAdmin: true,
             dragHandle: ReorderableDragStartListener(
               index: index,
               child: const Icon(Icons.drag_handle_rounded, color: AppColors.textMuted),
@@ -1449,7 +1462,12 @@ Future<void> _sendPeerReminder(BuildContext context, WidgetRef ref, FamilyPeer p
 class _PeerCard extends ConsumerStatefulWidget {
   final FamilyPeer peer;
   final Widget? dragHandle;
-  const _PeerCard({required this.peer, this.dragHandle});
+  // Хрестик (виключити з сім'ї для всіх) видно лише в "моїй" групі — я там
+  // адміністратор/платящий; у чужій сім'ї я гість, і не маю права
+  // виключати інших її учасників (лишається тільки "Покинути" — вихід
+  // виключно за себе).
+  final bool isAdmin;
+  const _PeerCard({required this.peer, this.dragHandle, required this.isAdmin});
 
   @override
   ConsumerState<_PeerCard> createState() => _PeerCardState();
@@ -1493,7 +1511,10 @@ class _PeerCardState extends ConsumerState<_PeerCard> {
       ),
     );
     if (ok != true) return;
-    await FamilyPeerSyncService(ref.read(databaseProvider)).removePeer(peer.personUuid);
+    // Цей діалог тепер відкривається лише з адмінського хрестика (гостю
+    // взагалі не показуємо кнопку) — тож завжди kickPeer (виключення для
+    // всіх), не локальний removePeer.
+    await FamilyPeerSyncService(ref.read(databaseProvider)).kickPeer(peer.personUuid);
   }
 
   @override
@@ -1551,14 +1572,15 @@ class _PeerCardState extends ConsumerState<_PeerCard> {
                       ],
                     ),
                   ),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    onTap: () => _confirmRemove(context, ref),
-                    child: const Padding(
-                      padding: EdgeInsets.all(6),
-                      child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                  if (widget.isAdmin)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                      onTap: () => _confirmRemove(context, ref),
+                      child: const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: Icon(Icons.close_rounded, size: 18, color: AppColors.textMuted),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

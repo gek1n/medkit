@@ -1378,6 +1378,18 @@ class FamilyPeerSyncService {
         await _handleIntroduction(json, peer);
         continue;
       }
+      if (entity.type == 'peer_removed') {
+        if (entity.deleted) continue;
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _handlePeerRemoved(json, peer);
+        continue;
+      }
+      if (entity.type == 'kicked_from_family') {
+        if (entity.deleted) continue;
+        final json = await SyncCryptoService.decryptEntity(key, entity.ciphertext);
+        await _handleKickedFromFamily(json, peer);
+        continue;
+      }
       if (entity.deleted) {
         await repo.deleteSharedEntity(entity.uuid);
         continue;
@@ -1720,6 +1732,65 @@ class FamilyPeerSyncService {
     await _setPreviouslyPushed(peer.channelId, {});
   }
 
+  /// Викликати ЛИШЕ адміністратором (платящим-хабом) цієї сімейної групи —
+  /// на відміну від [removePeer] (виключно локальна дія "я більше не бачу
+  /// цю людину", доступна будь-кому про будь-кого), тут виключення
+  /// поширюється на ВСІХ інших учасників тієї самої familyId: кожному з них
+  /// (тим самим каналом, яким я їх звів при автопредставленні) летить
+  /// сигнал прибрати цю людину і в себе, а не лише в мене локально.
+  Future<void> kickPeer(String personUuid) async {
+    final repo = FamilyPeersRepository(_db);
+    final target = await repo.getByUuid(personUuid);
+    if (target == null) return;
+    final siblings = (await repo.allPeers())
+        .where((p) => p.familyId == target.familyId && p.personUuid != personUuid)
+        .toList();
+    for (final sibling in siblings) {
+      await _sendCard(
+        toChannelId: sibling.channelId,
+        type: 'peer_removed',
+        uuid: 'peer_removed_$personUuid',
+        json: {'removedPersonUuid': personUuid},
+      );
+      final keyBytes = await SharedChannelKeyStorage.read(sibling.channelId);
+      if (keyBytes != null) await _ping(sibling.channelId, SecretKey(keyBytes));
+    }
+    // Самому Х недостатньо знати лише "адміна більше немає" (звичайний
+    // 'peer_left' нижче, в removePeer) — його пристрій усе одно лишився б
+    // із застарілими попарними зв'язками з рештою сім'ї (ті самі канали, що
+    // й ті сиблінги вище отримали тим самим автопредставленням). Явно
+    // кажемо Х прибрати ВСІХ учасників familyId, не лише мене.
+    final targetKeyBytes = await SharedChannelKeyStorage.read(target.channelId);
+    if (targetKeyBytes != null) {
+      await _sendCard(
+        toChannelId: target.channelId,
+        type: 'kicked_from_family',
+        uuid: 'kicked_from_family_${target.familyId}',
+        json: {'familyId': target.familyId},
+      );
+      await _ping(target.channelId, SecretKey(targetKeyBytes));
+    }
+    await removePeer(personUuid);
+  }
+
+  /// Прийшло від МОГО прямого адміністратора (invitedMe==true) — він
+  /// виключив мене з УСІЄЇ сімейної групи (не просто розірвав зв'язок зі
+  /// мною особисто через [kickPeer]): прибираю кожного учасника цього
+  /// familyId зі свого списку, включно з самим адміном, а не чекаю на
+  /// окремий 'peer_left' по кожному з них. Той самий захист від підробки
+  /// (лише від справжнього invitedMe-адміна), що й у [_handlePeerRemoved].
+  Future<void> _handleKickedFromFamily(Map<String, dynamic> json, FamilyPeer fromPeer) async {
+    if (!fromPeer.invitedMe) return;
+    final familyId = json['familyId'] as String?;
+    if (familyId == null || familyId != fromPeer.familyId) return;
+    final toRemove = (await FamilyPeersRepository(_db).allPeers())
+        .where((p) => p.familyId == familyId)
+        .toList();
+    for (final p in toRemove) {
+      await removePeer(p.personUuid);
+    }
+  }
+
   Future<void> removePeer(String personUuid) async {
     final repo = FamilyPeersRepository(_db);
     final peer = await repo.getByUuid(personUuid);
@@ -1987,5 +2058,19 @@ class FamilyPeerSyncService {
       invitedMe: const Value(false),
     ));
     await repo.removeKnownMember(peerUuid);
+  }
+
+  /// Прийшло від МОГО прямого адміністратора (invitedMe==true) цієї сім'ї —
+  /// він виключив когось із групи через [kickPeer], прибираю цю людину і в
+  /// себе. Довіряю сигналу лише з каналу самого адміністратора — інакше
+  /// звичайний співучасник міг би підробити чуже виключення через наш
+  /// спільний (брокерений) канал.
+  Future<void> _handlePeerRemoved(Map<String, dynamic> json, FamilyPeer fromPeer) async {
+    if (!fromPeer.invitedMe) return;
+    final removedUuid = json['removedPersonUuid'] as String?;
+    if (removedUuid == null || removedUuid == fromPeer.personUuid) return;
+    final target = await FamilyPeersRepository(_db).getByUuid(removedUuid);
+    if (target == null || target.familyId != fromPeer.familyId) return;
+    await removePeer(removedUuid);
   }
 }

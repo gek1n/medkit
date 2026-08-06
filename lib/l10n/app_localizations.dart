@@ -2233,7 +2233,7 @@ abstract class AppLocalizations {
   /// No description provided for @removePeerConfirmBody.
   ///
   /// In uk, this message translates to:
-  /// **'Ви обидва втратите доступ до даних, якими ділились одне з одним.'**
+  /// **'Цю людину буде виключено з сім\'ї для всіх учасників — усі втратять доступ до даних, якими з нею ділились.'**
   String get removePeerConfirmBody;
 
   /// No description provided for @confirmGuardianConsentSnackbar.
