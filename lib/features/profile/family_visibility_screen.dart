@@ -341,6 +341,40 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
     }
   }
 
+  // "Розклад" і "Візити та самопочуття" об'єднані в UI в один розділ
+  // "Завдання та нагадування" (07.08) — далі й на пристрої субʼєкта, і в
+  // усіх екранах перегляду вони й далі два окремі FamilySection (schedule/
+  // medcard, різні типи сутностей у _push()) — тут просто пишемо обидва
+  // одночасно, замість двох окремих рядків перемикачів.
+  Future<void> _toggleTasksSection(bool edit, bool value) async {
+    setState(() {
+      _sectionValues[FamilySection.schedule]![edit] = value;
+      _sectionValues[FamilySection.medcard]![edit] = value;
+    });
+    try {
+      final db = ref.read(databaseProvider);
+      await FamilyVisibilityService.setSectionAllowed(
+        db,
+        subjectPersonUuid: widget.subjectPersonUuid,
+        viewerPersonUuid: widget.viewer.personUuid,
+        section: FamilySection.schedule,
+        edit: edit,
+        value: value,
+      );
+      await FamilyVisibilityService.setSectionAllowed(
+        db,
+        subjectPersonUuid: widget.subjectPersonUuid,
+        viewerPersonUuid: widget.viewer.personUuid,
+        section: FamilySection.medcard,
+        edit: edit,
+        value: value,
+      );
+      unawaited(FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers());
+    } on FamilyGrantDeniedException {
+      if (mounted) setState(() => _denied = true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -393,11 +427,6 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
               onChanged: (v) => _toggle(FamilyPermission.notify, v),
             ),
             _PermissionRow(
-              label: context.l10n.viewerEditPermissionLabel,
-              value: _values[FamilyPermission.edit]!,
-              onChanged: (v) => _toggle(FamilyPermission.edit, v),
-            ),
-            _PermissionRow(
               label: context.l10n.viewerViewPermissionLabel,
               value: _values[FamilyPermission.view]!,
               onChanged: (v) => _toggle(FamilyPermission.view, v),
@@ -411,19 +440,20 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
                 style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
               ),
               const SizedBox(height: AppDimensions.xs),
+              // "Розклад" і "Візити та самопочуття" — один рядок в UI
+              // (07.08), хоч і далі два окремі FamilySection під капотом.
+              // OR, а не AND: якщо два лежать по-різному (напр. з часів до
+              // цього об'єднання), рядок показує "увімкнено" — інакше банер
+              // сказав би "закрито", поки щось із двох насправді ще
+              // відкрите (той самий клас багу, що вже ловили на Поличках).
               _SectionPermissionRow(
-                label: context.l10n.familySectionScheduleLabel,
-                viewValue: _sectionValues[FamilySection.schedule]![false]!,
-                editValue: _sectionValues[FamilySection.schedule]![true]!,
-                onViewChanged: (v) => _toggleSection(FamilySection.schedule, false, v),
-                onEditChanged: (v) => _toggleSection(FamilySection.schedule, true, v),
-              ),
-              _SectionPermissionRow(
-                label: context.l10n.familySectionVisitsWellbeingLabel,
-                viewValue: _sectionValues[FamilySection.medcard]![false]!,
-                editValue: _sectionValues[FamilySection.medcard]![true]!,
-                onViewChanged: (v) => _toggleSection(FamilySection.medcard, false, v),
-                onEditChanged: (v) => _toggleSection(FamilySection.medcard, true, v),
+                label: context.l10n.familySectionTasksLabel,
+                viewValue: _sectionValues[FamilySection.schedule]![false]! ||
+                    _sectionValues[FamilySection.medcard]![false]!,
+                editValue: _sectionValues[FamilySection.schedule]![true]! ||
+                    _sectionValues[FamilySection.medcard]![true]!,
+                onViewChanged: (v) => _toggleTasksSection(false, v),
+                onEditChanged: (v) => _toggleTasksSection(true, v),
               ),
               _SectionPermissionRow(
                 label: context.l10n.familySectionShelvesLabel,

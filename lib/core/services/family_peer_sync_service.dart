@@ -160,7 +160,9 @@ class FamilyPeerSyncService {
     final json = {
       'notify': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.notify),
       'view': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.view),
-      'edit': await FamilyVisibilityService.isAllowed(_db, ownerUuid, peer.personUuid, FamilyPermission.edit),
+      // 'edit' (загальний) прибрано 07.08 — секційні edit* нижче тепер
+      // єдине джерело правди, той самий гейт, що й показує/ховає кнопки
+      // редагування в самому UI.
       'viewSchedule': await FamilyVisibilityService.isSectionAllowed(
           _db, ownerUuid, peer.personUuid, FamilySection.schedule, edit: false),
       'editSchedule': await FamilyVisibilityService.isSectionAllowed(
@@ -852,18 +854,12 @@ class FamilyPeerSyncService {
     if (subject == null) return;
 
     // Пір досі має право edit на цей subject — не довіряємо тому, що
-    // написано в payload, перевіряємо на своєму боці.
-    final allowed = await FamilyVisibilityService.isAllowed(
-      _db,
-      subjectUuid,
-      fromPeer.personUuid,
-      FamilyPermission.edit,
-    );
-    if (!allowed) return;
-
-    // Крок 4.1/4.3.4: точніше, по розділу (medication → Розклад,
-    // doctor_appointment → Медкартка, medcard_entry → Полички) — той самий
-    // бар'єр, що й для push у _push() вище.
+    // написано в payload, перевіряємо на своєму боці. Крок 4.1/4.3.4:
+    // по розділу (medication → Розклад, doctor_appointment → Медкартка,
+    // medcard_entry → Полички) — той самий бар'єр, що й для push у _push()
+    // вище. (07.08: раніше тут ЩЕ й перевірявся окремий загальний
+    // FamilyPermission.edit — прибрано разом із самим правом, секційний
+    // edit тепер єдине джерело правди.)
     final section = _alwaysSyncedTypes.contains(entityType)
         ? FamilySection.schedule
         : entityType == 'medcard_entry'
@@ -991,11 +987,7 @@ class FamilyPeerSyncService {
 
     // Пір досі має право edit на цей subject — не довіряємо тому, що
     // написано в payload, перевіряємо на своєму боці (той самий підхід, що
-    // й у _applyEditProposal).
-    final allowed =
-        await FamilyVisibilityService.isAllowed(_db, subjectUuid, fromPeer.personUuid, FamilyPermission.edit);
-    if (!allowed) return;
-
+    // й у _applyEditProposal — секційний edit, загальний прибрано 07.08).
     final section = _alwaysSyncedTypes.contains(entityType)
         ? FamilySection.schedule
         : entityType == 'medcard_entry'
@@ -1490,7 +1482,6 @@ class FamilyPeerSyncService {
           peer.personUuid,
           notify: json['notify'] as bool? ?? false,
           view: json['view'] as bool? ?? false,
-          edit: json['edit'] as bool? ?? false,
           viewSchedule: json['viewSchedule'] as bool? ?? false,
           editSchedule: json['editSchedule'] as bool? ?? false,
           viewMedcard: json['viewMedcard'] as bool? ?? false,

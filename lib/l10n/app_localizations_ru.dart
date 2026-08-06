@@ -1400,9 +1400,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get viewerNotifyPermissionLabel => 'Получает уведомления';
 
   @override
-  String get viewerEditPermissionLabel => 'Может редактировать профиль';
-
-  @override
   String get viewerViewPermissionLabel => 'Видит задачи, полки и расписание';
 
   @override
@@ -1414,6 +1411,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get familySectionVisitsWellbeingLabel => 'Визиты и самочувствие';
+
+  @override
+  String get familySectionTasksLabel => 'Задачи и напоминания';
 
   @override
   String get familySectionShelvesLabel => 'Полочки';

@@ -1390,9 +1390,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewerNotifyPermissionLabel => 'Receives notifications';
 
   @override
-  String get viewerEditPermissionLabel => 'Can edit the profile';
-
-  @override
   String get viewerViewPermissionLabel =>
       'Can see tasks, shelves, and schedule';
 
@@ -1405,6 +1402,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get familySectionVisitsWellbeingLabel => 'Visits and wellbeing';
+
+  @override
+  String get familySectionTasksLabel => 'Tasks and reminders';
 
   @override
   String get familySectionShelvesLabel => 'Shelves';

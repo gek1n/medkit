@@ -2488,12 +2488,6 @@ abstract class AppLocalizations {
   /// **'Отримує сповіщення'**
   String get viewerNotifyPermissionLabel;
 
-  /// No description provided for @viewerEditPermissionLabel.
-  ///
-  /// In uk, this message translates to:
-  /// **'Може редагувати профіль'**
-  String get viewerEditPermissionLabel;
-
   /// No description provided for @viewerViewPermissionLabel.
   ///
   /// In uk, this message translates to:
@@ -2517,6 +2511,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Візити та самопочуття'**
   String get familySectionVisitsWellbeingLabel;
+
+  /// No description provided for @familySectionTasksLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Завдання та нагадування'**
+  String get familySectionTasksLabel;
 
   /// No description provided for @familySectionShelvesLabel.
   ///

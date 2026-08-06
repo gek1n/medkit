@@ -2,7 +2,15 @@ import 'package:drift/drift.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/db/app_database.dart';
 
-enum FamilyPermission { notify, edit, view }
+// Реальний баг (07.08): 'edit' тут раніше був ОКРЕМИМ, майстер-гейтом для
+// прийому edit_proposal/record_proposal — але жоден екран не перевіряв цей
+// прапорець при рендері кнопок редагування (лише секційні
+// edit*Granted), тож глядач міг бачити олівець/FAB, надіслати правку — і
+// вона мовчки відхилялась через оцей ЗОВСІМ окремий, невидимий у своєму ж
+// UI прапорець. Прибрано — тепер єдине джерело правди для "може
+// редагувати" це секційний edit (isSectionAllowed), той самий, що й
+// показує/ховає кнопки редагування у самих екранах.
+enum FamilyPermission { notify, view }
 
 /// Крок 4.1 плану: розділи, для яких перегляд/редагування видаються ОКРЕМО
 /// один від одного, а не одним спільним перемикачем на всю людину.
@@ -114,8 +122,13 @@ class FamilyVisibilityService {
               t.permission.equals(_sectionKey(section, edit: edit))))
         .getSingleOrNull();
     if (row != null) return row.allowed;
-    return isAllowed(db, subjectPersonUuid, viewerPersonUuid,
-        edit ? FamilyPermission.edit : FamilyPermission.view);
+    // edit більше нема куди відкочуватись (загальний FamilyPermission.edit
+    // прибрано 07.08 разом із самим правом) — безпечний дефолт: не
+    // редагувати, поки секцію явно не налаштували. view й далі відкочується
+    // до старого спільного "view" (те, що діяло до появи розбивки по
+    // розділах).
+    if (edit) return false;
+    return isAllowed(db, subjectPersonUuid, viewerPersonUuid, FamilyPermission.view);
   }
 
   /// Кидає [FamilyGrantDeniedException] за тим самим правилом, що й

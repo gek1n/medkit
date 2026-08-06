@@ -62,11 +62,14 @@ class FamilyPeersRepository {
   /// Що САМ цей пір дозволив мені (+ чи активна його Family-підписка, якщо
   /// саме він мій прямий інвайтер) — прилітає через grants_summary при
   /// кожному синку (FamilyGrants живе лише на пристрої субʼєкта).
+  // edit (загальний) прибрано 07.08 — секційні edit* нижче тепер єдине
+  // джерело правди для "чи можу я редагувати", FamilyPeers.editGranted
+  // лишається в схемі невикористаним (без міграції — просто більше ніхто
+  // сюди не пише й не читає).
   Future<void> updateGrantedToMe(
     String personUuid, {
     required bool notify,
     required bool view,
-    required bool edit,
     required bool viewSchedule,
     required bool editSchedule,
     required bool viewMedcard,
@@ -79,7 +82,6 @@ class FamilyPeersRepository {
         FamilyPeersCompanion(
           notifyGranted: Value(notify),
           viewGranted: Value(view),
-          editGranted: Value(edit),
           viewScheduleGranted: Value(viewSchedule),
           editScheduleGranted: Value(editSchedule),
           viewMedcardGranted: Value(viewMedcard),
