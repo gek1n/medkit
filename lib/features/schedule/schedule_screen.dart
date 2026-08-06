@@ -111,16 +111,33 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     // одразу відображається тут.
     final peer = ref.watch(activePeerProvider);
     final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? const [];
+    // 07.08: той самий гейт, що й на Сьогодні — "+" доступний для піра,
+    // якщо суб'єкт дозволив редагування хоч якогось розділу.
+    final fabGrants = ref.watch(activePeerGrantsProvider);
+    final canTasksPeer = peer != null &&
+        fabGrants != null &&
+        ((fabGrants.viewScheduleGranted && fabGrants.editScheduleGranted) ||
+            (fabGrants.viewMedcardGranted && fabGrants.editMedcardGranted));
+    final canNotesPeer = peer != null &&
+        fabGrants != null &&
+        fabGrants.viewShelvesGranted &&
+        fabGrants.editShelvesGranted;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: peer != null
-          ? null
-          : FloatingActionButton(
+      floatingActionButton: peer == null
+          ? FloatingActionButton(
               onPressed: () => openAddTaskScreen(context, memberId: _selectedMemberId),
               backgroundColor: AppColors.primary,
               child: const Icon(Icons.add_rounded, color: Colors.white),
-            ),
+            )
+          : (canTasksPeer || canNotesPeer)
+              ? FloatingActionButton(
+                  onPressed: () => openAddTaskScreenForPeer(context, peer),
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.add_rounded, color: Colors.white),
+                )
+              : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: membersAsync.when(
         loading: () =>

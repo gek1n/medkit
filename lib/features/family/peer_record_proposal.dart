@@ -118,6 +118,15 @@ Map<String, dynamic> _wellbeingScheduleFields(WellbeingSchedulesCompanion c) {
   return f;
 }
 
+Map<String, dynamic> _medcardSectionFields(MedcardSectionsCompanion c) {
+  final f = <String, dynamic>{};
+  if (c.name.present) f['name'] = c.name.value;
+  if (c.iconKey.present) f['iconKey'] = c.iconKey.value;
+  if (c.color.present) f['color'] = c.color.value;
+  if (c.comment.present) f['comment'] = c.comment.value;
+  return f;
+}
+
 Map<String, dynamic> _medcardEntryFields(MedcardEntriesCompanion c) {
   final f = <String, dynamic>{};
   if (c.title.present) f['title'] = c.title.value;
@@ -243,6 +252,30 @@ Future<void> submitActivityLogReassignProposal(
     baseUpdatedAt: updatedAt,
     fields: {'assigneeIdentity': assigneeIdentity},
   );
+}
+
+/// На відміну від решти submit*Proposal — повертає щойно згенерований
+/// targetUuid (не void), щоб викликач міг одразу передати його як
+/// sectionSyncUuid у submitMedcardEntryProposal У ТОМУ Ж потоці "створити
+/// розділ і одразу додати запис" (той самий UX, що й локально в
+/// showSpacePicker), не чекаючи, поки новий розділ повернеться назад через
+/// повний раунд синку — сервер зберігає обидві пропозиції за чергою
+/// надсилання, subject застосовує їх у тому самому порядку.
+Future<String> submitMedcardSectionProposal(
+  WidgetRef ref,
+  PeerSubject peer,
+  MedcardSectionsCompanion draft,
+) async {
+  final targetUuid = _uuid.v4();
+  await _submit(
+    ref,
+    peer,
+    entityType: 'medcard_section',
+    action: 'create',
+    targetUuid: targetUuid,
+    fields: _medcardSectionFields(draft),
+  );
+  return targetUuid;
 }
 
 Future<void> submitMedcardEntryProposal(

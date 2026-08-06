@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,9 +19,22 @@ import '../../shared/widgets/task_color_picker.dart';
 import '../plans/elly_denied_screen.dart';
 
 class AddMedcardSectionScreen extends ConsumerStatefulWidget {
-  final int memberId;
+  final int? memberId;
   final MedcardSection? existing;
-  const AddMedcardSectionScreen({super.key, required this.memberId, this.existing});
+  // Крок 4.4 (продовження, 07.08): піру з дозволом на редагування Поличок
+  // тепер теж можна створювати НОВІ розділи — не лише додавати записи в уже
+  // наявні (Крок 4.4.4). Той самий draft-патерн, що й у решти 5 форм —
+  // окрім однієї відмінності: FutureOr (не просто void), бо викликач
+  // (add_task_screen.dart, потік "нова Поличка → одразу новий запис")
+  // має чекати, поки submitMedcardSectionProposal реально поверне
+  // згенерований uuid, ПЕРШ ніж переходити до форми запису — інакше
+  // запис міг би піти з sectionSyncUuid ще не відомим викликачу.
+  final FutureOr<void> Function(MedcardSectionsCompanion draft)? onDraftCreated;
+  const AddMedcardSectionScreen({super.key, this.memberId, this.existing, this.onDraftCreated})
+      : assert(
+          memberId != null || onDraftCreated != null,
+          'AddMedcardSectionScreen needs either memberId or onDraftCreated',
+        );
 
   @override
   ConsumerState<AddMedcardSectionScreen> createState() => _AddMedcardSectionScreenState();
@@ -61,11 +76,28 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
           .showSnackBar(SnackBar(content: Text(context.l10n.enterSectionNameError)));
       return;
     }
+    final commentVal =
+        _commentController.text.trim().isEmpty ? null : _commentController.text.trim();
+
+    if (widget.onDraftCreated != null) {
+      // memberId: 0 — плейсхолдер, викликач (submitMedcardSectionProposal)
+      // сам перекладає draft у record_proposal, реальний memberId тут не
+      // потрібен (subject визначається по channelId/personUuid піра).
+      await widget.onDraftCreated!(
+        MedcardSectionsCompanion.insert(
+          memberId: 0,
+          name: name,
+          iconKey: Value(_iconKey),
+          color: Value(_colorHex),
+          comment: Value(commentVal),
+        ),
+      );
+      if (mounted) Navigator.of(context).pop(true);
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
-      final commentVal = _commentController.text.trim().isEmpty
-          ? null
-          : _commentController.text.trim();
       final ex = widget.existing;
       final int sectionId;
       if (ex != null) {
@@ -83,7 +115,7 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
       } else {
         sectionId = await ref.read(medcardSectionsRepositoryProvider).insert(
               MedcardSectionsCompanion.insert(
-                memberId: widget.memberId,
+                memberId: widget.memberId!,
                 name: name,
                 iconKey: Value(_iconKey),
                 color: Value(_colorHex),
@@ -118,7 +150,7 @@ class _AddMedcardSectionScreenState extends ConsumerState<AddMedcardSectionScree
           children: [
             MkFormHeader(
               title: (isEdit ? context.l10n.editSectionTitle : context.l10n.newSectionTitle) +
-                  memberNameSuffix(context, ref, widget.memberId),
+                  (widget.memberId != null ? memberNameSuffix(context, ref, widget.memberId!) : ''),
               onBack: () => Navigator.pop(context),
             ),
             Expanded(

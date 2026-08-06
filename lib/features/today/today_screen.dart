@@ -170,6 +170,15 @@ class _TodayContent extends ConsumerWidget {
     // показують порожній/оманливий стан. allClosed ховає обидва, лишаючи
     // тільки Сім'ю й PeerSectionClosedCard.
     final allClosed = scheduleClosed && medcardClosed;
+    // 07.08: "+" тепер доступний і для піра, якщо суб'єкт дозволив
+    // редагування хоч ЯКОГОСЬ розділу — сам пікер (AddTaskScreen._buildForPeer)
+    // фільтрує пункти за тим самим canTasks/canNotes.
+    final canTasksPeer = peer != null &&
+        grants != null &&
+        ((grants.viewScheduleGranted && grants.editScheduleGranted) ||
+            (grants.viewMedcardGranted && grants.editMedcardGranted));
+    final canNotesPeer =
+        peer != null && grants != null && grants.viewShelvesGranted && grants.editShelvesGranted;
 
     final AsyncValue<List<Intake>> intakesAsync;
     final AsyncValue<List<ActivityLog>> activityLogsAsync;
@@ -212,13 +221,19 @@ class _TodayContent extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: readOnly
-          ? null
-          : FloatingActionButton(
+      floatingActionButton: !readOnly
+          ? FloatingActionButton(
               onPressed: () => openAddTaskScreen(context, memberId: member.id),
               backgroundColor: AppColors.primary,
               child: const Icon(Icons.add_rounded, color: Colors.white),
-            ),
+            )
+          : (canTasksPeer || canNotesPeer)
+              ? FloatingActionButton(
+                  onPressed: () => openAddTaskScreenForPeer(context, peer),
+                  backgroundColor: AppColors.primary,
+                  child: const Icon(Icons.add_rounded, color: Colors.white),
+                )
+              : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: intakesAsync.when(
         loading: () => const Center(

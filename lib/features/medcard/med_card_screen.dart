@@ -16,6 +16,7 @@ import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
+import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
@@ -148,6 +149,11 @@ class _MedCardBody extends ConsumerWidget {
     // чому саме (той самий принцип, що на Сьогодні/Розкладі).
     final grants = ref.watch(activePeerGrantsProvider);
     final shelvesClosed = peer != null && grants != null && !grants.viewShelvesGranted;
+    // 07.08: якщо суб'єкт дозволив редагування Поличок саме цьому глядачеві —
+    // "Додати розділ" лишається доступним і для піра (раніше ховався завжди,
+    // навіть з edit-доступом) — той самий record_proposal-шлях, що вже діє
+    // для запису в наявному розділі (medcard_section_screen.dart).
+    final canEditShelvesPeer = peer != null && grants != null && grants.editShelvesGranted;
     final limits = ref.watch(planProvider).limits;
     final sectionsCount = sectionsAsync.valueOrNull?.length ?? 0;
     final sectionsLimitReached = limits.maxMedcardSections != 0 &&
@@ -336,9 +342,21 @@ class _MedCardBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppDimensions.md),
               ],
-              if (!readOnly)
+              if (!readOnly || canEditShelvesPeer)
               GestureDetector(
                 onTap: () {
+                  if (peer != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddMedcardSectionScreen(
+                          onDraftCreated: (draft) =>
+                              submitMedcardSectionProposal(ref, peer!, draft),
+                        ),
+                      ),
+                    );
+                    return;
+                  }
                   if (sectionsLimitReached) {
                     Navigator.push(
                       context,

@@ -862,7 +862,7 @@ class FamilyPeerSyncService {
     // edit тепер єдине джерело правди.)
     final section = _alwaysSyncedTypes.contains(entityType)
         ? FamilySection.schedule
-        : entityType == 'medcard_entry'
+        : (entityType == 'medcard_entry' || entityType == 'medcard_section')
             ? FamilySection.shelves
             : FamilySection.medcard;
     final sectionAllowed = await FamilyVisibilityService.isSectionAllowed(
@@ -928,6 +928,7 @@ class FamilyPeerSyncService {
     'doctor_appointment',
     'wellbeing_schedule',
     'medcard_entry',
+    'medcard_section',
     'activity_log',
   };
 
@@ -990,7 +991,7 @@ class FamilyPeerSyncService {
     // й у _applyEditProposal — секційний edit, загальний прибрано 07.08).
     final section = _alwaysSyncedTypes.contains(entityType)
         ? FamilySection.schedule
-        : entityType == 'medcard_entry'
+        : (entityType == 'medcard_entry' || entityType == 'medcard_section')
             ? FamilySection.shelves
             : FamilySection.medcard;
     final sectionAllowed =
@@ -1061,6 +1062,11 @@ class FamilyPeerSyncService {
             null;
       case 'medcard_entry':
         return await (_db.select(_db.medcardEntries)
+                  ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
+                .getSingleOrNull() !=
+            null;
+      case 'medcard_section':
+        return await (_db.select(_db.medcardSections)
                   ..where((t) => t.syncUuid.equals(uuid) & t.memberId.equals(memberId)))
                 .getSingleOrNull() !=
             null;
@@ -1203,6 +1209,22 @@ class FamilyPeerSyncService {
               syncUuid: Value(syncUuid),
             ));
         return title;
+      case 'medcard_section':
+        // На відміну від решти типів — не належить ІНШОМУ розділу (sectionId
+        // тут завжди null, це й є сам розділ), тож sectionId-параметр вище
+        // свідомо не використовується.
+        final name = _fSReq(f, 'name', '');
+        if (name.isEmpty) return null;
+        await _db.into(_db.medcardSections).insert(MedcardSectionsCompanion.insert(
+              memberId: memberId,
+              name: name,
+              iconKey: Value(_fSReq(f, 'iconKey', 'folder')),
+              color: Value(_fSReq(f, 'color', '#F5A65C')),
+              comment: Value(_fS(f, 'comment')),
+              updatedAt: Value(now),
+              syncUuid: Value(syncUuid),
+            ));
+        return name;
     }
     return null;
   }
@@ -1326,6 +1348,21 @@ class FamilyPeerSyncService {
           updatedAt: Value(now),
         ));
         return title;
+      case 'medcard_section':
+        final row = await (_db.select(_db.medcardSections)
+              ..where((t) => t.syncUuid.equals(targetUuid) & t.memberId.equals(memberId)))
+            .getSingleOrNull();
+        if (row == null || !_sameVersion(row.updatedAt, baseUpdatedAt)) return null;
+        final name = _fSReq(f, 'name', row.name);
+        await (_db.update(_db.medcardSections)..where((t) => t.id.equals(row.id))).write(
+            MedcardSectionsCompanion(
+          name: Value(name),
+          iconKey: Value(_fSReq(f, 'iconKey', row.iconKey)),
+          color: Value(_fSReq(f, 'color', row.color)),
+          comment: Value(_fS(f, 'comment') ?? row.comment),
+          updatedAt: Value(now),
+        ));
+        return name;
       case 'activity_log':
         // ⚠️ На відміну від решти типів вище, ActivityLogs.memberId — НЕ
         // subject (memberId тут може бути будь-хто з пулу ротації, зокрема
