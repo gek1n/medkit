@@ -388,6 +388,19 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
           inserted,
           slotTimes: slotTimes,
         );
+      } else {
+        // Реальний випадок (08.08): усі попередні варіанти вже скасовано
+        // (cancelAppointmentReminder/cancelRecurringReminder вище) — якщо
+        // цей запит не знайде щойно збережений рядок, перепланування
+        // просто НЕ станеться, без жодного сліду. Малоймовірно (той самий
+        // з'єднання, запис уже мав закомітитись), але без цього логу
+        // побачити такий випадок в майбутньому було б неможливо.
+        AppLogger.logError(
+          'AddAppointmentScreen._save',
+          StateError('watchById($reminderId).first == null одразу після збереження — '
+              'сповіщення скасовано, але НЕ переплановано'),
+          StackTrace.current,
+        );
       }
 
       // Інакше щойно створене повторюване нагадування лишається без

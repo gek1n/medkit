@@ -203,6 +203,20 @@ class RemindersRepository {
         final at = settings.adjust(raw, memberId: reminder.memberId);
         if (at != null) adjusted.add((at.hour, at.minute));
       }
+      // Реальний випадок (08.08): AddAppointmentScreen._save() спершу
+      // скасовує ВСІ можливі варіанти (cancelRecurringReminder, до 80
+      // сповіщень), потім планує заново — якщо slotTimes прийшли порожні
+      // АБО adjust() відфільтрував усі (pushEnabled=false чи
+      // isMemberEnabled(memberId)=false саме для цього профілю), нижче
+      // (daily/weekly) просто НІЧОГО не планувалось — без жодного логу чи
+      // помилки, виглядало як "нагадування зникло в нікуди". Тепер видно
+      // причину замість здогадок по 10 білдах.
+      if (adjusted.isEmpty && slotTimes.isNotEmpty) {
+        AppLogger.log(
+            'RemindersRepository.scheduleNotificationsForReminder(id=${reminder.id}): '
+            'adjustedSlots() порожній — slotTimes=$slotTimes, pushEnabled=${settings.pushEnabled}, '
+            'memberEnabled=${settings.isMemberEnabled(reminder.memberId)} — нічого не заплановано.');
+      }
       return adjusted;
     }
 
@@ -265,6 +279,11 @@ class RemindersRepository {
         break;
       case 'daily':
         {
+          if (slotTimes.isEmpty) {
+            AppLogger.log(
+                'RemindersRepository.scheduleNotificationsForReminder(id=${reminder.id}, daily): '
+                'slotTimes порожній на вході — нічого й планувати.');
+          }
           final adjusted = adjustedSlots();
           if (adjusted.isNotEmpty) {
             await NotificationService.scheduleDailyReminderSlots(
@@ -285,6 +304,20 @@ class RemindersRepository {
                 jsonDecode(reminder.repeatConfig) as Map<String, dynamic>;
             weekdays = List<int>.from(cfg['days'] as List);
           } catch (_) {}
+          if (slotTimes.isEmpty) {
+            AppLogger.log(
+                'RemindersRepository.scheduleNotificationsForReminder(id=${reminder.id}, weekly): '
+                'slotTimes порожній на вході — нічого й планувати.');
+          }
+          // weekdays порожній — scheduleWeeklyReminderSlots усе одно
+          // викликається нижче (adjusted тут ні до чого), але його
+          // подвійний цикл (weekday × slot) не зробить жодної ітерації —
+          // так само тихо, як і adjustedSlots() вище, лише інша причина.
+          if (weekdays.isEmpty) {
+            AppLogger.log(
+                'RemindersRepository.scheduleNotificationsForReminder(id=${reminder.id}, weekly): '
+                'weekdays порожній (repeatConfig=${reminder.repeatConfig}) — жодного дня тижня не заплановано.');
+          }
           final adjusted = adjustedSlots();
           if (adjusted.isNotEmpty) {
             await NotificationService.scheduleWeeklyReminderSlots(
