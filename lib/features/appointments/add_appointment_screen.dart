@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/services/attachment_cleanup_service.dart';
-import '../../core/services/notification_service.dart';
 import '../../core/services/shared_tags_library_service.dart';
 import '../../core/services/reminder_title_library_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -379,9 +378,11 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
         await remindersRepo.replaceSlots(reminderId, const []);
       }
 
-      await NotificationService.cancelAppointmentReminder(reminderId);
-      await NotificationService.cancelRecurringReminder(reminderId);
-
+      // Спершу планує НОВІ сповіщення, і лише вже всередині
+      // scheduleNotificationsForReminder прибирає застарілі — жодного
+      // "скасувати все, потім спробувати перепланувати" тут більше немає
+      // (див. коментар над switch у RemindersRepository для деталей, чому
+      // це раніше губило сповіщення).
       final inserted = await remindersRepo.watchById(reminderId).first;
       if (inserted != null) {
         await remindersRepo.scheduleNotificationsForReminder(
@@ -389,16 +390,15 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
           slotTimes: slotTimes,
         );
       } else {
-        // Реальний випадок (08.08): усі попередні варіанти вже скасовано
-        // (cancelAppointmentReminder/cancelRecurringReminder вище) — якщо
-        // цей запит не знайде щойно збережений рядок, перепланування
-        // просто НЕ станеться, без жодного сліду. Малоймовірно (той самий
-        // з'єднання, запис уже мав закомітитись), але без цього логу
-        // побачити такий випадок в майбутньому було б неможливо.
+        // Малоймовірний випадок (той самий запис/з'єднання, щойно
+        // збережений рядок мав уже бути видимим) — але якщо колись
+        // станеться, старі сповіщення лишаються недоторканими (нічого не
+        // скасовувалось заздалегідь), тож користувач у гіршому разі бачить
+        // ЗАСТАРІЛЕ нагадування, а не жодного.
         AppLogger.logError(
           'AddAppointmentScreen._save',
           StateError('watchById($reminderId).first == null одразу після збереження — '
-              'сповіщення скасовано, але НЕ переплановано'),
+              'перепланування пропущено'),
           StackTrace.current,
         );
       }

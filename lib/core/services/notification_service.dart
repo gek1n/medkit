@@ -425,6 +425,9 @@ class NotificationService {
       matchDateTimeComponents: DateTimeComponents.dateAndTime,
       vibrationEnabled: vibrationEnabled,
     );
+    for (var i = 1; i < 80; i++) {
+      await cancel(recurringReminderNotificationId(reminderId, i));
+    }
   }
 
   // Один слот = один час доби, що повторюється щодня.
@@ -449,6 +452,13 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
         vibrationEnabled: vibrationEnabled,
       );
+    }
+    // Прибираємо "хвости" від попередньої конфігурації з БІЛЬШОЮ кількістю
+    // слотів — лише варіанти ПОЗА щойно запланованими (кожен _zonedSchedule
+    // вище й так перезаписує свій id на місці), щоб не було вікна, коли
+    // щойно заплановане тимчасово скасовується.
+    for (var i = slots.length; i < 80; i++) {
+      await cancel(recurringReminderNotificationId(reminderId, i));
     }
   }
 
@@ -490,6 +500,9 @@ class NotificationService {
         vibrationEnabled: vibrationEnabled,
       );
     }
+    for (var i = monthsAhead; i < 80; i++) {
+      await cancel(recurringReminderNotificationId(reminderId, i));
+    }
   }
 
   // Дні тижня (1=Пн..7=Нд, як DateTime.weekday) × слоти — кожна пара
@@ -521,6 +534,12 @@ class NotificationService {
         );
         variant++;
       }
+    }
+    // Той самий принцип, що й у scheduleDailyReminderSlots: прибираємо
+    // варіанти ПОЗА щойно запланованим діапазоном (напр. після зменшення
+    // кількості днів/слотів), а не скасовуємо все заздалегідь.
+    for (var i = variant; i < 80; i++) {
+      await cancel(recurringReminderNotificationId(reminderId, i));
     }
   }
 

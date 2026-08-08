@@ -220,6 +220,17 @@ class RemindersRepository {
       return adjusted;
     }
 
+    // Кожна гілка нижче СПЕРШУ планує нове (кожен NotificationService.*
+    // виклик перезаписує свої id на місці й сам прибирає "хвости" в межах
+    // своєї ж групи варіантів), і лише ПОТІМ, після успішного планування,
+    // прибирається чуже: одноразові appointment-id мають сенс лише для
+    // 'none', тож для решти типів вони застарілі й підлягають скасуванню;
+    // а якщо для 'none'/'yearly'/'monthly' взагалі нічого не заплановано
+    // (adjust() відфільтрував — settings), то й recurring-варіанти
+    // (з попереднього daily/weekly) теж застарілі. Раніше було навпаки —
+    // спершу скасовували ВСЕ, потім намагались перепланувати — і будь-яка
+    // помилка чи порожній результат посередині лишав користувача без
+    // жодного сповіщення (саме так зник алярм на 15:00 08.08).
     switch (reminder.repeatType) {
       case 'none':
         final rawReminderAt =
@@ -236,7 +247,10 @@ class RemindersRepository {
             vibrationEnabled: settings.vibrationEnabled,
             repeatMinutes: settings.repeatMinutes,
           );
+        } else {
+          await NotificationService.cancelAppointmentReminder(reminder.id);
         }
+        await NotificationService.cancelRecurringReminder(reminder.id);
         break;
       case 'yearly':
         {
@@ -254,7 +268,10 @@ class RemindersRepository {
               remindBeforeMin: 0,
               vibrationEnabled: settings.vibrationEnabled,
             );
+          } else {
+            await NotificationService.cancelRecurringReminder(reminder.id);
           }
+          await NotificationService.cancelAppointmentReminder(reminder.id);
         }
         break;
       case 'monthly':
@@ -274,7 +291,10 @@ class RemindersRepository {
               minute: remindAt.minute,
               vibrationEnabled: settings.vibrationEnabled,
             );
+          } else {
+            await NotificationService.cancelRecurringReminder(reminder.id);
           }
+          await NotificationService.cancelAppointmentReminder(reminder.id);
         }
         break;
       case 'daily':
@@ -293,7 +313,10 @@ class RemindersRepository {
               slots: adjusted,
               vibrationEnabled: settings.vibrationEnabled,
             );
+          } else {
+            await NotificationService.cancelRecurringReminder(reminder.id);
           }
+          await NotificationService.cancelAppointmentReminder(reminder.id);
         }
         break;
       case 'weekly':
@@ -319,7 +342,7 @@ class RemindersRepository {
                 'weekdays порожній (repeatConfig=${reminder.repeatConfig}) — жодного дня тижня не заплановано.');
           }
           final adjusted = adjustedSlots();
-          if (adjusted.isNotEmpty) {
+          if (adjusted.isNotEmpty && weekdays.isNotEmpty) {
             await NotificationService.scheduleWeeklyReminderSlots(
               reminderId: reminder.id,
               memberName: memberName,
@@ -328,7 +351,10 @@ class RemindersRepository {
               slots: adjusted,
               vibrationEnabled: settings.vibrationEnabled,
             );
+          } else {
+            await NotificationService.cancelRecurringReminder(reminder.id);
           }
+          await NotificationService.cancelAppointmentReminder(reminder.id);
         }
         break;
     }
