@@ -1397,6 +1397,35 @@ final _peerMissedProvider = StreamProvider.family<List<_MissedItem>, String>((re
             detail: json['location'] as String?,
             scheduledAt: scheduledAt,
           ));
+        // Реальний баг (10.08, скарга користувача — деякі пропущені
+        // нагадування піра не показують кнопку "Нагадати" взагалі): для
+        // ПОВТОРЮВАНИХ нагадувань (daily/weekly/monthly/yearly) статус
+        // "виконано/пропущено" живе НЕ в самому doctor_appointment
+        // (Reminders.status має сенс лише для repeatType=='none'), а в
+        // окремих reminder_log — кожен день/слот окремим записом (Крок
+        // 5.2). Цей switch раніше взагалі не мав гілки для reminder_log,
+        // тож ці пропуски ніколи не потрапляли в items — банер і кнопка
+        // просто не рендерились, хоча на Сьогодні той самий запис вже
+        // показувався як "missed".
+        case 'reminder_log':
+          final scheduledAt = DateTime.tryParse(json['scheduledAt'] as String? ?? '');
+          if (scheduledAt == null || scheduledAt.isAfter(now)) continue;
+          final reminderUuid = json['reminderSyncUuid'] as String?;
+          // ⚠️ НЕ nameFor() — той читає поле 'name' (медикаменти/активності),
+          // а doctor_appointment зберігає заголовок у 'doctorType'.
+          String? reminderTitle;
+          for (final re in entities) {
+            if (re.entityType == 'doctor_appointment' && re.uuid == reminderUuid) {
+              reminderTitle = decode(re)?['doctorType'] as String?;
+              break;
+            }
+          }
+          items.add(_MissedItem(
+            entityType: 'doctor_appointment',
+            uuid: e.uuid,
+            title: reminderTitle,
+            scheduledAt: scheduledAt,
+          ));
       }
     }
 
