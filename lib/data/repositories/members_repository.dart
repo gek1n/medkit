@@ -28,9 +28,6 @@ class MembersRepository {
         ]))
       .watch();
 
-  Stream<List<Member>> watchShadowMembers() =>
-      (_db.select(_db.members)..where((t) => t.linkedPeerPersonUuid.isNotNull())).watch();
-
   Future<Member?> getById(int id) =>
       (_db.select(_db.members)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
@@ -216,37 +213,6 @@ class MembersRepository {
     await update(MembersCompanion(id: Value(all.first.id), role: const Value('owner')));
   }
 
-  /// Крок 7.1 плану: "тіньовий" dependent-рядок для піра в пулі ротації
-  /// рутинної справи (ActivityAssignees.memberId) — не справжній профіль
-  /// (немає власних ліків/розкладу тощо), лише слот, за яким можна
-  /// впізнати "це той самий автономний член сім'ї" через
-  /// [linkedPeerPersonUuid]. Idempotent — повторний виклик для того самого
-  /// піра повертає вже наявний рядок, лише освіжаючи ім'я/аватар (могли
-  /// змінитись на боці піра).
-  Future<int> findOrCreateShadowForPeer({
-    required String peerPersonUuid,
-    required String name,
-    required int avatarIndex,
-  }) async {
-    final existing = await (_db.select(_db.members)
-          ..where((t) => t.linkedPeerPersonUuid.equals(peerPersonUuid)))
-        .getSingleOrNull();
-    if (existing != null) {
-      if (existing.name != name || existing.avatarIndex != avatarIndex) {
-        await update(MembersCompanion(
-          id: Value(existing.id),
-          name: Value(name),
-          avatarIndex: Value(avatarIndex),
-        ));
-      }
-      return existing.id;
-    }
-    return insert(MembersCompanion.insert(
-      name: name,
-      avatarIndex: Value(avatarIndex),
-      linkedPeerPersonUuid: Value(peerPersonUuid),
-    ));
-  }
 }
 
 final membersRepositoryProvider = Provider<MembersRepository>((ref) {

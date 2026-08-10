@@ -8,8 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
-import '../../core/providers/database_provider.dart';
-import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
@@ -25,18 +23,14 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
-import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../add/add_task_screen.dart';
 import '../appointments/reminder_view_screen.dart';
-import '../family/peer_record_proposal.dart';
-import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
 import 'providers/today_providers.dart';
-import 'widgets/family_status_strip.dart';
 import '../add/routine_view_screen.dart';
 
 // Час, на який приймання фактично заплановано зараз — з урахуванням
@@ -145,95 +139,23 @@ class _TodayContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Крок 4.3.2 плану: коли обрано автономного піра — усі списки нижче
-    // читаються не з локальної бази (той пір фізично не має тут жодного
-    // Members-рядка), а з "перекладача" кешу SharedEntities
-    // (peer_view_providers.dart). Обгортаємо синхронні peer-списки в
-    // AsyncValue.data(...), щоб решта цієї величезної функції (бакетинг,
-    // сортування, секції) лишалась зовсім не чіпаною — вона і далі працює
-    // з тими самими AsyncValue<List<...>>, просто інше джерело.
-    final peer = ref.watch(activePeerProvider);
-    final readOnly = peer != null;
-    final hasPeers = ref.watch(allFamilyPeersProvider).valueOrNull?.isNotEmpty ?? false;
-    // Крок 4.3.6 плану: якщо суб'єкт закрив розділ, дані до кешу піра взагалі
-    // не потрапляють (family_peer_sync_service.dart._push фільтрує ще на
-    // боці суб'єкта) — тож списки нижче тихо лишились би порожніми без
-    // пояснення. grants == null, поки перший рядок FamilyPeer ще не
-    // підвантажився — тоді картку не показуємо (не сплутати з "справді
-    // закрито").
-    final grants = ref.watch(activePeerGrantsProvider);
-    final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
-    final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
-    // Реальний баг: коли обидва домени закриті, hero-блок ("Все виконано"/
-    // "Зараз ___") і запасна ілюстрація "нічого немає" все одно лишались
-    // видимими — на екрані немає жодних даних піра, тож ці елементи просто
-    // показують порожній/оманливий стан. allClosed ховає обидва, лишаючи
-    // тільки Сім'ю й PeerSectionClosedCard.
-    final allClosed = scheduleClosed && medcardClosed;
-    // 07.08: "+" тепер доступний і для піра, якщо суб'єкт дозволив
-    // редагування хоч ЯКОГОСЬ розділу — сам пікер (AddTaskScreen._buildForPeer)
-    // фільтрує пункти за тим самим canTasks/canNotes.
-    final canTasksPeer = peer != null &&
-        grants != null &&
-        ((grants.viewScheduleGranted && grants.editScheduleGranted) ||
-            (grants.viewMedcardGranted && grants.editMedcardGranted));
-    final canNotesPeer =
-        peer != null && grants != null && grants.viewShelvesGranted && grants.editShelvesGranted;
-
-    final AsyncValue<List<Intake>> intakesAsync;
-    final AsyncValue<List<ActivityLog>> activityLogsAsync;
-    final AsyncValue<List<Medication>> medsAsync;
-    final AsyncValue<List<Activity>> activitiesAsync;
-    final AsyncValue<Set<int>> noFixedTimeIdsAsync;
-    final AsyncValue<List<Reminder>> appointmentsAsync;
-    final AsyncValue<List<ReminderLog>> reminderLogsAsync;
-    final AsyncValue<WellbeingSchedule?> wellbeingScheduleAsync;
-    final AsyncValue<List<WellbeingLog>> wellbeingLogsAsync;
-
-    if (peer != null) {
-      final uuid = peer.personUuid;
-      intakesAsync = AsyncValue.data(ref.watch(peerIntakesProvider(uuid)));
-      activityLogsAsync = AsyncValue.data(ref.watch(peerActivityLogsProvider(uuid)));
-      medsAsync = AsyncValue.data(ref.watch(peerMedicationsProvider(uuid)));
-      activitiesAsync = AsyncValue.data(ref.watch(peerActivitiesProvider(uuid)));
-      noFixedTimeIdsAsync = AsyncValue.data(ref.watch(peerNoFixedTimeActivityIdsProvider(uuid)));
-      appointmentsAsync = AsyncValue.data(ref.watch(peerRemindersProvider(uuid)));
-      reminderLogsAsync = AsyncValue.data(ref.watch(peerReminderLogsProvider(uuid)));
-      final schedules = ref.watch(peerWellbeingSchedulesProvider(uuid));
-      wellbeingScheduleAsync = AsyncValue.data(
-        schedules.isEmpty
-            ? null
-            : schedules.reduce((a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b),
-      );
-      wellbeingLogsAsync = AsyncValue.data(ref.watch(peerWellbeingLogsProvider(uuid)));
-    } else {
-      intakesAsync = ref.watch(todayIntakesProvider(member.id));
-      activityLogsAsync = ref.watch(todayActivityLogsProvider(member.id));
-      medsAsync = ref.watch(todayMedicationsProvider(member.id));
-      activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
-      noFixedTimeIdsAsync = ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
-      appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
-      reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
-      wellbeingScheduleAsync = ref.watch(todayWellbeingScheduleProvider(member.id));
-      wellbeingLogsAsync = ref.watch(todayWellbeingLogsProvider(member.id));
-    }
-    final membersAsync = ref.watch(allMembersProvider);
+    final intakesAsync = ref.watch(todayIntakesProvider(member.id));
+    final activityLogsAsync = ref.watch(todayActivityLogsProvider(member.id));
+    final medsAsync = ref.watch(todayMedicationsProvider(member.id));
+    final activitiesAsync = ref.watch(todayActivitiesProvider(member.id));
+    final noFixedTimeIdsAsync = ref.watch(todayNoFixedTimeActivityIdsProvider(member.id));
+    final appointmentsAsync = ref.watch(todayAppointmentsProvider(member.id));
+    final reminderLogsAsync = ref.watch(todayReminderLogsProvider(member.id));
+    final wellbeingScheduleAsync = ref.watch(todayWellbeingScheduleProvider(member.id));
+    final wellbeingLogsAsync = ref.watch(todayWellbeingLogsProvider(member.id));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: !readOnly
-          ? FloatingActionButton(
-              onPressed: () => openAddTaskScreen(context, memberId: member.id),
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add_rounded, color: Colors.white),
-            )
-          : (canTasksPeer || canNotesPeer)
-              ? FloatingActionButton(
-                  onPressed: () => openAddTaskScreenForPeer(context, peer),
-                  backgroundColor: AppColors.primary,
-                  child: const Icon(Icons.add_rounded, color: Colors.white),
-                )
-              : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => openAddTaskScreen(context, memberId: member.id),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add_rounded, color: Colors.white),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: intakesAsync.when(
         loading: () => const Center(
@@ -253,7 +175,6 @@ class _TodayContent extends ConsumerWidget {
           // оновлювався раніше за стрім самих активностей.
           final activityLogs = activityLogsAsync.valueOrNull ?? [];
           final reminderLogs = reminderLogsAsync.valueOrNull ?? [];
-          final members = membersAsync.valueOrNull ?? [];
 
           // Для repeatType=='none' — status/scheduledAt з самого Reminder
           // (як і раніше). Для повторюваних — з ВІДПОВІДНИХ ReminderLog за
@@ -516,17 +437,6 @@ class _TodayContent extends ConsumerWidget {
           return RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () async {
-              // Не лише перечитуємо локальну базу — а й активно тягнемо
-              // свіжий стан від пірів (дозволи/payerPlanActive/дані), а не
-              // чекаємо наступного пасивного тригера (resume/FCM).
-              await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
-              // Реальний баг (07.08): syncAllPeers() — мережевий раунд, може
-              // тривати кілька секунд; якщо користувач встигає піти з
-              // екрана саме зараз (свайп назад, смена вкладки), ref тут уже
-              // "мертвий" — invalidate/read нижче кидали
-              // "Cannot use ref after the widget was disposed", обриваючи
-              // оновлення на середині.
-              if (!context.mounted) return;
               ref.invalidate(generateTodayIntakesProvider);
               ref.invalidate(generateTodayActivityLogsProvider);
               ref.invalidate(generateTodayReminderLogsProvider);
@@ -539,79 +449,28 @@ class _TodayContent extends ConsumerWidget {
             child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              if (showSwitchBanner || readOnly)
+              if (showSwitchBanner)
                 SliverToBoxAdapter(
                   child: SwitchProfileBanner(
-                    name: peer?.name ?? member.name,
-                    onReturn: peer != null
-                        ? () => ref.read(activePeerProvider.notifier).state = null
-                        : null,
+                    name: member.name,
                   ),
                 ),
 
-              // Hero — ховаємо повністю, коли обидва домени закриті
-              // (allClosed): показувати "Все виконано"/"Зараз ___" по
-              // даних, яких у нас фізично немає, вводить в оману.
-              if (!allClosed)
-                SliverToBoxAdapter(
-                  child: _CompactHero(
-                    member: member,
-                    overrideName: peer?.name,
-                    overrideAvatarIndex: peer?.avatarIndex,
-                    taken: taken,
-                    total: total,
-                    nextAt: nextAt,
-                    nextLabel: nextLabel,
-                    onAddWellbeing: readOnly
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => WellbeingCheckScreen(memberId: member.id),
-                              ),
-                            ),
-                  ),
-                ),
-
-              // 1. Сім'я
-              if (members.length > 1 || hasPeers)
-                SliverToBoxAdapter(
-                  child: _SectionPad(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SectionLabel(context.l10n.todaySectionFamily),
-                        const SizedBox(height: AppDimensions.md),
-                        FamilyStatusStrip(
-                          members: members,
-                          currentMemberId: member.id,
-                          ref: ref,
-                        ),
-                      ],
+              SliverToBoxAdapter(
+                child: _CompactHero(
+                  member: member,
+                  taken: taken,
+                  total: total,
+                  nextAt: nextAt,
+                  nextLabel: nextLabel,
+                  onAddWellbeing: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WellbeingCheckScreen(memberId: member.id),
                     ),
                   ),
                 ),
-
-              if (scheduleClosed || medcardClosed)
-                SliverToBoxAdapter(
-                  child: _SectionPad(
-                    child: Column(
-                      children: [
-                        if (scheduleClosed)
-                          PeerSectionClosedCard(
-                            peerName: peer.name,
-                            sectionLabel: context.l10n.familySectionScheduleLabel,
-                          ),
-                        if (medcardClosed)
-                          PeerSectionClosedCard(
-                            peerName: peer.name,
-                            sectionLabel:
-                                context.l10n.familySectionVisitsWellbeingLabel,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+              ),
 
               // Все виконано на сьогодні
               if (allDoneToday)
@@ -627,7 +486,6 @@ class _TodayContent extends ConsumerWidget {
                     activities: activities,
                     activeMemberId: member.id,
                     ref: ref,
-                    readOnly: readOnly,
                   ),
                 ),
 
@@ -644,8 +502,6 @@ class _TodayContent extends ConsumerWidget {
                     memberId: member.id,
                     ref: ref,
                     wellbeingSchedule: schedule,
-                    readOnly: readOnly,
-                    peer: peer,
                   ),
                 ),
 
@@ -662,23 +518,12 @@ class _TodayContent extends ConsumerWidget {
                     memberId: member.id,
                     ref: ref,
                     wellbeingSchedule: schedule,
-                    readOnly: readOnly,
-                    peer: peer,
                   ),
                 ),
 
-              // Цілі тижня (weeklyGoal) — окремо від часового розкладу, бо
-              // не прив'язані до конкретного дня/часу. Ця секція рахує
-              // прогрес окремим прямим запитом до ЛОКАЛЬНОЇ бази
-              // (_weeklyGoalActivitiesProvider/_weeklyGoalCountProvider),
-              // а не через переданий список — для піра довелось би
-              // окремо переносити й цю логіку на перекладач; поки що
-              // просто ховаємо секцію в readOnly-режимі, лишається
-              // відомим пробілом для наступного проходу.
-              if (!readOnly)
-                SliverToBoxAdapter(
-                  child: _WeeklyGoalsSection(memberId: member.id, ref: ref),
-                ),
+              SliverToBoxAdapter(
+                child: _WeeklyGoalsSection(memberId: member.id, ref: ref),
+              ),
 
               // 4. Розклад на сьогодні
               if (scheduleItems.isNotEmpty)
@@ -690,25 +535,17 @@ class _TodayContent extends ConsumerWidget {
                     activities: activities,
                     memberId: member.id,
                     wellbeingSchedule: schedule,
-                    readOnly: readOnly,
-                    peer: peer,
                   ),
                 ),
 
-              // 5. Коротко про завтра — читає окремими провайдерами напряму
-              // з ЛОКАЛЬНОЇ бази за member.id (власника), а не з уже
-              // підготовлених списків вище; для піра довелось би дублювати
-              // цю логіку на перекладач (як і для weeklyGoal-секції) —
-              // поки що просто ховаємо, лишається відомим пробілом.
-              if (!readOnly)
-                SliverToBoxAdapter(
-                  child: _TomorrowSection(
-                    memberId: member.id,
-                    meds: meds,
-                    activities: activities,
-                    wellbeingSchedule: schedule,
-                  ),
+              SliverToBoxAdapter(
+                child: _TomorrowSection(
+                  memberId: member.id,
+                  meds: meds,
+                  activities: activities,
+                  wellbeingSchedule: schedule,
                 ),
+              ),
 
               // 6. Виконано / Не виконано
               if (doneItems.isNotEmpty)
@@ -718,14 +555,12 @@ class _TodayContent extends ConsumerWidget {
                     meds: meds,
                     activities: activities,
                     memberId: member.id,
-                    readOnly: readOnly,
                   ),
                 ),
 
               const SliverToBoxAdapter(child: SizedBox(height: 40)),
 
-              if (!allClosed &&
-                  !hasMissed &&
+              if (!hasMissed &&
                   !hasActive &&
                   scheduleItems.isEmpty &&
                   doneItems.isEmpty)
@@ -1111,7 +946,6 @@ class _MissedSection extends StatelessWidget {
   final WidgetRef ref;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _MissedSection({
     required this.intakes,
@@ -1124,7 +958,6 @@ class _MissedSection extends StatelessWidget {
     required this.ref,
     this.wellbeingSchedule,
     this.readOnly = false,
-    this.peer,
   });
 
   @override
@@ -1141,7 +974,6 @@ class _MissedSection extends StatelessWidget {
               ref: ref,
               missed: true,
               readOnly: readOnly,
-              peer: peer,
             ),
           ),
         ),
@@ -1159,7 +991,6 @@ class _MissedSection extends StatelessWidget {
               activeMemberId: memberId,
               missed: true,
               readOnly: readOnly,
-              peer: peer,
             ),
           ),
         ),
@@ -1187,7 +1018,6 @@ class _MissedSection extends StatelessWidget {
               ref: ref,
               missed: true,
               readOnly: readOnly,
-              peer: peer,
             ),
           ),
         ),
@@ -1240,7 +1070,6 @@ class _ActiveNowSection extends StatelessWidget {
   final WidgetRef ref;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _ActiveNowSection({
     required this.intakes,
@@ -1253,7 +1082,6 @@ class _ActiveNowSection extends StatelessWidget {
     required this.ref,
     this.wellbeingSchedule,
     this.readOnly = false,
-    this.peer,
   });
 
   @override
@@ -1269,7 +1097,6 @@ class _ActiveNowSection extends StatelessWidget {
               med: meds.where((m) => m.id == i.medicationId).firstOrNull,
               ref: ref,
               readOnly: readOnly,
-              peer: peer,
             ),
           ),
         ),
@@ -1286,7 +1113,6 @@ class _ActiveNowSection extends StatelessWidget {
                   .firstOrNull,
               activeMemberId: memberId,
               readOnly: readOnly,
-              peer: peer,
             ),
           ),
         ),
@@ -1312,7 +1138,6 @@ class _ActiveNowSection extends StatelessWidget {
               occurrence: a,
               ref: ref,
               readOnly: readOnly,
-              peer: peer,
             ),
           ),
         ),
@@ -1362,7 +1187,6 @@ class _ScheduleSection extends StatelessWidget {
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _ScheduleSection({
     required this.title,
@@ -1372,7 +1196,6 @@ class _ScheduleSection extends StatelessWidget {
     required this.memberId,
     this.wellbeingSchedule,
     this.readOnly = false,
-    this.peer,
   });
 
   @override
@@ -1402,7 +1225,6 @@ class _ScheduleSection extends StatelessWidget {
                     memberId: memberId,
                     wellbeingSchedule: wellbeingSchedule,
                     readOnly: readOnly,
-                    peer: peer,
                   ),
                 ),
               ),
@@ -1473,7 +1295,6 @@ class _ScheduleCard extends StatelessWidget {
   final int memberId;
   final WellbeingSchedule? wellbeingSchedule;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _ScheduleCard({
     required this.item,
@@ -1482,7 +1303,6 @@ class _ScheduleCard extends StatelessWidget {
     required this.memberId,
     this.wellbeingSchedule,
     this.readOnly = false,
-    this.peer,
   });
 
   Color get _color {
@@ -1654,7 +1474,6 @@ class _ScheduleCard extends StatelessWidget {
           builder: (_) => MedicationDetailScreen(
             medicationId: item.intake!.medicationId,
             memberId: memberId,
-            peer: peer,
           ),
         ),
       );
@@ -1668,7 +1487,6 @@ class _ScheduleCard extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => ReminderViewScreen(
             reminderId: item.appointment!.id,
-            peer: peer,
           ),
         ),
       );
@@ -1681,7 +1499,6 @@ class _ScheduleCard extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => RoutineViewScreen(
             activityId: item.activityLog!.activityId,
-            peer: peer,
           ),
         ),
       );
@@ -2104,7 +1921,6 @@ class _ActiveIntakeCard extends StatelessWidget {
   final WidgetRef ref;
   final bool missed;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _ActiveIntakeCard({
     required this.intake,
@@ -2112,7 +1928,6 @@ class _ActiveIntakeCard extends StatelessWidget {
     required this.ref,
     this.missed = false,
     this.readOnly = false,
-    this.peer,
   });
 
   @override
@@ -2211,7 +2026,6 @@ class _ActiveIntakeCard extends StatelessWidget {
         builder: (_) => MedicationDetailScreen(
           medicationId: intake.medicationId,
           memberId: med!.memberId,
-          peer: peer,
         ),
       ),
     );
@@ -2773,73 +2587,6 @@ class _RotationRow extends StatelessWidget {
   }
 }
 
-/// Крок 7.3 плану: дзеркало [_RotationRow] вище, лише для картки, яку
-/// відкрито через "переглянути як [пір]" — на відміну від локальної версії
-/// (яка може передати чергу БУДЬ-КОМУ в пулі напряму, reassignLog/
-/// skipTurn пишуть у ЛОКАЛЬНУ базу), тут глядач може лише взяти чергу НА
-/// СЕБЕ (record_proposal, Крок 7.2) — і лише якщо сам є в пулі й сьогодні
-/// черга не на ньому.
-class _PeerTakeTurnRow extends ConsumerWidget {
-  final PeerSubject peer;
-  final Activity activity;
-  final ActivityLog log;
-  final Color accent;
-  const _PeerTakeTurnRow({
-    required this.peer,
-    required this.activity,
-    required this.log,
-    required this.accent,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pool = ref
-        .watch(peerActivityAssigneesProvider(peer.personUuid))
-        .where((a) => a.activityId == activity.id)
-        .toList();
-    if (pool.length <= 1) return const SizedBox.shrink();
-
-    final myUuid = ref.watch(ownPersonUuidProvider);
-    final iAmInPool = myUuid != null && pool.any((a) => a.linkedPeerPersonUuid == myUuid);
-    if (!iAmInPool) return const SizedBox.shrink();
-
-    final assignee = ref.watch(peerActivityLogAssigneesProvider(peer.personUuid))[log.id];
-    final isMyTurn = assignee != null && assignee.identity == myUuid;
-    final grants = ref.watch(activePeerGrantsProvider);
-    final canAct = grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(
-        children: [
-          Icon(Icons.sync_rounded, size: 14, color: accent),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              context.l10n.routineWhoseTurnLabel(assignee?.name ?? ''),
-              style: AppTextStyles.bodySm.copyWith(color: AppColors.textSub),
-            ),
-          ),
-          if (canAct && !isMyTurn && log.syncUuid != null)
-            GestureDetector(
-              onTap: () => submitActivityLogReassignProposal(
-                ref,
-                peer,
-                syncUuid: log.syncUuid!,
-                updatedAt: log.updatedAt,
-                assigneeIdentity: myUuid,
-              ),
-              child: Text(
-                context.l10n.routineTakeTurnAction,
-                style: AppTextStyles.labelSm.copyWith(color: accent, fontWeight: FontWeight.w700),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ActiveActivityCard extends StatefulWidget {
   final ActivityLog log;
   final Activity? activity;
@@ -2850,7 +2597,6 @@ class _ActiveActivityCard extends StatefulWidget {
   // конкретного часу й ігнорує [missed] (див. _AnytimeRoutinesSection).
   final bool anytime;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _ActiveActivityCard({
     required this.log,
@@ -2860,7 +2606,6 @@ class _ActiveActivityCard extends StatefulWidget {
     this.missed = false,
     this.anytime = false,
     this.readOnly = false,
-    this.peer,
   });
 
   @override
@@ -2928,7 +2673,6 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                 MaterialPageRoute(
                   builder: (_) => RoutineViewScreen(
                     activityId: widget.log.activityId,
-                    peer: widget.peer,
                   ),
                 ),
               ),
@@ -2969,13 +2713,6 @@ class _ActiveActivityCardState extends State<_ActiveActivityCard> {
                 if (widget.activity != null && !widget.readOnly)
                   _RotationRow(
                     ref: widget.ref,
-                    activity: widget.activity!,
-                    log: widget.log,
-                    accent: iconColor,
-                  )
-                else if (widget.activity != null && widget.peer != null)
-                  _PeerTakeTurnRow(
-                    peer: widget.peer!,
                     activity: widget.activity!,
                     log: widget.log,
                     accent: iconColor,
@@ -3273,14 +3010,12 @@ class _ActiveAppointmentCard extends StatelessWidget {
   final WidgetRef ref;
   final bool missed;
   final bool readOnly;
-  final PeerSubject? peer;
 
   const _ActiveAppointmentCard({
     required this.occurrence,
     required this.ref,
     this.missed = false,
     this.readOnly = false,
-    this.peer,
   });
 
   Reminder get appointment => occurrence.reminder;
@@ -3304,7 +3039,6 @@ class _ActiveAppointmentCard extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => ReminderViewScreen(
                   reminderId: appointment.id,
-                  peer: peer,
                 ),
               ),
             ),

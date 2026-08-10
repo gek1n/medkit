@@ -14,11 +14,6 @@ class NotificationSettings {
   final int quietFromMinutes; // хвилин з півночі
   final int quietToMinutes;
   final Map<int, bool> memberAlerts; // memberId -> увімкнено (локальні профілі)
-  final Map<String, bool> peerAlerts;
-  // personUuid автономного пір'а -> чи хочу Я особисто отримувати від
-  // нього сповіщення. Показується лише для пірів, які самі дозволили
-  // notify мені (FamilyPeer.notifyGranted) — двостороння згода: суб'єкт
-  // дозволяє слати МЕНІ, а я окремо вирішую, чи хочу отримувати.
 
   const NotificationSettings({
     this.pushEnabled = true,
@@ -29,11 +24,9 @@ class NotificationSettings {
     this.quietFromMinutes = 23 * 60,
     this.quietToMinutes = 7 * 60,
     this.memberAlerts = const {},
-    this.peerAlerts = const {},
   });
 
   bool isMemberEnabled(int memberId) => memberAlerts[memberId] ?? true;
-  bool isPeerEnabled(String personUuid) => peerAlerts[personUuid] ?? true;
 
   bool isInQuietHours(DateTime at) {
     if (!quietEnabled) return false;
@@ -70,7 +63,6 @@ class NotificationSettings {
     int? quietFromMinutes,
     int? quietToMinutes,
     Map<int, bool>? memberAlerts,
-    Map<String, bool>? peerAlerts,
   }) {
     return NotificationSettings(
       pushEnabled: pushEnabled ?? this.pushEnabled,
@@ -81,7 +73,6 @@ class NotificationSettings {
       quietFromMinutes: quietFromMinutes ?? this.quietFromMinutes,
       quietToMinutes: quietToMinutes ?? this.quietToMinutes,
       memberAlerts: memberAlerts ?? this.memberAlerts,
-      peerAlerts: peerAlerts ?? this.peerAlerts,
     );
   }
 
@@ -95,12 +86,8 @@ class NotificationSettings {
         'quietToMinutes': quietToMinutes,
         'memberAlerts':
             memberAlerts.map((k, v) => MapEntry(k.toString(), v)),
-        'peerAlerts': peerAlerts,
       };
 
-  /// Незалежний від Riverpod завантажувач — для сервісів поза деревом
-  /// віджетів (напр. FamilyPeerSyncService), яким потрібен лише
-  /// peerAlerts-прапорець, без повного контексту Ref.
   static Future<NotificationSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(NotificationSettingsNotifier._key);
@@ -114,7 +101,6 @@ class NotificationSettings {
 
   factory NotificationSettings.fromJson(Map<String, dynamic> json) {
     final rawAlerts = json['memberAlerts'] as Map<String, dynamic>? ?? {};
-    final rawPeerAlerts = json['peerAlerts'] as Map<String, dynamic>? ?? {};
     return NotificationSettings(
       pushEnabled: json['pushEnabled'] as bool? ?? true,
       offsetMinutes: json['offsetMinutes'] as int? ?? 0,
@@ -125,7 +111,6 @@ class NotificationSettings {
       quietToMinutes: json['quietToMinutes'] as int? ?? 7 * 60,
       memberAlerts:
           rawAlerts.map((k, v) => MapEntry(int.parse(k), v as bool)),
-      peerAlerts: rawPeerAlerts.map((k, v) => MapEntry(k, v as bool)),
     );
   }
 }
@@ -222,11 +207,6 @@ class NotificationSettingsNotifier
     await _resync();
   }
 
-  Future<void> setPeerAlert(String personUuid, bool v) async {
-    final updated = Map<String, bool>.from(state.peerAlerts)..[personUuid] = v;
-    state = state.copyWith(peerAlerts: updated);
-    await _save();
-  }
 }
 
 final notificationSettingsProvider = StateNotifierProvider<

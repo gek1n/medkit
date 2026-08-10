@@ -19,10 +19,7 @@ import '../../data/repositories/medcard_sections_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
-import '../../shared/widgets/peer_attachment_chip.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
-import '../family/peer_record_proposal.dart';
-import '../family/peer_view_providers.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
@@ -44,32 +41,12 @@ final _sectionProvider =
 /// Перегляд збереженого нагадування — показує все заповнене, без прямого
 /// редагування. Кнопка "Редагувати" веде на стандартну форму (той самий
 /// патерн, що й MedcardEntryViewScreen/MedicationDetailScreen).
-///
-/// Крок 4.3.5 плану: [peer] непорожній — нагадування береться не з
-/// локальної бази (id синтетичний), а з перекладача кешу піра; кнопки
-/// редагування/видалення ховаються.
 class ReminderViewScreen extends ConsumerWidget {
   final int reminderId;
-  final PeerSubject? peer;
-  const ReminderViewScreen({super.key, required this.reminderId, this.peer});
+  const ReminderViewScreen({super.key, required this.reminderId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (peer != null) {
-      final reminder = ref
-          .watch(peerRemindersProvider(peer!.personUuid))
-          .where((r) => r.id == reminderId)
-          .firstOrNull;
-      if (reminder == null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
-        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
-      }
-      return Scaffold(
-        backgroundColor: AppColors.bg,
-        body: SafeArea(child: _ViewBody(reminder: reminder, peer: peer)),
-      );
-    }
-
     final reminderAsync = ref.watch(_reminderProvider(reminderId));
 
     return Scaffold(
@@ -97,8 +74,7 @@ class ReminderViewScreen extends ConsumerWidget {
 
 class _ViewBody extends ConsumerWidget {
   final Reminder reminder;
-  final PeerSubject? peer;
-  const _ViewBody({required this.reminder, this.peer});
+  const _ViewBody({required this.reminder});
 
   List<String> get _tags {
     try {
@@ -220,32 +196,9 @@ class _ViewBody extends ConsumerWidget {
     final showRemindBefore = reminder.repeatType == 'none' ||
         reminder.repeatType == 'monthly' ||
         reminder.repeatType == 'yearly';
-    final List<ReminderSlot>? peerSlots = peer != null && hasSlots
-        ? (ref
-                .watch(peerReminderSlotsProvider(peer!.personUuid))
-                .where((s) => s.reminderId == reminder.id)
-                .toList()
-              ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)))
-        : null;
-    final slotsAsync = peer != null
-        ? null
-        : (hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null);
-    final MedcardSection? peerSection = peer != null && reminder.sectionId != null
-        ? ref
-            .watch(peerMedcardSectionsProvider(peer!.personUuid))
-            .where((s) => s.id == reminder.sectionId)
-            .firstOrNull
-        : null;
-    final sectionAsync = peer != null
-        ? null
-        : (reminder.sectionId != null ? ref.watch(_sectionProvider(reminder.sectionId!)) : null);
-    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Медкартки
-    // (Візити/Самопочуття — грант-бар'єр для reminder, той самий, що й у
-    // FamilyPeerSyncService._push) саме цьому глядачеві — олівець лишається
-    // доступним і для нагадування піра, лише замість прямого запису шле
-    // record_proposal (Крок 4.4.1).
-    final grants = peer == null ? null : ref.watch(activePeerGrantsProvider);
-    final canEditPeer = grants != null && grants.viewMedcardGranted && grants.editMedcardGranted;
+    final slotsAsync = hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null;
+    final sectionAsync =
+        reminder.sectionId != null ? ref.watch(_sectionProvider(reminder.sectionId!)) : null;
 
     return Column(
       children: [
@@ -265,47 +218,21 @@ class _ViewBody extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    if (peer == null)
-                      MkEditIconButton(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AddAppointmentScreen(
-                              memberId: reminder.memberId,
-                              existing: reminder,
-                            ),
-                          ),
-                        ),
-                      )
-                    else if (canEditPeer)
-                      MkEditIconButton(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AddAppointmentScreen(
-                              existing: reminder,
-                              initialSlotTimes: peerSlots
-                                  ?.map((s) => s.timeOfDay)
-                                  .toList(),
-                              onDraftCreated: (draft, slotTimes) =>
-                                  submitReminderProposal(
-                                ref,
-                                peer!,
-                                draft,
-                                existingSyncUuid: reminder.syncUuid,
-                                existingUpdatedAt: reminder.updatedAt,
-                                syntheticSectionId: reminder.sectionId,
-                                slotTimes: slotTimes,
-                              ),
-                            ),
+                    MkEditIconButton(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => AddAppointmentScreen(
+                            memberId: reminder.memberId,
+                            existing: reminder,
                           ),
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
-              if (peer == null)
-                MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
+              MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
             ],
           ),
         ),
@@ -377,7 +304,6 @@ class _ViewBody extends ConsumerWidget {
                                     ))
                                 .toList(),
                           );
-                    if (peerSlots != null) return chips(peerSlots);
                     return slotsAsync!.when(
                       loading: () => const SizedBox.shrink(),
                       error: (e, _) => const SizedBox.shrink(),
@@ -399,7 +325,7 @@ class _ViewBody extends ConsumerWidget {
                     ],
                   ),
                 ],
-                if (peerSection != null || sectionAsync != null) ...[
+                if (sectionAsync != null) ...[
                   const SizedBox(height: 12),
                   Builder(builder: (context) {
                     Widget row(MedcardSection section) => Row(
@@ -415,8 +341,7 @@ class _ViewBody extends ConsumerWidget {
                             ),
                           ],
                         );
-                    if (peerSection != null) return row(peerSection);
-                    return sectionAsync!.when(
+                    return sectionAsync.when(
                       loading: () => const SizedBox.shrink(),
                       error: (e, _) => const SizedBox.shrink(),
                       data: (section) => section == null ? const SizedBox.shrink() : row(section),
@@ -477,15 +402,6 @@ class _ViewBody extends ConsumerWidget {
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(),
                       style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),
-                  if (peer != null)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: photos
-                          .map((path) => PeerAttachmentChip(channelId: peer!.channelId, photoPath: path))
-                          .toList(),
-                    )
-                  else
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),

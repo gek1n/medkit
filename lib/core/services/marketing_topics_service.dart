@@ -5,7 +5,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/db/app_database.dart';
-import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../providers/plan_provider.dart';
 import 'subscription_service.dart';
@@ -40,9 +39,6 @@ class MarketingTopicsService {
         topics.add('onboarding_incomplete');
       } else {
         topics.add(await _planTopic());
-        if (await _isFamilyGuestWithActiveGift(db)) {
-          topics.add('plan_family_guest');
-        }
       }
 
       await _applyCoreDiff(topics);
@@ -68,13 +64,6 @@ class MarketingTopicsService {
       AppPlan.plus => 'plan_plus',
       AppPlan.family => 'plan_family_payer',
     };
-  }
-
-  /// Гість у ЧУЖІЙ сім'ї з активним подарунком — той самий розрахунок, що й
-  /// у realPlanProvider (invitedMe==true && payerPlanActive==true).
-  static Future<bool> _isFamilyGuestWithActiveGift(AppDatabase db) async {
-    final peers = await FamilyPeersRepository(db).allPeers();
-    return peers.any((p) => p.invitedMe && p.payerPlanActive);
   }
 
   static Future<void> _applyCoreDiff(Set<String> desired) async {

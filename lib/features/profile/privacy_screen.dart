@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/services/app_lock_service.dart';
-import '../../core/services/family_sync_service.dart';
 import '../../core/services/privacy_consent_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -77,8 +75,6 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       ),
     );
     if (ok != true) return;
-    final db = ref.read(databaseProvider);
-    await FamilySyncService(db).deleteMemberEverywhere(member.id);
     await ref.read(membersRepositoryProvider).delete(member.id);
     ref.read(activeMemberIdProvider.notifier).state = null;
     if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);

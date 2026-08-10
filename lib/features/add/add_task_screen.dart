@@ -2,23 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../core/utils/medcard_icons.dart';
-import '../../core/utils/task_color.dart';
-import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
-import '../../features/family/peer_record_proposal.dart';
-import '../../features/family/peer_view_providers.dart';
 import '../../features/today/providers/today_providers.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/space_picker.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../medcard/add_medcard_entry_screen.dart';
-import '../medcard/add_medcard_section_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/elly_denied_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
@@ -59,151 +52,16 @@ void openAddTaskScreen(BuildContext context, {int? memberId}) {
   );
 }
 
-/// Той самий пікер, що й openAddTaskScreen, але для автономного піра (07.08):
-/// пункти фільтруються за тим, що субʼєкт реально дозволив цьому глядачеві
-/// редагувати, а створення йде через record_proposal, не прямий запис у БД.
-void openAddTaskScreenForPeer(BuildContext context, PeerSubject peer) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (_) => AddTaskScreen(peer: peer)),
-  );
-}
-
 enum _TaskType { reminder, routine, meds, note, wellbeing }
 
 class AddTaskScreen extends ConsumerWidget {
   final int? memberId;
-  final PeerSubject? peer;
-  const AddTaskScreen({super.key, this.memberId, this.peer})
-      : assert(memberId != null || peer != null, 'AddTaskScreen needs either memberId or peer');
+  const AddTaskScreen({super.key, required this.memberId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (peer != null) return _buildForPeer(context, ref, peer!);
     return _buildForLocal(context, ref);
   }
-
-  // ── Автономний пір (07.08) ────────────────────────────────────────────
-  // "Завдання та нагадування" (об'єднаний Розклад+Візити, family_visibility_
-  // screen.dart) відкриває Нагадування/Рутини/Ліки/Самопочуття; "Полички" —
-  // лише Нотатку. Обидва можуть бути true одночасно — тоді видно все 5.
-  Widget _buildForPeer(BuildContext context, WidgetRef ref, PeerSubject peer) {
-    final grants = ref.watch(activePeerGrantsProvider);
-    final canTasks = grants != null &&
-        ((grants.viewScheduleGranted && grants.editScheduleGranted) ||
-            (grants.viewMedcardGranted && grants.editMedcardGranted));
-    final canNotes = grants != null && grants.viewShelvesGranted && grants.editShelvesGranted;
-
-    Future<void> openType(_TaskType type) async {
-      if (type == _TaskType.note) {
-        final saved = await _openPeerNoteFlow(context, ref, peer);
-        if (saved == true && context.mounted) Navigator.pop(context, true);
-        return;
-      }
-      final Widget screen = switch (type) {
-        _TaskType.reminder => AddAppointmentScreen(
-            onDraftCreated: (draft, slotTimes) =>
-                submitReminderProposal(ref, peer, draft, slotTimes: slotTimes),
-          ),
-        _TaskType.routine => AddActivityScreen(
-            hideTypePicker: true,
-            forcedType: 'routine',
-            compactMode: true,
-            onDraftCreated: (draft) => submitActivityProposal(ref, peer, draft),
-          ),
-        _TaskType.meds => AddMedicationScreen(
-            onDraftCreated: (draft) => submitMedicationProposal(ref, peer, draft),
-          ),
-        _TaskType.wellbeing => AddWellbeingScheduleScreen(
-            onDraftCreated: (draft) => submitWellbeingScheduleProposal(ref, peer, draft),
-          ),
-        _TaskType.note => throw StateError('handled above'),
-      };
-      final saved = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(builder: (_) => screen),
-      );
-      if (saved == true && context.mounted) Navigator.pop(context, true);
-    }
-
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Row(
-                children: [
-                  MkBackButton(onTap: () => Navigator.pop(context)),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-              child: Text(context.l10n.addTypeSheetTitle, style: AppTextStyles.h3),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-              child: Text(
-                context.l10n.addTypeSheetSubtitle,
-                style: AppTextStyles.bodySm,
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                children: [
-                  if (canTasks) ...[
-                    _TypeCard(
-                      iconAsset: 'task_reminder',
-                      title: context.l10n.reminderCategoryTitle,
-                      sub: context.l10n.reminderCategorySub,
-                      onTap: () => openType(_TaskType.reminder),
-                    ),
-                    const SizedBox(height: 10),
-                    _TypeCard(
-                      iconAsset: 'task_routine',
-                      title: context.l10n.taskTypeRoutine,
-                      sub: context.l10n.taskTypeRoutineSub,
-                      onTap: () => openType(_TaskType.routine),
-                    ),
-                    const SizedBox(height: 10),
-                    _TypeCard(
-                      iconAsset: 'box',
-                      title: context.l10n.categoryMeds,
-                      sub: context.l10n.addTypeMedsSub,
-                      onTap: () => openType(_TaskType.meds),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (canNotes) ...[
-                    _TypeCard(
-                      iconAsset: 'task_note',
-                      title: context.l10n.noteCategoryTitle,
-                      sub: context.l10n.noteCategorySub,
-                      onTap: () => openType(_TaskType.note),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (canTasks)
-                    _TypeCard(
-                      iconAsset: 'task_wellbeing',
-                      title: context.l10n.wellbeingTitle,
-                      sub: context.l10n.addTypeWellbeingSub,
-                      onTap: () => openType(_TaskType.wellbeing),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Локальний профіль (без змін) ─────────────────────────────────────
 
   Widget _buildForLocal(BuildContext context, WidgetRef ref) {
     final fallbackMemberAsync = ref.watch(currentMemberProvider);
@@ -358,175 +216,6 @@ class AddTaskScreen extends ConsumerWidget {
                     onTap: () => openType(_TaskType.wellbeing),
                   ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Пір: нотатка — вибір наявного розділу піра або створення нового ────────
-// Той самий принцип, що й showSpacePicker для локального профілю, але без
-// сентинела "без простору" (для піра завжди обираємо конкретний розділ) і з
-// record_proposal замість прямого запису.
-
-Future<bool?> _openPeerNoteFlow(BuildContext context, WidgetRef ref, PeerSubject peer) async {
-  final sections = ref.read(peerMedcardSectionsProvider(peer.personUuid));
-  final choice = await showModalBottomSheet<Object>(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppDimensions.radiusXl)),
-    ),
-    builder: (_) => _PeerSectionPickerSheet(sections: sections),
-  );
-  if (choice == null || !context.mounted) return null;
-
-  MedcardSection section;
-  if (choice == _createNewSection) {
-    String? newSectionUuid;
-    MedcardSectionsCompanion? newSectionDraft;
-    final created = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AddMedcardSectionScreen(
-          onDraftCreated: (draft) async {
-            newSectionDraft = draft;
-            newSectionUuid = await submitMedcardSectionProposal(ref, peer, draft);
-          },
-        ),
-      ),
-    );
-    if (created != true ||
-        newSectionUuid == null ||
-        newSectionDraft == null ||
-        !context.mounted) {
-      return null;
-    }
-    final uuid = newSectionUuid!;
-    final draft = newSectionDraft!;
-    final now = DateTime.now();
-    // Заглушка для щойно запропонованого (ще не підтвердженого субʼєктом)
-    // розділу — реальний рядок прийде з наступним pull, але той самий
-    // peerSyntheticId(uuid), що й перекладач (peer_view_providers.dart),
-    // тож форма запису нижче вже може одразу послатись на sectionSyncUuid.
-    section = MedcardSection(
-      id: peerSyntheticId(uuid),
-      memberId: peerSyntheticId(peer.personUuid),
-      name: draft.name.value,
-      iconKey: draft.iconKey.present ? draft.iconKey.value : 'folder',
-      color: draft.color.present ? draft.color.value : '#F5A65C',
-      comment: draft.comment.present ? draft.comment.value : null,
-      createdAt: now,
-      updatedAt: now,
-      syncUuid: uuid,
-      isDefaultNotes: false,
-      sortOrder: 0,
-    );
-  } else {
-    section = choice as MedcardSection;
-  }
-
-  return Navigator.push<bool>(
-    context,
-    MaterialPageRoute(
-      builder: (_) => AddMedcardEntryScreen(
-        section: section,
-        onDraftCreated: (draft) => submitMedcardEntryProposal(
-          ref,
-          peer,
-          draft,
-          syntheticSectionId: section.id,
-        ),
-      ),
-    ),
-  );
-}
-
-const Object _createNewSection = 1;
-
-class _PeerSectionPickerSheet extends StatelessWidget {
-  final List<MedcardSection> sections;
-  const _PeerSectionPickerSheet({required this.sections});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(context.l10n.spacePickerTitle, style: AppTextStyles.h3),
-            const SizedBox(height: 16),
-            ...sections.map((s) {
-              final color = colorFromHex(s.color) ?? AppColors.primary;
-              return GestureDetector(
-                onTap: () => Navigator.pop(context, s),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
-                        ),
-                        child: MedcardIcon(s.iconKey, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(s.name, style: AppTextStyles.bodyMd)),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => Navigator.pop(context, _createNewSection),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  border: Border.all(color: AppColors.border, width: 2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add_rounded, size: 18, color: AppColors.textMuted),
-                    const SizedBox(width: 6),
-                    Text(
-                      context.l10n.createNewSpaceAction,
-                      style: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.textMuted,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],

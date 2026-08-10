@@ -4,11 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/config/app_env.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/providers/real_plan_provider.dart';
 import '../../core/services/app_logger.dart';
-import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/marketing_topics_service.dart';
 import '../../core/services/review_prompt_service.dart';
 import '../../core/services/subscription_service.dart';
@@ -16,8 +14,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
-import '../../data/repositories/family_peers_repository.dart';
-import '../../data/repositories/members_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/recovery_key_dialog.dart';
 import '../legal/privacy_policy_screen.dart';
@@ -61,77 +57,11 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
     setState(() => _realPrices = prices);
   }
 
-  /// Свідома зміна тарифу ГЕТЬ від Family (не невдала оплата — окремий
-  /// сценарій грейс-періоду, `BillingLifecycleService`) — попереджаємо ДО
-  /// зміни, бо зв'язки з родиною розірвуться миттєво, без грейс-періоду
-  /// (він уже попереджений тут-і-зараз). Повертає true, якщо можна
-  /// продовжувати зміну плану (попередження не потрібне або підтверджене).
-  ///
-  /// Працює вже зараз поверх декоративного `planProvider` — навмисно: так
-  /// можна протестувати весь грейс/розпад-флоу, не чекаючи підключення
-  /// реальної покупки (docs/multifamily_billing_plan.md, розділ 6).
-  Future<bool> _confirmDowngradeFromFamily(AppPlan currentPlan) async {
-    if (currentPlan != AppPlan.family) return true;
-    final db = ref.read(databaseProvider);
-    final owner = await MembersRepository(db).getOwner();
-    final ownerFamilyId = owner?.familyId;
-    if (ownerFamilyId == null) return true;
-    final peers = await FamilyPeersRepository(db).allPeers();
-    final hasInvitedAnyone = peers.any(
-      (p) => p.familyId == ownerFamilyId && !p.invitedMe,
-    );
-    if (!hasInvitedAnyone) return true;
-
-    if (!mounted) return false;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/illustrations/elly-thinking-2.png',
-              height: 120,
-            ),
-            const SizedBox(height: AppDimensions.md),
-            Text(
-              context.l10n.familyTiesBrokenTitle,
-              style: AppTextStyles.h3,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.l10n.familyTiesBrokenBody,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(context.l10n.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: Text(context.l10n.breakAndChangePlanAction),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return false;
-    await FamilyPeerSyncService(db).leaveGroup(ownerFamilyId);
-    return true;
-  }
-
   /// [SubscriptionService.purchase] сама обирає реальний StoreKit/Play
   /// Billing шлях чи тестовий сервер-only шлях залежно від збірки
   /// (`AppEnv.isTestBuild`) — тут про це думати не треба.
   Future<void> _selectPaid(AppPlan plan, AppPlan currentPlan) async {
     if (_busy) return;
-    if (!await _confirmDowngradeFromFamily(currentPlan)) return;
-    if (!mounted) return;
     setState(() => _busy = true);
     try {
       final outcome = await SubscriptionService.purchase(
@@ -228,8 +158,6 @@ class _PlansScreenState extends ConsumerState<PlansScreen> {
 
   Future<void> _selectFree(AppPlan currentPlan) async {
     if (_busy) return;
-    if (!await _confirmDowngradeFromFamily(currentPlan)) return;
-    if (!mounted) return;
     setState(() => _busy = true);
     try {
       // true = тестовий шлях, план вже знято на сервері миттєво; false =

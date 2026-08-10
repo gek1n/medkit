@@ -19,7 +19,6 @@ import '../appointments/add_appointment_screen.dart';
 import '../medications/add_medication_screen.dart';
 import '../wellbeing/add_wellbeing_schedule_screen.dart';
 import '../today/providers/today_providers.dart';
-import 'join_family_screen.dart';
 import 'privacy_gate_screen.dart';
 import 'restore_account_screen.dart';
 
@@ -267,9 +266,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       1 => _StepAccountChoice(
         key: const ValueKey(1),
         onCreateAccount: _next,
-        onJoinFamily: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const JoinFamilyScreen())),
         onRestoreAccount: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const RestoreAccountScreen())),
@@ -406,13 +402,11 @@ class _ProgressBar extends StatelessWidget {
 
 class _StepAccountChoice extends StatelessWidget {
   final VoidCallback onCreateAccount;
-  final VoidCallback onJoinFamily;
   final VoidCallback onRestoreAccount;
 
   const _StepAccountChoice({
     super.key,
     required this.onCreateAccount,
-    required this.onJoinFamily,
     required this.onRestoreAccount,
   });
 
@@ -442,13 +436,6 @@ class _StepAccountChoice extends StatelessWidget {
             title: context.l10n.createAccountTitle,
             sub: context.l10n.createAccountSubtitle,
             onTap: onCreateAccount,
-          ),
-          const SizedBox(height: 10),
-          _AccountChoiceCard(
-            icon: Icons.family_restroom_rounded,
-            title: context.l10n.joinFamilyChoiceTitle,
-            sub: context.l10n.joinFamilyChoiceSubtitle,
-            onTap: onJoinFamily,
           ),
           const SizedBox(height: 10),
           _AccountChoiceCard(

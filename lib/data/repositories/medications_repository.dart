@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
-import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 
 // Нижче цього залишку одиниць запас вважається таким, що закінчується
@@ -53,7 +50,6 @@ class MedicationsRepository {
 
   Future<int> insert(MedicationsCompanion med) async {
     final id = await _db.into(_db.medications).insert(med);
-    if (med.memberId.present) _triggerFamilySync(med.memberId.value);
     return id;
   }
 
@@ -71,7 +67,6 @@ class MedicationsRepository {
     final rows = await (_db.update(_db.medications)
           ..where((t) => t.id.equals(med.id.value)))
         .write(med.copyWith(updatedAt: Value(DateTime.now())));
-    if (med.id.present) await _triggerFamilySyncForMedication(med.id.value);
     return rows > 0;
   }
 
@@ -115,7 +110,6 @@ class MedicationsRepository {
         );
       }
     }
-    _triggerFamilySync(med.memberId);
   }
 
   Future<void> incrementRemaining(int id) async {
@@ -129,7 +123,6 @@ class MedicationsRepository {
       remainingCount: Value(capped),
       updatedAt: Value(DateTime.now()),
     ));
-    _triggerFamilySync(med.memberId);
   }
 
   Future<void> refill(int id, int count) async {
@@ -139,7 +132,6 @@ class MedicationsRepository {
       totalCount: Value(count),
       updatedAt: Value(DateTime.now()),
     ));
-    await _triggerFamilySyncForMedication(id);
   }
 
   Future<int> softDelete(int id) async {
@@ -165,12 +157,7 @@ class MedicationsRepository {
       isActive: const Value(false),
       updatedAt: Value(DateTime.now()),
     ));
-    await _triggerFamilySyncForMedication(id);
     return result;
-  }
-
-  void _triggerFamilySync(int memberId) {
-    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
   }
 
   Future<String> _memberName(int memberId) async {
@@ -178,11 +165,6 @@ class MedicationsRepository {
           ..where((t) => t.id.equals(memberId)))
         .getSingleOrNull();
     return member?.name ?? '';
-  }
-
-  Future<void> _triggerFamilySyncForMedication(int medicationId) async {
-    final med = await getById(medicationId);
-    if (med != null) _triggerFamilySync(med.memberId);
   }
 }
 

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -6,19 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
-import '../../core/services/family_peer_sync_service.dart';
-import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 
 class ActivitiesRepository {
   final AppDatabase _db;
   final Ref _ref;
   ActivitiesRepository(this._db, this._ref);
-
-  void _triggerFamilySync(int memberId) {
-    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
-    unawaited(FamilyPeerSyncService(_db).syncAllPeers());
-  }
 
   Stream<List<Activity>> watchByMember(int memberId) =>
       (_db.select(_db.activities)
@@ -136,7 +128,6 @@ class ActivitiesRepository {
 
   Future<int> insertActivity(ActivitiesCompanion activity) async {
     final id = await _db.into(_db.activities).insert(activity);
-    if (activity.memberId.present) _triggerFamilySync(activity.memberId.value);
     return id;
   }
 
@@ -167,14 +158,12 @@ class ActivitiesRepository {
       ),
     );
     await NotificationService.cancelActivityReminder(id);
-    await _triggerFamilySyncForLog(id);
   }
 
   Future<void> markLogSkipped(int id) async {
     await (_db.update(_db.activityLogs)..where((t) => t.id.equals(id)))
         .write(ActivityLogsCompanion(status: const Value('skipped'), updatedAt: Value(DateTime.now())));
     await NotificationService.cancelActivityReminder(id);
-    await _triggerFamilySyncForLog(id);
   }
 
   // Тогл одного підкроку чек-листа для конкретного дня — статус логу
@@ -232,7 +221,6 @@ class ActivitiesRepository {
     if (status == 'done') {
       await NotificationService.cancelActivityReminder(logId);
     }
-    await _triggerFamilySyncForLog(logId);
   }
 
   // ── Ротація виконавців ────────────────────────────────────────────────
@@ -347,7 +335,6 @@ class ActivitiesRepository {
       memberId: Value(newMemberId),
       updatedAt: Value(DateTime.now()),
     ));
-    await _triggerFamilySyncForLog(logId);
   }
 
   // Пропустити чергу — передати наступному по колу пулу без вибору
@@ -400,7 +387,7 @@ class ActivitiesRepository {
     required int actingMemberId,
   }) async {
     final memberId = await assigneeForDate(activity, DateTime.now());
-    final logId = await _db.into(_db.activityLogs).insert(
+    await _db.into(_db.activityLogs).insert(
           ActivityLogsCompanion.insert(
             activityId: activity.id,
             memberId: memberId,
@@ -409,12 +396,6 @@ class ActivitiesRepository {
             completedByMemberId: Value(actingMemberId),
           ),
         );
-    if (logId > 0) _triggerFamilySync(memberId);
-  }
-
-  Future<void> _triggerFamilySyncForLog(int id) async {
-    final log = await (_db.select(_db.activityLogs)..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (log != null) _triggerFamilySync(log.memberId);
   }
 
   Future<void> snoozeLog(int id, DateTime newScheduledAt) async {
@@ -445,7 +426,6 @@ class ActivitiesRepository {
         repeatMinutes: settings.repeatMinutes,
       );
     }
-    _triggerFamilySync(log.memberId);
   }
 
   Future<List<ActivityLog>> getLogsByMemberAndDateRange(
@@ -487,7 +467,6 @@ class ActivitiesRepository {
 
   Future<int> insertLog(ActivityLogsCompanion log) async {
     final id = await _db.into(_db.activityLogs).insert(log);
-    if (log.memberId.present) _triggerFamilySync(log.memberId.value);
     return id;
   }
 
@@ -500,9 +479,6 @@ class ActivitiesRepository {
     if (activity.id.present) await _cancelFutureStaleLogs(activity.id.value);
     await (_db.update(_db.activities)..where((t) => t.id.equals(activity.id.value)))
         .write(activity);
-    final row = await (_db.select(_db.activities)..where((t) => t.id.equals(activity.id.value)))
-        .getSingleOrNull();
-    if (row != null) _triggerFamilySync(row.memberId);
   }
 
   Future<void> _cancelFutureStaleLogs(int activityId) async {
@@ -539,10 +515,8 @@ class ActivitiesRepository {
           ..where((t) => t.id.isIn(pending.map((e) => e.id))))
         .go();
 
-    final activity = await (_db.select(_db.activities)..where((t) => t.id.equals(id))).getSingleOrNull();
     final result = await (_db.update(_db.activities)..where((t) => t.id.equals(id)))
         .write(const ActivitiesCompanion(isActive: Value(false)));
-    if (activity != null) _triggerFamilySync(activity.memberId);
     return result;
   }
 }

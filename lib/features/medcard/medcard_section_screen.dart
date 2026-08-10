@@ -3,8 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/database_provider.dart';
-import '../../core/services/family_peer_sync_service.dart';
 import '../../core/services/shared_tags_library_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -25,8 +23,6 @@ import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/reminder_view_screen.dart';
-import '../family/peer_record_proposal.dart';
-import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 import 'add_medcard_entry_screen.dart';
 import 'add_medcard_section_screen.dart';
@@ -108,8 +104,7 @@ class _FeedItem {
 
 class MedcardSectionScreen extends ConsumerStatefulWidget {
   final MedcardSection section;
-  final PeerSubject? peer;
-  const MedcardSectionScreen({super.key, required this.section, this.peer});
+  const MedcardSectionScreen({super.key, required this.section});
 
   @override
   ConsumerState<MedcardSectionScreen> createState() => _MedcardSectionScreenState();
@@ -149,68 +144,22 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final readOnly = widget.peer != null;
-    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування Поличок саме
-    // цьому глядачеві — кнопка "додати" лишається доступною і для піра,
-    // лише замість прямого запису шле record_proposal (Крок 4.4.1).
-    final grants = ref.watch(activePeerGrantsProvider);
-    final canEditPeer =
-        widget.peer != null && grants != null && grants.editShelvesGranted;
-    final AsyncValue<List<MedcardEntry>> entriesAsync;
-    final AsyncValue<List<Medication>> medsAsync;
-    final AsyncValue<List<Activity>> activitiesAsync;
-    final AsyncValue<List<Reminder>> remindersAsync;
-    if (widget.peer != null) {
-      final uuid = widget.peer!.personUuid;
-      entriesAsync = AsyncValue.data(
-        ref.watch(peerMedcardEntriesProvider(uuid)).where((e) => e.sectionId == section.id).toList(),
-      );
-      medsAsync = AsyncValue.data(
-        ref.watch(peerMedicationsProvider(uuid)).where((m) => m.sectionId == section.id).toList(),
-      );
-      activitiesAsync = AsyncValue.data(
-        ref.watch(peerActivitiesProvider(uuid)).where((a) => a.sectionId == section.id).toList(),
-      );
-      remindersAsync = AsyncValue.data(
-        ref.watch(peerRemindersProvider(uuid)).where((r) => r.sectionId == section.id).toList(),
-      );
-    } else {
-      entriesAsync = ref.watch(_sectionEntriesProvider(section.id));
-      medsAsync = ref.watch(_sectionMedicationsProvider(section.id));
-      activitiesAsync = ref.watch(_sectionActivitiesProvider(section.id));
-      remindersAsync = ref.watch(_sectionRemindersProvider(section.id));
-    }
+    final entriesAsync = ref.watch(_sectionEntriesProvider(section.id));
+    final medsAsync = ref.watch(_sectionMedicationsProvider(section.id));
+    final activitiesAsync = ref.watch(_sectionActivitiesProvider(section.id));
+    final remindersAsync = ref.watch(_sectionRemindersProvider(section.id));
     final color = colorFromHex(section.color) ?? AppColors.primary;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: !readOnly
-          ? MkAddFab(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddMedcardEntryScreen(section: section),
-                ),
-              ),
-            )
-          : canEditPeer
-              ? MkAddFab(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AddMedcardEntryScreen(
-                        section: section,
-                        onDraftCreated: (draft) => submitMedcardEntryProposal(
-                          ref,
-                          widget.peer!,
-                          draft,
-                          syntheticSectionId: section.id,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              : null,
+      floatingActionButton: MkAddFab(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddMedcardEntryScreen(section: section),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -233,7 +182,6 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(child: Text(section.name, style: AppTextStyles.h3)),
-                  if (!readOnly) ...[
                   GestureDetector(
                     onTap: () => Navigator.push(
                       context,
@@ -256,7 +204,6 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                       child: Icon(Icons.delete_outline_rounded, size: 20, color: AppColors.danger),
                     ),
                   ),
-                  ],
                 ],
               ),
             ),
@@ -279,7 +226,6 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
               child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: () async {
-                  await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
                   ref.invalidate(_sectionEntriesProvider(section.id));
                   ref.invalidate(_sectionMedicationsProvider(section.id));
                   ref.invalidate(_sectionActivitiesProvider(section.id));
@@ -360,7 +306,6 @@ class _MedcardSectionScreenState extends ConsumerState<MedcardSectionScreen> {
                           item: filtered[i],
                           section: section,
                           color: color,
-                          peer: widget.peer,
                         ),
                       ),
                     );
@@ -379,19 +324,14 @@ class _FeedCard extends StatelessWidget {
   final _FeedItem item;
   final MedcardSection section;
   final Color color;
-  final PeerSubject? peer;
   const _FeedCard({
     required this.item,
     required this.section,
     required this.color,
-    this.peer,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Крок 4.3.5 плану: екрани повного перегляду тепер вміють показувати
-    // запис піра (peer прокидається далі) — тап відкриває той самий
-    // екран, лише в режимі "тільки перегляд" всередині нього.
     switch (item.kind) {
       case _ItemKind.entry:
         final entry = item.entry!;
@@ -412,7 +352,6 @@ class _FeedCard extends StatelessWidget {
               builder: (_) => MedcardEntryViewScreen(
                 section: section,
                 entryId: entry.id,
-                peer: peer,
               ),
             ),
           ),
@@ -431,7 +370,6 @@ class _FeedCard extends StatelessWidget {
               builder: (_) => MedicationDetailScreen(
                 medicationId: m.id,
                 memberId: m.memberId,
-                peer: peer,
               ),
             ),
           ),
@@ -447,7 +385,7 @@ class _FeedCard extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => RoutineViewScreen(activityId: a.id, peer: peer),
+              builder: (_) => RoutineViewScreen(activityId: a.id),
             ),
           ),
         );
@@ -467,7 +405,7 @@ class _FeedCard extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ReminderViewScreen(reminderId: r.id, peer: peer),
+              builder: (_) => ReminderViewScreen(reminderId: r.id),
             ),
           ),
         );

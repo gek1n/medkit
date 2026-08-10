@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/plan_provider.dart';
-import '../../core/services/family_peer_sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -21,7 +19,6 @@ import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
-import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
@@ -30,8 +27,6 @@ import '../add/add_task_screen.dart';
 import '../add/routine_view_screen.dart';
 import '../appointments/add_appointment_screen.dart';
 import '../appointments/reminder_view_screen.dart';
-import '../family/peer_record_proposal.dart';
-import '../family/peer_view_providers.dart';
 import '../medications/add_medication_screen.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart' show activeMemberIdProvider;
@@ -106,38 +101,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     });
     final activeId = ref.watch(activeMemberIdProvider);
     final membersAsync = ref.watch(_scheduleAllMembersProvider);
-    // Крок 4.3.3 плану: те саме, але для автономного піра — глобальний
-    // стан (той самий, що й Сьогодні), тож перемикання деінде теж
-    // одразу відображається тут.
-    final peer = ref.watch(activePeerProvider);
-    final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? const [];
-    // 07.08: той самий гейт, що й на Сьогодні — "+" доступний для піра,
-    // якщо суб'єкт дозволив редагування хоч якогось розділу.
-    final fabGrants = ref.watch(activePeerGrantsProvider);
-    final canTasksPeer = peer != null &&
-        fabGrants != null &&
-        ((fabGrants.viewScheduleGranted && fabGrants.editScheduleGranted) ||
-            (fabGrants.viewMedcardGranted && fabGrants.editMedcardGranted));
-    final canNotesPeer = peer != null &&
-        fabGrants != null &&
-        fabGrants.viewShelvesGranted &&
-        fabGrants.editShelvesGranted;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: peer == null
-          ? FloatingActionButton(
-              onPressed: () => openAddTaskScreen(context, memberId: _selectedMemberId),
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add_rounded, color: Colors.white),
-            )
-          : (canTasksPeer || canNotesPeer)
-              ? FloatingActionButton(
-                  onPressed: () => openAddTaskScreenForPeer(context, peer),
-                  backgroundColor: AppColors.primary,
-                  child: const Icon(Icons.add_rounded, color: Colors.white),
-                )
-              : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => openAddTaskScreen(context, memberId: _selectedMemberId),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add_rounded, color: Colors.white),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: membersAsync.when(
         loading: () =>
@@ -154,7 +125,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             members: members,
             selectedMemberId: memberId,
             onMemberChanged: (id) {
-              ref.read(activePeerProvider.notifier).state = null;
               setState(() => _selectedMemberId = id);
               // Пишемо і в глобальний activeMemberIdProvider — інакше вибір
               // діє лише на цьому екрані й злітає при переході на інші
@@ -169,12 +139,6 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             onSearchChanged: (s) => setState(() => _search = s),
             viewFormat: _viewFormat,
             onViewFormatChanged: (f) => setState(() => _viewFormat = f),
-            peer: peer,
-            peers: peers,
-            onSelectPeer: (p) {
-              ref.read(activeMemberIdProvider.notifier).state = null;
-              ref.read(activePeerProvider.notifier).state = p;
-            },
           );
         },
       ),
@@ -194,9 +158,6 @@ class _ScheduleBody extends ConsumerWidget {
   final void Function(String) onSearchChanged;
   final _ScheduleViewFormat viewFormat;
   final void Function(_ScheduleViewFormat) onViewFormatChanged;
-  final PeerSubject? peer;
-  final List<FamilyPeer> peers;
-  final void Function(PeerSubject)? onSelectPeer;
 
   const _ScheduleBody({
     required this.members,
@@ -208,82 +169,22 @@ class _ScheduleBody extends ConsumerWidget {
     required this.onSearchChanged,
     required this.viewFormat,
     required this.onViewFormatChanged,
-    this.peer,
-    this.peers = const [],
-    this.onSelectPeer,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final readOnly = peer != null;
-    // Крок 4.3.6 плану: той самий принцип, що на Сьогодні — коли суб'єкт
-    // закрив розділ, дані взагалі не потрапляють у кеш піра, тож замість
-    // тихо порожньої вкладки показуємо, чому саме.
-    final grants = ref.watch(activePeerGrantsProvider);
-    final scheduleClosed = peer != null && grants != null && !grants.viewScheduleGranted;
-    final medcardClosed = peer != null && grants != null && !grants.viewMedcardGranted;
-    // Реальний баг: коли обидва домени закриті, вкладки й поле пошуку все
-    // одно лишались видимими (лише секції під ними — порожні), хоча
-    // дивитись зовсім нема на що. allClosed ховає їх повністю, лишаючи
-    // тільки заголовок і PeerSectionClosedCard-и нижче.
-    final allClosed = scheduleClosed && medcardClosed;
-    // Крок 4.3.3 плану: коли обрано автономного піра, читаємо не з
-    // локальної бази (той пір фізично не має тут Members-рядка), а з
-    // перекладача (peer_view_providers.dart), той самий підхід, що й на
-    // Сьогодні (today_screen.dart _TodayContent).
-    final AsyncValue<List<Medication>> medsAsync;
-    final AsyncValue<List<Activity>> activitiesAsync;
-    final AsyncValue<List<Reminder>> appointmentsAsync;
-    final AsyncValue<WellbeingSchedule?> wellbeingScheduleAsync;
-    if (peer != null) {
-      final uuid = peer!.personUuid;
-      medsAsync = AsyncValue.data(ref.watch(peerMedicationsProvider(uuid)));
-      activitiesAsync = AsyncValue.data(ref.watch(peerActivitiesProvider(uuid)));
-      appointmentsAsync = AsyncValue.data(ref.watch(peerRemindersProvider(uuid)));
-      final schedules = ref.watch(peerWellbeingSchedulesProvider(uuid));
-      wellbeingScheduleAsync = AsyncValue.data(
-        schedules.isEmpty
-            ? null
-            : schedules.reduce((a, b) => a.updatedAt.isAfter(b.updatedAt) ? a : b),
-      );
-    } else {
-      medsAsync = ref.watch(_scheduleMedsProvider(selectedMemberId));
-      activitiesAsync = ref.watch(_scheduleActivitiesProvider(selectedMemberId));
-      appointmentsAsync = ref.watch(_scheduleAppointmentsProvider(selectedMemberId));
-      wellbeingScheduleAsync = ref.watch(_scheduleWellbeingScheduleProvider(selectedMemberId));
-    }
+    final medsAsync = ref.watch(_scheduleMedsProvider(selectedMemberId));
+    final activitiesAsync = ref.watch(_scheduleActivitiesProvider(selectedMemberId));
+    final appointmentsAsync = ref.watch(_scheduleAppointmentsProvider(selectedMemberId));
+    final wellbeingScheduleAsync = ref.watch(_scheduleWellbeingScheduleProvider(selectedMemberId));
     final limits = ref.watch(planProvider).limits;
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
     final routineCount = activitiesAsync.valueOrNull?.length ?? 0;
     final routineLimitReached =
         limits.maxRoutineTasks != 0 && routineCount >= limits.maxRoutineTasks;
-    // Крок 4.4.4 плану: якщо суб'єкт дозволив редагування відповідного
-    // розділу саме цьому глядачеві — кнопки "додати" лишаються доступними
-    // і для піра, лише замість прямого запису шлють record_proposal
-    // (Крок 4.4.1). Ліки/рутини — Розклад; нагадування — Медкартка
-    // (Візити/Самопочуття), той самий бар'єр, що й у
-    // FamilyPeerSyncService._push.
-    final canEditSchedulePeer =
-        peer != null && grants != null && grants.viewScheduleGranted && grants.editScheduleGranted;
-    final canEditMedcardPeer =
-        peer != null && grants != null && grants.viewMedcardGranted && grants.editMedcardGranted;
 
     void openAddRoutine() {
-      if (peer != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AddActivityScreen(
-              hideTypePicker: true,
-              forcedType: _kActivityTypeRoutine,
-              compactMode: true,
-              onDraftCreated: (draft) => submitActivityProposal(ref, peer!, draft),
-            ),
-          ),
-        );
-        return;
-      }
       if (routineLimitReached) {
         Navigator.push(
           context,
@@ -310,17 +211,6 @@ class _ScheduleBody extends ConsumerWidget {
     }
 
     void openAddMedication() {
-      if (peer != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AddMedicationScreen(
-              onDraftCreated: (draft) => submitMedicationProposal(ref, peer!, draft),
-            ),
-          ),
-        );
-        return;
-      }
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -330,22 +220,6 @@ class _ScheduleBody extends ConsumerWidget {
     }
 
     void openAddAppointment() {
-      if (peer != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AddAppointmentScreen(
-              onDraftCreated: (draft, slotTimes) => submitReminderProposal(
-                ref,
-                peer!,
-                draft,
-                slotTimes: slotTimes,
-              ),
-            ),
-          ),
-        );
-        return;
-      }
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -378,11 +252,10 @@ class _ScheduleBody extends ConsumerWidget {
     if (viewFormat == _ScheduleViewFormat.calendar) {
       return Column(
         children: [
-          if (peer != null || (owner != null && member.id != owner.id))
+          if (owner != null && member.id != owner.id)
             SwitchProfileBanner(
-              name: peer?.name ?? member.name,
+              name: member.name,
               onReturn: () {
-                ref.read(activePeerProvider.notifier).state = null;
                 ref.read(activeMemberIdProvider.notifier).state = null;
                 if (owner != null) onMemberChanged(owner.id);
               },
@@ -407,17 +280,14 @@ class _ScheduleBody extends ConsumerWidget {
                       value: viewFormat,
                       onChanged: onViewFormatChanged,
                     ),
-                    if (members.length > 1 || peers.isNotEmpty) ...[
+                    if (members.length > 1) ...[
                       const SizedBox(width: AppDimensions.sm),
                     ],
-                    if (members.length > 1 || peers.isNotEmpty)
+                    if (members.length > 1)
                       MemberSwitcherPill(
                         members: members,
                         selected: member,
                         onSelect: onMemberChanged,
-                        peers: peers,
-                        selectedPeer: peer,
-                        onSelectPeer: onSelectPeer,
                       ),
                   ],
                 ),
@@ -440,7 +310,6 @@ class _ScheduleBody extends ConsumerWidget {
           Expanded(
             child: ScheduleCalendarView(
               memberId: selectedMemberId,
-              peer: peer,
               category: category,
               search: q,
             ),
@@ -452,7 +321,6 @@ class _ScheduleBody extends ConsumerWidget {
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () async {
-        await FamilyPeerSyncService(ref.read(databaseProvider)).syncAllPeers();
         ref.invalidate(_scheduleMedsProvider(selectedMemberId));
         ref.invalidate(_scheduleActivitiesProvider(selectedMemberId));
         ref.invalidate(_scheduleAppointmentsProvider(selectedMemberId));
@@ -461,17 +329,16 @@ class _ScheduleBody extends ConsumerWidget {
       child: CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        if (peer != null || (owner != null && member.id != owner.id))
+        if (owner != null && member.id != owner.id)
           SliverToBoxAdapter(
             child: SwitchProfileBanner(
-              name: peer?.name ?? member.name,
+              name: member.name,
               onReturn: () {
                 // Скидаємо і глобальний activeMemberIdProvider — інакше при
                 // поверненні на цей екран (наприклад, через нижню навігацію)
                 // _selectedMemberId знову підхопить старе глобальне значення
                 // через ref.listen вище, і кнопка виглядатиме так, ніби
                 // нічого не робить.
-                ref.read(activePeerProvider.notifier).state = null;
                 ref.read(activeMemberIdProvider.notifier).state = null;
                 if (owner != null) onMemberChanged(owner.id);
               },
@@ -499,17 +366,14 @@ class _ScheduleBody extends ConsumerWidget {
                       value: viewFormat,
                       onChanged: onViewFormatChanged,
                     ),
-                    if (members.length > 1 || peers.isNotEmpty) ...[
+                    if (members.length > 1) ...[
                       const SizedBox(width: AppDimensions.sm),
                     ],
-                    if (members.length > 1 || peers.isNotEmpty)
+                    if (members.length > 1)
                       MemberSwitcherPill(
                         members: members,
                         selected: member,
                         onSelect: onMemberChanged,
-                        peers: peers,
-                        selectedPeer: peer,
-                        onSelectPeer: onSelectPeer,
                       ),
                   ],
                 ),
@@ -518,23 +382,21 @@ class _ScheduleBody extends ConsumerWidget {
           ),
         ),
 
-        if (!allClosed) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppDimensions.screenPadding, AppDimensions.md,
-                AppDimensions.screenPadding, 0,
-              ),
-              child: _CategorySearchBar(
-                search: search,
-                searchHint: context.l10n.searchAllSections,
-                onSearchChanged: onSearchChanged,
-                category: category,
-                onCategoryChanged: onCategoryChanged,
-              ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppDimensions.screenPadding, AppDimensions.md,
+              AppDimensions.screenPadding, 0,
+            ),
+            child: _CategorySearchBar(
+              search: search,
+              searchHint: context.l10n.searchAllSections,
+              onSearchChanged: onSearchChanged,
+              category: category,
+              onCategoryChanged: onCategoryChanged,
             ),
           ),
-        ],
+        ),
 
         // Content
         SliverPadding(
@@ -543,38 +405,14 @@ class _ScheduleBody extends ConsumerWidget {
             delegate: SliverChildListDelegate([
               const SizedBox(height: AppDimensions.lg),
 
-              if (scheduleClosed &&
-                  (category == ScheduleCategory.all ||
-                      category == ScheduleCategory.meds ||
-                      category == ScheduleCategory.routine))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimensions.md),
-                  child: PeerSectionClosedCard(
-                    peerName: peer!.name,
-                    sectionLabel: context.l10n.familySectionScheduleLabel,
-                  ),
-                ),
-              if (medcardClosed &&
-                  (category == ScheduleCategory.all ||
-                      category == ScheduleCategory.reminders ||
-                      category == ScheduleCategory.wellbeing))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimensions.md),
-                  child: PeerSectionClosedCard(
-                    peerName: peer!.name,
-                    sectionLabel: context.l10n.familySectionVisitsWellbeingLabel,
-                  ),
-                ),
-
               if (q.isEmpty) ...[
-                if (!scheduleClosed &&
-                    (category == ScheduleCategory.all ||
-                    category == ScheduleCategory.meds)) ...[
+                if (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.meds) ...[
                   _SectionHeader(
                     icon: Icons.medication_rounded,
                     iconWidget: const AssetIcon('box', size: 22),
                     title: context.l10n.sectionMeds,
-                    onAdd: (peer == null || canEditSchedulePeer) ? openAddMedication : null,
+                    onAdd: openAddMedication,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   medsAsync.when(
@@ -592,7 +430,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (meds.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noActiveMeds,
-                          onAdd: (peer == null || canEditSchedulePeer) ? openAddMedication : null,
+                          onAdd: openAddMedication,
                         );
                       }
                       return Column(
@@ -606,7 +444,6 @@ class _ScheduleBody extends ConsumerWidget {
                                         builder: (_) => MedicationDetailScreen(
                                           medicationId: m.id,
                                           memberId: m.memberId,
-                                          peer: peer,
                                         ),
                                       ),
                                     ),
@@ -620,14 +457,13 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (!medcardClosed &&
-                    (category == ScheduleCategory.all ||
-                    category == ScheduleCategory.reminders)) ...[
+                if (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.reminders) ...[
                   _SectionHeader(
                     icon: Icons.notifications_rounded,
                     iconWidget: const AssetIcon('task_reminder', size: 22),
                     title: context.l10n.reminderCategoryTitle,
-                    onAdd: (peer == null || canEditMedcardPeer) ? openAddAppointment : null,
+                    onAdd: openAddAppointment,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   appointmentsAsync.when(
@@ -649,7 +485,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (appointments.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noScheduledAppointments,
-                          onAdd: (peer == null || canEditMedcardPeer) ? openAddAppointment : null,
+                          onAdd: openAddAppointment,
                         );
                       }
                       return Column(
@@ -662,7 +498,6 @@ class _ScheduleBody extends ConsumerWidget {
                                       MaterialPageRoute(
                                         builder: (_) => ReminderViewScreen(
                                           reminderId: a.id,
-                                          peer: peer,
                                         ),
                                       ),
                                     ),
@@ -676,14 +511,13 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (!scheduleClosed &&
-                    (category == ScheduleCategory.all ||
-                    category == ScheduleCategory.routine)) ...[
+                if (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.routine) ...[
                   _SectionHeader(
                     icon: Icons.home_repair_service_rounded,
                     iconWidget: const AssetIcon('task_routine', size: 22),
                     title: context.l10n.taskTypeRoutine,
-                    onAdd: (peer == null || canEditSchedulePeer) ? openAddRoutine : null,
+                    onAdd: openAddRoutine,
                   ),
                   const SizedBox(height: AppDimensions.md),
                   activitiesAsync.when(
@@ -701,7 +535,7 @@ class _ScheduleBody extends ConsumerWidget {
                       if (routine.isEmpty) {
                         return _EmptySection(
                           hint: context.l10n.noRoutineTasksHint,
-                          onAdd: (peer == null || canEditSchedulePeer) ? openAddRoutine : null,
+                          onAdd: openAddRoutine,
                         );
                       }
                       return Column(
@@ -714,7 +548,6 @@ class _ScheduleBody extends ConsumerWidget {
                                       MaterialPageRoute(
                                         builder: (_) => RoutineViewScreen(
                                           activityId: a.id,
-                                          peer: peer,
                                         ),
                                       ),
                                     ),
@@ -739,22 +572,19 @@ class _ScheduleBody extends ConsumerWidget {
                   const SizedBox(height: AppDimensions.xl),
                 ],
 
-                if (!medcardClosed &&
-                    (category == ScheduleCategory.all ||
-                    category == ScheduleCategory.wellbeing)) ...[
+                if (category == ScheduleCategory.all ||
+                    category == ScheduleCategory.wellbeing) ...[
                   _SectionHeader(
                     icon: Icons.favorite_rounded,
                     iconWidget: const AssetIcon('task_wellbeing', size: 22),
                     title: context.l10n.sectionWellbeing,
-                    onAdd: readOnly
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                              ),
-                            ),
+                    onAdd: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppDimensions.md),
                   wellbeingScheduleAsync.when(
@@ -764,29 +594,23 @@ class _ScheduleBody extends ConsumerWidget {
                       if (schedule == null || !schedule.isActive) {
                         return _EmptySection(
                           hint: context.l10n.wellbeingScheduleNotSet,
-                          onAdd: readOnly
-                              ? null
-                              : () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                                    ),
-                                  ),
+                          onAdd: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                            ),
+                          ),
                         );
                       }
                       return GestureDetector(
-                        // AddWellbeingScheduleScreen тут виступає і як
-                        // редактор — ховаємо тап для піра (Крок 4.3.5).
-                        onTap: readOnly
-                            ? null
-                            : () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        AddWellbeingScheduleScreen(memberId: selectedMemberId),
-                                  ),
-                                ),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AddWellbeingScheduleScreen(memberId: selectedMemberId),
+                          ),
+                        ),
                         child: _WellbeingScheduleCard(schedule: schedule),
                       );
                     },
@@ -832,7 +656,6 @@ class _ScheduleBody extends ConsumerWidget {
                                     builder: (_) => MedicationDetailScreen(
                                       medicationId: m.id,
                                       memberId: m.memberId,
-                                      peer: peer,
                                     ),
                                   ),
                                 ),
@@ -856,7 +679,6 @@ class _ScheduleBody extends ConsumerWidget {
                                   MaterialPageRoute(
                                     builder: (_) => RoutineViewScreen(
                                       activityId: a.id,
-                                      peer: peer,
                                     ),
                                   ),
                                 ),
@@ -880,7 +702,6 @@ class _ScheduleBody extends ConsumerWidget {
                                   MaterialPageRoute(
                                     builder: (_) => ReminderViewScreen(
                                       reminderId: a.id,
-                                      peer: peer,
                                     ),
                                   ),
                                 ),

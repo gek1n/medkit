@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -7,19 +6,12 @@ import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/app_logger.dart';
-import '../../core/services/family_peer_sync_service.dart';
-import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 
 class WellbeingRepository {
   final AppDatabase _db;
   final Ref _ref;
   WellbeingRepository(this._db, this._ref);
-
-  void _triggerFamilySync(int memberId) {
-    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
-    unawaited(FamilyPeerSyncService(_db).syncAllPeers());
-  }
 
   // Logs
   Stream<List<WellbeingLog>> watchByMember(int memberId) =>
@@ -50,7 +42,6 @@ class WellbeingRepository {
 
   Future<int> insertLog(WellbeingLogsCompanion log) async {
     final id = await _db.into(_db.wellbeingLogs).insert(log);
-    if (log.memberId.present) _triggerFamilySync(log.memberId.value);
     return id;
   }
 
@@ -93,14 +84,12 @@ class WellbeingRepository {
     } else {
       await _db.into(_db.wellbeingSchedules).insert(schedule);
     }
-    _triggerFamilySync(schedule.memberId.value);
   }
 
   Future<void> setActive(int memberId, bool active) async {
     await (_db.update(_db.wellbeingSchedules)
           ..where((t) => t.memberId.equals(memberId)))
         .write(WellbeingSchedulesCompanion(isActive: Value(active)));
-    _triggerFamilySync(memberId);
   }
 
   // Планує щоденні сповіщення для вже збереженого розкладу — спільна логіка

@@ -1,18 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/subscription_service.dart';
-import '../../data/db/app_database.dart';
-import '../../data/repositories/family_peers_repository.dart';
 import 'plan_provider.dart';
-
-/// Той самий `watchAll()`, що й приватні `_familyPeersProvider` у
-/// family_screen.dart/family_visibility_screen.dart — окремий публічний
-/// provider тут, щоб [realPlanProvider] міг реактивно перераховуватись при
-/// зміні grants_summary (payerPlanActive/invitedMe), а не читати один
-/// застиглий знімок.
-final _familyPeersStreamProvider = StreamProvider<List<FamilyPeer>>((ref) {
-  return ref.watch(familyPeersRepositoryProvider).watchAll();
-});
 
 /// Реальний ефективний план — готовий, але СВІДОМО ще НЕ активний
 /// (docs/multifamily_billing_plan.md, розділ 6, "Рішення: реальна покупка
@@ -22,31 +11,14 @@ final _familyPeersStreamProvider = StreamProvider<List<FamilyPeer>>((ref) {
 /// на цей провайдер (чи перевести planProvider на цю ж реалізацію) одним
 /// кроком, коли підключиться справжня покупка.
 ///
-/// Формула — max(власний кешований тариф, Family якщо є хоч один
-/// подарунок від інвайтера з активною підпискою) — рахується ДИНАМІЧНО
-/// щоразу, ніколи не кешується статичним булевим прапорцем: якщо я гість у
-/// двох сім'ях і одна з них розпадеться, доступ від другої має лишитись
-/// робочим.
-final realPlanProvider = FutureProvider<AppPlan>((ref) async {
-  // watch (не read) — перераховується, коли приходить свіжий grants_summary
-  // від будь-якого піра (payerPlanActive/invitedMe могли змінитись).
-  final peers = ref.watch(_familyPeersStreamProvider).valueOrNull ?? const [];
-  final own = await ref.watch(ownPlanProvider.future);
+/// Крок 10 (10.08, карантин функціоналу сім'ї): раніше тут ще додавалось
+/// "подароване сім'єю" розширення плану (max власного тарифу й Family, якщо
+/// хоч один інвайтер з активною підпискою) — залежність від FamilyPeers,
+/// якого більше немає в білді. Тепер це просто прямий проксі на власний
+/// куплений план: той, хто реально платить, і далі бачить свій статус без
+/// змін; ефекту "подарунку від сім'ї" більше немає, бо немає самої сімейної
+/// групи, яка б його роздавала (архів: archive/family_subsystem/).
+final realPlanProvider = FutureProvider<AppPlan>((ref) => ref.watch(ownPlanProvider.future));
 
-  final hasActiveFamilyGift = peers.any((p) => p.invitedMe && p.payerPlanActive);
-  if (hasActiveFamilyGift && own != AppPlan.family) {
-    return AppPlan.family;
-  }
-  return own;
-});
-
-/// Мій ВЛАСНИЙ куплений план — без "подарунка" від сім'ї, до якої мене
-/// запросили. [realPlanProvider] (а через нього — bridged `planProvider`)
-/// свідомо піднімає ефективний план до Family для всіх плюшок ліміту
-/// (локальні профілі, рутини, розділи Поличок тощо) — так і задумано, кожен
-/// запрошений отримує весь тариф сім'ї, крім самого статусу адміністратора.
-/// Але можливість запросити когось у СВОЮ (окрему) сім'ю — це і є той самий
-/// статус адміністратора, тож вона має спиратись лише на реальну покупку,
-/// а не на подарунок: інакше запрошений зміг би плодити власні сім'ї на
-/// чужому тарифі.
+/// Мій ВЛАСНИЙ куплений план.
 final ownPlanProvider = FutureProvider<AppPlan>((ref) => SubscriptionService.cachedPlan());

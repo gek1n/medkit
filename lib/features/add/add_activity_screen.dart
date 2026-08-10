@@ -11,9 +11,7 @@ import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
-import '../../data/repositories/members_repository.dart';
 import '../../core/utils/avatars.dart';
-import '../family/peer_view_providers.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
@@ -403,16 +401,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     }
     final isEdit = widget.existing != null;
     final members = ref.watch(allMembersProvider).valueOrNull ?? [];
-    // Крок 7.3 плану: автономні піри — вибираються в пул ротації тим самим
-    // способом, що й локальні члени, лише "матеріалізуються" в реальний
-    // Members-рядок (тіньовий, findOrCreateShadowForPeer) щойно їх обрано —
-    // до того моменту жодного зайвого рядка в базі не з'являється.
-    final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? [];
-    final shadows = ref.watch(shadowMembersProvider).valueOrNull ?? [];
-    final shadowByPersonUuid = {
-      for (final s in shadows)
-        if (s.linkedPeerPersonUuid != null) s.linkedPeerPersonUuid!: s,
-    };
     final showTime = _hasFixedTime && _repeatType != 'weeklyGoal';
 
     return Scaffold(
@@ -532,13 +520,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                       const SizedBox(height: 8),
                       _AssigneesSheet(
                         members: members,
-                        peers: peers,
-                        shadowByPersonUuid: shadowByPersonUuid,
-                        ensureShadow: (peer) => ref.read(membersRepositoryProvider).findOrCreateShadowForPeer(
-                              peerPersonUuid: peer.personUuid,
-                              name: peer.name,
-                              avatarIndex: peer.avatarIndex,
-                            ),
                         initialSelected: _assigneeIds,
                         initialRotationMode: _rotationMode,
                         onChanged: (ids, mode) => setState(() {
@@ -1277,23 +1258,12 @@ class _StepperButton extends StatelessWidget {
 
 class _AssigneesSheet extends StatefulWidget {
   final List<Member> members;
-  // Крок 7.3 плану: автономні члени сім'ї, яких можна додати в пул ротації
-  // так само, як звичайних локальних членів — [ensureShadow] матеріалізує
-  // "тіньовий" Members-рядок (Крок 7.1) щойно піра справді обрано,
-  // [shadowByPersonUuid] — уже наявні тіньові рядки (щоб не створювати
-  // дублікат і показати "уже обрано" для піра, доданого раніше).
-  final List<FamilyPeer> peers;
-  final Map<String, Member> shadowByPersonUuid;
-  final Future<int> Function(FamilyPeer peer) ensureShadow;
   final List<int> initialSelected;
   final String initialRotationMode;
   final void Function(List<int> ids, String rotationMode) onChanged;
 
   const _AssigneesSheet({
     required this.members,
-    this.peers = const [],
-    this.shadowByPersonUuid = const {},
-    required this.ensureShadow,
     required this.initialSelected,
     required this.initialRotationMode,
     required this.onChanged,
@@ -1371,19 +1341,6 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
     );
   }
 
-  Future<void> _togglePeer(FamilyPeer peer) async {
-    final existingId = widget.shadowByPersonUuid[peer.personUuid]?.id;
-    if (existingId != null && _selected.contains(existingId)) {
-      setState(() => _selected.remove(existingId));
-      _emit();
-      return;
-    }
-    final id = existingId ?? await widget.ensureShadow(peer);
-    if (!mounted) return;
-    setState(() => _selected.add(id));
-    _emit();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1410,16 +1367,6 @@ class _AssigneesSheetState extends State<_AssigneesSheet> {
                   });
                   _emit();
                 },
-              );
-            }),
-            ...widget.peers.map((p) {
-              final shadowId = widget.shadowByPersonUuid[p.personUuid]?.id;
-              final sel = shadowId != null && _selected.contains(shadowId);
-              return _chip(
-                avatarIndex: p.avatarIndex,
-                name: p.name,
-                sel: sel,
-                onTap: () => _togglePeer(p),
               );
             }),
           ],

@@ -27,7 +27,6 @@ import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../today/providers/today_providers.dart';
 import 'anti_stress/anti_stress_picker_screen.dart';
-import 'family_visibility_screen.dart';
 import 'privacy_screen.dart';
 
 // ────────────────────────────── screen ──────────────────────────────
@@ -760,19 +759,6 @@ class _AccountSection extends ConsumerWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const PlansScreen()),
-          ),
-        ),
-        _RowItem(
-          icon: Icons.visibility_rounded,
-          assetIcon: 'eye',
-          label: context.l10n.familyVisibilityLabel,
-          color: AppColors.warning,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  FamilyVisibilityScreen(subjectMemberId: memberId),
-            ),
           ),
         ),
         _RowItem(

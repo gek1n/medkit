@@ -12,12 +12,9 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/member_switcher_pill.dart';
-import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../appointments/appointments_history_screen.dart';
-import '../family/peer_record_proposal.dart';
-import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
@@ -53,16 +50,12 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
     final activeId = ref.watch(activeMemberIdProvider);
     final memberAsync = ref.watch(currentMemberProvider);
     final membersAsync = ref.watch(allMembersProvider);
-    // Крок 4.3.4 плану: той самий глобальний стан, що вже вмикає перегляд
-    // піра на Сьогодні/Розкладі.
-    final peer = ref.watch(activePeerProvider);
-    final peers = ref.watch(allFamilyPeersProvider).valueOrNull ?? const [];
 
     final fabMemberId = _selectedMemberId ?? memberAsync.valueOrNull?.id;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: (peer != null || fabMemberId == null)
+      floatingActionButton: fabMemberId == null
           ? null
           : FloatingActionButton(
               onPressed: () => openAddShelvesTypeScreen(context, memberId: fabMemberId),
@@ -82,15 +75,14 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
               (m) => m.id == (_selectedMemberId ?? defaultMember.id),
               orElse: () => defaultMember,
             );
-            final showBanner = peer != null || shouldShowSwitchBanner(activeId, selected.role);
+            final showBanner = shouldShowSwitchBanner(activeId, selected.role);
             return _MedCardBody(
               memberId: selected.id,
-              memberName: peer?.name ?? selected.name,
+              memberName: selected.name,
               showSwitchBanner: showBanner,
               members: members,
               selected: selected,
               onMemberChanged: (id) {
-                ref.read(activePeerProvider.notifier).state = null;
                 setState(() => _selectedMemberId = id);
                 // Пишемо і в глобальний activeMemberIdProvider — інакше вибір
                 // діє лише на цьому екрані й злітає при переході на інші
@@ -98,12 +90,6 @@ class _MedCardScreenState extends ConsumerState<MedCardScreen> {
                 // рівнозначний натисканню "Повернутись".
                 ref.read(activeMemberIdProvider.notifier).state =
                     id == defaultMember.id ? null : id;
-              },
-              peer: peer,
-              peers: peers,
-              onSelectPeer: (p) {
-                ref.read(activeMemberIdProvider.notifier).state = null;
-                ref.read(activePeerProvider.notifier).state = p;
               },
             );
           },
@@ -120,9 +106,6 @@ class _MedCardBody extends ConsumerWidget {
   final List<Member> members;
   final Member selected;
   final void Function(int) onMemberChanged;
-  final PeerSubject? peer;
-  final List<FamilyPeer> peers;
-  final void Function(PeerSubject)? onSelectPeer;
   const _MedCardBody({
     required this.memberId,
     required this.memberName,
@@ -130,30 +113,11 @@ class _MedCardBody extends ConsumerWidget {
     required this.members,
     required this.selected,
     required this.onMemberChanged,
-    this.peer,
-    this.peers = const [],
-    this.onSelectPeer,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final readOnly = peer != null;
-    // Крок 4.3.4 плану: для піра розділи (Полички) читаються через
-    // перекладач, а не з локальної бази (той пір фізично не має тут
-    // жодного Members-рядка).
-    final AsyncValue<List<MedcardSection>> sectionsAsync = peer != null
-        ? AsyncValue.data(ref.watch(peerMedcardSectionsProvider(peer!.personUuid)))
-        : ref.watch(_medcardSectionsProvider(memberId));
-    // Крок 4.3.6 плану: якщо суб'єкт закрив Полички — розділи взагалі не
-    // потрапляють у кеш піра, тож замість тихо порожнього списку показуємо,
-    // чому саме (той самий принцип, що на Сьогодні/Розкладі).
-    final grants = ref.watch(activePeerGrantsProvider);
-    final shelvesClosed = peer != null && grants != null && !grants.viewShelvesGranted;
-    // 07.08: якщо суб'єкт дозволив редагування Поличок саме цьому глядачеві —
-    // "Додати розділ" лишається доступним і для піра (раніше ховався завжди,
-    // навіть з edit-доступом) — той самий record_proposal-шлях, що вже діє
-    // для запису в наявному розділі (medcard_section_screen.dart).
-    final canEditShelvesPeer = peer != null && grants != null && grants.editShelvesGranted;
+    final sectionsAsync = ref.watch(_medcardSectionsProvider(memberId));
     final limits = ref.watch(planProvider).limits;
     final sectionsCount = sectionsAsync.valueOrNull?.length ?? 0;
     final sectionsLimitReached = limits.maxMedcardSections != 0 &&
@@ -165,9 +129,6 @@ class _MedCardBody extends ConsumerWidget {
         if (showSwitchBanner)
           SwitchProfileBanner(
             name: memberName,
-            onReturn: peer != null
-                ? () => ref.read(activePeerProvider.notifier).state = null
-                : null,
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -179,14 +140,11 @@ class _MedCardBody extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(child: Text(context.l10n.medCardTitle, style: AppTextStyles.h2)),
-              if (members.length > 1 || peers.isNotEmpty)
+              if (members.length > 1)
                 MemberSwitcherPill(
                   members: members,
                   selected: selected,
                   onSelect: onMemberChanged,
-                  peers: peers,
-                  selectedPeer: peer,
-                  onSelectPeer: onSelectPeer,
                 ),
             ],
           ),
@@ -200,82 +158,48 @@ class _MedCardBody extends ConsumerWidget {
               48,
             ),
             children: [
-              // Реальний баг: коли suб'єкт закрив доступ до Поличок
-              // (shelvesClosed), ці три плитки історії раніше все одно
-              // лишались видимими (лише tap ховався через readOnly) —
-              // глядач бачив заголовки й підзаголовки чужих розділів, попри
-              // відсутність доступу. Тепер, як і кастомні розділи нижче,
-              // повністю ховаються — лишається тільки заголовок екрана й
-              // PeerSectionClosedCard.
-              if (!shelvesClosed) ...[
-                _MedCardTile(
-                  icon: Icons.inventory_2_rounded,
-                  iconWidget: const AssetIcon('box', size: 22),
-                  iconColor: AppColors.primary,
-                  title: context.l10n.medCardArchiveTitle,
-                  subtitle: context.l10n.medCardArchiveSubtitle,
-                  // MedicationArchiveScreen/AppointmentsHistoryScreen/
-                  // WellbeingHistoryScreen поки не адаптовані під чужі дані
-                  // (Крок 4.3.5 плану) — ховаємо тап для піра.
-                  onTap: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MedicationArchiveScreen(memberId: memberId),
-                            ),
-                          ),
-                ),
-                const SizedBox(height: AppDimensions.sm),
-                _MedCardTile(
-                  icon: Icons.event_note_rounded,
-                  iconWidget: const AssetIcon('task_reminder', size: 22),
-                  iconColor: AppColors.primary,
-                  title: context.l10n.medCardAppointmentsTitle,
-                  subtitle: context.l10n.medCardAppointmentsSubtitle,
-                  onTap: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AppointmentsHistoryScreen(memberId: memberId),
-                            ),
-                          ),
-                ),
-                const SizedBox(height: AppDimensions.sm),
-                _MedCardTile(
-                  icon: Icons.mood_rounded,
-                  iconWidget: const AssetIcon('task_wellbeing', size: 22),
-                  iconColor: AppColors.primary,
-                  title: context.l10n.medCardWellbeingHistoryTitle,
-                  subtitle: context.l10n.medCardWellbeingHistorySubtitle,
-                  onTap: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WellbeingHistoryScreen(memberId: memberId),
-                            ),
-                          ),
-                ),
-              ],
-
-              if (shelvesClosed)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppDimensions.lg),
-                  child: PeerSectionClosedCard(
-                    peerName: peer!.name,
-                    sectionLabel: context.l10n.familySectionShelvesLabel,
+              _MedCardTile(
+                icon: Icons.inventory_2_rounded,
+                iconWidget: const AssetIcon('box', size: 22),
+                iconColor: AppColors.primary,
+                title: context.l10n.medCardArchiveTitle,
+                subtitle: context.l10n.medCardArchiveSubtitle,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MedicationArchiveScreen(memberId: memberId),
                   ),
                 ),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+              _MedCardTile(
+                icon: Icons.event_note_rounded,
+                iconWidget: const AssetIcon('task_reminder', size: 22),
+                iconColor: AppColors.primary,
+                title: context.l10n.medCardAppointmentsTitle,
+                subtitle: context.l10n.medCardAppointmentsSubtitle,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AppointmentsHistoryScreen(memberId: memberId),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.sm),
+              _MedCardTile(
+                icon: Icons.mood_rounded,
+                iconWidget: const AssetIcon('task_wellbeing', size: 22),
+                iconColor: AppColors.primary,
+                title: context.l10n.medCardWellbeingHistoryTitle,
+                subtitle: context.l10n.medCardWellbeingHistorySubtitle,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => WellbeingHistoryScreen(memberId: memberId),
+                  ),
+                ),
+              ),
 
-              // ── Довільні розділи, створені користувачем ──
-              // Реальний баг: цей блок раніше рендерився БЕЗ урахування
-              // shelvesClosed — глядач без доступу міг бачити свої вже
-              // закешовані розділи (і навіть заходити в них) одночасно з
-              // банером "доступ закрито" вище. Тепер той самий гейт, що й
-              // для вбудованих плиток.
-              if (!shelvesClosed)
               sectionsAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
@@ -318,20 +242,19 @@ class _MedCardBody extends ConsumerWidget {
                               MaterialPageRoute(
                                 builder: (_) => MedcardSectionScreen(
                                   section: defaultSection!,
-                                  peer: peer,
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      _DraggableSections(sections: draggable, peer: peer, readOnly: readOnly),
+                      _DraggableSections(sections: draggable),
                     ],
                   );
                 },
               ),
 
               const SizedBox(height: AppDimensions.lg),
-              if (!readOnly && limits.maxMedcardSections != 0) ...[
+              if (limits.maxMedcardSections != 0) ...[
                 PlanUpgradeBanner(
                   badgeIcon: Icons.folder_rounded,
                   badge: context.l10n.medcardSectionsLimitBadge,
@@ -342,21 +265,8 @@ class _MedCardBody extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppDimensions.md),
               ],
-              if (!readOnly || canEditShelvesPeer)
               GestureDetector(
                 onTap: () {
-                  if (peer != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddMedcardSectionScreen(
-                          onDraftCreated: (draft) =>
-                              submitMedcardSectionProposal(ref, peer!, draft),
-                        ),
-                      ),
-                    );
-                    return;
-                  }
                   if (sectionsLimitReached) {
                     Navigator.push(
                       context,
@@ -408,9 +318,7 @@ class _MedCardBody extends ConsumerWidget {
 
 class _DraggableSections extends ConsumerStatefulWidget {
   final List<MedcardSection> sections;
-  final PeerSubject? peer;
-  final bool readOnly;
-  const _DraggableSections({required this.sections, this.peer, this.readOnly = false});
+  const _DraggableSections({required this.sections});
 
   @override
   ConsumerState<_DraggableSections> createState() => _DraggableSectionsState();
@@ -451,30 +359,6 @@ class _DraggableSectionsState extends ConsumerState<_DraggableSections> {
   @override
   Widget build(BuildContext context) {
     if (_local.isEmpty) return const SizedBox.shrink();
-    // Для піра — звичайний список, без драг-н-дропу (перетягувати чужий
-    // порядок розділів немає сенсу — Крок 4.3.4 плану).
-    if (widget.readOnly) {
-      return Column(
-        children: _local
-            .map((s) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                  child: _MedCardTile(
-                    icon: Icons.folder_rounded,
-                    iconWidget: MedcardIcon(s.iconKey, size: 24),
-                    iconColor: colorFromHex(s.color) ?? AppColors.primary,
-                    title: s.name,
-                    subtitle: s.comment,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => MedcardSectionScreen(section: s, peer: widget.peer),
-                      ),
-                    ),
-                  ),
-                ))
-            .toList(),
-      );
-    }
     return ReorderableListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

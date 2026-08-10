@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,27 +23,17 @@ import 'core/services/backup_reminder_service.dart';
 import 'core/services/backup_service.dart';
 import 'core/services/backup_settings_service.dart';
 import 'core/services/db_encryption_service.dart';
-import 'core/services/billing_lifecycle_service.dart';
-import 'core/services/family_group_service.dart';
-import 'core/services/family_join_popup_service.dart';
-import 'core/services/family_peer_sync_service.dart';
-import 'core/services/family_sync_service.dart';
 import 'core/services/marketing_topics_service.dart';
 import 'core/services/notification_service.dart';
-import 'core/services/push_token_service.dart';
 import 'core/services/review_prompt_service.dart';
 import 'core/services/subscription_service.dart';
 import 'core/services/sync_service.dart';
 import 'core/services/timezone_resync_service.dart';
-import 'data/repositories/family_peers_repository.dart';
-import 'data/repositories/members_repository.dart';
-import 'features/family/family_join_popup.dart';
-import 'features/plans/billing_lifecycle_dialogs.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_text_styles.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
-import 'features/family/family_screen.dart';
+import 'data/repositories/members_repository.dart';
 import 'features/lock/app_lock_screen.dart';
 import 'features/medcard/med_card_screen.dart';
 import 'features/schedule/schedule_screen.dart';
@@ -53,41 +42,7 @@ import 'features/today/today_screen.dart';
 import 'features/today/providers/today_providers.dart';
 import 'features/profile/debug_log_screen.dart';
 import 'features/profile/profile_screen.dart';
-import 'data/db/app_database.dart';
 import 'shared/widgets/app_bottom_nav.dart';
-
-// Обробник FCM data-пушу "розбуди сім'ю" (family_peer_sync_service.dart
-// _ping), коли застосунок згорнутий чи повністю закритий — Android виділяє
-// під це окремий headless-ізолят, тож жодного стану з головного ізоляту
-// (Riverpod ProviderScope, _crashReportingReady тощо) тут нема, все, що
-// потрібно, ініціалізується наново. iOS теж викликає це, поки увімкнено
-// "Background Modes → Remote notifications" (вже є в Info.plist), але сам
-// факт виклику для повністю "вбитого" (force-quit) застосунку — рішення
-// ОС/Apple, не гарантується жодним кодом тут.
-//
-// Навмисно лише syncAllPeers() (не весь _familySyncIfNeeded) — решта кроків
-// там (акаунт-синк, попапи "додався новий член сім'ї") потребують
-// BuildContext/Navigator, яких тут немає, і не стосуються самого доставлення
-// "Нагадати" (воно приходить саме через remind_now-обробку в syncAllPeers).
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (_) {
-    return;
-  }
-  await NotificationService.init();
-  final db = AppDatabase();
-  try {
-    await FamilyPeerSyncService(db).syncAllPeers();
-  } catch (_) {
-    // Тиха невдача — пір підхопить "Нагадати" при наступному відкритті
-    // застосунку, той самий компроміс, що й у _familySyncIfNeeded.
-  } finally {
-    await db.close();
-  }
-}
 
 // Стає true лише якщо Firebase.initializeApp() реально відпрацював —
 // без цього виклик будь-якого методу FirebaseCrashlytics.instance впаде.
@@ -131,13 +86,9 @@ void main() {
             sqlite3_open.OperatingSystem.android, openCipherOnAndroid);
       }
       try {
-        // Потрібен лише для FCM push-пробудження (relay-канал сам по собі —
-        // звичайний HTTP до власного бекенду, від Firebase не залежить).
         // Поки google-services.json/GoogleService-Info.plist не додані в
         // нативні проєкти, це кине виняток, який тут навмисно не фатальний.
         await Firebase.initializeApp();
-        PushTokenService.installNativeDiagnostics();
-        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
         await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
         _crashReportingReady = true;
       } catch (e) {
@@ -800,17 +751,8 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   int _index = 2; // Сьогодні — за замовчуванням при запуску
   late final PageController _pageController;
   bool _syncing = false;
-  bool _familySyncing = false;
-  DateTime? _lastFamilySyncAt;
-  // Швидке згортання/розгортання застосунку (кілька разів поспіль) раніше
-  // запускало повний раунд (push+pull+grants+перевірка сповіщень для
-  // КОЖНОГО піра) щоразу заново — навантаження й ризик "занадто багато
-  // запитів" (той самий клас проблеми, що вже ловили на несписаних
-  // запрошеннях). 10с — узгоджено як прийнятний інтервал.
-  static const _familySyncCooldown = Duration(seconds: 10);
   bool _billingSyncing = false;
   bool _backingUp = false;
-  StreamSubscription<RemoteMessage>? _fcmSubscription;
 
   // Порядок відповідає візуальному порядку іконок у AppBottomNav
   // (зліва направо), інакше свайп вліво/вправо по PageView веде не туди,
@@ -819,8 +761,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     MedCardScreen(),   // 0 = Медкартка
     ScheduleScreen(),  // 1 = Розклад
     TodayScreen(),     // 2 = Сьогодні
-    FamilyScreen(),    // 3 = Сім'я
-    ProfileScreen(),   // 4 = Профіль
+    ProfileScreen(),   // 3 = Профіль
   ];
 
   @override
@@ -828,14 +769,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     super.initState();
     _pageController = PageController(initialPage: _index);
     WidgetsBinding.instance.addObserver(this);
-    // Похідний кеш "чужих" даних, поділених пірами (SharedSubjects/
-    // SharedEntities) — чистимо ПЕРЕД першим синком на холодному старті,
-    // щоб застаріла версія (напр. з відновленого бекапу) не пережила
-    // відновлення; наступний вдалий syncAllPeers() наповнить його заново
-    // вже актуальними даними.
-    unawaited(FamilyPeersRepository(ref.read(databaseProvider)).clearSharedCache());
     _syncIfEnabled();
-    _familySyncIfNeeded();
     _billingSyncIfNeeded();
     _backupIfDue();
     unawaited(ref.read(timezoneResyncServiceProvider).resyncIfTimezoneChanged());
@@ -846,20 +780,11 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     unawaited(BackupReminderService.maybeRemind());
     unawaited(NotificationService.logDiagnostics());
     unawaited(NotificationService.cancelStalePendingVaccinationReminders());
-    // "Розбуди" push від family_sync (relay/send) приходить як data-message —
-    // поки застосунок відкритий, його треба явно підхопити тут; коли
-    // застосунок згорнутий/закритий, той самий ефект дає resume-хук нижче.
-    try {
-      _fcmSubscription = FirebaseMessaging.onMessage.listen((_) => _familySyncIfNeeded());
-    } catch (_) {
-      // Firebase не налаштований на цьому білді — не критично.
-    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _fcmSubscription?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -868,7 +793,6 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _syncIfEnabled();
-      _familySyncIfNeeded();
       _billingSyncIfNeeded();
       _backupIfDue();
       // Найімовірніший момент, коли пристрій "переїхав" у інший часовий
@@ -948,68 +872,9 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     }
   }
 
-  /// family_sync — незалежно від режиму account-sync вище: працює для будь-
-  /// якого профілю, привʼязаного до каналу пейрингу (SharedChannels), навіть
-  /// якщо облікова синхронізація взагалі вимкнена.
-  Future<void> _familySyncIfNeeded() async {
-    if (_familySyncing) return;
-    final lastAt = _lastFamilySyncAt;
-    if (lastAt != null && DateTime.now().difference(lastAt) < _familySyncCooldown) return;
-    _familySyncing = true;
-    try {
-      final db = ref.read(databaseProvider);
-      await FamilySyncService(db).syncAll();
-      // Легкий обмін візитівками сімейної групи — той самий тригер, що й
-      // family_sync вище, але не залежить від нього (працює навіть якщо
-      // жодного каналу-дзеркала профілю ще немає).
-      final newPeers = await FamilyGroupService(db).refreshPeers();
-      // Повторна спроба надіслати "візитівку" тим, кого я вже прийняв, але
-      // перша спроба (в acceptInvite()) не дійшла до relay — типово
-      // push-токен ще не був готовий у момент приєднання. Без цього той,
-      // хто мене запросив, ніколи не дізнається про прийняте запрошення.
-      await FamilyGroupService(db).retryPendingIntroductions();
-      // Реальні дані (ліки, медкартка) до/від пірів, відфільтровані через
-      // FamilyVisibilityService — Фаза 4.
-      await FamilyPeerSyncService(db).syncAllPeers();
-
-      // М'яке поп-ап "додався новий член сім'ї" — рівно один раз на кожне
-      // реальне приєднання (дедуп у FamilyJoinPopupService), а не щоразу,
-      // коли refreshPeers() просто підтверджує вже відомого піра.
-      if (newPeers.isNotEmpty && mounted) {
-        final owner = await MembersRepository(db).getOwner();
-        if (owner != null) {
-          for (final peer in newPeers) {
-            if (!mounted) break;
-            if (!await FamilyJoinPopupService.shouldShowForOwner(peer.personUuid)) continue;
-            await FamilyJoinPopupService.markShownForOwner(peer.personUuid);
-            if (!mounted) break;
-            await showFamilyJoinPopup(
-              context,
-              peerName: peer.name,
-              asInvitee: false,
-              ownMemberId: owner.id,
-            );
-          }
-        }
-      }
-    } catch (e, st) {
-      // Раніше повністю мовчазний catch — якщо syncAll()/refreshPeers()/
-      // retryPendingIntroductions() кидали виняток РАНІШЕ, ніж доходило до
-      // syncAllPeers() (реальні дані/дозволи), останній просто НІКОЛИ не
-      // викликався цього раунду — без жодного сліду в логах. Локальні дані
-      // лишаються джерелом правди, тож і далі не ретраїмо тут же — лише
-      // тепер видно причину, а не морочимось здогадками з відсутності логів.
-      AppLogger.logError('_ShellState._familySyncIfNeeded', e, st);
-    } finally {
-      _familySyncing = false;
-      _lastFamilySyncAt = DateTime.now();
-    }
-  }
-
-  /// Той самий resume/cold-start тригер, що й family-синк вище — оновлює
-  /// кеш статусу підписки (SubscriptionService), перераховує realPlanProvider
-  /// (той пише в planProvider через ref.listen у build(), див. нижче), і
-  /// перевіряє грейс-період/розпад ВЛАСНОЇ сім'ї (BillingLifecycleService).
+  /// Той самий resume/cold-start тригер, що й синк вище — оновлює кеш
+  /// статусу підписки (SubscriptionService) і перераховує realPlanProvider
+  /// (той пише в planProvider через ref.listen у build(), див. нижче).
   /// No-op, якщо синк вимкнено — SubscriptionService.refreshFromServer сам
   /// про це подбає.
   Future<void> _billingSyncIfNeeded() async {
@@ -1018,26 +883,6 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     try {
       await SubscriptionService.refreshFromServer();
       ref.invalidate(realPlanProvider);
-
-      final result = await BillingLifecycleService.checkGraceAndMaybeDisband(ref.read(databaseProvider));
-      if (!mounted) return;
-      switch (result) {
-        case GraceCheckResult.graceStarted:
-        case GraceCheckResult.graceOngoing:
-          final timeLeft = await BillingLifecycleService.timeLeftInGrace();
-          if (mounted) {
-            unawaited(showGracePeriodPopup(context, timeLeft: timeLeft));
-          }
-        case GraceCheckResult.disbanded:
-          if (mounted) {
-            unawaited(showAccessChangedModal(
-              context,
-              reason: context.l10n.familyDisbandedReason,
-            ));
-          }
-        case GraceCheckResult.none:
-          break;
-      }
     } catch (_) {
       // Тиха невдача — див. коментар до _syncIfEnabled.
     } finally {

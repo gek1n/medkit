@@ -1,12 +1,8 @@
-import 'dart:async';
-
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
-import '../../core/services/family_peer_sync_service.dart';
-import '../../core/services/family_sync_service.dart';
 import '../../core/services/notification_service.dart';
 import 'medications_repository.dart';
 
@@ -58,7 +54,6 @@ class IntakesRepository {
 
   Future<int> insert(IntakesCompanion intake) async {
     final id = await _db.into(_db.intakes).insert(intake);
-    if (intake.memberId.present) _triggerFamilySync(intake.memberId.value);
     return id;
   }
 
@@ -79,7 +74,6 @@ class IntakesRepository {
       await _ref
           .read(medicationsRepositoryProvider)
           .decrementRemaining(intake.medicationId);
-      _triggerFamilySync(intake.memberId);
     }
   }
 
@@ -91,7 +85,6 @@ class IntakesRepository {
       ),
     );
     await NotificationService.cancelIntakeReminder(id);
-    await _triggerFamilySyncForIntake(id);
   }
 
   Future<void> markSnoozed(int id, DateTime until) async {
@@ -129,7 +122,6 @@ class IntakesRepository {
         repeatMinutes: settings.repeatMinutes,
       );
     }
-    _triggerFamilySync(intake.memberId);
   }
 
   Future<void> markPending(int id) async {
@@ -151,7 +143,6 @@ class IntakesRepository {
           .read(medicationsRepositoryProvider)
           .incrementRemaining(before!.medicationId);
     }
-    if (before != null) _triggerFamilySync(before.memberId);
   }
 
   // Генерація прийомів для конкретного дня (викликається при відкритті дня)
@@ -216,20 +207,6 @@ class IntakesRepository {
       memberId: memberId,
       scheduledAt: scheduledAt,
     ));
-    _triggerFamilySync(memberId);
-  }
-
-  void _triggerFamilySync(int memberId) {
-    unawaited(FamilySyncService(_db).syncChannelForMember(memberId));
-    // Групові піри (FamilyPeers) синкаються окремим шляхом — без цього
-    // виклику "перевірка пропущеного" на їхніх пристроях чекала б
-    // наступного періодичного/resume-синку, а не спрацьовувала одразу.
-    unawaited(FamilyPeerSyncService(_db).syncAllPeers());
-  }
-
-  Future<void> _triggerFamilySyncForIntake(int id) async {
-    final intake = await (_db.select(_db.intakes)..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (intake != null) _triggerFamilySync(intake.memberId);
   }
 }
 
