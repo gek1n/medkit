@@ -72,6 +72,18 @@ class FamilyPeerSyncService {
   // Intake/activity_log генеруються щодня — без вікна кеш SharedEntities на
   // пристрої піра ріс би необмежено. Для перевірки "чи пропущено" достатньо
   // зовсім свіжих записів.
+  //
+  // Реальний баг (10.08, скарга користувача — старі "виконано"/"пропущено"
+  // назавжди застрягають на екрані піра): _rowsFor нижче фільтрував ЛИШЕ за
+  // scheduledAt/loggedAt — щойно запис старів за вікно, він більше НІКОЛИ не
+  // потрапляв у payload, навіть якщо його status змінився (позначили
+  // виконаним/пропущеним) уже ПІСЛЯ того, як він вийшов за вікно. Пір лишався
+  // назавжди з тим кешованим станом, що встиг долетіти до вікна — часто
+  // "pending"/"missed" замість фактичного "done". _existingUuidsFor (07.08)
+  // рятує лише від хибного tombstone, саму актуалізацію статусу не чіпає.
+  // Тепер _rowsFor(intake/activity_log/reminder_log/wellbeing_log) додатково
+  // включає рядки, чий updatedAt (а не лише scheduledAt/loggedAt) свіжий —
+  // зміна статусу давнього запису знову потрапляє у вікно й пересилається.
   static const _recentWindow = Duration(days: 2);
   static const _wellbeingWindow = Duration(days: 7);
 
@@ -566,7 +578,10 @@ class FamilyPeerSyncService {
         return result;
       case 'intake':
         final rows = await (_db.select(_db.intakes)
-              ..where((t) => t.memberId.equals(memberId) & t.scheduledAt.isBiggerOrEqualValue(recentCutoff)))
+              ..where((t) =>
+                  t.memberId.equals(memberId) &
+                  (t.scheduledAt.isBiggerOrEqualValue(recentCutoff) |
+                      t.updatedAt.isBiggerOrEqualValue(recentCutoff))))
             .get();
         final result = <Map<String, dynamic>>[];
         for (final i in rows) {
@@ -649,7 +664,8 @@ class FamilyPeerSyncService {
           innerJoin(_db.activities, _db.activities.id.equalsExp(_db.activityLogs.activityId)),
         ])
           ..where(_db.activities.memberId.equals(memberId) &
-              _db.activityLogs.scheduledAt.isBiggerOrEqualValue(recentCutoff));
+              (_db.activityLogs.scheduledAt.isBiggerOrEqualValue(recentCutoff) |
+                  _db.activityLogs.updatedAt.isBiggerOrEqualValue(recentCutoff)));
         final result = <Map<String, dynamic>>[];
         for (final r in await query.get()) {
           final l = r.readTable(_db.activityLogs);
@@ -670,7 +686,10 @@ class FamilyPeerSyncService {
         return result;
       case 'wellbeing_log':
         final rows = await (_db.select(_db.wellbeingLogs)
-              ..where((t) => t.memberId.equals(memberId) & t.loggedAt.isBiggerOrEqualValue(wellbeingCutoff)))
+              ..where((t) =>
+                  t.memberId.equals(memberId) &
+                  (t.loggedAt.isBiggerOrEqualValue(wellbeingCutoff) |
+                      t.updatedAt.isBiggerOrEqualValue(wellbeingCutoff))))
             .get();
         return rows.where((r) => r.syncUuid != null).map((r) => _withUuid(r.toJson(), r.syncUuid!)).toList();
       case 'wellbeing_schedule':
@@ -696,7 +715,10 @@ class FamilyPeerSyncService {
         return daResult;
       case 'reminder_log':
         final rows = await (_db.select(_db.reminderLogs)
-              ..where((t) => t.memberId.equals(memberId) & t.scheduledAt.isBiggerOrEqualValue(recentCutoff)))
+              ..where((t) =>
+                  t.memberId.equals(memberId) &
+                  (t.scheduledAt.isBiggerOrEqualValue(recentCutoff) |
+                      t.updatedAt.isBiggerOrEqualValue(recentCutoff))))
             .get();
         final result = <Map<String, dynamic>>[];
         for (final l in rows) {
