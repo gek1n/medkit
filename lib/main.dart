@@ -13,6 +13,7 @@ import 'core/config/app_env.dart';
 import 'core/providers/app_language_provider.dart';
 import 'core/providers/database_provider.dart';
 import 'core/providers/font_scale_provider.dart';
+import 'core/providers/family_status_provider.dart';
 import 'core/providers/plan_provider.dart';
 import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
@@ -23,6 +24,7 @@ import 'core/services/backup_reminder_service.dart';
 import 'core/services/backup_service.dart';
 import 'core/services/backup_settings_service.dart';
 import 'core/services/db_encryption_service.dart';
+import 'core/services/family_server_sync_service.dart';
 import 'core/services/marketing_topics_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/review_prompt_service.dart';
@@ -34,6 +36,7 @@ import 'core/theme/app_text_styles.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
 import 'data/repositories/members_repository.dart';
+import 'features/family/family_screen.dart';
 import 'features/lock/app_lock_screen.dart';
 import 'features/medcard/med_card_screen.dart';
 import 'features/schedule/schedule_screen.dart';
@@ -753,6 +756,14 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
   bool _syncing = false;
   bool _billingSyncing = false;
   bool _backingUp = false;
+  bool _familySyncing = false;
+  DateTime? _lastFamilySyncAt;
+  // Швидке згортання/розгортання застосунку (кілька разів поспіль) інакше
+  // запускало б повний раунд (status+push+pull+grants) щоразу заново —
+  // навантаження на shared cPanel-хостинг і ризик впертись у власні ж
+  // rate-ліміти (той самий клас проблеми вже ловили в архівній
+  // FamilyPeerSyncService, той самий 10с інтервал).
+  static const _familySyncCooldown = Duration(seconds: 10);
 
   // Порядок відповідає візуальному порядку іконок у AppBottomNav
   // (зліва направо), інакше свайп вліво/вправо по PageView веде не туди,
@@ -761,7 +772,8 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     MedCardScreen(),   // 0 = Медкартка
     ScheduleScreen(),  // 1 = Розклад
     TodayScreen(),     // 2 = Сьогодні
-    ProfileScreen(),   // 3 = Профіль
+    FamilyScreen(),    // 3 = Сім'я (Крок 11.6 cutover)
+    ProfileScreen(),   // 4 = Профіль
   ];
 
   @override
@@ -772,6 +784,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     _syncIfEnabled();
     _billingSyncIfNeeded();
     _backupIfDue();
+    _familySyncIfNeeded();
     unawaited(ref.read(timezoneResyncServiceProvider).resyncIfTimezoneChanged());
     unawaited(MarketingTopicsService.syncCoreTopics(ref.read(databaseProvider)));
     unawaited(ReviewPromptService.recordInstallIfNeeded());
@@ -795,6 +808,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       _syncIfEnabled();
       _billingSyncIfNeeded();
       _backupIfDue();
+      _familySyncIfNeeded();
       // Найімовірніший момент, коли пристрій "переїхав" у інший часовий
       // пояс, — саме resume після повернення на передній план (не
       // cold-start, це вже покрито в initState вище).
@@ -887,6 +901,25 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
       // Тиха невдача — див. коментар до _syncIfEnabled.
     } finally {
       _billingSyncing = false;
+    }
+  }
+
+  /// Крок 11: сервер-based family sync — той самий resume/cold-start
+  /// тригер, що й усе вище. Крок 11.6: `isTestBuild`-гейт знято — вкладка
+  /// "Сім'я" тепер у навігації для всіх збірок.
+  Future<void> _familySyncIfNeeded() async {
+    if (_familySyncing) return;
+    final lastAt = _lastFamilySyncAt;
+    if (lastAt != null && DateTime.now().difference(lastAt) < _familySyncCooldown) return;
+    _familySyncing = true;
+    try {
+      await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+      if (mounted) ref.invalidate(familyStatusProvider);
+    } catch (_) {
+      // Тиха невдача — див. коментар до _syncIfEnabled.
+    } finally {
+      _familySyncing = false;
+      _lastFamilySyncAt = DateTime.now();
     }
   }
 

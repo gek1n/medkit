@@ -922,6 +922,12 @@ abstract class AppLocalizations {
   /// **'Оберіть поличку'**
   String get spacePickerTitle;
 
+  /// No description provided for @peerNoSectionsYetBody.
+  ///
+  /// In uk, this message translates to:
+  /// **'У цього учасника ще немає жодної Полички — створіть нову нижче.'**
+  String get peerNoSectionsYetBody;
+
   /// No description provided for @noSpaceOption.
   ///
   /// In uk, this message translates to:
@@ -1065,6 +1071,12 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Прибрати'**
   String get removeAction;
+
+  /// No description provided for @excludeFromFamilyAction.
+  ///
+  /// In uk, this message translates to:
+  /// **'Виключити з сім\'ї'**
+  String get excludeFromFamilyAction;
 
   /// No description provided for @medsTitle.
   ///

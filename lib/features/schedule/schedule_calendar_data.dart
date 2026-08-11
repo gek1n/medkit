@@ -10,6 +10,7 @@ import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../family/peer_view_providers.dart';
 import 'schedule_category.dart';
 
 enum CalendarItemType { medication, reminder, routine, wellbeing }
@@ -197,6 +198,123 @@ final scheduleCalendarDayProvider =
       final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
       // title порожній — schedule_calendar_view.dart підставляє
       // context.l10n.sectionWellbeing (див. коментар класу вище).
+      items.add(CalendarItem(
+        time: DateTime(date.year, date.month, date.day, h, m),
+        title: '',
+        recurring: true,
+        category: ScheduleCategory.wellbeing,
+        type: CalendarItemType.wellbeing,
+        id: memberId,
+        memberId: memberId,
+        createdAt: wbSchedule.updatedAt,
+        sortId: h * 60 + m,
+      ));
+    }
+  }
+
+  items.sort(compareCalendarItems);
+  return items;
+});
+
+typedef _PeerDayKey = ({String personUuid, DateTime date});
+
+// Той самий принцип, що й scheduleCalendarDayProvider вище, але з уже
+// перекладеного кешу даних піра (Крок 4.3/Крок 11), а не з локальної БД —
+// генератори (intake/activityLog) тут не потрібні: пір присилає вже
+// згенеровані intake/activity_log записи власним синком, повторно
+// генерувати їх тут нема сенсу (і нема звідки — локальних
+// Medications/Activities піра не існує).
+final peerScheduleCalendarDayProvider =
+    Provider.family<List<CalendarItem>, _PeerDayKey>((ref, params) {
+  final date = DateTime(params.date.year, params.date.month, params.date.day);
+  final end = date.add(const Duration(days: 1));
+  bool onDay(DateTime dt) => !dt.isBefore(date) && dt.isBefore(end);
+
+  final memberId = peerSyntheticId(params.personUuid);
+  final intakes = ref.watch(peerIntakesProvider(params.personUuid));
+  final activityLogs = ref.watch(peerActivityLogsProvider(params.personUuid));
+  final activities = ref.watch(peerActivitiesProvider(params.personUuid));
+  final noFixedTimeIds = ref.watch(peerNoFixedTimeActivityIdsProvider(params.personUuid));
+  final meds = ref.watch(peerMedicationsProvider(params.personUuid));
+  final reminders = ref.watch(peerRemindersProvider(params.personUuid));
+  final reminderSlots = ref.watch(peerReminderSlotsProvider(params.personUuid));
+  final wbSchedule = ref.watch(peerWellbeingSchedulesProvider(params.personUuid)).firstOrNull;
+  final remindersRepo = ref.watch(remindersRepositoryProvider);
+
+  final medsById = {for (final m in meds) m.id: m};
+  final activitiesById = {for (final a in activities) a.id: a};
+
+  final items = <CalendarItem>[];
+
+  for (final i in intakes) {
+    if (!onDay(i.scheduledAt)) continue;
+    final med = medsById[i.medicationId];
+    if (med == null) continue;
+    items.add(CalendarItem(
+      time: i.scheduledAt,
+      title: med.name,
+      recurring: med.repeatType != 'none',
+      category: ScheduleCategory.meds,
+      type: CalendarItemType.medication,
+      id: med.id,
+      memberId: memberId,
+      createdAt: med.createdAt,
+      sortId: i.id,
+    ));
+  }
+
+  for (final log in activityLogs) {
+    if (!onDay(log.scheduledAt)) continue;
+    final activity = activitiesById[log.activityId];
+    if (activity == null || !activity.isActive) continue;
+    final noTime = noFixedTimeIds.contains(activity.id);
+    items.add(CalendarItem(
+      time: noTime ? null : log.scheduledAt,
+      title: activity.name,
+      recurring: activity.repeatType != 'none',
+      category: ScheduleCategory.routine,
+      type: CalendarItemType.routine,
+      id: activity.id,
+      memberId: memberId,
+      createdAt: activity.createdAt,
+      sortId: log.id,
+    ));
+  }
+
+  for (final r in reminders) {
+    final slots = reminderSlots.where((s) => s.reminderId == r.id).toList();
+    List<DateTime> occurrences;
+    try {
+      occurrences = remindersRepo.occurrencesOnDateForSlots(r, date, slots);
+    } catch (_) {
+      occurrences = const [];
+    }
+    for (final at in occurrences) {
+      items.add(CalendarItem(
+        time: at,
+        title: r.doctorType,
+        recurring: r.repeatType != 'none',
+        category: ScheduleCategory.reminders,
+        type: CalendarItemType.reminder,
+        id: r.id,
+        memberId: memberId,
+        createdAt: r.createdAt,
+        sortId: r.id,
+      ));
+    }
+  }
+
+  if (wbSchedule != null && wbSchedule.isActive) {
+    List<String> times;
+    try {
+      times = List<String>.from(jsonDecode(wbSchedule.times) as List);
+    } catch (_) {
+      times = const [];
+    }
+    for (final t in times) {
+      final parts = t.split(':');
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
       items.add(CalendarItem(
         time: DateTime(date.year, date.month, date.day, h, m),
         title: '',

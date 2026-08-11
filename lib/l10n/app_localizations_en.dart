@@ -452,6 +452,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get spacePickerTitle => 'Choose a shelf';
 
   @override
+  String get peerNoSectionsYetBody =>
+      'This member doesn\'t have any shelves yet — create one below.';
+
+  @override
   String get noSpaceOption => 'No shelf';
 
   @override
@@ -525,6 +529,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get removeAction => 'Remove';
+
+  @override
+  String get excludeFromFamilyAction => 'Exclude from family';
 
   @override
   String get medsTitle => 'Inventory';

@@ -17,6 +17,8 @@ import '../../data/repositories/activities_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_activity_screen.dart';
@@ -50,12 +52,35 @@ final _streakProvider = FutureProvider.family<int, int>((ref, activityId) {
 /// MedcardEntryViewScreen: показує все заповнене, кнопка "Редагувати" веде
 /// на форму. Дії відмітити виконано/пропустити/поміняти чергу лишаються на
 /// картках Сьогодні/Розкладу — тут лише перегляд.
+/// Крок 11 (view-only перший прохід): [peer] непорожній — рутина береться
+/// не з локальної бази (id синтетичний), а з перекладача кешу піра;
+/// кнопки редагування/видалення завжди ховаються. Стрік не показується для
+/// піра (рахується з ЛОКАЛЬНИХ ActivityLogs, для піра був би оманливо
+/// неправильним). "Чия черга" показується як інформація (ActivityAssignees
+/// вже синхронізується), але дія "взяти чергу на себе" — окремий, ще не
+/// підключений наступний крок.
 class RoutineViewScreen extends ConsumerWidget {
   final int activityId;
-  const RoutineViewScreen({super.key, required this.activityId});
+  final PeerSubject? peer;
+  const RoutineViewScreen({super.key, required this.activityId, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (peer != null) {
+      final activity = ref
+          .watch(peerActivitiesProvider(peer!.personUuid))
+          .where((a) => a.id == activityId)
+          .firstOrNull;
+      if (activity == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(child: _ViewBody(activity: activity, peer: peer)),
+      );
+    }
+
     final activityAsync = ref.watch(_activityProvider(activityId));
 
     return Scaffold(
@@ -83,7 +108,8 @@ class RoutineViewScreen extends ConsumerWidget {
 
 class _ViewBody extends ConsumerWidget {
   final Activity activity;
-  const _ViewBody({required this.activity});
+  final PeerSubject? peer;
+  const _ViewBody({required this.activity, this.peer});
 
   List<String> get _steps {
     try {
@@ -200,6 +226,10 @@ class _ViewBody extends ConsumerWidget {
     final routineCount =
         ref.watch(_routineCountProvider(activity.memberId)).valueOrNull ?? 0;
     final editBlocked = isRoutineOverLimit(ref, routineCount);
+    // Крок 11 (#307): editSchedule дозволяє редагувати ЦІЛУ рутину піра
+    // (compare-and-swap) — routineCount-ліміт стосується лише власного
+    // тарифу, для чужого запису не перевіряється.
+    final canEditForPeer = peer != null && ref.watch(activePeerGrantsProvider).editSchedule;
     final streak = ref.watch(_streakProvider(activity.id)).valueOrNull ?? 0;
     final tags = _tags;
     final photos = _photos;
@@ -224,31 +254,55 @@ class _ViewBody extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    MkEditIconButton(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => editBlocked
-                              ? EllyDeniedScreen(
-                                  title: context.l10n.routineTasksLimitDeniedTitle,
-                                  subtitle: context
-                                      .l10n.routineTasksLimitDeniedSubtitle,
-                                )
-                              : AddActivityScreen(
-                                  memberId: activity.memberId,
-                                  existing: activity,
-                                  hideTypePicker: true,
-                                  compactMode: true,
-                                ),
+                    if (peer == null)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => editBlocked
+                                ? EllyDeniedScreen(
+                                    title: context.l10n.routineTasksLimitDeniedTitle,
+                                    subtitle: context
+                                        .l10n.routineTasksLimitDeniedSubtitle,
+                                  )
+                                : AddActivityScreen(
+                                    memberId: activity.memberId,
+                                    existing: activity,
+                                    hideTypePicker: true,
+                                    compactMode: true,
+                                  ),
+                          ),
+                        ),
+                      )
+                    else if (canEditForPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddActivityScreen(
+                              memberId: null,
+                              existing: activity,
+                              hideTypePicker: true,
+                              compactMode: true,
+                              onDraftCreated: (draft) => submitActivityProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: activity.syncUuid,
+                                existingUpdatedAt: activity.updatedAt,
+                                syntheticSectionId: activity.sectionId,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              MkDeleteIconButton(
-                onTap: () => _delete(context, ref, activity),
-              ),
+              if (peer == null)
+                MkDeleteIconButton(
+                  onTap: () => _delete(context, ref, activity),
+                ),
             ],
           ),
         ),
@@ -292,7 +346,7 @@ class _ViewBody extends ConsumerWidget {
                     ),
                   ],
                 ),
-                if (activity.repeatType != 'weeklyGoal') ...[
+                if (peer == null && activity.repeatType != 'weeklyGoal') ...[
                   const SizedBox(height: 12),
                   _InfoRow(
                     icon: Icons.local_fire_department_rounded,
@@ -303,7 +357,8 @@ class _ViewBody extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 18),
-                assigneesAsync.when(
+                if (peer == null)
+                  assigneesAsync.when(
                     loading: () => const SizedBox.shrink(),
                     error: (_, _) => const SizedBox.shrink(),
                     data: (assignees) {
@@ -353,7 +408,9 @@ class _ViewBody extends ConsumerWidget {
                         },
                       );
                     },
-                  ),
+                  )
+                else
+                  _PeerRotationInfo(peer: peer!, activity: activity, color: color),
                 if (steps.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.routineStepsLabel.toUpperCase(),
@@ -409,7 +466,9 @@ class _ViewBody extends ConsumerWidget {
                         .toList(),
                   ),
                 ],
-                if (photos.isNotEmpty) ...[
+                // Крок 11 (view-only перший прохід): фото піра на вимогу —
+                // ще не підключено в UI (C4 TODO), ховаємо секцію.
+                if (photos.isNotEmpty && peer == null) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(),
                       style: AppTextStyles.labelSm),
@@ -449,6 +508,87 @@ class _ViewBody extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// Крок 11 (#310): дзеркало блоку "чия черга" вище (для peer == null),
+/// лише джерело даних інше — уже перекладений кеш піра (ActivityAssignees
+/// вже синхронізується). Кнопка "взяти чергу на себе" — той самий скоуп,
+/// що й на Сьогодні: лише за себе, не довільний обмін між двома іншими.
+class _PeerRotationInfo extends ConsumerWidget {
+  final PeerSubject peer;
+  final Activity activity;
+  final Color color;
+  const _PeerRotationInfo({
+    required this.peer,
+    required this.activity,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pool = ref
+        .watch(peerActivityAssigneesProvider(peer.personUuid))
+        .where((a) => a.activityId == activity.id)
+        .toList();
+    if (pool.length <= 1) return const SizedBox.shrink();
+
+    final todayLog = ref
+        .watch(peerActivityLogsProvider(peer.personUuid))
+        .where((l) => l.activityId == activity.id && _isToday(l.scheduledAt))
+        .firstOrNull;
+    final assignee = todayLog == null
+        ? null
+        : ref.watch(peerActivityLogAssigneesProvider(peer.personUuid))[todayLog.id];
+
+    final ownUuid = ref.watch(ownPersonUuidProvider);
+    final amInPool = ownUuid != null && pool.any((a) => a.linkedPeerPersonUuid == ownUuid);
+    final isMyTurn = assignee?.identity == ownUuid;
+    final canTakeTurn = amInPool && !isMyTurn && todayLog != null && todayLog.syncUuid != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.sync_rounded,
+          color: color,
+          text: context.l10n.routineRotationSummary(pool.length),
+        ),
+        if (assignee != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _InfoRow(
+                  icon: Icons.person_outline_rounded,
+                  color: color,
+                  text: context.l10n.routineWhoseTurnLabel(assignee.name ?? ''),
+                ),
+              ),
+              if (canTakeTurn)
+                GestureDetector(
+                  onTap: () => submitActivityLogReassignProposal(
+                    ref,
+                    peer,
+                    syncUuid: todayLog.syncUuid!,
+                    updatedAt: todayLog.updatedAt,
+                    assigneeIdentity: ownUuid,
+                  ),
+                  child: Text(
+                    context.l10n.routineTakeTurnAction,
+                    style: AppTextStyles.labelSm.copyWith(color: color, fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  bool _isToday(DateTime dt) {
+    final now = DateTime.now();
+    return dt.year == now.year && dt.month == now.month && dt.day == now.day;
   }
 }
 

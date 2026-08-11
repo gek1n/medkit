@@ -15,6 +15,8 @@ import '../../data/repositories/medcard_entries_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import 'add_medcard_entry_screen.dart';
 
 final _entryProvider =
@@ -28,15 +30,34 @@ final _entryProvider =
 class MedcardEntryViewScreen extends ConsumerWidget {
   final MedcardSection section;
   final int entryId;
+  final PeerSubject? peer;
   const MedcardEntryViewScreen({
     super.key,
     required this.section,
     required this.entryId,
+    this.peer,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = colorFromHex(section.color) ?? AppColors.primary;
+
+    if (peer != null) {
+      final entry = ref
+          .watch(peerMedcardEntriesProvider(peer!.personUuid))
+          .where((e) => e.id == entryId)
+          .firstOrNull;
+      if (entry == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(
+          child: _ViewBody(section: section, entry: entry, color: color, peer: peer),
+        ),
+      );
+    }
 
     final entryAsync = ref.watch(_entryProvider(entryId));
 
@@ -67,10 +88,12 @@ class _ViewBody extends ConsumerWidget {
   final MedcardSection section;
   final MedcardEntry entry;
   final Color color;
+  final PeerSubject? peer;
   const _ViewBody({
     required this.section,
     required this.entry,
     required this.color,
+    this.peer,
   });
 
   List<String> get _tags {
@@ -98,6 +121,9 @@ class _ViewBody extends ConsumerWidget {
     final photos = _photos;
     final hasNote = entry.notes != null && entry.notes!.trim().isNotEmpty;
     final hasLocation = entry.location != null && entry.location!.trim().isNotEmpty;
+    // Крок 11 (#307): editShelves дозволяє редагувати ЦІЛИЙ запис піра
+    // (compare-and-swap).
+    final canEditForPeer = peer != null && ref.watch(activePeerGrantsProvider).editShelves;
 
     return Column(
       children: [
@@ -117,15 +143,36 @@ class _ViewBody extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    MkEditIconButton(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              AddMedcardEntryScreen(section: section, existing: entry),
+                    if (peer == null)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                AddMedcardEntryScreen(section: section, existing: entry),
+                          ),
+                        ),
+                      )
+                    else if (canEditForPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddMedcardEntryScreen(
+                              section: section,
+                              existing: entry,
+                              onDraftCreated: (draft) => submitMedcardEntryProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: entry.syncUuid,
+                                existingUpdatedAt: entry.updatedAt,
+                                syntheticSectionId: section.id,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -189,7 +236,8 @@ class _ViewBody extends ConsumerWidget {
                     child: Text(entry.notes!, style: AppTextStyles.bodyMd),
                   ),
                 ],
-                if (photos.isNotEmpty) ...[
+                // Фото піра на вимогу — ще не підключено в UI, ховаємо секцію.
+                if (photos.isNotEmpty && peer == null) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(), style: AppTextStyles.labelSm),
                   const SizedBox(height: 8),

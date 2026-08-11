@@ -196,6 +196,7 @@
   "sectionEmptyHint": "Nothing here yet. Add your first entry with the plus button",
   "spaceFieldLabel": "Shelf",
   "spacePickerTitle": "Choose a shelf",
+  "peerNoSectionsYetBody": "This member doesn't have any shelves yet — create one below.",
   "noSpaceOption": "No shelf",
   "createNewSpaceAction": "Create a new section",
   "newEntryTitle": "New entry",
@@ -227,6 +228,7 @@
   "deleteSurgeryConfirmTitle": "Delete this record?",
   "editSurgeryTitle": "Edit record",
   "removeAction": "Remove",
+  "excludeFromFamilyAction": "Exclude from family",
   "medsTitle": "Inventory",
   "activeMedsCountSection": "Active ({count})",
   "@activeMedsCountSection": {

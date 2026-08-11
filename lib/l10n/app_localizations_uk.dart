@@ -454,6 +454,10 @@ class AppLocalizationsUk extends AppLocalizations {
   String get spacePickerTitle => 'Оберіть поличку';
 
   @override
+  String get peerNoSectionsYetBody =>
+      'У цього учасника ще немає жодної Полички — створіть нову нижче.';
+
+  @override
   String get noSpaceOption => 'Без полички';
 
   @override
@@ -527,6 +531,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get removeAction => 'Прибрати';
+
+  @override
+  String get excludeFromFamilyAction => 'Виключити з сім\'ї';
 
   @override
   String get medsTitle => 'Інвентар';

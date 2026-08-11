@@ -6,36 +6,51 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/avatars.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../data/db/app_database.dart';
+import '../../features/family/peer_view_providers.dart';
 import 'section_label.dart';
 
 /// Пілюля з аватаром/іменем активного профілю — відкриває [_MemberPickerSheet]
 /// для швидкого перемикання між локальними профілями. Спільна для екранів,
 /// де потрібно переглядати дані одного конкретного члена сім'ї за раз
 /// (Розклад, Медкартка).
+///
+/// Крок 11 (view-only перший прохід): той самий пікер тепер показує і
+/// автономних членів сім'ї (окремий пристрій) в тому самому списку —
+/// [peers]/[selectedPeer]/[onSelectPeer] необов'язкові, щоб не чіпати
+/// виклики, де пірів ще не підключено.
 class MemberSwitcherPill extends StatelessWidget {
   final List<Member> members;
   final Member selected;
   final void Function(int) onSelect;
+  final List<PeerSubject> peers;
+  final PeerSubject? selectedPeer;
+  final void Function(PeerSubject)? onSelectPeer;
 
   const MemberSwitcherPill({
     super.key,
     required this.members,
     required this.selected,
     required this.onSelect,
+    this.peers = const [],
+    this.selectedPeer,
+    this.onSelectPeer,
   });
 
   @override
   Widget build(BuildContext context) {
-    final displayName = selected.name;
-    final displayAvatar = selected.avatarIndex;
+    final displayName = selectedPeer?.name ?? selected.name;
+    final displayAvatar = selectedPeer?.avatarIndex ?? selected.avatarIndex;
     return GestureDetector(
       onTap: () => showModalBottomSheet(
         context: context,
         backgroundColor: Colors.transparent,
         builder: (_) => _MemberPickerSheet(
           members: members,
-          selectedId: selected.id,
+          selectedId: selectedPeer == null ? selected.id : null,
           onSelect: onSelect,
+          peers: peers,
+          selectedPeerUuid: selectedPeer?.personUuid,
+          onSelectPeer: onSelectPeer,
         ),
       ),
       child: Container(
@@ -65,11 +80,17 @@ class _MemberPickerSheet extends StatelessWidget {
   final List<Member> members;
   final int? selectedId;
   final void Function(int) onSelect;
+  final List<PeerSubject> peers;
+  final String? selectedPeerUuid;
+  final void Function(PeerSubject)? onSelectPeer;
 
   const _MemberPickerSheet({
     required this.members,
     required this.selectedId,
     required this.onSelect,
+    this.peers = const [],
+    this.selectedPeerUuid,
+    this.onSelectPeer,
   });
 
   @override
@@ -114,6 +135,23 @@ class _MemberPickerSheet extends StatelessWidget {
                         },
                         leading: AvatarImage(index: m.avatarIndex, size: 36),
                         title: Text(m.name,
+                            style: AppTextStyles.bodyMd.copyWith(
+                                fontWeight:
+                                    sel ? FontWeight.w700 : FontWeight.w400)),
+                        trailing: sel
+                            ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                            : null,
+                      );
+                    }),
+                    ...peers.map((p) {
+                      final sel = p.personUuid == selectedPeerUuid;
+                      return ListTile(
+                        onTap: () {
+                          onSelectPeer?.call(p);
+                          Navigator.pop(context);
+                        },
+                        leading: AvatarImage(index: p.avatarIndex, size: 36),
+                        title: Text(p.name,
                             style: AppTextStyles.bodyMd.copyWith(
                                 fontWeight:
                                     sel ? FontWeight.w700 : FontWeight.w400)),

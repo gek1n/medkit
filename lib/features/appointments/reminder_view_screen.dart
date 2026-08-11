@@ -20,6 +20,8 @@ import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 
@@ -41,12 +43,34 @@ final _sectionProvider =
 /// Перегляд збереженого нагадування — показує все заповнене, без прямого
 /// редагування. Кнопка "Редагувати" веде на стандартну форму (той самий
 /// патерн, що й MedcardEntryViewScreen/MedicationDetailScreen).
+///
+/// Крок 11 (view-only перший прохід): [peer] непорожній — нагадування
+/// береться не з локальної бази (id синтетичний), а з перекладача кешу
+/// піра ([peerRemindersProvider]); кнопки редагування/видалення завжди
+/// ховаються (справжнє редагування "за іншого" — окремий, ще не
+/// підключений наступний крок).
 class ReminderViewScreen extends ConsumerWidget {
   final int reminderId;
-  const ReminderViewScreen({super.key, required this.reminderId});
+  final PeerSubject? peer;
+  const ReminderViewScreen({super.key, required this.reminderId, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (peer != null) {
+      final reminder = ref
+          .watch(peerRemindersProvider(peer!.personUuid))
+          .where((r) => r.id == reminderId)
+          .firstOrNull;
+      if (reminder == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(child: _ViewBody(reminder: reminder, peer: peer)),
+      );
+    }
+
     final reminderAsync = ref.watch(_reminderProvider(reminderId));
 
     return Scaffold(
@@ -74,7 +98,8 @@ class ReminderViewScreen extends ConsumerWidget {
 
 class _ViewBody extends ConsumerWidget {
   final Reminder reminder;
-  const _ViewBody({required this.reminder});
+  final PeerSubject? peer;
+  const _ViewBody({required this.reminder, this.peer});
 
   List<String> get _tags {
     try {
@@ -196,9 +221,26 @@ class _ViewBody extends ConsumerWidget {
     final showRemindBefore = reminder.repeatType == 'none' ||
         reminder.repeatType == 'monthly' ||
         reminder.repeatType == 'yearly';
-    final slotsAsync = hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null;
-    final sectionAsync =
-        reminder.sectionId != null ? ref.watch(_sectionProvider(reminder.sectionId!)) : null;
+    final List<ReminderSlot>? peerSlots = peer != null && hasSlots
+        ? (ref
+                .watch(peerReminderSlotsProvider(peer!.personUuid))
+                .where((s) => s.reminderId == reminder.id)
+                .toList()
+              ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder)))
+        : null;
+    final slotsAsync = peer != null ? null : (hasSlots ? ref.watch(_slotsProvider(reminder.id)) : null);
+    final MedcardSection? peerSection = peer != null && reminder.sectionId != null
+        ? ref
+            .watch(peerMedcardSectionsProvider(peer!.personUuid))
+            .where((s) => s.id == reminder.sectionId)
+            .firstOrNull
+        : null;
+    final sectionAsync = peer != null
+        ? null
+        : (reminder.sectionId != null ? ref.watch(_sectionProvider(reminder.sectionId!)) : null);
+    // Крок 11 (#307): editSchedule дозволяє редагувати ЦІЛЕ нагадування
+    // піра (compare-and-swap).
+    final canEditForPeer = peer != null && ref.watch(activePeerGrantsProvider).editSchedule;
 
     return Column(
       children: [
@@ -218,21 +260,45 @@ class _ViewBody extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                     ),
-                    MkEditIconButton(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => AddAppointmentScreen(
-                            memberId: reminder.memberId,
-                            existing: reminder,
+                    if (peer == null)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddAppointmentScreen(
+                              memberId: reminder.memberId,
+                              existing: reminder,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (canEditForPeer)
+                      MkEditIconButton(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddAppointmentScreen(
+                              memberId: null,
+                              existing: reminder,
+                              initialSlotTimes: peerSlots?.map((s) => s.timeOfDay).toList(),
+                              onDraftCreated: (draft, slotTimes) => submitReminderProposal(
+                                ref,
+                                peer!,
+                                draft,
+                                existingSyncUuid: reminder.syncUuid,
+                                existingUpdatedAt: reminder.updatedAt,
+                                syntheticSectionId: reminder.sectionId,
+                                slotTimes: slotTimes,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
+              if (peer == null)
+                MkDeleteIconButton(onTap: () => _delete(context, ref, reminder)),
             ],
           ),
         ),
@@ -304,6 +370,7 @@ class _ViewBody extends ConsumerWidget {
                                     ))
                                 .toList(),
                           );
+                    if (peerSlots != null) return chips(peerSlots);
                     return slotsAsync!.when(
                       loading: () => const SizedBox.shrink(),
                       error: (e, _) => const SizedBox.shrink(),
@@ -325,7 +392,7 @@ class _ViewBody extends ConsumerWidget {
                     ],
                   ),
                 ],
-                if (sectionAsync != null) ...[
+                if (peerSection != null || sectionAsync != null) ...[
                   const SizedBox(height: 12),
                   Builder(builder: (context) {
                     Widget row(MedcardSection section) => Row(
@@ -341,7 +408,8 @@ class _ViewBody extends ConsumerWidget {
                             ),
                           ],
                         );
-                    return sectionAsync.when(
+                    if (peerSection != null) return row(peerSection);
+                    return sectionAsync!.when(
                       loading: () => const SizedBox.shrink(),
                       error: (e, _) => const SizedBox.shrink(),
                       data: (section) => section == null ? const SizedBox.shrink() : row(section),
@@ -397,7 +465,11 @@ class _ViewBody extends ConsumerWidget {
                     child: Text(reminder.notes!, style: AppTextStyles.bodyMd),
                   ),
                 ],
-                if (photos.isNotEmpty) ...[
+                // Крок 11 (view-only перший прохід): фото піра — на вимогу
+                // через FamilyKeyService.sharedChannelKey+/family/photo,
+                // ще не підключено в UI (C4 TODO) — поки просто ховаємо
+                // секцію для піра, замість показу зламаних мініатюр.
+                if (photos.isNotEmpty && peer == null) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(),
                       style: AppTextStyles.labelSm),

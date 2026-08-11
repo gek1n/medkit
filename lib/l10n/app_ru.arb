@@ -196,6 +196,7 @@
   "sectionEmptyHint": "Здесь пусто. Добавьте первую запись через плюсик",
   "spaceFieldLabel": "Полка",
   "spacePickerTitle": "Выберите полку",
+  "peerNoSectionsYetBody": "У этого участника ещё нет ни одной Полочки — создайте новую ниже.",
   "noSpaceOption": "Без полки",
   "createNewSpaceAction": "Создать новый раздел",
   "newEntryTitle": "Новая запись",
@@ -227,6 +228,7 @@
   "deleteSurgeryConfirmTitle": "Удалить запись?",
   "editSurgeryTitle": "Редактировать запись",
   "removeAction": "Убрать",
+  "excludeFromFamilyAction": "Исключить из семьи",
   "medsTitle": "Инвентарь",
   "activeMedsCountSection": "Активные ({count})",
   "@activeMedsCountSection": {

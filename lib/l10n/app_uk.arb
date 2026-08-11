@@ -196,6 +196,7 @@
   "sectionEmptyHint": "Тут порожньо. Додайте перший запис через плюсик",
   "spaceFieldLabel": "Поличка",
   "spacePickerTitle": "Оберіть поличку",
+  "peerNoSectionsYetBody": "У цього учасника ще немає жодної Полички — створіть нову нижче.",
   "noSpaceOption": "Без полички",
   "createNewSpaceAction": "Створити новий розділ",
   "newEntryTitle": "Новий запис",
@@ -227,6 +228,7 @@
   "deleteSurgeryConfirmTitle": "Видалити запис?",
   "editSurgeryTitle": "Редагувати запис",
   "removeAction": "Прибрати",
+  "excludeFromFamilyAction": "Виключити з сім'ї",
   "medsTitle": "Інвентар",
   "activeMedsCountSection": "Активні ({count})",
   "@activeMedsCountSection": {

@@ -12,6 +12,7 @@ import '../legal/privacy_policy_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../plans/plans_screen.dart';
 import '../../core/providers/app_language_provider.dart';
+import '../../core/providers/family_status_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/services/notification_service.dart';
@@ -27,6 +28,7 @@ import '../../shared/widgets/mk_button.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
 import '../today/providers/today_providers.dart';
 import 'anti_stress/anti_stress_picker_screen.dart';
+import 'family_visibility_screen.dart';
 import 'privacy_screen.dart';
 
 // ────────────────────────────── screen ──────────────────────────────
@@ -791,11 +793,23 @@ class _AccountSection extends ConsumerWidget {
 
 // ────────────────────────────── other ──────────────────────────────
 
-class _OtherSection extends StatelessWidget {
+class _OtherSection extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasFamily = ref.watch(familyStatusProvider).valueOrNull?.families.isNotEmpty ?? false;
     return _SectionCard(
       children: [
+        if (hasFamily)
+          _RowItem(
+            icon: Icons.visibility_rounded,
+            assetIcon: 'family',
+            label: context.l10n.familyVisibilityLabel,
+            color: AppColors.info,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FamilyVisibilityScreen()),
+            ),
+          ),
         _RowItem(
           icon: Icons.star_rounded,
           assetIcon: 'star',

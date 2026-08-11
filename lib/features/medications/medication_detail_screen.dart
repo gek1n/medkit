@@ -17,6 +17,8 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/schedules_repository.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 import 'add_medication_screen.dart';
@@ -146,17 +148,38 @@ BoxDecoration _softCard(Color accent) => BoxDecoration(
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
+/// Крок 11 (view-only перший прохід): [peer] непорожній — ліки беруться не
+/// з локальної бази (id синтетичний), а з перекладача кешу піра; кнопки
+/// редагування/зупинки/поповнення запасу завжди ховаються (справжнє
+/// редагування "за іншого" — окремий, ще не підключений наступний крок).
 class MedicationDetailScreen extends ConsumerWidget {
   final int medicationId;
   final int memberId;
+  final PeerSubject? peer;
   const MedicationDetailScreen({
     super.key,
     required this.medicationId,
     required this.memberId,
+    this.peer,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (peer != null) {
+      final med = ref
+          .watch(peerMedicationsProvider(peer!.personUuid))
+          .where((m) => m.id == medicationId)
+          .firstOrNull;
+      if (med == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+        return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox.shrink());
+      }
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: SafeArea(child: _DetailBody(med: med, memberId: memberId, peer: peer)),
+      );
+    }
+
     final medAsync = ref.watch(_medWatchProvider(medicationId));
 
     return Scaffold(
@@ -187,12 +210,22 @@ class MedicationDetailScreen extends ConsumerWidget {
 class _DetailBody extends ConsumerWidget {
   final Medication med;
   final int memberId;
-  const _DetailBody({required this.med, required this.memberId});
+  final PeerSubject? peer;
+  const _DetailBody({required this.med, required this.memberId, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final schedules = ref.watch(_schedWatchProvider(med.id)).valueOrNull ?? [];
+    final schedules = peer != null
+        ? ref
+            .watch(peerSchedulesProvider(peer!.personUuid))
+            .where((s) => s.medicationId == med.id)
+            .toList()
+        : ref.watch(_schedWatchProvider(med.id)).valueOrNull ?? [];
     final accent = colorFromHex(med.color) ?? AppColors.primary;
+    // Крок 11 (#307): editSchedule дозволяє редагувати ЦІЛИЙ запис піра
+    // (compare-and-swap через record_proposal) — "зупинити"/видалити чужі
+    // ліки лишається поза межами цього кроку, onDelete для піра й далі null.
+    final canEditForPeer = peer != null && ref.watch(activePeerGrantsProvider).editSchedule;
 
     return CustomScrollView(
       slivers: [
@@ -201,12 +234,14 @@ class _DetailBody extends ConsumerWidget {
             title: med.name,
             subtitle: _doseSubtitle(context, med),
             onBack: () => Navigator.pop(context),
-            onEdit: () => _openMedicationEditIfAllowed(context, ref, med),
-            onDelete: () => _confirmStopMedication(context, ref, med),
+            onEdit: peer == null
+                ? () => _openMedicationEditIfAllowed(context, ref, med)
+                : (canEditForPeer ? () => _openPeerMedicationEdit(context, ref, peer!, med) : null),
+            onDelete: peer == null ? () => _confirmStopMedication(context, ref, med) : null,
           ),
         ),
         SliverToBoxAdapter(
-          child: _HeroSection(med: med, accent: accent),
+          child: _HeroSection(med: med, accent: accent, peer: peer),
         ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
@@ -217,7 +252,7 @@ class _DetailBody extends ConsumerWidget {
           ),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _TodayScheduleSection(med: med, accent: accent),
+              _TodayScheduleSection(med: med, accent: accent, peer: peer),
               if (_parsePhases(med.phases).isNotEmpty) ...[
                 _PhasesSection(med: med, accent: accent),
                 const SizedBox(height: AppDimensions.xl),
@@ -231,6 +266,7 @@ class _DetailBody extends ConsumerWidget {
                       med: med,
                       schedules: schedules,
                       accent: accent,
+                      peer: peer,
                     ),
                     const SizedBox(height: AppDimensions.xl),
                   ],
@@ -249,7 +285,8 @@ class _DetailBody extends ConsumerWidget {
 class _HeroSection extends StatelessWidget {
   final Medication med;
   final Color accent;
-  const _HeroSection({required this.med, required this.accent});
+  final PeerSubject? peer;
+  const _HeroSection({required this.med, required this.accent, this.peer});
 
   @override
   Widget build(BuildContext context) {
@@ -359,14 +396,29 @@ class _FactChip extends StatelessWidget {
 class _TodayScheduleSection extends ConsumerWidget {
   final Medication med;
   final Color accent;
-  const _TodayScheduleSection({required this.med, required this.accent});
+  final PeerSubject? peer;
+  const _TodayScheduleSection({required this.med, required this.accent, this.peer});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final intakes = ref
-            .watch(_medTodayIntakesProvider((med.id, med.memberId)))
-            .valueOrNull ??
-        const <Intake>[];
+    List<Intake> intakes;
+    if (peer != null) {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start.add(const Duration(days: 1));
+      intakes = ref
+          .watch(peerIntakesProvider(peer!.personUuid))
+          .where((i) =>
+              i.medicationId == med.id &&
+              !i.scheduledAt.isBefore(start) &&
+              i.scheduledAt.isBefore(end))
+          .toList();
+    } else {
+      intakes = ref
+              .watch(_medTodayIntakesProvider((med.id, med.memberId)))
+              .valueOrNull ??
+          const <Intake>[];
+    }
     if (intakes.isEmpty) return const SizedBox.shrink();
 
     final sorted = [...intakes]
@@ -390,6 +442,7 @@ class _TodayScheduleSection extends ConsumerWidget {
                   intake: sorted[i],
                   accent: accent,
                   isLast: i == sorted.length - 1,
+                  readOnly: peer != null,
                 ),
             ],
           ),
@@ -510,10 +563,12 @@ class _StockSection extends ConsumerWidget {
   final Medication med;
   final List<Schedule> schedules;
   final Color accent;
+  final PeerSubject? peer;
   const _StockSection({
     required this.med,
     required this.schedules,
     required this.accent,
+    this.peer,
   });
 
   @override
@@ -661,25 +716,27 @@ class _StockSection extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => _showRefillDialog(context, ref),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: accent,
-                side: BorderSide(color: accent.withValues(alpha: 0.4)),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          if (peer == null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _showRefillDialog(context, ref),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: accent,
+                  side: BorderSide(color: accent.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  context.l10n.refillPackageAction,
+                  style: AppTextStyles.labelMd.copyWith(color: accent),
                 ),
               ),
-              child: Text(
-                context.l10n.refillPackageAction,
-                style: AppTextStyles.labelMd.copyWith(color: accent),
-              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -1111,6 +1168,29 @@ void _openMedicationEditIfAllowed(
     context,
     MaterialPageRoute(
       builder: (_) => AddMedicationScreen(memberId: med.memberId, existing: med),
+    ),
+  );
+}
+
+// Крок 11 (#307): compare-and-swap повне редагування піра — план-ліміти
+// (isMemberBlockedByPlan) стосуються ЛИШЕ власного тарифу, для чужого
+// запису тут не перевіряються.
+void _openPeerMedicationEdit(BuildContext context, WidgetRef ref, PeerSubject peer, Medication med) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => AddMedicationScreen(
+        memberId: null,
+        existing: med,
+        onDraftCreated: (draft) => submitMedicationProposal(
+          ref,
+          peer,
+          draft,
+          existingSyncUuid: med.syncUuid,
+          existingUpdatedAt: med.updatedAt,
+          syntheticSectionId: med.sectionId,
+        ),
+      ),
     ),
   );
 }
