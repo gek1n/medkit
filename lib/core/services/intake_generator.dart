@@ -106,7 +106,14 @@ class IntakeGenerator {
         // Не створюємо записи більш ніж на годину в минулому —
         // це заважає щойно доданим лікам одразу заповнити
         // сьогоднішній розклад пропущеними прийомами.
-        if (scheduledAt.isBefore(cutoff)) continue;
+        // Виняток — сам день створення запису: інакше ліки, додані
+        // сьогодні з часом прийому, що вже минув, взагалі не отримують
+        // жодного інтейку на сьогодні — і зникають з календарного виду
+        // Розкладу (#312), хоча в списковому вигляді (курс) видно одразу.
+        final isCreationDay = day.year == med.createdAt.year &&
+            day.month == med.createdAt.month &&
+            day.day == med.createdAt.day;
+        if (scheduledAt.isBefore(cutoff) && !isCreationDay) continue;
 
         // Check duplicate using medication + scheduledAt
         final exists =

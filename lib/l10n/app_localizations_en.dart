@@ -1417,6 +1417,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get familySectionShelvesLabel => 'Shelves';
 
   @override
+  String get familySectionCreateColumnLabel => 'Create';
+
+  @override
   String get familySectionViewColumnLabel => 'View';
 
   @override
@@ -3342,4 +3345,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get petAvatarsSectionLabel => 'Pets';
+
+  @override
+  String createdByLabel(String name) {
+    return 'Created by $name';
+  }
+
+  @override
+  String get createdBySelfSuffix => ' (me)';
+
+  @override
+  String get newNoteTitle => 'New note';
+
+  @override
+  String get assigneePickerTitle => 'Who is this for';
+
+  @override
+  String get assigneeModeAllAtOnce => 'Everyone at once';
+
+  @override
+  String get assigneeFieldLabel => 'For';
+
+  @override
+  String get assigneeFieldEmptyValue => 'Not chosen';
 }

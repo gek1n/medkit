@@ -18,6 +18,7 @@ import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/asset_icon.dart';
+import '../../shared/widgets/assignee_picker.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
@@ -28,6 +29,8 @@ import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/tags_field.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import '../today/providers/today_providers.dart';
 
@@ -84,6 +87,8 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
   String? _colorHex;
   late String _iconKey;
   int? _sectionId;
+  // #325-доробка: "Кому" — без ротації, null означає "лише widget.memberId".
+  AssigneeSelection? _assignees;
   List<String> _documentPaths = [];
   bool _isSaving = false;
   bool _loaded = false;
@@ -343,23 +348,64 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
               ),
             );
       } else {
-        reminderId = await ref.read(remindersRepositoryProvider).insert(
-              RemindersCompanion.insert(
-                memberId: widget.memberId!,
-                doctorType: title,
-                tags: Value(tagsJson),
-                scheduledAt: scheduledAt,
-                location: Value(locationVal),
-                remindBeforeMin: Value(_remindBeforeMin),
-                notes: Value(notesVal),
-                documentPaths: Value(jsonEncode(_documentPaths)),
-                color: Value(_colorHex),
-                iconKey: Value(_iconKey),
-                sectionId: Value(_sectionId),
-                repeatType: Value(_repeatType),
-                repeatConfig: Value(repeatConfig),
-              ),
+        // #325-доробка: "Кому" — без ротації, кожен обраний одразу отримує
+        // власний незалежний запис. Перший (localTargets.first) іде звичним
+        // шляхом нижче (спільний блок слотів/сповіщень), решта локальних і
+        // всі піри — окремим циклом одразу після нього.
+        final sel = _assignees;
+        final localTargets = sel == null || sel.localMemberIds.isEmpty
+            ? {widget.memberId!}
+            : sel.localMemberIds;
+        final baseCompanion = RemindersCompanion.insert(
+          memberId: localTargets.first,
+          doctorType: title,
+          tags: Value(tagsJson),
+          scheduledAt: scheduledAt,
+          location: Value(locationVal),
+          remindBeforeMin: Value(_remindBeforeMin),
+          notes: Value(notesVal),
+          documentPaths: Value(jsonEncode(_documentPaths)),
+          color: Value(_colorHex),
+          iconKey: Value(_iconKey),
+          sectionId: Value(_sectionId),
+          repeatType: Value(_repeatType),
+          repeatConfig: Value(repeatConfig),
+        );
+        reminderId = await ref.read(remindersRepositoryProvider).insert(baseCompanion);
+
+        final remindersRepoExtra = ref.read(remindersRepositoryProvider);
+        for (final id in localTargets.skip(1)) {
+          final extraId = await remindersRepoExtra
+              .insert(baseCompanion.copyWith(memberId: Value(id), sectionId: const Value(null)));
+          if (_repeatType == 'daily' || _repeatType == 'weekly') {
+            final slotCompanions = _slots.asMap().entries.map((e) {
+              final hh = e.value.hour.toString().padLeft(2, '0');
+              final mm = e.value.minute.toString().padLeft(2, '0');
+              return ReminderSlotsCompanion.insert(
+                  reminderId: extraId, timeOfDay: '$hh:$mm', sortOrder: Value(e.key));
+            }).toList();
+            await remindersRepoExtra.replaceSlots(extraId, slotCompanions);
+          } else {
+            await remindersRepoExtra.replaceSlots(extraId, const []);
+          }
+          final ins = await remindersRepoExtra.watchById(extraId).first;
+          if (ins != null) {
+            await remindersRepoExtra.scheduleNotificationsForReminder(ins, slotTimes: slotTimes);
+          }
+        }
+        if (sel != null) {
+          for (final uuid in sel.peerPersonUuids) {
+            final peer =
+                ref.read(allFamilyPeersProvider).where((p) => p.personUuid == uuid).firstOrNull;
+            if (peer == null) continue;
+            await submitReminderProposal(
+              ref,
+              peer,
+              baseCompanion.copyWith(memberId: const Value(0)),
+              slotTimes: slotTimes,
             );
+          }
+        }
       }
 
       final remindersRepo = ref.read(remindersRepositoryProvider);
@@ -835,6 +881,21 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
                             memberId: widget.memberId!,
                             sectionId: _sectionId,
                             onChanged: (id) => setState(() => _sectionId = id),
+                          ),
+                        if (widget.memberId != null && widget.existing == null)
+                          AssigneeFieldChip(
+                            selection: _assignees ??
+                                AssigneeSelection(
+                                    localMemberIds: {widget.memberId!}, peerPersonUuids: const {}, mode: 'all'),
+                            onTap: () async {
+                              final result = await showAssigneePicker(
+                                context,
+                                initial: _assignees ??
+                                    AssigneeSelection(
+                                        localMemberIds: {widget.memberId!}, peerPersonUuids: const {}, mode: 'all'),
+                              );
+                              if (result != null) setState(() => _assignees = result);
+                            },
                           ),
                         FieldChip(
                           icon: Icons.attach_file_rounded,

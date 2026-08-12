@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart' show DateTimeComponents;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
+import '../db/creator_info.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/app_logger.dart';
@@ -360,8 +362,12 @@ class RemindersRepository {
     }
   }
 
-  Future<int> insert(RemindersCompanion appointment) =>
-      _db.into(_db.reminders).insert(appointment);
+  Future<int> insert(RemindersCompanion appointment) async {
+    final creator = await ownCreatorInfo(_db);
+    final id = await _db.into(_db.reminders).insert(appointment);
+    await recordCreator(_db, 'doctor_appointment', id, creator);
+    return id;
+  }
 
   Future<List<ReminderSlot>> getSlotsForReminder(int reminderId) =>
       (_db.select(_db.reminderSlots)
@@ -447,9 +453,10 @@ class RemindersRepository {
 
   // ── ReminderLogs: per-occurrence виконання для daily/weekly/monthly/
   // yearly (репетувані serії) — окремо від Reminders.status, який має сенс
-  // лише для repeatType=='none'. Не чіпає саме сповіщення (воно нативно-
-  // повторюване, планується один раз при збереженні) — лише позначає
-  // "зроблено/пропущено сьогодні" для відображення на Сьогодні.
+  // лише для repeatType=='none'. #225: markLogDone/markLogSkipped нижче
+  // тепер ЧІПАЄ й саме сповіщення (через _suppressTodayNotification) —
+  // раніше не чіпало, лишаючи вже заплановане нативне спрацювання живим
+  // навіть після позначення "зроблено" заздалегідь.
 
   Stream<List<ReminderLog>> watchLogsByMemberAndDate(
     int memberId,
@@ -466,19 +473,117 @@ class RemindersRepository {
         .watch();
   }
 
-  Future<void> markLogDone(int logId) => (_db.update(_db.reminderLogs)
-        ..where((t) => t.id.equals(logId)))
-      .write(ReminderLogsCompanion(
-        status: const Value('done'),
-        updatedAt: Value(DateTime.now()),
-      ));
+  Future<void> markLogDone(int logId) async {
+    final log = await (_db.select(_db.reminderLogs)..where((t) => t.id.equals(logId))).getSingleOrNull();
+    await (_db.update(_db.reminderLogs)..where((t) => t.id.equals(logId)))
+        .write(ReminderLogsCompanion(
+      status: const Value('done'),
+      updatedAt: Value(DateTime.now()),
+    ));
+    if (log != null) await _suppressTodayNotification(log.reminderId, log.scheduledAt);
+  }
 
-  Future<void> markLogSkipped(int logId) => (_db.update(_db.reminderLogs)
-        ..where((t) => t.id.equals(logId)))
-      .write(ReminderLogsCompanion(
-        status: const Value('skipped'),
-        updatedAt: Value(DateTime.now()),
-      ));
+  Future<void> markLogSkipped(int logId) async {
+    final log = await (_db.select(_db.reminderLogs)..where((t) => t.id.equals(logId))).getSingleOrNull();
+    await (_db.update(_db.reminderLogs)..where((t) => t.id.equals(logId)))
+        .write(ReminderLogsCompanion(
+      status: const Value('skipped'),
+      updatedAt: Value(DateTime.now()),
+    ));
+    if (log != null) await _suppressTodayNotification(log.reminderId, log.scheduledAt);
+  }
+
+  // #225: реальний баг — позначити "зроблено"/"пропущено" ЗАЗДАЛЕГІДЬ (до
+  // власного часу випадку) раніше ніяк не впливало на вже заплановане
+  // нативно-повторюване сповіщення (воно й далі спрацьовувало на власний
+  // час, попри те що на Сьогодні пункт уже показувався виконаним). Тепер
+  // придушуємо саме сьогоднішнє спрацювання без ламання повтору на
+  // майбутнє — деталі різні для кожного типу повтору:
+  // - monthly: кожне майбутнє входження — окремий одноразовий варіант з
+  //   ІНШИМ id (scheduleMonthlyReminder планує наперед на 12 місяців) —
+  //   досить прибрати варіант 0 (найближче/сьогоднішнє входження),
+  //   решта місяців лишаються незайманими.
+  // - yearly: один нативно-повторюваний варіант (0) на весь запис —
+  //   перепланувати його на той самий день/час, але вже НАСТУПНОГО року.
+  // - daily: один варіант на слот (позиція = sortOrder серед
+  //   RemindersSlots) — перепланувати ТОЙ САМИЙ варіант на завтра.
+  // - weekly: варіант = індекс дня тижня (у порядку, збереженому в
+  //   repeatConfig) × кількість слотів + індекс слоту (той самий порядок,
+  //   що й у NotificationService.scheduleWeeklyReminderSlots) —
+  //   перепланувати той самий варіант на наступний тиждень.
+  // Якщо власний час випадку вже минув — придушувати нічого (сповіщення
+  // або вже спрацювало, або природно не спрацює для минулого часу).
+  Future<void> _suppressTodayNotification(int reminderId, DateTime scheduledAt) async {
+    if (!scheduledAt.isAfter(DateTime.now())) return;
+    final reminder =
+        await (_db.select(_db.reminders)..where((t) => t.id.equals(reminderId))).getSingleOrNull();
+    if (reminder == null) return;
+
+    String hhmm(DateTime dt) =>
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+    switch (reminder.repeatType) {
+      case 'monthly':
+        await NotificationService.cancel(NotificationService.recurringReminderNotificationId(reminderId, 0));
+        break;
+      case 'yearly':
+        await NotificationService.rescheduleRecurringVariant(
+          reminderId: reminderId,
+          variant: 0,
+          memberName: await _memberNameFor(reminder.memberId),
+          title: reminder.doctorType,
+          location: reminder.location,
+          at: DateTime(scheduledAt.year + 1, scheduledAt.month, scheduledAt.day, scheduledAt.hour, scheduledAt.minute),
+          matchDateTimeComponents: DateTimeComponents.dateAndTime,
+        );
+        break;
+      case 'daily':
+        {
+          final slots = await getSlotsForReminder(reminderId);
+          final idx = slots.indexWhere((s) => s.timeOfDay == hhmm(scheduledAt));
+          if (idx == -1) return;
+          await NotificationService.rescheduleRecurringVariant(
+            reminderId: reminderId,
+            variant: idx,
+            memberName: await _memberNameFor(reminder.memberId),
+            title: reminder.doctorType,
+            at: scheduledAt.add(const Duration(days: 1)),
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+        }
+        break;
+      case 'weekly':
+        {
+          var weekdays = <int>[];
+          try {
+            final cfg = jsonDecode(reminder.repeatConfig) as Map<String, dynamic>;
+            weekdays = List<int>.from(cfg['days'] as List);
+          } catch (_) {}
+          final weekdayIdx = weekdays.indexOf(scheduledAt.weekday);
+          if (weekdayIdx == -1) return;
+          final slots = await getSlotsForReminder(reminderId);
+          final slotIdx = slots.indexWhere((s) => s.timeOfDay == hhmm(scheduledAt));
+          if (slotIdx == -1) return;
+          await NotificationService.rescheduleRecurringVariant(
+            reminderId: reminderId,
+            variant: weekdayIdx * slots.length + slotIdx,
+            memberName: await _memberNameFor(reminder.memberId),
+            title: reminder.doctorType,
+            at: scheduledAt.add(const Duration(days: 7)),
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          );
+        }
+        break;
+      default:
+        // 'none' — обробляється markAttended (одноразове scheduleAppointmentReminder), не тут.
+        break;
+    }
+  }
+
+  Future<String> _memberNameFor(int memberId) async {
+    final member = await (_db.select(_db.members)..where((t) => t.id.equals(memberId))).getSingleOrNull();
+    return member?.name ?? '';
+  }
 
   // Лише переносить відображення на Сьогодні (сам натив-повторюваний алярм
   // ОС не можна перепланувати для "тільки цього випадку" — див. коментар

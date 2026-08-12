@@ -13,6 +13,7 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/form_chips.dart';
 import '../../shared/widgets/tag_search_filter_bar.dart';
+import '../family/peer_view_providers.dart';
 import '../medications/medication_detail_screen.dart';
 
 enum _MedStatus { ongoing, finished, cancelled }
@@ -57,7 +58,8 @@ final _archiveProvider = StreamProvider.family<List<Medication>, int>((ref, memb
 
 class MedicationArchiveScreen extends ConsumerStatefulWidget {
   final int memberId;
-  const MedicationArchiveScreen({super.key, required this.memberId});
+  final PeerSubject? peer;
+  const MedicationArchiveScreen({super.key, required this.memberId, this.peer});
 
   @override
   ConsumerState<MedicationArchiveScreen> createState() => _MedicationArchiveScreenState();
@@ -69,7 +71,14 @@ class _MedicationArchiveScreenState extends ConsumerState<MedicationArchiveScree
 
   @override
   Widget build(BuildContext context) {
-    final medsAsync = ref.watch(_archiveProvider(widget.memberId));
+    final peer = widget.peer;
+    // #314: раніше цей екран взагалі не відкривався для піра (тап
+    // ховався в med_card_screen.dart) — тепер, коли переклад чужого кешу
+    // в звичайні картки вже підключено скрізь (Крок 4.3), просто читаємо
+    // ліки з того самого перекладача, що й Сьогодні/Розклад.
+    final medsAsync = peer != null
+        ? AsyncValue.data(ref.watch(peerMedicationsProvider(peer.personUuid)))
+        : ref.watch(_archiveProvider(widget.memberId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -104,7 +113,9 @@ class _MedicationArchiveScreenState extends ConsumerState<MedicationArchiveScree
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: () async => ref.invalidate(_archiveProvider(widget.memberId)),
+                onRefresh: () async {
+                  if (peer == null) ref.invalidate(_archiveProvider(widget.memberId));
+                },
                 child: medsAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   error: (e, _) => Center(child: Text(context.l10n.errorGeneric(e.toString()))),
@@ -150,6 +161,7 @@ class _MedicationArchiveScreenState extends ConsumerState<MedicationArchiveScree
                               builder: (_) => MedicationDetailScreen(
                                 medicationId: sorted[i].id,
                                 memberId: widget.memberId,
+                                peer: peer,
                               ),
                             ),
                           ),

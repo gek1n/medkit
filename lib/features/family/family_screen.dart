@@ -8,11 +8,13 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/family_status_provider.dart';
 import '../../core/providers/plan_provider.dart';
 import '../../core/providers/real_plan_provider.dart';
+import '../../core/services/activity_log_generator.dart';
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/family_api_client.dart';
 import '../../core/services/family_group_service.dart';
 import '../../core/services/family_join_popup_service.dart';
 import '../../core/services/family_server_sync_service.dart';
+import '../../core/services/intake_generator.dart';
 import '../../core/services/marketing_topics_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -23,6 +25,7 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../data/repositories/members_repository.dart';
 import '../../data/repositories/family_peers_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../shared/widgets/asset_icon.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/plan_upgrade_banner.dart';
@@ -119,7 +122,7 @@ class _FamilyBody extends ConsumerWidget {
       color: AppColors.primary,
       onRefresh: () async {
         try {
-          await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+          await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
         } catch (_) {
           // Тиха невдача — те саме, що і billing/backup синк-тригери.
         }
@@ -1011,7 +1014,7 @@ class _FamilyGroupSection extends ConsumerWidget {
     if (ok != true) return;
     await FamilyGroupService(ref.read(databaseProvider)).leaveGroup(familyId);
     try {
-      await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+      await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
     } catch (_) {
       // Тиха невдача — статус все одно підхопиться наступним тригером.
     }
@@ -1030,9 +1033,18 @@ class _FamilyGroupSection extends ConsumerWidget {
   Future<void> _maybeShowJoinPopups(BuildContext context, List<FamilyMemberEntry> newMembers) async {
     for (final m in newMembers) {
       if (!context.mounted) return;
+      // #313: family_screen.dart лишається mounted (просто не в топі
+      // навігації), поки зверху відкритий інший екран (напр. Видимість,
+      // куди веде сама кнопка "Так" цього поп-апу) — familyStatusProvider
+      // може оновитись саме в цей час (напр. фоновий syncAll на екрані
+      // видимості) і викликати цей слухач ЗНОВУ, поки перший поп-ап уже
+      // показаний і закритий. Без цієї перевірки showDialog все одно
+      // намагається відкритись на неактивному маршруті — і "виринає",
+      // щойно користувач повертається назад, виглядаючи як дубль.
+      if (ModalRoute.of(context)?.isCurrent != true) return;
       if (!await FamilyJoinPopupService.shouldShowForOwner(m.personUuid)) continue;
       await FamilyJoinPopupService.markShownForOwner(m.personUuid);
-      if (!context.mounted) return;
+      if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) return;
       await showFamilyJoinPopup(context, peerName: m.name, asInvitee: false);
     }
   }
@@ -1232,7 +1244,6 @@ class _PeerCard extends ConsumerWidget {
                 ? null
                 : () => showModalBottomSheet<void>(
                       context: context,
-                      backgroundColor: Colors.transparent,
                       builder: (_) => _PeerActionsSheet(
                         family: family,
                         member: member,
@@ -1364,7 +1375,7 @@ class _RemindButtonState extends ConsumerState<_RemindButton> {
     };
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await FamilyServerSyncService(ref.read(databaseProvider)).sendRemoteReminder(
+      await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).sendRemoteReminder(
         channelId: widget.channelId,
         counterpartPublicKeyHex: widget.counterpartPublicKeyHex,
         title: l10n.reminderPushTitle,
@@ -1460,7 +1471,7 @@ class _PeerActionsSheet extends ConsumerWidget {
     if (ok != true) return;
     await FamilyGroupService(ref.read(databaseProvider)).kick(family.familyId, member.accountId);
     try {
-      await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+      await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
     } catch (_) {
       // Тиха невдача.
     }

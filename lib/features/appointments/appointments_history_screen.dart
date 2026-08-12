@@ -17,6 +17,7 @@ import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/tag_search_filter_bar.dart';
 import '../add/routine_view_screen.dart';
+import '../family/peer_view_providers.dart';
 import '../today/providers/today_providers.dart';
 import 'add_appointment_screen.dart';
 import 'reminder_view_screen.dart';
@@ -66,7 +67,8 @@ class AppointmentsHistoryScreen extends ConsumerStatefulWidget {
   // як і раніше (той самий шлях, яким Сім'я/Профіль можуть показати
   // спільний календар).
   final int? memberId;
-  const AppointmentsHistoryScreen({super.key, this.memberId});
+  final PeerSubject? peer;
+  const AppointmentsHistoryScreen({super.key, this.memberId, this.peer});
 
   @override
   ConsumerState<AppointmentsHistoryScreen> createState() =>
@@ -80,22 +82,31 @@ class _AppointmentsHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    final aptsAsync = ref.watch(_allAppointmentsProvider);
-    final activitiesAsync = ref.watch(_allTaskActivitiesProvider);
+    final peer = widget.peer;
+    // #314: раніше цей екран взагалі не відкривався для піра — тепер
+    // читаємо той самий перекладач кешу, що й Сьогодні/Розклад/Полички.
+    final aptsAsync = peer != null
+        ? AsyncValue.data(ref.watch(peerRemindersProvider(peer.personUuid)))
+        : ref.watch(_allAppointmentsProvider);
+    final activitiesAsync = peer != null
+        ? AsyncValue.data(ref.watch(peerActivitiesProvider(peer.personUuid)))
+        : ref.watch(_allTaskActivitiesProvider);
     final currentMemberAsync = ref.watch(currentMemberProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      floatingActionButton: MkAddFab(
-        onPressed: () {
-          final targetId = widget.memberId ?? currentMemberAsync.valueOrNull?.id;
-          if (targetId == null) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => AddAppointmentScreen(memberId: targetId)),
-          );
-        },
-      ),
+      floatingActionButton: peer != null
+          ? null
+          : MkAddFab(
+              onPressed: () {
+                final targetId = widget.memberId ?? currentMemberAsync.valueOrNull?.id;
+                if (targetId == null) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AddAppointmentScreen(memberId: targetId)),
+                );
+              },
+            ),
       body: SafeArea(
         child: Column(
           children: [
@@ -129,8 +140,13 @@ class _AppointmentsHistoryScreenState
                       bool matchesQuery(String text) =>
                           query.isEmpty || text.toLowerCase().contains(query);
 
+                      // Дані піра вже й так скопійовані лише на нього — фільтр
+                      // за widget.memberId (яким для піра лишається ЛОКАЛЬНИЙ
+                      // "обраний" профіль, не пов'язаний з чужими id) тут не
+                      // застосовується, інакше все відсіювалось би помилково.
                       final reminderItems = allApts
-                          .where((a) => widget.memberId == null || a.memberId == widget.memberId)
+                          .where((a) =>
+                              peer != null || widget.memberId == null || a.memberId == widget.memberId)
                           .where((a) => _selectedTags.every((t) => _parseTags(a.tags).contains(t)))
                           .where((a) => matchesQuery('${a.doctorType} ${a.notes ?? ''} ${a.location ?? ''}'))
                           .map((a) => _ArchiveItem(
@@ -149,7 +165,7 @@ class _AppointmentsHistoryScreenState
                           ? const Iterable<_ArchiveItem>.empty()
                           : allActivities
                               .where((a) =>
-                                  widget.memberId == null || a.memberId == widget.memberId)
+                                  peer != null || widget.memberId == null || a.memberId == widget.memberId)
                               .where((a) => matchesQuery(a.name))
                               .map((a) => _ArchiveItem(
                                     kind: _ArchiveKind.routine,
@@ -175,7 +191,7 @@ class _AppointmentsHistoryScreenState
                         itemCount: items.length,
                         itemBuilder: (context, i) => Padding(
                           padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-                          child: _ArchiveCard(item: items[i]),
+                          child: _ArchiveCard(item: items[i], peer: peer),
                         ),
                       );
                     },
@@ -217,7 +233,8 @@ class _Header extends StatelessWidget {
 
 class _ArchiveCard extends StatelessWidget {
   final _ArchiveItem item;
-  const _ArchiveCard({required this.item});
+  final PeerSubject? peer;
+  const _ArchiveCard({required this.item, this.peer});
 
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
@@ -302,7 +319,7 @@ class _ArchiveCard extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ReminderViewScreen(reminderId: r.id),
+              builder: (_) => ReminderViewScreen(reminderId: r.id, peer: peer),
             ),
           ),
         );
@@ -318,7 +335,7 @@ class _ArchiveCard extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => RoutineViewScreen(activityId: a.id),
+              builder: (_) => RoutineViewScreen(activityId: a.id, peer: peer),
             ),
           ),
         );

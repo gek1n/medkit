@@ -11,6 +11,7 @@ import '../../data/repositories/wellbeing_repository.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_list_widgets.dart';
 import '../../shared/widgets/tag_search_filter_bar.dart';
+import '../family/peer_view_providers.dart';
 import 'wellbeing_check_screen.dart';
 
 List<String> _parseWbTags(String json) {
@@ -39,7 +40,8 @@ final _wellbeingHistoryProvider =
 
 class WellbeingHistoryScreen extends ConsumerStatefulWidget {
   final int memberId;
-  const WellbeingHistoryScreen({super.key, required this.memberId});
+  final PeerSubject? peer;
+  const WellbeingHistoryScreen({super.key, required this.memberId, this.peer});
 
   @override
   ConsumerState<WellbeingHistoryScreen> createState() => _WellbeingHistoryScreenState();
@@ -51,7 +53,12 @@ class _WellbeingHistoryScreenState extends ConsumerState<WellbeingHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final logsAsync = ref.watch(_wellbeingHistoryProvider(widget.memberId));
+    final peer = widget.peer;
+    // #314: раніше цей екран взагалі не відкривався для піра.
+    final logsAsync = peer != null
+        ? AsyncValue.data(
+            ref.watch(peerWellbeingLogsProvider(peer.personUuid)).where((l) => !l.skipped).toList())
+        : ref.watch(_wellbeingHistoryProvider(widget.memberId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,

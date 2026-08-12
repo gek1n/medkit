@@ -846,6 +846,7 @@
   "familySectionVisitsWellbeingLabel": "Визиты и самочувствие",
   "familySectionTasksLabel": "Задачи и напоминания",
   "familySectionShelvesLabel": "Полочки",
+  "familySectionCreateColumnLabel": "Создание",
   "familySectionViewColumnLabel": "Просмотр",
   "familySectionEditColumnLabel": "Редактирование",
   "yesAction": "Да",
@@ -1807,5 +1808,19 @@
   "resetLocalDbConfirmBody": "Это удалит все данные на этом устройстве (инвентарь, расписание, полки). Резервная копия не найдена — восстановить данные после этого будет невозможно.",
   "resetAction": "Сбросить",
   "resetLocalDbAction": "Сбросить локальную БД",
-  "petAvatarsSectionLabel": "Домашние питомцы"
+  "petAvatarsSectionLabel": "Домашние питомцы",
+  "createdByLabel": "Создал(а): {name}",
+  "@createdByLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createdBySelfSuffix": " (я)",
+  "newNoteTitle": "Новая заметка",
+  "assigneePickerTitle": "Кто выполняет",
+  "assigneeModeAllAtOnce": "Всем сразу",
+  "assigneeFieldLabel": "Кому",
+  "assigneeFieldEmptyValue": "Не выбрано"
 }

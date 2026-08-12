@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/providers/database_provider.dart';
+import '../../core/services/activity_log_generator.dart';
 import '../../core/services/family_server_sync_service.dart';
+import '../../core/services/intake_generator.dart';
 import '../../data/db/app_database.dart';
+import '../../data/repositories/reminders_repository.dart';
 import 'peer_view_providers.dart';
 
 /// Крок 11 (портовано з архівного `peer_record_proposal.dart`, Крок 4.4.4
@@ -37,7 +40,7 @@ Future<void> _submit(
   int? syntheticSectionId,
   required Map<String, dynamic> fields,
 }) {
-  return FamilyServerSyncService(ref.read(databaseProvider)).proposeRecord(
+  return FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).proposeRecord(
     channelId: peer.channelId,
     counterpartPublicKeyHex: peer.publicKeyHex,
     subjectPersonUuid: peer.personUuid,

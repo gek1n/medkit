@@ -317,7 +317,6 @@ Future<MedcardSection?> _showPeerSpacePicker(BuildContext context, WidgetRef ref
   final sections = ref.read(peerMedcardSectionsProvider(peer.personUuid));
   return showModalBottomSheet<MedcardSection>(
     context: context,
-    backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (sheetContext) => SafeArea(
       child: Padding(

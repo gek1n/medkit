@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
+import '../db/creator_info.dart';
 import '../../core/providers/database_provider.dart';
 
 class MedcardEntriesRepository {
@@ -19,8 +20,12 @@ class MedcardEntriesRepository {
         .watchSingleOrNull();
   }
 
-  Future<int> insert(MedcardEntriesCompanion entry) =>
-      _db.into(_db.medcardEntries).insert(entry);
+  Future<int> insert(MedcardEntriesCompanion entry) async {
+    final creator = await ownCreatorInfo(_db);
+    final id = await _db.into(_db.medcardEntries).insert(entry);
+    await recordCreator(_db, 'medcard_entry', id, creator);
+    return id;
+  }
 
   // ⚠️ НЕ .replace() — вимагає всі required-колонки (напр. sectionId), а
   // екран редагування передає лише змінені поля без sectionId.

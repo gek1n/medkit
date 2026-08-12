@@ -846,6 +846,7 @@
   "familySectionVisitsWellbeingLabel": "Візити та самопочуття",
   "familySectionTasksLabel": "Завдання та нагадування",
   "familySectionShelvesLabel": "Полички",
+  "familySectionCreateColumnLabel": "Створення",
   "familySectionViewColumnLabel": "Перегляд",
   "familySectionEditColumnLabel": "Редагування",
   "yesAction": "Так",
@@ -1807,5 +1808,19 @@
   "resetLocalDbConfirmBody": "Це видалить усі дані на цьому пристрої (інвентар, розклад, полички). Резервної копії не знайдено — відновити дані після цього буде неможливо.",
   "resetAction": "Скинути",
   "resetLocalDbAction": "Скинути локальну БД",
-  "petAvatarsSectionLabel": "Домашні улюбленці"
+  "petAvatarsSectionLabel": "Домашні улюбленці",
+  "createdByLabel": "Створив(ла): {name}",
+  "@createdByLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createdBySelfSuffix": " (я)",
+  "newNoteTitle": "Нова нотатка",
+  "assigneePickerTitle": "Хто виконує",
+  "assigneeModeAllAtOnce": "Всім одразу",
+  "assigneeFieldLabel": "Кому",
+  "assigneeFieldEmptyValue": "Не обрано"
 }

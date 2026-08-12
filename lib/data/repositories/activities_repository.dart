@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
+import '../db/creator_info.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/notification_service.dart';
@@ -127,7 +128,9 @@ class ActivitiesRepository {
   }
 
   Future<int> insertActivity(ActivitiesCompanion activity) async {
+    final creator = await ownCreatorInfo(_db);
     final id = await _db.into(_db.activities).insert(activity);
+    await recordCreator(_db, 'activity', id, creator);
     return id;
   }
 
@@ -321,9 +324,21 @@ class ActivitiesRepository {
     if (pool.isEmpty || a.rotationMode == 'fixed' || pool.length == 1) {
       return pool.isEmpty ? a.memberId : pool.first.memberId;
     }
+    if (a.rotationMode == 'all') return pool.first.memberId;
     final occIndex = await _occurrenceIndex(a, date);
     final idx = occIndex % pool.length;
     return pool[idx < 0 ? idx + pool.length : idx].memberId;
+  }
+
+  /// #325-доробка: rotationMode=='all' — не черга, а ВСІ учасники пулу
+  /// одночасно (кожен отримує власний лог на кожен випадок, а не по черзі).
+  /// Для решти режимів — той самий один виконавець, що й [assigneeForDate].
+  Future<List<int>> assigneesForDate(Activity a, DateTime date) async {
+    if (a.rotationMode == 'all') {
+      final pool = await getAssignees(a.id);
+      return pool.isEmpty ? [a.memberId] : pool.map((m) => m.memberId).toList();
+    }
+    return [await assigneeForDate(a, date)];
   }
 
   // Обмін черги на конкретного члена сім'ї для одного вже згенерованого

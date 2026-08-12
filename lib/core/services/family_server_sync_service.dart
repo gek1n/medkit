@@ -6,13 +6,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/db/app_database.dart';
+import '../../data/db/creator_info.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../../data/repositories/members_repository.dart';
+import '../../data/repositories/reminders_repository.dart';
+import 'activity_log_generator.dart';
 import 'app_logger.dart';
 import 'family_account.dart';
 import 'family_api_client.dart';
 import 'family_key_service.dart';
 import 'family_visibility_service.dart';
+import 'intake_generator.dart';
 import 'notification_service.dart';
 import 'sync_crypto_service.dart';
 
@@ -43,9 +47,29 @@ import 'sync_crypto_service.dart';
 /// правки "за іншого").
 class FamilyServerSyncService {
   final AppDatabase _db;
+  final IntakeGenerator? _intakeGenerator;
+  final ActivityLogGenerator? _activityLogGenerator;
+  final RemindersRepository? _remindersRepository;
   final _api = const FamilyApiClient();
 
-  FamilyServerSyncService(this._db);
+  // #320: три необов'язкові Riverpod-залежні сервіси — лише щоб одразу
+  // після застосування record_proposal (створення "за іншого") запланувати
+  // сповіщення для щойно вставленого запису (замість очікування наступного
+  // відкриття Сьогодні/Розкладу, де ліки/рутини й так лінькво підхоплюються
+  // IntakeGenerator/ActivityLogGenerator, а нагадування — ні, взагалі
+  // ніколи без цього виклику). Приймаємо ГОТОВІ інстанси (а не `Ref`) —
+  // `WidgetRef` (звідки конструюється цей сервіс на більшості call site'ів)
+  // НЕ присвоюється до типу `Ref`, тож викликач сам робить
+  // `ref.read(...Provider)` і передає результат. Виклики без цих
+  // параметрів (є й досі) просто пропускають миттєве планування — без
+  // регресії, лише без миттєвого сповіщення (ліки/рутини все одно
+  // підхопляться лінивими генераторами пізніше).
+  FamilyServerSyncService(
+    this._db, {
+    this._intakeGenerator,
+    this._activityLogGenerator,
+    this._remindersRepository,
+  });
 
   static const _entityTypes = [
     'medication',
@@ -505,6 +529,7 @@ class FamilyServerSyncService {
           if (r.syncUuid == null) continue;
           final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
           json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          await _addCreatorFields(json, 'medication', r.id);
           result.add(json);
         }
         return result;
@@ -551,6 +576,7 @@ class FamilyServerSyncService {
           if (r.syncUuid == null) continue;
           final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
           json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          await _addCreatorFields(json, 'activity', r.id);
           result.add(json);
         }
         return result;
@@ -640,6 +666,7 @@ class FamilyServerSyncService {
           if (r.syncUuid == null) continue;
           final json = _withUuid(r.toJson(), r.syncUuid!)..remove('sectionId');
           json['sectionSyncUuid'] = await _sectionSyncUuidOrNull(r.sectionId);
+          await _addCreatorFields(json, 'doctor_appointment', r.id);
           daResult.add(json);
         }
         return daResult;
@@ -687,11 +714,27 @@ class FamilyServerSyncService {
           if (sectionUuid == null) continue;
           final json = _withUuid(e.toJson(), e.syncUuid!)..remove('sectionId');
           json['sectionSyncUuid'] = sectionUuid;
+          await _addCreatorFields(json, 'medcard_entry', e.id);
           result.add(json);
         }
         return result;
     }
     return const [];
+  }
+
+  /// #324 (доробка "видно піру"): createdByPersonUuid/createdByName/
+  /// createdByAvatarIndex НЕ фізичні колонки цих таблиць (окрема
+  /// record_creators, див. lib/data/db/creator_info.dart — codegen у цьому
+  /// середовищі зламаний, детальніше там), тож r.toJson() їх не підхоплює
+  /// автоматично — домальовуємо вручну в те саме json, яке й так вже
+  /// патчиться (..remove('sectionId') і т.п.) для кожного з 4 типів, що
+  /// мають footer "Створив(ла)" на екрані перегляду.
+  Future<void> _addCreatorFields(Map<String, dynamic> json, String entityType, int localId) async {
+    final creator = await lookupCreator(_db, entityType, localId);
+    if (creator == null) return;
+    json['createdByPersonUuid'] = creator.personUuid;
+    json['createdByName'] = creator.name;
+    json['createdByAvatarIndex'] = creator.avatarIndex;
   }
 
   Future<Set<String>> _existingUuidsFor(String type, int memberId) async {
@@ -1274,8 +1317,12 @@ class FamilyServerSyncService {
         : (entityType == 'medcard_entry' || entityType == 'medcard_section')
             ? FamilySection.shelves
             : FamilySection.medcard;
-    final sectionAllowed =
-        await FamilyVisibilityService.isSectionAllowed(_db, subjectUuid, fromCounterpart.personUuid, section, edit: true);
+    // #323: 'create' тепер перевіряється окремим грантом (не 'edit') — той,
+    // хто має лише право створювати (без перегляду/редагування ЧУЖИХ
+    // існуючих записів), однобічно штовхає нові записи суб'єкту.
+    final sectionAllowed = action == 'create'
+        ? await FamilyVisibilityService.isCreateAllowed(_db, subjectUuid, fromCounterpart.personUuid, section)
+        : await FamilyVisibilityService.isSectionAllowed(_db, subjectUuid, fromCounterpart.personUuid, section, edit: true);
     if (!sectionAllowed) return;
 
     final sectionSyncUuid = json['sectionSyncUuid'] as String?;
@@ -1285,7 +1332,7 @@ class FamilyServerSyncService {
     String? title;
     if (action == 'create') {
       if (await _recordExistsByUuid(entityType, targetUuid, subject.id)) return;
-      title = await _insertRecord(entityType, subject.id, localSectionId, targetUuid, fields);
+      title = await _insertRecord(entityType, subject.id, localSectionId, targetUuid, fields, fromCounterpart);
     } else if (action == 'edit') {
       final baseUpdatedAtRaw = json['baseUpdatedAt'] as String?;
       final baseUpdatedAt = baseUpdatedAtRaw != null ? DateTime.tryParse(baseUpdatedAtRaw) : null;
@@ -1365,13 +1412,19 @@ class FamilyServerSyncService {
     int? sectionId,
     String syncUuid,
     Map<String, dynamic> f,
+    FamilyMemberEntry fromCounterpart,
   ) async {
     final now = DateTime.now();
+    final creator = CreatorInfo(
+      personUuid: fromCounterpart.personUuid,
+      name: fromCounterpart.name,
+      avatarIndex: fromCounterpart.avatarIndex,
+    );
     switch (entityType) {
       case 'medication':
         final name = _fSReq(f, 'name', '');
         if (name.isEmpty) return null;
-        await _db.into(_db.medications).insert(MedicationsCompanion.insert(
+        final medId = await _db.into(_db.medications).insert(MedicationsCompanion.insert(
               memberId: memberId,
               sectionId: Value(sectionId),
               name: name,
@@ -1395,11 +1448,13 @@ class FamilyServerSyncService {
               updatedAt: Value(now),
               syncUuid: Value(syncUuid),
             ));
+        await recordCreator(_db, 'medication', medId, creator);
+        await _scheduleAfterInsert(() => _intakeGenerator!.generateForDay(now));
         return name;
       case 'activity':
         final name = _fSReq(f, 'name', '');
         if (name.isEmpty) return null;
-        await _db.into(_db.activities).insert(ActivitiesCompanion.insert(
+        final activityId = await _db.into(_db.activities).insert(ActivitiesCompanion.insert(
               memberId: memberId,
               sectionId: Value(sectionId),
               name: name,
@@ -1422,6 +1477,8 @@ class FamilyServerSyncService {
               updatedAt: Value(now),
               syncUuid: Value(syncUuid),
             ));
+        await recordCreator(_db, 'activity', activityId, creator);
+        await _scheduleAfterInsert(() => _activityLogGenerator!.generateForDay(now));
         return name;
       case 'doctor_appointment':
         final title = _fSReq(f, 'doctorType', '');
@@ -1443,7 +1500,16 @@ class FamilyServerSyncService {
               updatedAt: Value(now),
               syncUuid: Value(syncUuid),
             ));
+        await recordCreator(_db, 'doctor_appointment', reminderId, creator);
         await _replaceReminderSlots(reminderId, f);
+        await _scheduleAfterInsert(() async {
+          final row = await (_db.select(_db.reminders)..where((t) => t.id.equals(reminderId))).getSingle();
+          final rawSlots = f['slotTimes'] as String?;
+          final slotTimes = rawSlots == null
+              ? const <String>[]
+              : List<String>.from(jsonDecode(rawSlots) as List);
+          await _remindersRepository!.scheduleNotificationsForReminder(row, slotTimes: slotTimes);
+        });
         return title;
       case 'wellbeing_schedule':
         await _db.into(_db.wellbeingSchedules).insert(WellbeingSchedulesCompanion.insert(
@@ -1461,7 +1527,7 @@ class FamilyServerSyncService {
         if (sectionId == null) return null;
         final title = _fSReq(f, 'title', '');
         if (title.isEmpty) return null;
-        await _db.into(_db.medcardEntries).insert(MedcardEntriesCompanion.insert(
+        final entryId = await _db.into(_db.medcardEntries).insert(MedcardEntriesCompanion.insert(
               sectionId: sectionId,
               memberId: memberId,
               title: title,
@@ -1473,6 +1539,7 @@ class FamilyServerSyncService {
               updatedAt: Value(now),
               syncUuid: Value(syncUuid),
             ));
+        await recordCreator(_db, 'medcard_entry', entryId, creator);
         return title;
       case 'medcard_section':
         final name = _fSReq(f, 'name', '');
@@ -1489,6 +1556,22 @@ class FamilyServerSyncService {
         return name;
     }
     return null;
+  }
+
+  // #320: відповідний Riverpod-сервіс відсутній у частини викликів (див.
+  // коментар при конструкторі) — тоді `!` кине null-check exception, який
+  // тут же й гаситься (мовчки пропускаємо миттєве планування; ліки/рутини
+  // все одно підхоплюються лінивими генераторами при наступному відкритті
+  // Сьогодні/Розкладу, нагадування — ні, але це не гірше за поведінку до
+  // цього фіксу). Так само гаситься й будь-яка інша невдала спроба
+  // планування (напр. брак дозволу на точні будильники) — не повинна
+  // ламати сам факт застосування record_proposal, запис уже вставлено.
+  Future<void> _scheduleAfterInsert(Future<void> Function() schedule) async {
+    try {
+      await schedule();
+    } catch (e, st) {
+      AppLogger.logError('FamilyServerSyncService._scheduleAfterInsert', e, st);
+    }
   }
 
   Future<String?> _updateRecordIfUnchanged(

@@ -124,11 +124,75 @@ class FamilyVisibilityService {
     if (row != null) return row.allowed;
     // edit більше нема куди відкочуватись (загальний FamilyPermission.edit
     // прибрано 07.08 разом із самим правом) — безпечний дефолт: не
-    // редагувати, поки секцію явно не налаштували. view й далі відкочується
-    // до старого спільного "view" (те, що діяло до появи розбивки по
-    // розділах).
+    // редагувати, поки секцію явно не налаштували.
     if (edit) return false;
-    return isAllowed(db, subjectPersonUuid, viewerPersonUuid, FamilyPermission.view);
+    // view — спершу відкочуємось до старого спільного "view" (те, що діяло
+    // до появи розбивки по розділах), ЯКЩО хтось його колись явно
+    // виставляв — так вже зроблений вибір існуючих користувачів лишається
+    // недоторканим. Лише коли взагалі ніхто нічого не налаштовував (нова
+    // пара subject/viewer) — #323: новий дефолт Перегляд=ON замість
+    // колишнього opt-in-за-замовчуванням false.
+    final legacyRow = await (db.select(db.familyGrants)
+          ..where((t) =>
+              t.subjectPersonUuid.equals(subjectPersonUuid) &
+              t.viewerPersonUuid.equals(viewerPersonUuid) &
+              t.permission.equals(FamilyPermission.view.name)))
+        .getSingleOrNull();
+    if (legacyRow != null) return legacyRow.allowed;
+    return true;
+  }
+
+  // ── #323: 'create' — третій, незалежний від view/edit грант: дозволяє
+  // ОДНОБІЧНО штовхати НОВІ записи суб'єкту (record_proposal
+  // action=='create'), не даючи бачити чи змінювати вже наявні чужі
+  // записи (те й далі керується view/edit вище). Новий формат картки
+  // Видимість показує три перемикачі на кожен розділ; для НОВОГО
+  // subject/viewer — Створення=ON і Перегляд=ON за замовчуванням,
+  // Редагування=OFF (узгоджено з користувачем 12.08).
+  static String _createKey(FamilySection section) => 'create_${section.name}';
+
+  static Future<bool> isCreateAllowed(
+    AppDatabase db,
+    String subjectPersonUuid,
+    String viewerPersonUuid,
+    FamilySection section,
+  ) async {
+    final row = await (db.select(db.familyGrants)
+          ..where((t) =>
+              t.subjectPersonUuid.equals(subjectPersonUuid) &
+              t.viewerPersonUuid.equals(viewerPersonUuid) &
+              t.permission.equals(_createKey(section))))
+        .getSingleOrNull();
+    if (row != null) return row.allowed;
+    return true;
+  }
+
+  /// Кидає [FamilyGrantDeniedException] за тим самим правилом, що й
+  /// [setAllowed].
+  static Future<void> setCreateAllowed(
+    AppDatabase db, {
+    required String subjectPersonUuid,
+    required String viewerPersonUuid,
+    required FamilySection section,
+    required bool value,
+  }) async {
+    final subject = await (db.select(db.members)
+          ..where((t) => t.personUuid.equals(subjectPersonUuid)))
+        .getSingleOrNull();
+    if (subject == null) {
+      throw const FamilyGrantDeniedException(
+        'Можна керувати видимістю лише власного профілю чи локальних учасників, яких ви ведете',
+      );
+    }
+    await db.into(db.familyGrants).insertOnConflictUpdate(
+          FamilyGrantsCompanion.insert(
+            subjectPersonUuid: subjectPersonUuid,
+            viewerPersonUuid: viewerPersonUuid,
+            permission: _createKey(section),
+            allowed: value,
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
   }
 
   /// Кидає [FamilyGrantDeniedException] за тим самим правилом, що й

@@ -1039,6 +1039,27 @@ class AppDatabase extends _$AppDatabase {
           }
         },
         beforeOpen: (details) async {
+          // "Хто створив" (#324) — footer з іменем/аватаром автора на
+          // екранах перегляду Ліків/Нагадувань/Рутин/нотаток Поличок.
+          // Свідомо НЕ через m.addColumn на 4 існуючі таблиці (Medications/
+          // Activities/Reminders/MedcardEntries) — окрема таблиця, PK
+          // (entity_type, entity_local_id), незалежна від будь-якого
+          // конкретного профілю. CREATE TABLE IF NOT EXISTS тут же (а не в
+          // onUpgrade за номером версії) — той самий безумовний
+          // самоцілющий підхід, що й нижче для updated_at: працює однаково
+          // для свіжого пристрою, оновлення "на місці" й відновлення з
+          // бекапу, без потреби синхронізувати з schemaVersion.
+          try {
+            await customStatement(
+              'CREATE TABLE IF NOT EXISTS record_creators ('
+              'entity_type TEXT NOT NULL, '
+              'entity_local_id INTEGER NOT NULL, '
+              'person_uuid TEXT, '
+              'name TEXT NOT NULL, '
+              'avatar_index INTEGER NOT NULL, '
+              'PRIMARY KEY (entity_type, entity_local_id))',
+            );
+          } catch (_) {}
           // Безумовний самоцілющий прохід — див. коментар при
           // _kUpdatedAtRepairTables вище. На відміну від onUpgrade,
           // виконується щоразу при відкритті з'єднання (свіжий пристрій,
