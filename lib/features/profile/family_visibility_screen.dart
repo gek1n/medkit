@@ -340,18 +340,32 @@ class _NotifyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Той самий трьохколонковий каркас, що й _SectionPermissionRow (заголовок
+    // зверху, перемикач під першою колонкою) — раніше перемикач висів справа
+    // окремим Row, що випадково збігалося по X з колонкою "Редагування" і
+    // виглядало як частина сусіднього розділу.
     return Opacity(
       opacity: enabled ? 1 : 0.45,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(context.l10n.viewerNotifyPermissionLabel, style: AppTextStyles.bodyMd),
-          ),
-          Switch(
-            value: enabled && value,
-            onChanged: enabled ? onChanged : null,
-            activeThumbColor: AppColors.primary,
-            activeTrackColor: AppColors.primaryLight,
+          Text(context.l10n.viewerNotifyPermissionLabel, style: AppTextStyles.labelMd),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Center(
+                  child: Switch(
+                    value: enabled && value,
+                    onChanged: enabled ? onChanged : null,
+                    activeThumbColor: AppColors.primary,
+                    activeTrackColor: AppColors.primaryLight,
+                  ),
+                ),
+              ),
+              const Expanded(child: SizedBox.shrink()),
+              const Expanded(child: SizedBox.shrink()),
+            ],
           ),
         ],
       ),

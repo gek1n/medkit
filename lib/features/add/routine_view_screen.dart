@@ -537,8 +537,14 @@ class _PeerRotationInfo extends ConsumerWidget {
         .toList();
     if (pool.length <= 1) return const SizedBox.shrink();
 
+    // peerVirtualActivityLogsForDateProvider — не напряму
+    // peerActivityLogsProvider: те містить лише вже засинкані рядки
+    // (windowed, до 2 днів), тож поки суб'єкт сам не відкриє застосунок
+    // сьогодні, "чия черга" тут виглядала б порожньою навіть для активної
+    // ротації. Віртуальні записи мають syncUuid == null — canTakeTurn нижче
+    // це вже враховує (вимагає реального синхронізованого рядка).
     final todayLog = ref
-        .watch(peerActivityLogsProvider(peer.personUuid))
+        .watch(peerVirtualActivityLogsForDateProvider((peer.personUuid, DateTime.now())))
         .where((l) => l.activityId == activity.id && _isToday(l.scheduledAt))
         .firstOrNull;
     final assignee = todayLog == null

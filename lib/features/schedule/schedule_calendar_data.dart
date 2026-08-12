@@ -219,11 +219,14 @@ final scheduleCalendarDayProvider =
 typedef _PeerDayKey = ({String personUuid, DateTime date});
 
 // Той самий принцип, що й scheduleCalendarDayProvider вище, але з уже
-// перекладеного кешу даних піра (Крок 4.3/Крок 11), а не з локальної БД —
-// генератори (intake/activityLog) тут не потрібні: пір присилає вже
-// згенеровані intake/activity_log записи власним синком, повторно
-// генерувати їх тут нема сенсу (і нема звідки — локальних
-// Medications/Activities піра не існує).
+// перекладеного кешу даних піра (Крок 4.3/Крок 11), а не з локальної БД.
+// intake/activity_log НЕ беруться напряму з синку піра — ці типи windowed
+// (FamilyServerSyncService._windowedTypes) і існують лише якщо суб'єкт сам
+// відкривав застосунок і синкався сьогодні; замість цього
+// peerVirtual*ForDateProvider (peer_view_providers.dart) обчислює
+// "сьогоднішні" екземпляри тут же з визначень (Medication/Schedule,
+// Activity/ActivitySlot) — той самий принцип, що вже й так
+// застосовувався для Нагадувань (occurrencesOnDateForSlots нижче).
 final peerScheduleCalendarDayProvider =
     Provider.family<List<CalendarItem>, _PeerDayKey>((ref, params) {
   final date = DateTime(params.date.year, params.date.month, params.date.day);
@@ -231,8 +234,13 @@ final peerScheduleCalendarDayProvider =
   bool onDay(DateTime dt) => !dt.isBefore(date) && dt.isBefore(end);
 
   final memberId = peerSyntheticId(params.personUuid);
-  final intakes = ref.watch(peerIntakesProvider(params.personUuid));
-  final activityLogs = ref.watch(peerActivityLogsProvider(params.personUuid));
+  // Віртуальні (обчислені локально з визначень) екземпляри — не напряму
+  // peerIntakesProvider/peerActivityLogsProvider, ті порожні для конкретного
+  // дня, доки суб'єкт сам не згенерує+засинкає його (windowed-типи, див.
+  // peer_view_providers.dart). Дублює today_screen.dart peer-гілку.
+  final intakes = ref.watch(peerVirtualIntakesForDateProvider((params.personUuid, date)));
+  final activityLogs =
+      ref.watch(peerVirtualActivityLogsForDateProvider((params.personUuid, date)));
   final activities = ref.watch(peerActivitiesProvider(params.personUuid));
   final noFixedTimeIds = ref.watch(peerNoFixedTimeActivityIdsProvider(params.personUuid));
   final meds = ref.watch(peerMedicationsProvider(params.personUuid));
