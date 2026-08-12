@@ -183,7 +183,13 @@ class _AddAppointmentScreenState extends ConsumerState<AddAppointmentScreen> {
       }
     } else {
       _date = DateTime.now();
-      _time = const TimeOfDay(hour: 10, minute: 0);
+      // Підставляємо поточний локальний час пристрою за замовчуванням
+      // (а не фіксовані 10:00) — і для одноразового/щомісячного/щорічного
+      // (_time), і для daily/weekly-слотів (_slots), щоб форма відкривалась
+      // із уже актуальним часом незалежно від типу повтору.
+      final now = TimeOfDay.now();
+      _time = now;
+      _slots = [now];
       _loaded = true;
     }
   }

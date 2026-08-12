@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/family_status_provider.dart';
+import '../../core/services/schedule_occurrence_calculator.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/family_peers_repository.dart';
 import '../today/providers/today_providers.dart' show allMembersProvider;
@@ -501,13 +502,127 @@ final peerNoFixedTimeActivityIdsProvider = Provider.family<Set<int>, String>((re
       .toSet();
 });
 
+/// Дата+профіль-піра — ключ для віртуальних провайдерів нижче.
+typedef _PeerDateKey = (String personUuid, DateTime date);
+
+/// "Сьогоднішні" (чи будь-якого [date]) екземпляри ліків для профілю-піра —
+/// ОБЧИСЛЕНІ ТУТ, на пристрої глядача, з визначень (peerMedicationsProvider/
+/// peerSchedulesProvider), а не взяті напряму з синхронізованих Intake-рядків.
+/// Причина: 'intake' — windowed-тип (FamilyServerSyncService._windowedTypes,
+/// вікно 2 дні), рядки для НЬОГО з'являються лише якщо сам суб'єкт (пір)
+/// відкривав застосунок і синкався сьогодні — інакше Today/Календар
+/// показували Ліки/Рутини порожніми, хоча Списковий вигляд Розкладу (що
+/// читає лише самі визначення) виглядав нормально. Мерджимо з реально
+/// синхронізованими Intake (peerIntakesProvider), коли вони вже є — щоб не
+/// втратити статус taken/skipped/snoozedUntil, якщо суб'єкт встиг
+/// відмітити виконання і засинкати.
+final peerVirtualIntakesForDateProvider =
+    Provider.family<List<Intake>, _PeerDateKey>((ref, key) {
+  final (personUuid, date) = key;
+  final day = DateTime(date.year, date.month, date.day);
+  final memberId = peerSyntheticId(personUuid);
+  final meds = ref.watch(peerMedicationsProvider(personUuid));
+  final schedules = ref.watch(peerSchedulesProvider(personUuid));
+  final realByKey = {
+    for (final i in ref.watch(peerIntakesProvider(personUuid)))
+      (i.medicationId, i.scheduledAt): i,
+  };
+
+  final result = <Intake>[];
+  for (final med in meds) {
+    if (!med.isActive) continue;
+    if (!medicationOccursOnDate(med, day)) continue;
+    final medSchedules = schedules.where((s) => s.medicationId == med.id).toList();
+    for (final timeStr in medicationTimesForDate(med, medSchedules, day)) {
+      final parts = timeStr.split(':');
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final scheduledAt = DateTime(day.year, day.month, day.day, h, m);
+      final real = realByKey[(med.id, scheduledAt)];
+      result.add(real ??
+          Intake(
+            id: peerSyntheticId('${med.syncUuid ?? med.id}|$timeStr|${day.toIso8601String()}'),
+            scheduleId: 0,
+            medicationId: med.id,
+            memberId: memberId,
+            scheduledAt: scheduledAt,
+            status: 'pending',
+            takenAt: null,
+            snoozedUntil: null,
+            updatedAt: med.updatedAt,
+            syncUuid: null,
+          ));
+    }
+  }
+  return result;
+});
+
+/// Те саме, що [peerVirtualIntakesForDateProvider], але для рутин
+/// (Activity/ActivitySlot → ActivityLog). Ротація "чия черга" тут
+/// НЕ відтворюється (потребувала б повної формули з ActivitiesRepository,
+/// включно з пулом призначень) — усі "сьогоднішні" екземпляри показуються
+/// під самим суб'єктом, як і решта його даних на цьому екрані.
+final peerVirtualActivityLogsForDateProvider =
+    Provider.family<List<ActivityLog>, _PeerDateKey>((ref, key) {
+  final (personUuid, date) = key;
+  final day = DateTime(date.year, date.month, date.day);
+  final memberId = peerSyntheticId(personUuid);
+  final activities = ref.watch(peerActivitiesProvider(personUuid));
+  final slots = ref.watch(peerActivitySlotsProvider(personUuid));
+  final realByKey = {
+    for (final l in ref.watch(peerActivityLogsProvider(personUuid)))
+      (l.activityId, l.scheduledAt): l,
+  };
+
+  ActivityLog virtualLog(Activity activity, DateTime scheduledAt, String slotKey) {
+    return realByKey[(activity.id, scheduledAt)] ??
+        ActivityLog(
+          id: peerSyntheticId(
+              '${activity.syncUuid ?? activity.id}|$slotKey|${day.toIso8601String()}'),
+          activityId: activity.id,
+          memberId: memberId,
+          scheduledAt: scheduledAt,
+          status: 'pending',
+          updatedAt: activity.updatedAt,
+          syncUuid: null,
+          completedByMemberId: null,
+          completedStepsJson: null,
+        );
+  }
+
+  final result = <ActivityLog>[];
+  for (final activity in activities) {
+    if (!activity.isActive) continue;
+    if (activity.repeatType == 'weeklyGoal') continue;
+    if (!activityOccursOnDate(activity, day)) continue;
+
+    final actSlots = slots.where((s) => s.activityId == activity.id).toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    if (actSlots.isEmpty) {
+      // "Будь-коли сьогодні" — той самий якір 09:00, що й ActivityLogGenerator.
+      result.add(virtualLog(
+          activity, DateTime(day.year, day.month, day.day, 9, 0), 'anytime'));
+      continue;
+    }
+    for (final slot in actSlots) {
+      final parts = slot.timeOfDay.split(':');
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      final scheduledAt = DateTime(day.year, day.month, day.day, h, m);
+      result.add(virtualLog(activity, scheduledAt, slot.timeOfDay));
+    }
+  }
+  return result;
+});
+
 /// Дзеркало familyMemberTodayProgressProvider (today_providers.dart) для
 /// піра — ті самі лічильники "виконано/всього/пропущено" для бейджа в
 /// перемикачі "переглянути як", лише джерело даних інше.
 final peerTodayProgressProvider =
     Provider.family<({int done, int total, int missed}), String>((ref, personUuid) {
-  final intakes = ref.watch(peerIntakesProvider(personUuid));
-  final activityLogs = ref.watch(peerActivityLogsProvider(personUuid));
+  final today = DateTime.now();
+  final intakes = ref.watch(peerVirtualIntakesForDateProvider((personUuid, today)));
+  final activityLogs = ref.watch(peerVirtualActivityLogsForDateProvider((personUuid, today)));
   final noFixedTimeIds = ref.watch(peerNoFixedTimeActivityIdsProvider(personUuid));
   final reminders = {for (final r in ref.watch(peerRemindersProvider(personUuid))) r.id: r}.values;
   final reminderLogs = ref.watch(peerReminderLogsProvider(personUuid));

@@ -892,6 +892,14 @@ class AppLocalizationsUk extends AppLocalizations {
       'Код діє 30 хвилин і працює лише один раз. Дані на сервері зашифровані — там немає нічого, крім коду доступу.';
 
   @override
+  String get inviteShareButton => 'Поділитися запрошенням';
+
+  @override
+  String inviteShareMessage(String code, String link) {
+    return 'Приєднуйся до моєї сім\'ї в Elly! Код запрошення: $code\n\nЗавантажити застосунок: $link';
+  }
+
+  @override
   String alreadyJoinedFamilyError(String name) {
     return 'Ви вже приєднані до сім\'ї \"$name\"';
   }
@@ -1893,7 +1901,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get routineNoAssigneesHint => 'Ще немає обов\'язків';
 
   @override
-  String get defaultNotesSectionName => 'Нотатки';
+  String get defaultNotesSectionName => 'Нотатки без поличок';
 
   @override
   String get addAnotherTimeAction => 'Додати ще один час';

@@ -7,6 +7,7 @@ import '../db/creator_info.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/schedule_occurrence_calculator.dart';
 
 class ActivitiesRepository {
   final AppDatabase _db;
@@ -260,35 +261,11 @@ class ActivitiesRepository {
   // ним опікуються ActivitySlots окремо). weeklyGoal свідомо повертає
   // false — для нього логи не генеруються заздалегідь, див.
   // ActivityLogGenerator/todayProviders.
-  Future<bool> occursOnDate(Activity a, DateTime date) async {
-    final anchor = a.rotationAnchorDate ?? a.createdAt;
-    final anchorDay = DateTime(anchor.year, anchor.month, anchor.day);
-    final day = DateTime(date.year, date.month, date.day);
-    if (day.isBefore(anchorDay)) return false;
-    switch (a.repeatType) {
-      case 'daily':
-        return true;
-      case 'monthly':
-        final daysInMonth = DateTime(date.year, date.month + 1, 0).day;
-        final targetDay = a.repeatDayOfMonth ?? anchorDay.day;
-        final clamped = targetDay > daysInMonth ? daysInMonth : targetDay;
-        return date.day == clamped;
-      case 'everyNDays':
-        final interval = a.repeatIntervalDays ?? 1;
-        if (interval <= 0) return false;
-        final diff = day.difference(anchorDay).inDays;
-        return diff % interval == 0;
-      case 'weeklyGoal':
-        return false;
-      case 'weekly':
-      default:
-        var days = <int>{};
-        try {
-          days = Set<int>.from(jsonDecode(a.repeatDays) as List);
-        } catch (_) {}
-        return days.contains(date.weekday);
-    }
-  }
+  // Чиста логіка (без DB) — винесена в schedule_occurrence_calculator.dart,
+  // щоб та сама формула застосовувалась і для пірів (Крок 11), де немає
+  // локального ActivityLog-рядка для симуляції.
+  Future<bool> occursOnDate(Activity a, DateTime date) async =>
+      activityOccursOnDate(a, date);
 
   // Порядковий номер сьогоднішнього спрацювання від rotationAnchorDate
   // (0-based) — основа для формули ротації. Для кадансу weekly/monthly

@@ -143,6 +143,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             members: members,
             selectedMemberId: memberId,
             onMemberChanged: (id) {
+              // Вибір ЛОКАЛЬНОГО профілю в пікері мусить скидати активного
+              // піра (як і на Медкартці) — інакше _selectedMemberId міняється,
+              // а activePeerProvider лишається старим, і решта екрана
+              // (readOnly/дані) далі читає піра, ігноруючи новий вибір.
+              ref.read(activePeerProvider.notifier).state = null;
               setState(() => _selectedMemberId = id);
               // Пишемо і в глобальний activeMemberIdProvider — інакше вибір
               // діє лише на цьому екрані й злітає при переході на інші

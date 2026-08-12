@@ -467,6 +467,18 @@
   "inviteScanOrEnterHint": "Отсканируйте этот код на другом устройстве\nили введите его вручную",
   "codeCopiedSnackbar": "Код скопирован",
   "inviteCodeExpiryNotice": "Код действует 30 минут и работает только один раз. Данные на сервере зашифрованы — там нет ничего, кроме кода доступа.",
+  "inviteShareButton": "Поделиться приглашением",
+  "inviteShareMessage": "Присоединяйся к моей семье в Elly! Код приглашения: {code}\n\nСкачать приложение: {link}",
+  "@inviteShareMessage": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
   "alreadyJoinedFamilyError": "Вы уже присоединены к семье \"{name}\"",
   "@alreadyJoinedFamilyError": {
     "placeholders": {
@@ -1100,7 +1112,7 @@
   "routineNoStreakYetLabel": "Пока нет серии — начните сегодня",
   "routineAllRoutinesScreenTitle": "Обязанности семьи",
   "routineNoAssigneesHint": "Пока нет обязанностей",
-  "defaultNotesSectionName": "Заметки",
+  "defaultNotesSectionName": "Заметки без полочек",
   "addAnotherTimeAction": "Добавить ещё одно время",
   "addAtLeastOneTimeError": "Добавьте хотя бы одно время",
   "chooseAtLeastOneDayError": "Выберите хотя бы один день недели",

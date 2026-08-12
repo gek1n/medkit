@@ -408,14 +408,13 @@ class _TodayScheduleSection extends ConsumerWidget {
     List<Intake> intakes;
     if (peer != null) {
       final now = DateTime.now();
-      final start = DateTime(now.year, now.month, now.day);
-      final end = start.add(const Duration(days: 1));
+      // peerVirtualIntakesForDateProvider — не напряму peerIntakesProvider:
+      // те містить лише вже засинкані рядки (windowed, до 2 днів), тож поки
+      // суб'єкт сам не відкриє застосунок сьогодні, цей розділ був би
+      // порожнім навіть для ліків із чітким розкладом на сьогодні.
       intakes = ref
-          .watch(peerIntakesProvider(peer!.personUuid))
-          .where((i) =>
-              i.medicationId == med.id &&
-              !i.scheduledAt.isBefore(start) &&
-              i.scheduledAt.isBefore(end))
+          .watch(peerVirtualIntakesForDateProvider((peer!.personUuid, now)))
+          .where((i) => i.medicationId == med.id)
           .toList();
     } else {
       intakes = ref

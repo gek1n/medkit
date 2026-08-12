@@ -467,6 +467,18 @@
   "inviteScanOrEnterHint": "Scan this code on another device\nor enter it manually",
   "codeCopiedSnackbar": "Code copied",
   "inviteCodeExpiryNotice": "The code is valid for 30 minutes and works only once. Data on the server is encrypted — it contains nothing but the access code.",
+  "inviteShareButton": "Share invite",
+  "inviteShareMessage": "Join my family on Elly! Invite code: {code}\n\nDownload the app: {link}",
+  "@inviteShareMessage": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
   "alreadyJoinedFamilyError": "You've already joined the family \"{name}\"",
   "@alreadyJoinedFamilyError": {
     "placeholders": {
@@ -1100,7 +1112,7 @@
   "routineNoStreakYetLabel": "No streak yet — start today",
   "routineAllRoutinesScreenTitle": "Family duties",
   "routineNoAssigneesHint": "No duties yet",
-  "defaultNotesSectionName": "Notes",
+  "defaultNotesSectionName": "Notes without shelves",
   "addAnotherTimeAction": "Add another time",
   "addAtLeastOneTimeError": "Add at least one time",
   "chooseAtLeastOneDayError": "Choose at least one weekday",

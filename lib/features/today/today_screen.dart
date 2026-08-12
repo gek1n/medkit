@@ -28,7 +28,6 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
-import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
@@ -40,6 +39,7 @@ import '../medications/medication_detail_screen.dart';
 import '../wellbeing/wellbeing_check_screen.dart';
 import '../wellbeing/wellbeing_history_screen.dart';
 import 'providers/today_providers.dart';
+import 'widgets/family_status_strip.dart';
 import '../add/routine_view_screen.dart';
 
 // Час, на який приймання фактично заплановано зараз — з урахуванням
@@ -157,15 +157,11 @@ class _TodayContent extends ConsumerWidget {
     // з тими самими AsyncValue<List<...>>, просто інше джерело.
     final peer = ref.watch(activePeerProvider);
     final readOnly = peer != null;
-    // #316: пікер "хто зараз обраний" в hero-блоці — той самий
-    // MemberSwitcherPill, що вже стоїть на Розкладі/Медкартці, тут раніше
-    // взагалі не рендерився (перевірено по git-історії файлу).
+    // "1. Сім'я" — перемикач "хто зараз обраний" тим самим
+    // FamilyStatusStrip, що й раніше (до карантину Кроку 10), одразу під
+    // hero-блоком.
     final switcherMembers = ref.watch(allMembersProvider).valueOrNull ?? const [];
     final switcherPeers = ref.watch(allFamilyPeersProvider);
-    final switcherOwner = switcherMembers.firstWhere(
-      (m) => m.role == 'owner',
-      orElse: () => member,
-    );
     // Якщо суб'єкт закрив розділ, дані до кешу піра взагалі не потрапляють
     // — тож списки нижче тихо лишились би порожніми без пояснення.
     final grants = ref.watch(activePeerGrantsProvider);
@@ -189,8 +185,16 @@ class _TodayContent extends ConsumerWidget {
 
     if (peer != null) {
       final uuid = peer.personUuid;
-      intakesAsync = AsyncValue.data(ref.watch(peerIntakesProvider(uuid)));
-      activityLogsAsync = AsyncValue.data(ref.watch(peerActivityLogsProvider(uuid)));
+      final peerToday = DateTime.now();
+      // Не напряму peerIntakesProvider/peerActivityLogsProvider — ті містять
+      // лише те, що суб'єкт вже сам згенерував і засинкав СЬОГОДНІ (вікно
+      // FamilyServerSyncService._windowedTypes=2 дні). Віртуальний провайдер
+      // рахує "сьогоднішні" екземпляри тут же, з визначень ліків/рутин, і
+      // мерджить із реально засинканими рядками, де вони вже є.
+      intakesAsync =
+          AsyncValue.data(ref.watch(peerVirtualIntakesForDateProvider((uuid, peerToday))));
+      activityLogsAsync = AsyncValue.data(
+          ref.watch(peerVirtualActivityLogsForDateProvider((uuid, peerToday))));
       medsAsync = AsyncValue.data(ref.watch(peerMedicationsProvider(uuid)));
       activitiesAsync = AsyncValue.data(ref.watch(peerActivitiesProvider(uuid)));
       noFixedTimeIdsAsync = AsyncValue.data(ref.watch(peerNoFixedTimeActivityIdsProvider(uuid)));
@@ -549,33 +553,6 @@ class _TodayContent extends ConsumerWidget {
             child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              if (switcherMembers.length > 1 || switcherPeers.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppDimensions.screenPadding,
-                      AppDimensions.md,
-                      AppDimensions.screenPadding,
-                      0,
-                    ),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: MemberSwitcherPill(
-                        members: switcherMembers,
-                        selected: peer == null ? member : switcherOwner,
-                        onSelect: (id) {
-                          ref.read(activePeerProvider.notifier).state = null;
-                          ref.read(activeMemberIdProvider.notifier).state =
-                              id == switcherOwner.id ? null : id;
-                        },
-                        peers: switcherPeers,
-                        selectedPeer: peer,
-                        onSelectPeer: (p) =>
-                            ref.read(activePeerProvider.notifier).state = p,
-                      ),
-                    ),
-                  ),
-                ),
               if (showSwitchBanner || readOnly)
                 SliverToBoxAdapter(
                   child: SwitchProfileBanner(
@@ -607,6 +584,26 @@ class _TodayContent extends ConsumerWidget {
                                 builder: (_) => WellbeingCheckScreen(memberId: member.id),
                               ),
                             ),
+                  ),
+                ),
+
+              // 1. Сім'я
+              if (switcherMembers.length > 1 || switcherPeers.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: _SectionPad(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SectionLabel(context.l10n.todaySectionFamily),
+                        const SizedBox(height: AppDimensions.md),
+                        FamilyStatusStrip(
+                          members: switcherMembers,
+                          peers: switcherPeers,
+                          currentMemberId: member.id,
+                          ref: ref,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 

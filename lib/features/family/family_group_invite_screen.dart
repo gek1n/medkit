@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/providers/database_provider.dart';
 import '../../core/services/family_group_service.dart';
@@ -9,6 +10,12 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../shared/widgets/mk_screen_header.dart';
+
+// Лише iOS-лістинг наразі публічний (App Store) — Google Play ще не
+// опубліковано (перевірено з користувачем 12.08.2026). Додати сюди
+// android-лінк і об'єднати обидва в inviteShareMessage, коли з'явиться.
+const _kAppStoreInviteLink =
+    'https://apps.apple.com/app/apple-store/id6787033813?pt=129117902&ct=App%20invite&mt=8';
 
 /// Запрошення до сімейної групи (Крок 11 C6) — рівноправний учасник зі
 /// своєю карткою (ім'я/аватар), без автоматичної передачі медичних даних.
@@ -54,6 +61,20 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
         _loading = false;
       });
     }
+  }
+
+  // Одна дія — код і посилання на застосунок йдуть разом в одному
+  // системному вікні "Поділитися", замість окремого копіювання коду і
+  // окремого пошуку/надсилання лінка на застосунок вручну.
+  Future<void> _share() async {
+    final code = _code;
+    if (code == null) return;
+    await SharePlus.instance.share(
+      ShareParams(
+        text: context.l10n.inviteShareMessage(code, _kAppStoreInviteLink),
+        subject: context.l10n.inviteToFamilyTitle,
+      ),
+    );
   }
 
   @override
@@ -165,6 +186,34 @@ class _FamilyGroupInviteScreenState extends ConsumerState<FamilyGroupInviteScree
                   const SizedBox(width: 12),
                   const Icon(Icons.copy_rounded, color: AppColors.primary, size: 20),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: GestureDetector(
+              onTap: _share,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      context.l10n.inviteShareButton,
+                      style: AppTextStyles.labelLg.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
