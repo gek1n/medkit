@@ -467,6 +467,18 @@
   "inviteScanOrEnterHint": "Відскануйте цей код на іншому пристрої\nабо введіть його вручну",
   "codeCopiedSnackbar": "Код скопійовано",
   "inviteCodeExpiryNotice": "Код діє 30 хвилин і працює лише один раз. Дані на сервері зашифровані — там немає нічого, крім коду доступу.",
+  "inviteShareButton": "Поділитися запрошенням",
+  "inviteShareMessage": "Приєднуйся до моєї сім'ї в Elly! Код запрошення: {code}\n\nЗавантажити застосунок: {link}",
+  "@inviteShareMessage": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
   "alreadyJoinedFamilyError": "Ви вже приєднані до сім'ї \"{name}\"",
   "@alreadyJoinedFamilyError": {
     "placeholders": {
@@ -1100,7 +1112,7 @@
   "routineNoStreakYetLabel": "Ще немає серії — почніть сьогодні",
   "routineAllRoutinesScreenTitle": "Обов'язки сім'ї",
   "routineNoAssigneesHint": "Ще немає обов'язків",
-  "defaultNotesSectionName": "Нотатки",
+  "defaultNotesSectionName": "Нотатки без поличок",
   "addAnotherTimeAction": "Додати ще один час",
   "addAtLeastOneTimeError": "Додайте хоча б один час",
   "chooseAtLeastOneDayError": "Оберіть хоча б один день тижня",

@@ -890,6 +890,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'The code is valid for 30 minutes and works only once. Data on the server is encrypted — it contains nothing but the access code.';
 
   @override
+  String get inviteShareButton => 'Share invite';
+
+  @override
+  String inviteShareMessage(String code, String link) {
+    return 'Join my family on Elly! Invite code: $code\n\nDownload the app: $link';
+  }
+
+  @override
   String alreadyJoinedFamilyError(String name) {
     return 'You\'ve already joined the family \"$name\"';
   }
@@ -1886,7 +1894,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineNoAssigneesHint => 'No duties yet';
 
   @override
-  String get defaultNotesSectionName => 'Notes';
+  String get defaultNotesSectionName => 'Notes without shelves';
 
   @override
   String get addAnotherTimeAction => 'Add another time';

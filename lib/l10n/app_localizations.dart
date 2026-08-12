@@ -1696,6 +1696,18 @@ abstract class AppLocalizations {
   /// **'Код діє 30 хвилин і працює лише один раз. Дані на сервері зашифровані — там немає нічого, крім коду доступу.'**
   String get inviteCodeExpiryNotice;
 
+  /// No description provided for @inviteShareButton.
+  ///
+  /// In uk, this message translates to:
+  /// **'Поділитися запрошенням'**
+  String get inviteShareButton;
+
+  /// No description provided for @inviteShareMessage.
+  ///
+  /// In uk, this message translates to:
+  /// **'Приєднуйся до моєї сім\'ї в Elly! Код запрошення: {code}\n\nЗавантажити застосунок: {link}'**
+  String inviteShareMessage(String code, String link);
+
   /// No description provided for @alreadyJoinedFamilyError.
   ///
   /// In uk, this message translates to:
@@ -3403,7 +3415,7 @@ abstract class AppLocalizations {
   /// No description provided for @defaultNotesSectionName.
   ///
   /// In uk, this message translates to:
-  /// **'Нотатки'**
+  /// **'Нотатки без поличок'**
   String get defaultNotesSectionName;
 
   /// No description provided for @addAnotherTimeAction.
