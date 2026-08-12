@@ -383,6 +383,35 @@ class NotificationService {
   static int recurringReminderNotificationId(int reminderId, int variant) =>
       5000000 + reminderId * 1000 + variant;
 
+  /// #225: перепланування ОДНОГО вже запланованого варіанта (той самий
+  /// [variant], тобто той самий id) на нове [at] — використовується, коли
+  /// потрібно придушити сьогоднішнє спрацювання daily/weekly-нагадування
+  /// (позначили "зроблено" заздалегідь), не скасовуючи повтор назавжди:
+  /// новий `zonedSchedule` з тим самим id сам заміняє попередній очікуваний
+  /// виклик на місці — нема вікна, коли варіант тимчасово не запланований.
+  static Future<void> rescheduleRecurringVariant({
+    required int reminderId,
+    required int variant,
+    required String memberName,
+    required String title,
+    String? location,
+    required DateTime at,
+    DateTimeComponents? matchDateTimeComponents,
+    bool vibrationEnabled = true,
+  }) async {
+    final l10n = await _l10n();
+    final body =
+        (location != null && location.isNotEmpty) ? '$title · $location' : title;
+    await _zonedSchedule(
+      id: recurringReminderNotificationId(reminderId, variant),
+      title: '$memberName · ${l10n.notifAppointmentTitle}',
+      body: body,
+      at: at,
+      matchDateTimeComponents: matchDateTimeComponents,
+      vibrationEnabled: vibrationEnabled,
+    );
+  }
+
   // Скасовує всі можливі варіанти (дні тижня × слоти) одного нагадування —
   // викликається перед кожним новим плануванням, щоб не лишати "хвостів"
   // від попередньої конфігурації повтору.

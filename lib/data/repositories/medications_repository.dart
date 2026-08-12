@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../db/app_database.dart';
+import '../db/creator_info.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/notification_settings_provider.dart';
 import '../../core/services/notification_service.dart';
@@ -49,7 +50,9 @@ class MedicationsRepository {
           .watchSingleOrNull();
 
   Future<int> insert(MedicationsCompanion med) async {
+    final creator = await ownCreatorInfo(_db);
     final id = await _db.into(_db.medications).insert(med);
+    await recordCreator(_db, 'medication', id, creator);
     return id;
   }
 

@@ -3,8 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/services/activity_log_generator.dart';
 import '../../core/services/family_server_sync_service.dart';
 import '../../core/services/family_visibility_service.dart';
+import '../../core/services/intake_generator.dart';
+import '../../data/db/app_database.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -138,8 +142,8 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
   bool _loading = true;
   bool _denied = false;
   final Map<FamilyPermission, bool> _values = {};
-  final Map<FamilySection, Map<bool, bool>> _sectionValues = {};
-  // _sectionValues[section][edit] — edit:false = перегляд, edit:true = редагування.
+  final Map<FamilySection, Map<String, bool>> _sectionValues = {};
+  // _sectionValues[section]['create'|'view'|'edit'].
 
   @override
   void initState() {
@@ -154,9 +158,11 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
     }
     for (final s in FamilySection.values) {
       _sectionValues[s] = {
-        false: await FamilyVisibilityService.isSectionAllowed(
+        'create': await FamilyVisibilityService.isCreateAllowed(
+            db, widget.subjectPersonUuid, widget.viewer.personUuid, s),
+        'view': await FamilyVisibilityService.isSectionAllowed(
             db, widget.subjectPersonUuid, widget.viewer.personUuid, s, edit: false),
-        true: await FamilyVisibilityService.isSectionAllowed(
+        'edit': await FamilyVisibilityService.isSectionAllowed(
             db, widget.subjectPersonUuid, widget.viewer.personUuid, s, edit: true),
       };
     }
@@ -168,7 +174,7 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
     // тригері (resume/FCM) — новий грант лежав би непереданим до тих пір.
     // syncAll() сам обгортає кожен крок у try/catch — тут окрема обгортка
     // не потрібна.
-    unawaited(FamilyServerSyncService(ref.read(databaseProvider)).syncAll());
+    unawaited(FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll());
   }
 
   Future<void> _toggle(FamilyPermission p, bool value) async {
@@ -188,17 +194,30 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
     _pushSoon();
   }
 
-  Future<void> _toggleSection(FamilySection section, bool edit, bool value) async {
-    setState(() => _sectionValues[section]![edit] = value);
-    try {
-      await FamilyVisibilityService.setSectionAllowed(
-        ref.read(databaseProvider),
+  Future<void> _setSectionAction(AppDatabase db, FamilySection section, String action, bool value) {
+    if (action == 'create') {
+      return FamilyVisibilityService.setCreateAllowed(
+        db,
         subjectPersonUuid: widget.subjectPersonUuid,
         viewerPersonUuid: widget.viewer.personUuid,
         section: section,
-        edit: edit,
         value: value,
       );
+    }
+    return FamilyVisibilityService.setSectionAllowed(
+      db,
+      subjectPersonUuid: widget.subjectPersonUuid,
+      viewerPersonUuid: widget.viewer.personUuid,
+      section: section,
+      edit: action == 'edit',
+      value: value,
+    );
+  }
+
+  Future<void> _toggleSection(FamilySection section, String action, bool value) async {
+    setState(() => _sectionValues[section]![action] = value);
+    try {
+      await _setSectionAction(ref.read(databaseProvider), section, action, value);
       _pushSoon();
     } on FamilyGrantDeniedException {
       if (mounted) setState(() => _denied = true);
@@ -209,29 +228,20 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
   // нагадування" (успадковано з архівної поведінки 07.08) — далі й на
   // пристрої суб'єкта, і в усіх екранах перегляду вони й далі два окремі
   // FamilySection (schedule/medcard, різні типи сутностей у _pushToChannel).
-  Future<void> _toggleTasksSection(bool edit, bool value) async {
+  Future<void> _toggleTasksSection(String action, bool value) async {
     setState(() {
-      _sectionValues[FamilySection.schedule]![edit] = value;
-      _sectionValues[FamilySection.medcard]![edit] = value;
+      _sectionValues[FamilySection.schedule]![action] = value;
+      _sectionValues[FamilySection.medcard]![action] = value;
     });
     try {
       final db = ref.read(databaseProvider);
-      await FamilyVisibilityService.setSectionAllowed(
-        db,
-        subjectPersonUuid: widget.subjectPersonUuid,
-        viewerPersonUuid: widget.viewer.personUuid,
-        section: FamilySection.schedule,
-        edit: edit,
-        value: value,
-      );
-      await FamilyVisibilityService.setSectionAllowed(
-        db,
-        subjectPersonUuid: widget.subjectPersonUuid,
-        viewerPersonUuid: widget.viewer.personUuid,
-        section: FamilySection.medcard,
-        edit: edit,
-        value: value,
-      );
+      await _setSectionAction(db, FamilySection.schedule, action, value);
+      await _setSectionAction(db, FamilySection.medcard, action, value);
+      // #323: "Отримує сповіщення" залежить від Перегляду завдань — коли
+      // Перегляд вимикають, сповіщення примусово гасяться разом з ним.
+      if (action == 'view' && !value && _values[FamilyPermission.notify] == true) {
+        await _toggle(FamilyPermission.notify, false);
+      }
       _pushSoon();
     } on FamilyGrantDeniedException {
       if (mounted) setState(() => _denied = true);
@@ -271,42 +281,39 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
             )
           else ...[
             const SizedBox(height: AppDimensions.sm),
-            _PermissionRow(
-              label: context.l10n.viewerNotifyPermissionLabel,
+            // #323: без майстер-перемикача "Бачить..." — розділи одразу
+            // видно, кожен зі своїми трьома незалежними правами. Отримує
+            // сповіщення — між двома розділами, залежить лише від Перегляду
+            // завдань (не від Поличок).
+            _SectionPermissionRow(
+              label: context.l10n.familySectionTasksLabel,
+              createValue: _sectionValues[FamilySection.schedule]!['create']! ||
+                  _sectionValues[FamilySection.medcard]!['create']!,
+              viewValue: _sectionValues[FamilySection.schedule]!['view']! ||
+                  _sectionValues[FamilySection.medcard]!['view']!,
+              editValue: _sectionValues[FamilySection.schedule]!['edit']! ||
+                  _sectionValues[FamilySection.medcard]!['edit']!,
+              onCreateChanged: (v) => _toggleTasksSection('create', v),
+              onViewChanged: (v) => _toggleTasksSection('view', v),
+              onEditChanged: (v) => _toggleTasksSection('edit', v),
+            ),
+            const SizedBox(height: AppDimensions.sm),
+            _NotifyRow(
               value: _values[FamilyPermission.notify]!,
+              enabled: _sectionValues[FamilySection.schedule]!['view']! ||
+                  _sectionValues[FamilySection.medcard]!['view']!,
               onChanged: (v) => _toggle(FamilyPermission.notify, v),
             ),
-            _PermissionRow(
-              label: context.l10n.viewerViewPermissionLabel,
-              value: _values[FamilyPermission.view]!,
-              onChanged: (v) => _toggle(FamilyPermission.view, v),
+            const SizedBox(height: AppDimensions.sm),
+            _SectionPermissionRow(
+              label: context.l10n.familySectionShelvesLabel,
+              createValue: _sectionValues[FamilySection.shelves]!['create']!,
+              viewValue: _sectionValues[FamilySection.shelves]!['view']!,
+              editValue: _sectionValues[FamilySection.shelves]!['edit']!,
+              onCreateChanged: (v) => _toggleSection(FamilySection.shelves, 'create', v),
+              onViewChanged: (v) => _toggleSection(FamilySection.shelves, 'view', v),
+              onEditChanged: (v) => _toggleSection(FamilySection.shelves, 'edit', v),
             ),
-            if (_values[FamilyPermission.view] == true) ...[
-              const SizedBox(height: AppDimensions.sm),
-              const Divider(height: 1, color: AppColors.border),
-              const SizedBox(height: AppDimensions.sm),
-              Text(
-                context.l10n.familySectionsIntro,
-                style: AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
-              ),
-              const SizedBox(height: AppDimensions.xs),
-              _SectionPermissionRow(
-                label: context.l10n.familySectionTasksLabel,
-                viewValue: _sectionValues[FamilySection.schedule]![false]! ||
-                    _sectionValues[FamilySection.medcard]![false]!,
-                editValue: _sectionValues[FamilySection.schedule]![true]! ||
-                    _sectionValues[FamilySection.medcard]![true]!,
-                onViewChanged: (v) => _toggleTasksSection(false, v),
-                onEditChanged: (v) => _toggleTasksSection(true, v),
-              ),
-              _SectionPermissionRow(
-                label: context.l10n.familySectionShelvesLabel,
-                viewValue: _sectionValues[FamilySection.shelves]![false]!,
-                editValue: _sectionValues[FamilySection.shelves]![true]!,
-                onViewChanged: (v) => _toggleSection(FamilySection.shelves, false, v),
-                onEditChanged: (v) => _toggleSection(FamilySection.shelves, true, v),
-              ),
-            ],
             if (_denied) ...[
               const SizedBox(height: 4),
               Text(
@@ -321,22 +328,28 @@ class _ViewerCardState extends ConsumerState<_ViewerCard> {
   }
 }
 
-class _PermissionRow extends StatelessWidget {
-  final String label;
+/// "Отримує сповіщення" — між двома секційними рядками. Незалежний від
+/// Поличок, залежить лише від Перегляду завдань ([enabled]): без нього
+/// перемикач вимкнено й візуально приглушено, а сам грант примусово
+/// вимикається в [_ViewerCardState._toggleTasksSection].
+class _NotifyRow extends StatelessWidget {
   final bool value;
+  final bool enabled;
   final ValueChanged<bool> onChanged;
-  const _PermissionRow({required this.label, required this.value, required this.onChanged});
+  const _NotifyRow({required this.value, required this.enabled, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
       child: Row(
         children: [
-          Expanded(child: Text(label, style: AppTextStyles.bodyMd)),
+          Expanded(
+            child: Text(context.l10n.viewerNotifyPermissionLabel, style: AppTextStyles.bodyMd),
+          ),
           Switch(
-            value: value,
-            onChanged: onChanged,
+            value: enabled && value,
+            onChanged: enabled ? onChanged : null,
             activeThumbColor: AppColors.primary,
             activeTrackColor: AppColors.primaryLight,
           ),
@@ -346,60 +359,86 @@ class _PermissionRow extends StatelessWidget {
   }
 }
 
-/// Один розділ (Завдання та нагадування / Полички) — окремо перегляд і
-/// редагування, замість одного спільного перемикача на всю людину.
+/// Один розділ (Завдання та нагадування / Полички) — три незалежні права:
+/// створення, перегляд, редагування (#323). Створення не залежить від
+/// перегляду (можна штовхати нові записи, не бачачи чужих наявних);
+/// редагування, як і раніше, вимагає ввімкненого перегляду.
 class _SectionPermissionRow extends StatelessWidget {
   final String label;
+  final bool createValue;
   final bool viewValue;
   final bool editValue;
+  final ValueChanged<bool> onCreateChanged;
   final ValueChanged<bool> onViewChanged;
   final ValueChanged<bool> onEditChanged;
   const _SectionPermissionRow({
     required this.label,
+    required this.createValue,
     required this.viewValue,
     required this.editValue,
+    required this.onCreateChanged,
     required this.onViewChanged,
     required this.onEditChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: AppTextStyles.bodyMd)),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.l10n.familySectionViewColumnLabel,
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
-              Switch(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.labelMd),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: _ToggleColumn(
+                label: context.l10n.familySectionCreateColumnLabel,
+                value: createValue,
+                onChanged: onCreateChanged,
+              ),
+            ),
+            Expanded(
+              child: _ToggleColumn(
+                label: context.l10n.familySectionViewColumnLabel,
                 value: viewValue,
                 onChanged: onViewChanged,
-                activeThumbColor: AppColors.primary,
-                activeTrackColor: AppColors.primaryLight,
               ),
-            ],
-          ),
-          const SizedBox(width: AppDimensions.sm),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.l10n.familySectionEditColumnLabel,
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
-              Switch(
+            ),
+            Expanded(
+              child: _ToggleColumn(
+                label: context.l10n.familySectionEditColumnLabel,
                 // Редагування без перегляду не має сенсу — якщо перегляду
                 // нема, вимикаємо й ховаємо можливість увімкнути редагування.
                 value: viewValue && editValue,
                 onChanged: viewValue ? onEditChanged : null,
-                activeThumbColor: AppColors.primary,
-                activeTrackColor: AppColors.primaryLight,
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ToggleColumn extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  const _ToggleColumn({required this.label, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppColors.primary,
+          activeTrackColor: AppColors.primaryLight,
+        ),
+      ],
     );
   }
 }

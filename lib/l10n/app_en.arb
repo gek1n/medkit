@@ -846,6 +846,7 @@
   "familySectionVisitsWellbeingLabel": "Visits and wellbeing",
   "familySectionTasksLabel": "Tasks and reminders",
   "familySectionShelvesLabel": "Shelves",
+  "familySectionCreateColumnLabel": "Create",
   "familySectionViewColumnLabel": "View",
   "familySectionEditColumnLabel": "Edit",
   "yesAction": "Yes",
@@ -1807,5 +1808,19 @@
   "resetLocalDbConfirmBody": "This will delete all data on this device (inventory, schedule, shelves). No backup was found — this data cannot be recovered afterward.",
   "resetAction": "Reset",
   "resetLocalDbAction": "Reset local database",
-  "petAvatarsSectionLabel": "Pets"
+  "petAvatarsSectionLabel": "Pets",
+  "createdByLabel": "Created by {name}",
+  "@createdByLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "createdBySelfSuffix": " (me)",
+  "newNoteTitle": "New note",
+  "assigneePickerTitle": "Who is this for",
+  "assigneeModeAllAtOnce": "Everyone at once",
+  "assigneeFieldLabel": "For",
+  "assigneeFieldEmptyValue": "Not chosen"
 }

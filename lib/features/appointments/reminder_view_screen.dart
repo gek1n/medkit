@@ -17,6 +17,7 @@ import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_sections_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
+import '../../shared/widgets/created_by_footer.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
@@ -501,6 +502,10 @@ class _ViewBody extends ConsumerWidget {
                     ),
                   ),
                 ],
+                peer == null
+                    ? CreatedByFooter(entityType: 'doctor_appointment', localId: reminder.id)
+                    : CreatedByFooter.forPeer(
+                        entityType: 'doctor_appointment', peer: peer, entityUuid: reminder.syncUuid),
               ],
             ),
           ),

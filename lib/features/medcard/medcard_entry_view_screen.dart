@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,12 +10,15 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/l10n_ext.dart';
+import '../../core/utils/rich_note_format.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
+import '../../shared/widgets/created_by_footer.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../shared/widgets/photo_gallery_viewer.dart';
+import '../../shared/widgets/rich_note_view.dart';
 import '../family/peer_record_proposal.dart';
 import '../family/peer_view_providers.dart';
 import 'add_medcard_entry_screen.dart';
@@ -233,7 +237,18 @@ class _ViewBody extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                       border: Border.all(color: AppColors.border),
                     ),
-                    child: Text(entry.notes!, style: AppTextStyles.bodyMd),
+                    child: RichNoteView(
+                      raw: entry.notes!,
+                      onToggleChecklistLine: peer != null
+                          ? null
+                          : (lineIndex) => ref.read(medcardEntriesRepositoryProvider).update(
+                                MedcardEntriesCompanion(
+                                  id: Value(entry.id),
+                                  notes: Value(toggleChecklistByLineIndex(entry.notes!, lineIndex)),
+                                  updatedAt: Value(DateTime.now()),
+                                ),
+                              ),
+                    ),
                   ),
                 ],
                 // Фото піра на вимогу — ще не підключено в UI, ховаємо секцію.
@@ -267,6 +282,10 @@ class _ViewBody extends ConsumerWidget {
                     ),
                   ),
                 ],
+                peer == null
+                    ? CreatedByFooter(entityType: 'medcard_entry', localId: entry.id)
+                    : CreatedByFooter.forPeer(
+                        entityType: 'medcard_entry', peer: peer, entityUuid: entry.syncUuid),
               ],
             ),
           ),

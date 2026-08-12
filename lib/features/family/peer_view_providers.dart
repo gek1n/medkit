@@ -187,6 +187,39 @@ final _peerSnapshotProvider = StreamProvider.family<_PeerSnapshot, String>((ref,
 Map<String, dynamic> _patch(Map<String, dynamic> json, Map<String, dynamic> overrides) =>
     Map<String, dynamic>.from(json)..addAll(overrides);
 
+/// #324: "Створив(ла)" для перегляду ЧУЖОГО (пірового) запису. createdBy*
+/// не фізичні колонки Medication/Activity/Reminder/MedcardEntry (окрема
+/// record_creators-таблиця на боці автора, див. lib/data/db/creator_info.dart),
+/// тож [T.fromJson] їх просто ігнорує як зайві ключі — читаємо напряму із
+/// сирого json тут же, паралельно до типізованих peer*Provider вище/нижче,
+/// а не додаємо поле на сам синтетичний [Medication]/[Activity]/[Reminder]/
+/// [MedcardEntry].
+class PeerCreatorInfo {
+  final String? personUuid;
+  final String name;
+  final int avatarIndex;
+  const PeerCreatorInfo({required this.personUuid, required this.name, required this.avatarIndex});
+}
+
+final peerCreatorsProvider =
+    Provider.family<Map<String, PeerCreatorInfo>, (String personUuid, String entityType)>((ref, args) {
+  final (personUuid, entityType) = args;
+  final snapshot = ref.watch(_peerSnapshotProvider(personUuid)).valueOrNull;
+  if (snapshot == null) return const {};
+  final map = <String, PeerCreatorInfo>{};
+  for (final json in snapshot.of(entityType)) {
+    final uuid = json['uuid'] as String?;
+    final name = json['createdByName'] as String?;
+    if (uuid == null || name == null) continue;
+    map[uuid] = PeerCreatorInfo(
+      personUuid: json['createdByPersonUuid'] as String?,
+      name: name,
+      avatarIndex: json['createdByAvatarIndex'] as int? ?? 0,
+    );
+  }
+  return map;
+});
+
 // ── Ліки та їхні дочірні записи ─────────────────────────────────────────
 
 final peerMedicationsProvider = Provider.family<List<Medication>, String>((ref, personUuid) {

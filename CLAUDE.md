@@ -82,8 +82,10 @@ lib/
     repositories/ one repository class per table/table-group, exposed via Provider
     models/      plain data models used outside Drift row types
   features/      one directory per screen area: today, schedule, medcard, medications,
-                 family, profile, appointments, wellbeing, onboarding, voice, scan,
+                 family, profile, appointments, wellbeing, onboarding,
                  backup, plans, notifications, legal, help, lock, export, add, placeholder
+                 (voice/scan/AI features were removed entirely from the product — if you
+                 see a reference to them anywhere, it's stale, not a hidden feature)
   shared/widgets/  reusable Mk*-prefixed components (MkCard, MkButton, MkFormHeader,
                  MkSaveButton, MkListWidgets, etc.) — check here before writing a new
                  one-off form/list/header widget, most patterns already exist
@@ -141,6 +143,22 @@ test/            narrow unit tests for crypto/sync services — no widget test c
   `dart run build_runner build --delete-conflicting-outputs` to regenerate
   `app_database.g.dart`. **The migration block is not optional/theoretical
   anymore — see "Live in production" above, it runs against real users' real data.**
+  - ⚠️ **`build_runner`/`drift_dev` has been observed broken in this dev
+    environment** (confirmed via `.dart_tool/build/generated/.../
+    app_database.dart.drift_elements.json` showing `"elements": []` even
+    against an unmodified checkout — verified reproducible with `git stash`).
+    **Re-verify with a real run before trusting either way** — don't assume
+    still-broken forever, but also don't assume it "must work now" without
+    checking. If it's still broken: no new Drift table/column can be added
+    through normal codegen. The established workaround used successfully this
+    project (e.g. `record_creators`, see `lib/data/db/creator_info.dart`) is a
+    **raw-SQL side table**: create it idempotently via
+    `AppDatabase.customStatement('CREATE TABLE IF NOT EXISTS ...')` in
+    `beforeOpen`, and read/write it via `customStatement`/`customSelect` (both
+    real `drift` package methods that work against the already-generated
+    baseline `app_database.g.dart`, no codegen needed) instead of the normal
+    generated table accessors. This does **not** bump `schemaVersion` or touch
+    the `@DriftDatabase(tables: [...])` list.
 - New repository → wraps a table (or a few related ones), exposed as
   `final xRepositoryProvider = Provider<XRepository>((ref) => XRepository(ref.watch(databaseProvider), ref));`.
 - **Any mutating repository method that changes data feeding a background-scheduled
@@ -199,6 +217,95 @@ test/            narrow unit tests for crypto/sync services — no widget test c
 - Android needs the Crashlytics Gradle plugin applied (`android/settings.gradle.kts`
   + `android/app/build.gradle.kts`, same file-exists-gated pattern as
   `google-services.json`) — already done, don't remove it when touching those files.
+
+### Family (Сім'я) — server-based architecture (current, as of Крок 11)
+
+The family feature was **fully rearchitected** in August 2026 after the original
+peer-to-peer relay design (star-topology, anonymous `channel_id`, autopresentation via
+relay pings) proved too fragile — every fix during real-device testing (Крок 8) opened a
+new bug faster than the last one closed. That old implementation was quarantined (Крок
+10) into `archive/family_subsystem/` — **not deleted, not reactivated, historical
+reference only.** If you see `FamilyPeerSyncService`, `RelayApiClient`,
+`family_peer_sync_service.dart`, or `Modules/Relay/FamilySyncController.php` mentioned
+anywhere (old docs, old commit messages, search results), that's the *retired*
+architecture — don't build on it. The current implementation:
+
+- **Server is the source of truth**, using the same `account_id` +
+  `recovery_key_hash` primitive already proven in production for personal cloud
+  backup (`AccountService`) — not a new anonymous relay concept. `medkit-backend`
+  tables (`medkit_private/src/Modules/Family/`): `families`, `family_members`,
+  `family_channels`, `family_channel_entities`, `family_channel_photos`,
+  `family_grants`, `family_push_tokens`. Main controller:
+  `FamilySyncV2Controller.php`.
+- **Client**: `lib/core/services/family_api_client.dart` (HTTP client),
+  `family_server_sync_service.dart` (push/pull cycle — which fields to sync per
+  entity type, tombstone diffing, grant-filtered pull; see checklist item 6 above
+  for the entity-type whitelist landmine), `family_account.dart`,
+  `family_group_service.dart` (create/join/leave/kick), `family_key_service.dart` +
+  `pairing_crypto_service.dart`/`pairing_api_client.dart` (QR/6-digit invite code +
+  Argon2id envelope — this part *is* reused near-verbatim from the old design, it
+  was never the fragile piece), `family_visibility_service.dart` (grants model,
+  see below).
+- **Still pairwise end-to-end encrypted**, deliberately — a shared per-family key
+  was considered and rejected (compromising one member would compromise everyone's
+  data; revoking one member would require rekeying everyone). Each
+  owner↔viewer pair gets its own symmetric key via X25519 ECDH, computed
+  independently on both sides once both appear in `/family/status` — no more
+  manual "introduction" relay dance for this part either.
+- **Realtime**: event-triggered polling (on resume/cold-start/pull-to-refresh) +
+  FCM silent-push nudge — no WebSocket (the PHP backend has no persistent
+  process on shared cPanel hosting).
+- **Viewing a peer's data uses the same screens as your own** — Today/
+  Schedule/Медкартка/Полички render peer data through the exact same cards as
+  local data, not a separate flat "Дані від ___" screen (that screen was retired
+  once this landed). The mechanism: `lib/features/family/peer_view_providers.dart`
+  is a "translator" — it takes the cached ciphertext-decrypted peer snapshot and
+  reshapes it into the same row-shaped objects (`Medication`, `Activity`,
+  `Reminder`, etc.) the normal screens already know how to render, entirely
+  client-side, nothing written to the local DB. Peer records are visually
+  marked "not mine" and can't be tapped into edit/delete directly.
+- **Creating/editing a record "as someone else"** goes through `record_proposal`
+  (`lib/features/family/peer_record_proposal.dart` +
+  `FamilyServerSyncService._applyRecordProposal`) — a compare-and-swap message
+  keyed by `updatedAt`, applied on the subject's own device. Six creation
+  screens support a `draft`/`onDraftCreated` mode for this (medications,
+  activities/routines, reminders, wellbeing schedules, Полички entries/sections).
+- **Multi-target "assign to several people at once"**: `lib/shared/widgets/
+  assignee_picker.dart` (`AssigneeSelection`/`showAssigneePicker`/
+  `AssigneeFieldChip`) is the shared picker wired into every creation screen
+  (Ліки, Нагадування, Самопочуття, Рутинні справи, Полички-нотатки). For all
+  types except routines it's pure multi-select — everyone picked gets their own
+  independent record immediately, no rotation. Routines alone keep the rotation
+  concept (`showModes: true` reveals the cadence row: all-at-once/per-occurrence/
+  weekly/monthly) since "whose turn is it" only makes sense for a recurring
+  chore. An autonomous peer picked in a routine's pool gets a local "shadow"
+  `Members` row (`Members.linkedPeerPersonUuid`,
+  `MembersRepository.findOrCreateShadowForPeer`) so the existing
+  `ActivityAssignees` FK (which needs a real local row) keeps working unmodified.
+- **Visibility/permissions** (`FamilyVisibilityService`, UI in
+  `lib/features/profile/family_visibility_screen.dart`): per-section
+  (`schedule`/`medcard`/`shelves`) grants, **three independent toggles** —
+  create / view / edit (`create` was added later, 12.08.2026 — a viewer with only
+  `create` can push new records to the subject one-way without seeing or
+  editing the subject's existing data; `edit` still requires `view` to be on,
+  `create` does not). For a genuinely new, never-configured subject/viewer pair,
+  the default is create=ON, view=ON, edit=OFF, notifications=OFF — a
+  deliberate opt-in-by-default flip from the section's original all-OFF
+  default, confirmed with the user; pairs that already have an explicit grant
+  row keep whatever was explicitly set, this only changes the fallback for
+  pairs nobody has touched yet.
+- Billing/plan logic (`plan_provider.dart`, `subscription_service.dart`,
+  `plans_screen.dart`, IAP product IDs) was **not** part of this rearchitecture
+  and is unaffected — it predates and is independent of both the old and new
+  family sync mechanisms. `docs/multifamily_billing_plan.md` is a **historical,
+  fully superseded design document** — it describes billing decisions made
+  against the old peer-relay architecture (opaque relay `channel_id`,
+  `FamilyPeers.invitedMe`, `KnownFamilyMembers` auto-introduction via relay
+  messages) and should not be read as current architecture guidance; the billing
+  *decisions* in it (grace period, freeze-not-delete, per-peer `payerPlanActive`)
+  are still conceptually how billing works today, just re-plumbed onto the new
+  transport. See `archive/family_subsystem/README.md` for the fuller
+  quarantine/rearchitecture history if you need it.
 
 ### Screens / widgets
 - Feature-per-directory under `lib/features/<feature>/`. Cross-feature reusable
@@ -304,24 +411,24 @@ test/            narrow unit tests for crypto/sync services — no widget test c
    that then needed a manual console step the AI cannot perform (see "Known
    external dependencies" below).
 6. **New entity type pushed through family-sync** (any new `'type': '...'` value
-   sent via `FamilySyncApiClient.push` in `family_peer_sync_service.dart` — a new
+   in `FamilyServerSyncService._entityTypes`/`_alwaysSyncedTypes` in
+   `lib/core/services/family_server_sync_service.dart` — a new
    schedulable/syncable table like Полички/reminders/wellbeing, OR a new signal
-   type like `grants_summary`/`peer_removed`/`introduction`/`known_member`)?
+   type like `record_proposal`/`channel_intro`/`remind_now`)?
    **Must also add it to `ALLOWED_ENTITY_TYPES` in `medkit-backend/medkit_private/
-   src/Modules/Relay/FamilySyncController.php`.** The two repos share no type
+   src/Modules/Family/FamilySyncV2Controller.php`.** The two repos share no type
    system and there is no build-time check linking them — this drifts silently.
    Worse than a missing feature: the server rejects the **entire push batch**
    (HTTP 422) the moment it sees even one unrecognized type, which silently kills
-   the *rest of that sync round for that peer* too — including unrelated entities
-   already in the same batch, like `grants_summary` sent right after. Confirmed
-   real incident (2026-08-06): the whitelist had been frozen at
-   `['medication', 'schedule', 'intake', 'symptom']` since before Полички sync
-   (Крок 5.1) — every Крок since then added client-side types without mirroring
-   here, silently breaking family data/grants sharing for any peer with newer
-   data. Same rule applies to `Modules/Sync/SyncController.php`'s own
-   `ALLOWED_ENTITY_TYPES` (account-sync, a separate whitelist) if you ever touch
-   that path instead. `medkit-backend` has no git/CI here — after fixing the PHP
-   source, it still needs manual upload via cPanel File Manager (see its
+   the *rest of that sync round for that peer* too. This exact landmine already
+   caused one confirmed real incident under the old (now-archived) peer-relay
+   architecture — the current Family v2 server (see "Family (Сім'я) architecture"
+   below) inherited the same two-repos-one-whitelist shape, just relocated to a
+   new controller/class, so the risk is still live. Same rule applies to
+   `Modules/Sync/SyncController.php`'s own `ALLOWED_ENTITY_TYPES` (personal
+   account-backup sync, a separate whitelist, unrelated to family) if you ever
+   touch that path instead. `medkit-backend` has no git/CI here — after fixing
+   the PHP source, it still needs manual upload via cPanel File Manager (see its
    `DEPLOY.md`) before the fix is actually live.
 
 ## Collaboration / working-style notes
@@ -623,22 +730,20 @@ treating it as a code bug:
 - `IntakeGenerator`/`ActivityLogGenerator` are near-duplicate code (same
   generate-per-day-from-schedule-with-cancel-dedup logic, separately implemented) —
   a candidate for consolidation into one generic generator.
-- `FamilyGroupService.refreshPeers` polls `RelayApiClient.fetchState` repeatedly
-  (every 15-30s in observed logs) for channels that return "no state yet" and never
-  seems to give up or surface the problem to the user — flagged, not yet
-  investigated/fixed.
-- **Cross-device sync (`SyncService`/`AccountService`, own-account sync — separate
-  from family pairing/`FamilySyncService`) is suspected to not actually work
-  end-to-end right now.** The user flagged this from real-world experience (2026-07),
-  not from a specific investigated bug — nobody has traced *why* yet. Its UI entry
-  point was removed earlier in the project (the plumbing still runs automatically
-  whenever `SyncMode != local`, e.g. tied to a paid plan's `serverSync: true`, but
-  there's no way for a user to see status/errors or manually retry). Before trusting
-  or building on top of this path, actually verify it round-trips on two real/test
-  devices rather than assuming the code being present means it works. Also note:
-  `MedcardSections`/`MedcardEntries` (custom archive sections) were never wired into
-  either `SyncService` or `FamilyPeerSyncService`/`FamilySyncService` at all — flagged
-  separately, no ticket yet.
+- **Cross-device sync (`SyncService`/`AccountService`, own-account personal backup
+  sync — unrelated to family, see "Family (Сім'я)" above) is suspected to not
+  actually work end-to-end right now.** The user flagged this from real-world
+  experience (2026-07), not from a specific investigated bug — nobody has traced
+  *why* yet. Its UI entry point was removed earlier in the project (the plumbing
+  still runs automatically whenever `SyncMode != local`, e.g. tied to a paid
+  plan's `serverSync: true`, but there's no way for a user to see status/errors
+  or manually retry). Before trusting or building on top of this path, actually
+  verify it round-trips on two real/test devices rather than assuming the code
+  being present means it works. Also note: `MedcardSections`/`MedcardEntries`
+  (Полички) are still not wired into `SyncService` at all — unlike family sync,
+  which *does* cover them now (Крок 5.1, `FamilySection.shelves` in
+  `family_server_sync_service.dart`) — this personal-backup gap is separate and
+  still open, no ticket yet.
 - **iOS SQLCipher "file is not a database" (SQLite code 26) key-mismatch — long
   investigation, structural fix landed but not yet device-verified.** Root-caused
   through several rounds to real bugs in `flutter_secure_storage` itself (orphaned
@@ -670,10 +775,16 @@ flutter test                    # unit tests (crypto/sync only, see "Known gaps"
 ## Where to look for more context
 
 - `docs/l10n_glossary.md` — translation ambiguity glossary, keep it current.
-- `docs/multifamily_billing_plan.md` — full multi-family/billing design, resolved
-  open questions included; read before continuing that scope.
-- `medkit-backend/DEPLOY.md` — backend deployment steps (separate repo, not
-  git-tracked here).
+- `docs/multifamily_billing_plan.md` — **historical/superseded design doc**, see
+  "Family (Сім'я) — server-based architecture" above before reading it; it
+  describes billing decisions made against the now-archived peer-relay family
+  architecture, kept for historical record, not a guide to current code.
+- `archive/family_subsystem/README.md` — quarantine/rearchitecture history for
+  the old peer-relay family implementation (why it was retired, what was kept,
+  what's reusable).
+- `medkit-backend/DEPLOY.md` — backend deployment steps (separate, sibling repo
+  at `C:\Users\user\Desktop\medkit-backend`, not git-tracked, manual cPanel
+  deploy — see "Repo" note at the top of this file).
 - Claude's persistent memory (project-level, cross-session) has additional
   narrower notes — worktree gotchas, verification-workflow preferences, and the
   historical narrative of the privacy-first architecture rework. This file

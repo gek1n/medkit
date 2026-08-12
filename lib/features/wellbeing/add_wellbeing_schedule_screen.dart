@@ -12,10 +12,13 @@ import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/wellbeing_repository.dart';
 import '../../core/utils/task_color.dart';
+import '../../shared/widgets/assignee_picker.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/task_color_picker.dart';
 import '../../shared/widgets/wheel_time_picker.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../plans/elly_denied_screen.dart';
 import 'wellbeing_history_screen.dart';
 
@@ -43,6 +46,8 @@ class AddWellbeingScheduleScreen extends ConsumerStatefulWidget {
 class _AddWellbeingScheduleScreenState
     extends ConsumerState<AddWellbeingScheduleScreen> {
   int _timesPerDay = 2;
+  // #325-доробка: "Кому" — без ротації, null означає "лише widget.memberId".
+  AssigneeSelection? _assignees;
   List<TimeOfDay> _slots = [
     const TimeOfDay(hour: 8, minute: 0),
     const TimeOfDay(hour: 20, minute: 0),
@@ -173,6 +178,47 @@ class _AddWellbeingScheduleScreenState
       final saved = await wellbeingRepo.getScheduleByMember(widget.memberId!);
       if (saved != null) {
         await wellbeingRepo.scheduleNotificationsForSchedule(saved);
+      }
+
+      // #325-доробка: "Кому" — без ротації, кожен додатково обраний одразу
+      // отримує власний незалежний розклад (upsertSchedule і так один-на-
+      // -члена, повторний виклик з іншим memberId просто створює/оновлює
+      // ЙОГО власний рядок, нічого спільного з widget.memberId).
+      final sel = _assignees;
+      if (sel != null) {
+        for (final id in sel.localMemberIds) {
+          if (id == widget.memberId) continue;
+          await wellbeingRepo.upsertSchedule(
+            WellbeingSchedulesCompanion(
+              memberId: Value(id),
+              timesPerDay: Value(_timesPerDay),
+              times: Value(timesJson),
+              isActive: const Value(true),
+              color: Value(_colorHex),
+            ),
+          );
+          await NotificationService.cancelAllWellbeingForMember(id);
+          final extraSaved = await wellbeingRepo.getScheduleByMember(id);
+          if (extraSaved != null) {
+            await wellbeingRepo.scheduleNotificationsForSchedule(extraSaved);
+          }
+        }
+        for (final uuid in sel.peerPersonUuids) {
+          final peer =
+              ref.read(allFamilyPeersProvider).where((p) => p.personUuid == uuid).firstOrNull;
+          if (peer == null) continue;
+          await submitWellbeingScheduleProposal(
+            ref,
+            peer,
+            WellbeingSchedulesCompanion.insert(
+              memberId: 0,
+              timesPerDay: Value(_timesPerDay),
+              times: Value(timesJson),
+              isActive: const Value(true),
+              color: Value(_colorHex),
+            ),
+          );
+        }
       }
 
       if (mounted) Navigator.pop(context, true);
@@ -416,6 +462,23 @@ class _AddWellbeingScheduleScreenState
                         ),
                       ),
                     ),
+                    if (widget.memberId != null) ...[
+                      const SizedBox(height: AppDimensions.md),
+                      AssigneeFieldChip(
+                        selection: _assignees ??
+                            AssigneeSelection(
+                                localMemberIds: {widget.memberId!}, peerPersonUuids: const {}, mode: 'all'),
+                        onTap: () async {
+                          final result = await showAssigneePicker(
+                            context,
+                            initial: _assignees ??
+                                AssigneeSelection(
+                                    localMemberIds: {widget.memberId!}, peerPersonUuids: const {}, mode: 'all'),
+                          );
+                          if (result != null) setState(() => _assignees = result);
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 32),
 
                     SizedBox(

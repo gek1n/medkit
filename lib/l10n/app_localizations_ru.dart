@@ -1426,6 +1426,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get familySectionShelvesLabel => 'Полочки';
 
   @override
+  String get familySectionCreateColumnLabel => 'Создание';
+
+  @override
   String get familySectionViewColumnLabel => 'Просмотр';
 
   @override
@@ -3356,4 +3359,27 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get petAvatarsSectionLabel => 'Домашние питомцы';
+
+  @override
+  String createdByLabel(String name) {
+    return 'Создал(а): $name';
+  }
+
+  @override
+  String get createdBySelfSuffix => ' (я)';
+
+  @override
+  String get newNoteTitle => 'Новая заметка';
+
+  @override
+  String get assigneePickerTitle => 'Кто выполняет';
+
+  @override
+  String get assigneeModeAllAtOnce => 'Всем сразу';
+
+  @override
+  String get assigneeFieldLabel => 'Кому';
+
+  @override
+  String get assigneeFieldEmptyValue => 'Не выбрано';
 }

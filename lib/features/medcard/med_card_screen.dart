@@ -211,17 +211,14 @@ class _MedCardBody extends ConsumerWidget {
                   iconColor: AppColors.primary,
                   title: context.l10n.medCardArchiveTitle,
                   subtitle: context.l10n.medCardArchiveSubtitle,
-                  // MedicationArchiveScreen/AppointmentsHistoryScreen/
-                  // WellbeingHistoryScreen поки не адаптовані під чужі дані
-                  // — ховаємо тап для піра.
-                  onTap: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MedicationArchiveScreen(memberId: memberId),
-                            ),
-                          ),
+                  // #314: доступ уже перевірено вище через shelvesClosed —
+                  // сам тап більше не блокується додатково по readOnly.
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MedicationArchiveScreen(memberId: memberId, peer: peer),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 _MedCardTile(
@@ -230,14 +227,12 @@ class _MedCardBody extends ConsumerWidget {
                   iconColor: AppColors.primary,
                   title: context.l10n.medCardAppointmentsTitle,
                   subtitle: context.l10n.medCardAppointmentsSubtitle,
-                  onTap: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AppointmentsHistoryScreen(memberId: memberId),
-                            ),
-                          ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AppointmentsHistoryScreen(memberId: memberId, peer: peer),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 _MedCardTile(
@@ -246,14 +241,12 @@ class _MedCardBody extends ConsumerWidget {
                   iconColor: AppColors.primary,
                   title: context.l10n.medCardWellbeingHistoryTitle,
                   subtitle: context.l10n.medCardWellbeingHistorySubtitle,
-                  onTap: readOnly
-                      ? null
-                      : () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => WellbeingHistoryScreen(memberId: memberId),
-                            ),
-                          ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WellbeingHistoryScreen(memberId: memberId, peer: peer),
+                    ),
+                  ),
                 ),
               ],
 

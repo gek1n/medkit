@@ -12,10 +12,14 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/plan_access.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/medcard_entries_repository.dart';
+import '../../data/repositories/medcard_sections_repository.dart';
+import '../../shared/widgets/assignee_picker.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
+import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_date_picker.dart';
 import '../../shared/widgets/mk_form_fields.dart';
+import '../../shared/widgets/rich_note_toolbar.dart';
 import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/tags_field.dart';
 import '../plans/elly_denied_screen.dart';
@@ -46,11 +50,25 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
   late final TextEditingController _titleController;
   late final TextEditingController _notesController;
   late final TextEditingController _locationController;
+  final FocusNode _notesFocusNode = FocusNode();
   List<String> _tags = [];
   List<String> _documentPaths = [];
   late DateTime _recordDate;
   late int _sectionId;
   bool _isSaving = false;
+  // #325-доробка: "Чия нотатка" — без ротації, null означає "лише
+  // widget.section.memberId". Лише для НОВОГО запису, не draft/edit.
+  AssigneeSelection? _assignees;
+
+  // Тайтл на весь екран (#324-доробка "нотатка на весь екран"): за
+  // замовчуванням підставляється "Нова нотатка", і поки користувач НЕ
+  // торкнувся поля назви вручну — перші 20 символів основного тексту самі
+  // підставляються туди. Щойно назву відредаговано вручну — автопідстановка
+  // назавжди вимикається для цього сеансу редагування (як і для вже
+  // існуючих записів — їхню назву теж ніколи не переписуємо автоматично).
+  bool _titleManuallyEdited = false;
+  bool _suppressTitleListener = false;
+  bool _defaultTitleApplied = false;
 
   @override
   void initState() {
@@ -61,6 +79,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
     _locationController = TextEditingController(text: ex?.location ?? '');
     _recordDate = ex?.recordDate ?? DateTime.now();
     _sectionId = ex?.sectionId ?? widget.section.id;
+    _titleManuallyEdited = ex != null;
     if (ex != null) {
       try {
         _tags = List<String>.from(jsonDecode(ex.tags) as List);
@@ -69,6 +88,35 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
         _documentPaths = List<String>.from(jsonDecode(ex.documentPaths) as List);
       } catch (_) {}
     }
+    _titleController.addListener(() {
+      if (_suppressTitleListener) return;
+      if (!_titleManuallyEdited) setState(() => _titleManuallyEdited = true);
+    });
+    _notesController.addListener(_syncTitleFromNotesIfNeeded);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_defaultTitleApplied && widget.existing == null && _titleController.text.isEmpty) {
+      _defaultTitleApplied = true;
+      _setTitle(context.l10n.newNoteTitle);
+    }
+  }
+
+  void _setTitle(String text) {
+    _suppressTitleListener = true;
+    _titleController.text = text;
+    _suppressTitleListener = false;
+  }
+
+  void _syncTitleFromNotesIfNeeded() {
+    if (_titleManuallyEdited) return;
+    final body = _notesController.text.trim();
+    final newTitle = body.isEmpty
+        ? context.l10n.newNoteTitle
+        : (body.length <= 20 ? body : body.substring(0, 20));
+    if (newTitle != _titleController.text) _setTitle(newTitle);
   }
 
   @override
@@ -76,6 +124,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
     _titleController.dispose();
     _notesController.dispose();
     _locationController.dispose();
+    _notesFocusNode.dispose();
     super.dispose();
   }
 
@@ -122,6 +171,7 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
       return;
     }
     setState(() => _isSaving = true);
+    final defaultNotesSectionName = context.l10n.defaultNotesSectionName;
     try {
       await SharedTagsLibraryService.addAll(_tags);
       final notesVal =
@@ -176,6 +226,31 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
                 documentPaths: Value(jsonEncode(_documentPaths)),
               ),
             );
+
+        // #325-доробка: "Чия нотатка" — без ротації, лише локальні
+        // (не пір — розділи Поличок у пірів окремі й потребують власного
+        // ручного вибору, автоматично для кількох одразу це не зробити
+        // безпечно) додатково обрані профілі. Кожен отримує СВІЙ автоматично
+        // створений розділ "Нотатки" (той самий #169-механізм) — не
+        // _sectionId (той належить member.memberId, чужий FK).
+        final extraIds = _assignees?.localMemberIds.where((id) => id != widget.section.memberId) ?? const [];
+        for (final id in extraIds) {
+          final defaultSectionId = await ref
+              .read(medcardSectionsRepositoryProvider)
+              .getOrCreateDefaultNotesSection(id, defaultNotesSectionName);
+          await ref.read(medcardEntriesRepositoryProvider).insert(
+                MedcardEntriesCompanion.insert(
+                  sectionId: defaultSectionId,
+                  memberId: id,
+                  title: title,
+                  recordDate: _recordDate,
+                  notes: Value(notesVal),
+                  tags: Value(jsonEncode(_tags)),
+                  location: Value(locationVal),
+                  documentPaths: Value(jsonEncode(_documentPaths)),
+                ),
+              );
+        }
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -220,117 +295,194 @@ class _AddMedcardEntryScreenState extends ConsumerState<AddMedcardEntryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            MkFormHeader(
-              title: isEdit ? context.l10n.editEntryTitle : context.l10n.newEntryTitle,
-              onBack: () => Navigator.pop(context),
-              onDelete: isEdit ? _delete : null,
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.screenPadding,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    MkFieldLabel(context.l10n.entryTitleFieldLabel),
-                    const SizedBox(height: 6),
-                    MkTextField(
+            // ── Заголовок: назад, назва (клікабельна/редагована прямо тут,
+            // не окремим полем нижче), видалити, зберегти. ────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  MkBackButton(onTap: () => Navigator.pop(context)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
                       controller: _titleController,
-                      hint: context.l10n.entryTitleHint,
+                      style: AppTextStyles.h3,
+                      maxLines: 1,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
-                    const SizedBox(height: AppDimensions.lg),
-
-                    // Нотатка — окремим завжди розгорнутим полем одразу під
-                    // назвою (не чіпсом/шторкою), щоб її було видно й зручно
-                    // заповнювати без зайвого тапу.
-                    MkFieldLabel(context.l10n.noteSingularLabel),
-                    const SizedBox(height: 6),
-                    MkTextField(
-                      controller: _notesController,
-                      maxLines: 4,
-                      hint: context.l10n.entryNotesHint,
+                  ),
+                  const SizedBox(width: 8),
+                  if (isEdit)
+                    GestureDetector(
+                      onTap: _delete,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFDC2626)),
+                      ),
                     ),
-                    const SizedBox(height: AppDimensions.lg),
+                  GestureDetector(
+                    onTap: _isSaving ? null : _save,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
+                      ),
+                      child: Text(
+                        _isSaving ? context.l10n.savingLabel : context.l10n.saveAction,
+                        style: AppTextStyles.labelMd.copyWith(color: AppColors.primaryDark, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-                    // Решта полів — компактними чіпсами
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FieldChip(
-                          icon: Icons.calendar_today_rounded,
-                          label: context.l10n.entryDateFieldLabel,
-                          value: _formatDate(_recordDate),
-                          onTap: _pickDate,
+            // ── Тіло нотатки — займає весь доступний простір. ──────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppDimensions.screenPadding),
+                child: TextField(
+                  controller: _notesController,
+                  focusNode: _notesFocusNode,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  style: AppTextStyles.bodyMd,
+                  decoration: InputDecoration(
+                    hintText: context.l10n.entryNotesHint,
+                    hintStyle: AppTextStyles.bodyMd.copyWith(color: AppColors.textMuted),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Панель форматування — під нотаткою. ─────────────────────────
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: RichNoteToolbar(controller: _notesController, focusNode: _notesFocusNode),
+            ),
+
+            // ── Решта полів — компактними чіпсами прямо під панеллю. ────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimensions.screenPadding, 10, AppDimensions.screenPadding, 10),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    FieldChip(
+                      icon: Icons.calendar_today_rounded,
+                      label: context.l10n.entryDateFieldLabel,
+                      value: _formatDate(_recordDate),
+                      onTap: _pickDate,
+                    ),
+                    const SizedBox(width: 8),
+                    FieldChip(
+                      icon: Icons.sell_outlined,
+                      label: context.l10n.reminderTagsFieldLabel,
+                      value: _tags.isEmpty ? null : _tags.join(', '),
+                      onTap: () => showFieldSheet(
+                        context,
+                        title: context.l10n.reminderTagsFieldLabel,
+                        child: TagsField(
+                          tags: _tags,
+                          onChanged: (t) => setState(() => _tags = t),
+                          hint: context.l10n.reminderTagsHint,
+                          loadHistory: SharedTagsLibraryService.getAll,
                         ),
-                        FieldChip(
-                          icon: Icons.sell_outlined,
-                          label: context.l10n.reminderTagsFieldLabel,
-                          value: _tags.isEmpty ? null : _tags.join(', '),
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.reminderTagsFieldLabel,
-                            child: TagsField(
-                              tags: _tags,
-                              onChanged: (t) => setState(() => _tags = t),
-                              hint: context.l10n.reminderTagsHint,
-                              loadHistory: SharedTagsLibraryService.getAll,
-                            ),
-                          ),
-                        ),
-                        if (widget.onDraftCreated == null)
-                          SpaceChip(
-                            memberId: widget.section.memberId,
-                            sectionId: _sectionId,
-                            onChanged: (id) =>
-                                setState(() => _sectionId = id ?? widget.section.id),
-                          ),
-                        FieldChip(
-                          icon: Icons.location_on_outlined,
-                          label: context.l10n.fieldWhere,
-                          value: _locationController.text.trim().isEmpty
-                              ? null
-                              : _locationController.text.trim(),
+                      ),
+                    ),
+                    if (widget.onDraftCreated == null) ...[
+                      const SizedBox(width: 8),
+                      SpaceChip(
+                        memberId: widget.section.memberId,
+                        sectionId: _sectionId,
+                        onChanged: (id) =>
+                            setState(() => _sectionId = id ?? widget.section.id),
+                      ),
+                      const SizedBox(width: 8),
+                      if (widget.existing == null)
+                        AssigneeFieldChip(
+                          selection: _assignees ??
+                              AssigneeSelection(
+                                  localMemberIds: {widget.section.memberId},
+                                  peerPersonUuids: const {},
+                                  mode: 'all'),
                           onTap: () async {
-                            await showFieldSheet(
+                            final result = await showAssigneePicker(
                               context,
-                              title: context.l10n.fieldWhere,
-                              child: MkTextField(
-                                controller: _locationController,
-                                hint: context.l10n.locationHint,
-                              ),
+                              showPeers: false,
+                              initial: _assignees ??
+                                  AssigneeSelection(
+                                      localMemberIds: {widget.section.memberId},
+                                      peerPersonUuids: const {},
+                                      mode: 'all'),
                             );
-                            if (mounted) setState(() {});
+                            if (result != null) setState(() => _assignees = result);
                           },
                         ),
-                        FieldChip(
-                          icon: Icons.attach_file_rounded,
-                          label: context.l10n.reminderPhotoLabel,
-                          value: _documentPaths.isEmpty
-                              ? null
-                              : '${_documentPaths.length}',
-                          onTap: () => showFieldSheet(
-                            context,
-                            title: context.l10n.reminderPhotoLabel,
-                            child: DocumentsSection(
-                              paths: _documentPaths,
-                              onChanged: (paths) => setState(() => _documentPaths = paths),
-                              label: context.l10n.reminderPhotoLabel,
-                            ),
+                    ],
+                    const SizedBox(width: 8),
+                    FieldChip(
+                      icon: Icons.location_on_outlined,
+                      label: context.l10n.fieldWhere,
+                      value: _locationController.text.trim().isEmpty
+                          ? null
+                          : _locationController.text.trim(),
+                      onTap: () async {
+                        await showFieldSheet(
+                          context,
+                          title: context.l10n.fieldWhere,
+                          child: MkTextField(
+                            controller: _locationController,
+                            hint: context.l10n.locationHint,
                           ),
+                        );
+                        if (mounted) setState(() {});
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    FieldChip(
+                      icon: Icons.attach_file_rounded,
+                      label: context.l10n.reminderPhotoLabel,
+                      value: _documentPaths.isEmpty
+                          ? null
+                          : '${_documentPaths.length}',
+                      onTap: () => showFieldSheet(
+                        context,
+                        title: context.l10n.reminderPhotoLabel,
+                        child: DocumentsSection(
+                          paths: _documentPaths,
+                          onChanged: (paths) => setState(() => _documentPaths = paths),
+                          label: context.l10n.reminderPhotoLabel,
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 32),
-
-                    MkSaveButton(
-                      isSaving: _isSaving,
-                      onPressed: _save,
-                      label: isEdit ? context.l10n.saveChangesAction : context.l10n.saveAction,
-                    ),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),

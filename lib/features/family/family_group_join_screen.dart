@@ -6,10 +6,13 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/family_status_provider.dart';
+import '../../core/services/activity_log_generator.dart';
 import '../../core/services/camera_permission_service.dart';
 import '../../core/services/family_group_service.dart';
 import '../../core/services/family_join_popup_service.dart';
 import '../../core/services/family_server_sync_service.dart';
+import '../../core/services/intake_generator.dart';
+import '../../data/repositories/reminders_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -113,7 +116,7 @@ class _FamilyGroupJoinScreenState extends ConsumerState<FamilyGroupJoinScreen> {
       // пасивного тригера (resume), інакше глядач бачив би порожню сім'ю
       // до наступного відкриття застосунку.
       try {
-        await FamilyServerSyncService(db).syncAll();
+        await FamilyServerSyncService(db, intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
       } catch (_) {
         // Тиха невдача — статус все одно підхопиться наступним тригером.
       }

@@ -10,7 +10,9 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/family_status_provider.dart';
+import '../../core/services/activity_log_generator.dart';
 import '../../core/services/family_server_sync_service.dart';
+import '../../core/services/intake_generator.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
@@ -26,6 +28,7 @@ import '../../data/repositories/activities_repository.dart';
 import '../../data/repositories/reminders_repository.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/wellbeing_repository.dart';
+import '../../shared/widgets/member_switcher_pill.dart';
 import '../../shared/widgets/peer_section_closed_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../../shared/widgets/switch_profile_banner.dart';
@@ -154,6 +157,15 @@ class _TodayContent extends ConsumerWidget {
     // з тими самими AsyncValue<List<...>>, просто інше джерело.
     final peer = ref.watch(activePeerProvider);
     final readOnly = peer != null;
+    // #316: пікер "хто зараз обраний" в hero-блоці — той самий
+    // MemberSwitcherPill, що вже стоїть на Розкладі/Медкартці, тут раніше
+    // взагалі не рендерився (перевірено по git-історії файлу).
+    final switcherMembers = ref.watch(allMembersProvider).valueOrNull ?? const [];
+    final switcherPeers = ref.watch(allFamilyPeersProvider);
+    final switcherOwner = switcherMembers.firstWhere(
+      (m) => m.role == 'owner',
+      orElse: () => member,
+    );
     // Якщо суб'єкт закрив розділ, дані до кешу піра взагалі не потрапляють
     // — тож списки нижче тихо лишились би порожніми без пояснення.
     final grants = ref.watch(activePeerGrantsProvider);
@@ -262,8 +274,20 @@ class _TodayContent extends ConsumerWidget {
             for (final r in appointmentsAsync.valueOrNull ?? <Reminder>[])
               r.id: r,
           }.values;
+          final todayDate = DateTime.now();
           final appointments = uniqueAppointments.expand((r) {
             if (r.repeatType == 'none') {
+              // Пір: r.scheduledAt приходить "як є" з SharedEntities (тип
+              // 'doctor_appointment' не windowed — синкається без строку
+              // давності), на відміну від локального todayAppointmentsProvider
+              // (watchActiveOnDate), який уже сам відфільтровує лише
+              // сьогоднішні вхождення. Без цієї перевірки старе одноразове
+              // нагадування піра лишалось би "пропущеним на сьогодні" вічно.
+              if (r.scheduledAt.year != todayDate.year ||
+                  r.scheduledAt.month != todayDate.month ||
+                  r.scheduledAt.day != todayDate.day) {
+                return const <_ApptOccurrence>[];
+              }
               return [
                 _ApptOccurrence(
                   reminder: r,
@@ -507,7 +531,7 @@ class _TodayContent extends ConsumerWidget {
               // "мертвий" — mounted-перевірка перед подальшим invalidate
               // запобігає "Cannot use ref after the widget was disposed".
               try {
-                await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+                await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
               } catch (_) {
                 // Тиха невдача — те саме, що і billing/backup синк-тригери.
               }
@@ -525,6 +549,33 @@ class _TodayContent extends ConsumerWidget {
             child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              if (switcherMembers.length > 1 || switcherPeers.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimensions.screenPadding,
+                      AppDimensions.md,
+                      AppDimensions.screenPadding,
+                      0,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: MemberSwitcherPill(
+                        members: switcherMembers,
+                        selected: peer == null ? member : switcherOwner,
+                        onSelect: (id) {
+                          ref.read(activePeerProvider.notifier).state = null;
+                          ref.read(activeMemberIdProvider.notifier).state =
+                              id == switcherOwner.id ? null : id;
+                        },
+                        peers: switcherPeers,
+                        selectedPeer: peer,
+                        onSelectPeer: (p) =>
+                            ref.read(activePeerProvider.notifier).state = p,
+                      ),
+                    ),
+                  ),
+                ),
               if (showSwitchBanner || readOnly)
                 SliverToBoxAdapter(
                   child: SwitchProfileBanner(

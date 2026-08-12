@@ -2536,6 +2536,12 @@ abstract class AppLocalizations {
   /// **'Полички'**
   String get familySectionShelvesLabel;
 
+  /// No description provided for @familySectionCreateColumnLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Створення'**
+  String get familySectionCreateColumnLabel;
+
   /// No description provided for @familySectionViewColumnLabel.
   ///
   /// In uk, this message translates to:
@@ -5949,6 +5955,48 @@ abstract class AppLocalizations {
   /// In uk, this message translates to:
   /// **'Домашні улюбленці'**
   String get petAvatarsSectionLabel;
+
+  /// No description provided for @createdByLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Створив(ла): {name}'**
+  String createdByLabel(String name);
+
+  /// No description provided for @createdBySelfSuffix.
+  ///
+  /// In uk, this message translates to:
+  /// **' (я)'**
+  String get createdBySelfSuffix;
+
+  /// No description provided for @newNoteTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Нова нотатка'**
+  String get newNoteTitle;
+
+  /// No description provided for @assigneePickerTitle.
+  ///
+  /// In uk, this message translates to:
+  /// **'Хто виконує'**
+  String get assigneePickerTitle;
+
+  /// No description provided for @assigneeModeAllAtOnce.
+  ///
+  /// In uk, this message translates to:
+  /// **'Всім одразу'**
+  String get assigneeModeAllAtOnce;
+
+  /// No description provided for @assigneeFieldLabel.
+  ///
+  /// In uk, this message translates to:
+  /// **'Кому'**
+  String get assigneeFieldLabel;
+
+  /// No description provided for @assigneeFieldEmptyValue.
+  ///
+  /// In uk, this message translates to:
+  /// **'Не обрано'**
+  String get assigneeFieldEmptyValue;
 }
 
 class _AppLocalizationsDelegate

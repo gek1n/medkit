@@ -17,6 +17,7 @@ import 'core/providers/family_status_provider.dart';
 import 'core/providers/plan_provider.dart';
 import 'core/providers/real_plan_provider.dart';
 import 'core/services/account_service.dart';
+import 'core/services/activity_log_generator.dart';
 import 'core/services/affiliate_config_service.dart';
 import 'core/services/app_lock_service.dart';
 import 'core/services/app_logger.dart';
@@ -25,6 +26,7 @@ import 'core/services/backup_service.dart';
 import 'core/services/backup_settings_service.dart';
 import 'core/services/db_encryption_service.dart';
 import 'core/services/family_server_sync_service.dart';
+import 'core/services/intake_generator.dart';
 import 'core/services/marketing_topics_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/review_prompt_service.dart';
@@ -36,6 +38,7 @@ import 'core/theme/app_text_styles.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/l10n_ext.dart';
 import 'data/repositories/members_repository.dart';
+import 'data/repositories/reminders_repository.dart';
 import 'features/family/family_screen.dart';
 import 'features/lock/app_lock_screen.dart';
 import 'features/medcard/med_card_screen.dart';
@@ -913,7 +916,7 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     if (lastAt != null && DateTime.now().difference(lastAt) < _familySyncCooldown) return;
     _familySyncing = true;
     try {
-      await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+      await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
       if (mounted) ref.invalidate(familyStatusProvider);
     } catch (_) {
       // Тиха невдача — див. коментар до _syncIfEnabled.

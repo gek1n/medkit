@@ -20,8 +20,11 @@ import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
 import '../../core/utils/task_color.dart';
+import '../../shared/widgets/assignee_picker.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/mk_back_button.dart';
+import '../family/peer_record_proposal.dart';
+import '../family/peer_view_providers.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
 import '../../shared/widgets/space_picker.dart';
 import '../../shared/widgets/stock_unit_picker.dart';
@@ -117,6 +120,12 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
 
   // Простір — необов'язково, недоступно в онбордингу (memberId ще не існує)
   int? _sectionId;
+  // #325-доробка: "Кому" — null означає "лише widget.memberId", як і
+  // раніше. Обирається лише для НОВОГО локального запису (не редагування,
+  // не draft-режим онбордингу/single-peer) — див. коментар при полі чіпа
+  // нижче. Без ротації (на відміну від рутин) — кожен обраний одразу
+  // отримує власний незалежний запис.
+  AssigneeSelection? _assignees;
 
   bool _isSaving = false;
 
@@ -321,28 +330,46 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
             ),
         );
       } else {
-        await medRepo.insert(
-          MedicationsCompanion.insert(
-            memberId: widget.memberId!,
-            name: name,
-            form: Value(_form),
-            doseAmount: doseAmount,
-            doseUnit: Value(doseUnit),
-            repeatType: Value(_repeatType),
-            repeatConfig: Value(jsonEncode(repeatConfig)),
-            startDate: now,
-            endDate: Value(endDate),
-            totalCount: Value(_availableCount),
-            remainingCount: Value(_availableCount),
-            trackStock: Value(_trackStock),
-            stockUnit: Value(_stockUnit),
-            iconKey: Value(_iconKey),
-            photoPaths: Value(jsonEncode(_photoPaths)),
-            phases: Value(phasesJson),
-            color: Value(_colorHex),
-            sectionId: Value(_sectionId),
-            ),
+        // #325-доробка: "Кому" — без ротації, кожен обраний одразу отримує
+        // власний незалежний запис (локальні — окремий рядок у БД, пір —
+        // окрема record_proposal). Без вибору — лише widget.memberId, як і
+        // раніше.
+        final sel = _assignees;
+        final localTargets = sel == null || sel.localMemberIds.isEmpty
+            ? {widget.memberId!}
+            : sel.localMemberIds;
+        final base = MedicationsCompanion.insert(
+          memberId: localTargets.first,
+          name: name,
+          form: Value(_form),
+          doseAmount: doseAmount,
+          doseUnit: Value(doseUnit),
+          repeatType: Value(_repeatType),
+          repeatConfig: Value(jsonEncode(repeatConfig)),
+          startDate: now,
+          endDate: Value(endDate),
+          totalCount: Value(_availableCount),
+          remainingCount: Value(_availableCount),
+          trackStock: Value(_trackStock),
+          stockUnit: Value(_stockUnit),
+          iconKey: Value(_iconKey),
+          photoPaths: Value(jsonEncode(_photoPaths)),
+          phases: Value(phasesJson),
+          color: Value(_colorHex),
+          sectionId: Value(_sectionId),
         );
+        await medRepo.insert(base);
+        for (final id in localTargets.skip(1)) {
+          await medRepo.insert(base.copyWith(memberId: Value(id), sectionId: const Value(null)));
+        }
+        if (sel != null) {
+          for (final uuid in sel.peerPersonUuids) {
+            final peer =
+                ref.read(allFamilyPeersProvider).where((p) => p.personUuid == uuid).firstOrNull;
+            if (peer == null) continue;
+            await submitMedicationProposal(ref, peer, base.copyWith(memberId: const Value(0)));
+          }
+        }
       }
 
       ref.invalidate(generateTodayIntakesProvider);
@@ -657,6 +684,27 @@ class _AddMedicationScreenState extends ConsumerState<AddMedicationScreen> {
                             memberId: widget.memberId!,
                             sectionId: _sectionId,
                             onChanged: (id) => setState(() => _sectionId = id),
+                          ),
+                        if (widget.memberId != null && widget.existing == null)
+                          AssigneeFieldChip(
+                            selection: _assignees ??
+                                AssigneeSelection(
+                                  localMemberIds: {widget.memberId!},
+                                  peerPersonUuids: const {},
+                                  mode: 'all',
+                                ),
+                            onTap: () async {
+                              final result = await showAssigneePicker(
+                                context,
+                                initial: _assignees ??
+                                    AssigneeSelection(
+                                      localMemberIds: {widget.memberId!},
+                                      peerPersonUuids: const {},
+                                      mode: 'all',
+                                    ),
+                              );
+                              if (result != null) setState(() => _assignees = result);
+                            },
                           ),
                       ],
                     ),

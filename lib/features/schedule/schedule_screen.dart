@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/family_status_provider.dart';
 import '../../core/providers/plan_provider.dart';
+import '../../core/services/activity_log_generator.dart';
 import '../../core/services/family_server_sync_service.dart';
+import '../../core/services/intake_generator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/l10n_ext.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -379,7 +381,7 @@ class _ScheduleBody extends ConsumerWidget {
         // Крок 11 C5: те саме, що на Сьогодні — активно тягнемо свіжий стан
         // від сервера, а не чекаємо наступного пасивного тригера (resume).
         try {
-          await FamilyServerSyncService(ref.read(databaseProvider)).syncAll();
+          await FamilyServerSyncService(ref.read(databaseProvider), intakeGenerator: ref.read(intakeGeneratorProvider), activityLogGenerator: ref.read(activityLogGeneratorProvider), remindersRepository: ref.read(remindersRepositoryProvider)).syncAll();
         } catch (_) {
           // Тиха невдача — те саме, що і billing/backup синк-тригери.
         }

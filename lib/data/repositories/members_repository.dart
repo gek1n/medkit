@@ -213,6 +213,39 @@ class MembersRepository {
     await update(MembersCompanion(id: Value(all.first.id), role: const Value('owner')));
   }
 
+  /// Відновлено для #318/#325-доробки (Крок 7.1 плану ввів це вперше;
+  /// Крок 10.5 прибрав разом ІЗ РЕШТОЮ карантину; Крок 11 повернув усе
+  /// пірове, КРІМ саме цього — окремо позначено там "ще не заплановано").
+  /// Знаходить "тіньовий" локальний рядок, що представляє автономного
+  /// піра в пулі виконавців (ActivityAssignees.memberId — FK лише на
+  /// реальні рядки Members, тому пір без такого рядка в пул не потрапить),
+  /// або створює новий. Ім'я/аватар оновлюються, якщо пір їх змінив.
+  Future<int> findOrCreateShadowForPeer(
+    String personUuid, {
+    required String name,
+    required int avatarIndex,
+  }) async {
+    final existing = await (_db.select(_db.members)
+          ..where((t) => t.linkedPeerPersonUuid.equals(personUuid)))
+        .getSingleOrNull();
+    if (existing != null) {
+      if (existing.name != name || existing.avatarIndex != avatarIndex) {
+        await update(MembersCompanion(
+          id: Value(existing.id),
+          name: Value(name),
+          avatarIndex: Value(avatarIndex),
+        ));
+      }
+      return existing.id;
+    }
+    return insert(MembersCompanion.insert(
+      name: name,
+      avatarIndex: Value(avatarIndex),
+      role: const Value('dependent'),
+      linkedPeerPersonUuid: Value(personUuid),
+    ));
+  }
+
 }
 
 final membersRepositoryProvider = Provider<MembersRepository>((ref) {

@@ -11,7 +11,9 @@ import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/task_color.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/activities_repository.dart';
-import '../../core/utils/avatars.dart';
+import '../../data/repositories/members_repository.dart';
+import '../family/peer_view_providers.dart';
+import '../../shared/widgets/assignee_picker.dart';
 import '../../shared/widgets/documents_section.dart';
 import '../../shared/widgets/field_sheet.dart';
 import '../../shared/widgets/medcard_icon_picker.dart';
@@ -112,7 +114,13 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
   ];
 
   List<int> _assigneeIds = [];
-  String _rotationMode = 'fixed';
+  // #325-доробка: піри в пулі представлені "тіньовими" локальними рядками
+  // (findOrCreateShadowForPeer) — і той shadow-id вже сидить у _assigneeIds
+  // поруч зі звичайними. Тут — лише particúlar UUID-и обраних пірів, щоб
+  // при повторному відкритті пікера показати їх як обраних (а не лише їхні
+  // тіньові id, які самі по собі нічого не кажуть UI про "це пір").
+  Set<String> _selectedPeerUuids = {};
+  String _rotationMode = 'all';
   List<String> _steps = [];
 
   @override
@@ -157,8 +165,18 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
     final repo = ref.read(activitiesRepositoryProvider);
     final slots = await repo.getSlotsForActivity(activityId);
     final assignees = await repo.getAssignees(activityId);
+    // #325-доробка: серед уже завантажених assignee-рядків знаходимо, які
+    // саме — тіньові (представляють піра), щоб пікер одразу показав їх
+    // обраними, а не лише невиразний shadow-id у _assigneeIds.
+    final membersRepo = ref.read(membersRepositoryProvider);
+    final peerUuids = <String>{};
+    for (final a in assignees) {
+      final m = await membersRepo.getById(a.memberId);
+      if (m?.linkedPeerPersonUuid != null) peerUuids.add(m!.linkedPeerPersonUuid!);
+    }
     if (!mounted) return;
     setState(() {
+      _selectedPeerUuids = peerUuids;
       if (slots.isNotEmpty) {
         _slots = slots.map((s) {
           final parts = s.timeOfDay.split(':');
@@ -400,7 +418,6 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
       );
     }
     final isEdit = widget.existing != null;
-    final members = ref.watch(allMembersProvider).valueOrNull ?? [];
     final showTime = _hasFixedTime && _repeatType != 'weeklyGoal';
 
     return Scaffold(
@@ -518,14 +535,48 @@ class _AddActivityScreenState extends ConsumerState<AddActivityScreen> {
                     if (widget.memberId != null) ...[
                       _Label(context.l10n.routineWhoDoesLabel),
                       const SizedBox(height: 8),
-                      _AssigneesSheet(
-                        members: members,
-                        initialSelected: _assigneeIds,
-                        initialRotationMode: _rotationMode,
-                        onChanged: (ids, mode) => setState(() {
-                          _assigneeIds = ids;
-                          _rotationMode = mode;
-                        }),
+                      AssigneeFieldChip(
+                        selection: AssigneeSelection(
+                          localMemberIds: _assigneeIds.toSet(),
+                          peerPersonUuids: _selectedPeerUuids,
+                          mode: _rotationMode,
+                        ),
+                        onTap: () async {
+                          final result = await showAssigneePicker(
+                            context,
+                            showModes: true,
+                            initial: AssigneeSelection(
+                              localMemberIds: _assigneeIds.toSet(),
+                              peerPersonUuids: _selectedPeerUuids,
+                              mode: _rotationMode,
+                            ),
+                          );
+                          if (result == null || !mounted) return;
+                          // Кожен обраний пір потребує "тіньового" локального
+                          // рядка (findOrCreateShadowForPeer, #325-доробка) —
+                          // ActivityAssignees.memberId FK лише на реальні
+                          // рядки Members, синтетичного peerSyntheticId сюди
+                          // писати не можна.
+                          final membersRepo = ref.read(membersRepositoryProvider);
+                          final peers = ref.read(allFamilyPeersProvider);
+                          final resolvedIds = [...result.localMemberIds];
+                          for (final uuid in result.peerPersonUuids) {
+                            final peer = peers.where((p) => p.personUuid == uuid).firstOrNull;
+                            if (peer == null) continue;
+                            final shadowId = await membersRepo.findOrCreateShadowForPeer(
+                              uuid,
+                              name: peer.name,
+                              avatarIndex: peer.avatarIndex,
+                            );
+                            resolvedIds.add(shadowId);
+                          }
+                          if (!mounted) return;
+                          setState(() {
+                            _assigneeIds = resolvedIds;
+                            _selectedPeerUuids = result.peerPersonUuids;
+                            _rotationMode = result.mode;
+                          });
+                        },
                       ),
                       const SizedBox(height: AppDimensions.lg),
                     ],
@@ -1252,167 +1303,6 @@ class _StepperButton extends StatelessWidget {
           child: Icon(icon, color: AppColors.primary, size: 20),
         ),
       );
-}
-
-// ─── Хто виконує: фіксований виконавець або ротація ────────────────────────
-
-class _AssigneesSheet extends StatefulWidget {
-  final List<Member> members;
-  final List<int> initialSelected;
-  final String initialRotationMode;
-  final void Function(List<int> ids, String rotationMode) onChanged;
-
-  const _AssigneesSheet({
-    required this.members,
-    required this.initialSelected,
-    required this.initialRotationMode,
-    required this.onChanged,
-  });
-
-  @override
-  State<_AssigneesSheet> createState() => _AssigneesSheetState();
-}
-
-class _AssigneesSheetState extends State<_AssigneesSheet> {
-  late List<int> _selected;
-  late String _rotationMode;
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = [...widget.initialSelected];
-    _rotationMode = widget.initialRotationMode;
-  }
-
-  void _emit() => widget.onChanged(_selected, _rotationMode);
-
-  Widget _chip({
-    required int? avatarIndex,
-    required String name,
-    required bool sel,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          children: [
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: sel ? AppColors.success : AppColors.border,
-                      width: sel ? 2 : 1.5,
-                    ),
-                  ),
-                  child: AvatarImage(index: avatarIndex ?? 0, size: 52),
-                ),
-                if (sel)
-                  Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: const Icon(Icons.check_rounded,
-                        color: Colors.white, size: 12),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              name,
-              style: AppTextStyles.caption,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 14,
-          runSpacing: 10,
-          children: [
-            ...widget.members.map((m) {
-              final sel = _selected.contains(m.id);
-              return _chip(
-                avatarIndex: m.avatarIndex,
-                name: m.name,
-                sel: sel,
-                onTap: () {
-                  setState(() {
-                    if (sel) {
-                      _selected.remove(m.id);
-                    } else {
-                      _selected.add(m.id);
-                    }
-                  });
-                  _emit();
-                },
-              );
-            }),
-          ],
-        ),
-        if (_selected.length > 1) ...[
-          const SizedBox(height: 8),
-          _Label(context.l10n.routineRotationCadenceLabel),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ('perOccurrence', context.l10n.routineRotationCadencePerOccurrence),
-              ('weekly', context.l10n.routineRotationCadenceWeekly),
-              ('monthly', context.l10n.routineRotationCadenceMonthly),
-            ].map((opt) {
-              final sel = _rotationMode == opt.$1;
-              return GestureDetector(
-                onTap: () {
-                  setState(() => _rotationMode = opt.$1);
-                  _emit();
-                },
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                  decoration: BoxDecoration(
-                    color: sel ? AppColors.primaryLight : AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusFull),
-                    border: Border.all(
-                      color: sel ? AppColors.primary : AppColors.border,
-                    ),
-                  ),
-                  child: Text(
-                    opt.$2,
-                    style: AppTextStyles.labelMd.copyWith(
-                      color: sel ? AppColors.primary : AppColors.textSub,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ],
-    );
-  }
 }
 
 // ─── Слот часу ──────────────────────────────────────────────────────────────

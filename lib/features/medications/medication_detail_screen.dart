@@ -11,6 +11,7 @@ import '../../core/utils/l10n_ext.dart';
 import '../../core/utils/medcard_icons.dart';
 import '../../core/utils/plan_access.dart';
 import '../../core/utils/task_color.dart';
+import '../../shared/widgets/created_by_footer.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
 import '../../data/db/app_database.dart';
@@ -271,6 +272,9 @@ class _DetailBody extends ConsumerWidget {
                     const SizedBox(height: AppDimensions.xl),
                   ],
                 ),
+              peer == null
+                  ? CreatedByFooter(entityType: 'medication', localId: med.id)
+                  : CreatedByFooter.forPeer(entityType: 'medication', peer: peer, entityUuid: med.syncUuid),
               const SizedBox(height: 24),
             ]),
           ),
