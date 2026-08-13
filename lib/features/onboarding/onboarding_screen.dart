@@ -725,12 +725,7 @@ class _StepMedications extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.l10n.medsTitle, style: AppTextStyles.h2),
-          const SizedBox(height: 6),
-          Text(
-            context.l10n.scanOrEnterManuallyHint,
-            style: AppTextStyles.bodyMd.copyWith(color: AppColors.textSub),
-          ),
+          Text(context.l10n.onboardingFirstReminderTitle, style: AppTextStyles.h2),
           const SizedBox(height: 24),
 
           // Вже додані на цьому кроці — інакше повернення назад виглядає
@@ -775,23 +770,11 @@ class _StepMedications extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.l10n.onboardingAddItemAction,
-                          style: AppTextStyles.labelLg.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          context.l10n.onboardingAddItemHint,
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      context.l10n.onboardingAddItemAction,
+                      style: AppTextStyles.labelLg.copyWith(
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   Icon(

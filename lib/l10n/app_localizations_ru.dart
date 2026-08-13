@@ -2335,7 +2335,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get nextToMedsAction => 'Далее — инвентарь →';
 
   @override
-  String get scanOrEnterManuallyHint => 'Добавьте то, что используете сейчас';
+  String get onboardingFirstReminderTitle => 'Добавьте первое напоминание';
 
   @override
   String get addMedsShortAction => 'Добавить в инвентарь';
@@ -2344,15 +2344,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get addMoreMedsAction => 'Добавить ещё';
 
   @override
-  String get onboardingAddItemAction => 'Добавить';
-
-  @override
-  String get onboardingAddItemHint =>
-      'Напоминание или инвентарь — выберите вариант';
+  String get onboardingAddItemAction => 'Добавить напоминание';
 
   @override
   String get addMedsLaterInfo =>
-      'Инвентарь можно добавить позже через раздел «Инвентарь» в главном меню';
+      'Напоминание можно добавить позже в главном меню';
 
   @override
   String get nextAction => 'Далее →';
