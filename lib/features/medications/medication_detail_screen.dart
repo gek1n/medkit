@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/services/peer_photo_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -14,6 +15,7 @@ import '../../core/utils/task_color.dart';
 import '../../shared/widgets/created_by_footer.dart';
 import '../../shared/widgets/mk_back_button.dart';
 import '../../shared/widgets/mk_header_action_button.dart';
+import '../../shared/widgets/photo_gallery_viewer.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/intakes_repository.dart';
 import '../../data/repositories/medications_repository.dart';
@@ -323,7 +325,7 @@ class _HeroSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _MedPhotoBlock(med: med, accent: accent),
+          _MedPhotoBlock(med: med, accent: accent, peer: peer),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -787,7 +789,8 @@ class _StockSection extends ConsumerWidget {
 class _MedPhotoBlock extends StatelessWidget {
   final Medication med;
   final Color accent;
-  const _MedPhotoBlock({required this.med, required this.accent});
+  final PeerSubject? peer;
+  const _MedPhotoBlock({required this.med, required this.accent, this.peer});
 
   String? _firstPhoto(String? json) {
     if (json == null || json == '[]') return null;
@@ -830,8 +833,12 @@ class _MedPhotoBlock extends StatelessWidget {
       return _stub();
     }
 
+    final p = peer;
     return FutureBuilder<Uint8List>(
-      future: PhotoService.decryptedBytes(photoPath),
+      future: p == null
+          ? PhotoService.decryptedBytes(photoPath)
+          : PeerPhotoService.fetch(
+              channelId: p.channelId, publicKeyHex: p.publicKeyHex, relativePath: photoPath),
       builder: (context, snap) {
         if (!snap.hasData) {
           return Container(
@@ -843,27 +850,31 @@ class _MedPhotoBlock extends StatelessWidget {
             ),
           );
         }
-        return Container(
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Image.memory(
-            snap.data!,
-            width: double.infinity,
-            height: 190,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
+        return GestureDetector(
+          onTap: () => showPhotoGalleryViewer(
+              context, imagePaths: [photoPath], initialIndex: 0, peer: peer),
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0F000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Image.memory(
+              snap.data!,
               width: double.infinity,
               height: 190,
-              color: accent.withValues(alpha: 0.1),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                width: double.infinity,
+                height: 190,
+                color: accent.withValues(alpha: 0.1),
+              ),
             ),
           ),
         );

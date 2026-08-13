@@ -224,6 +224,7 @@
   "actionCancel": "Cancel",
   "deleteAction": "Delete",
   "documentsLabel": "Documents",
+  "photoLoadError": "Couldn't load the photo",
   "notSpecifiedValue": "Not specified",
   "deleteSurgeryConfirmTitle": "Delete this record?",
   "editSurgeryTitle": "Edit record",

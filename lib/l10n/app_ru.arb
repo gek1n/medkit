@@ -224,6 +224,7 @@
   "actionCancel": "Отмена",
   "deleteAction": "Удалить",
   "documentsLabel": "Документы",
+  "photoLoadError": "Не удалось загрузить фото",
   "notSpecifiedValue": "Не указано",
   "deleteSurgeryConfirmTitle": "Удалить запись?",
   "editSurgeryTitle": "Редактировать запись",

@@ -224,6 +224,7 @@
   "actionCancel": "Скасувати",
   "deleteAction": "Видалити",
   "documentsLabel": "Документи",
+  "photoLoadError": "Не вдалося завантажити фото",
   "notSpecifiedValue": "Не вказано",
   "deleteSurgeryConfirmTitle": "Видалити запис?",
   "editSurgeryTitle": "Редагувати запис",

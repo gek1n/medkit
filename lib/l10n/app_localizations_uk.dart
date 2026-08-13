@@ -521,6 +521,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get documentsLabel => 'Документи';
 
   @override
+  String get photoLoadError => 'Не вдалося завантажити фото';
+
+  @override
   String get notSpecifiedValue => 'Не вказано';
 
   @override

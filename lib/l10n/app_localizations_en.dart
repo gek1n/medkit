@@ -519,6 +519,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentsLabel => 'Documents';
 
   @override
+  String get photoLoadError => 'Couldn\'t load the photo';
+
+  @override
   String get notSpecifiedValue => 'Not specified';
 
   @override

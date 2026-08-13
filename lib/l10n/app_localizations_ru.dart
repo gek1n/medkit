@@ -521,6 +521,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get documentsLabel => 'Документы';
 
   @override
+  String get photoLoadError => 'Не удалось загрузить фото';
+
+  @override
   String get notSpecifiedValue => 'Не указано';
 
   @override

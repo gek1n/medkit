@@ -397,6 +397,7 @@ class _FeedCard extends StatelessWidget {
           notePreview: entry.notes,
           tags: tags,
           photoPaths: photos,
+          peer: peer,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -455,6 +456,7 @@ class _FeedCard extends StatelessWidget {
           notePreview: r.notes,
           tags: tags,
           photoPaths: photos,
+          peer: peer,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
