@@ -316,6 +316,7 @@ class _ArchiveCard extends StatelessWidget {
           notePreview: r.notes,
           tags: tags,
           photoPaths: photos,
+          peer: peer,
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(

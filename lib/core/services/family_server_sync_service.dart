@@ -18,6 +18,8 @@ import 'family_key_service.dart';
 import 'family_visibility_service.dart';
 import 'intake_generator.dart';
 import 'notification_service.dart';
+import 'peer_photo_service.dart';
+import 'photo_service.dart';
 import 'sync_crypto_service.dart';
 
 /// Крок 11: сервер як джерело правди для сім'ї — заміна архівного
@@ -118,6 +120,18 @@ class FamilyServerSyncService {
   static const Map<String, String> _notesFields = {
     'medication': 'instructions',
     'doctor_appointment': 'notes',
+  };
+
+  // Типи із власними вкладеннями (фото/PDF) — назва поля, де JSON-список
+  // відносних шляхів (той самий формат, що DocumentsSection/PhotoService
+  // всюди в застосунку). Самі БАЙТИ пушаться окремо від entity-json (див.
+  // _pushToChannel нижче) — entity-json і так уже несе ці шляхи як текст,
+  // тут лише додатково довантажуємо байти під ті самі шляхи.
+  static const Map<String, String> _photoPathFields = {
+    'medication': 'photoPaths',
+    'medcard_entry': 'documentPaths',
+    'activity': 'documentPaths',
+    'doctor_appointment': 'documentPaths',
   };
 
   static const _uuid = Uuid();
@@ -235,16 +249,50 @@ class FamilyServerSyncService {
     return null;
   }
 
-  Future<Set<String>> _previouslyPushed(String channelId) async {
+  // id → значення updatedAt рядка НА МОМЕНТ останнього успішного пуша (не
+  // просто "чи пушили колись") — інакше жодна ЗМІНА вже раз запушеної
+  // сутності (markAttended/markTaken, редагування нотатки, дози тощо)
+  // ніколи більше не пуситься: uuid рядка не міняється при UPDATE, тож
+  // "чи є id в сеті" лишалось би true назавжди після першого пуша. Формат
+  // старого кешу (JSON-список id) читаємо як порожню мапу — самолікується
+  // одним зайвим повним пушем при першому запуску після оновлення.
+  Future<Map<String, String>> _previouslyPushed(String channelId) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_pushedKey(channelId));
     if (raw == null) return {};
-    return (jsonDecode(raw) as List).cast<String>().toSet();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return decoded.cast<String, String>();
+    } catch (_) {}
+    return {};
   }
 
-  Future<void> _setPreviouslyPushed(String channelId, Set<String> ids) async {
+  Future<void> _setPreviouslyPushed(String channelId, Map<String, String> ids) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_pushedKey(channelId), jsonEncode(ids.toList()));
+    await prefs.setString(_pushedKey(channelId), jsonEncode(ids));
+  }
+
+  // ── Той самий diff-принцип, окремо для байтів фото/вкладень — photo_id
+  // (не uuid запису) — стабільний ключ, байти під ним ніколи не міняються
+  // "на місці" (нове фото = новий шлях = новий photo_id), тож досить
+  // множини (не потрібна версія на кшталт updatedAt для entity-diff вище).
+
+  String _pushedPhotosKey(String channelId) => 'family_v2_pushed_photos_$channelId';
+
+  Future<Set<String>> _previouslyPushedPhotos(String channelId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_pushedPhotosKey(channelId));
+    if (raw == null) return {};
+    try {
+      return (jsonDecode(raw) as List).cast<String>().toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _setPreviouslyPushedPhotos(String channelId, Set<String> photoIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pushedPhotosKey(channelId), jsonEncode(photoIds.toList()));
   }
 
   /// [counterpartPersonUuid]/[channelId] однозначно ідентифікують піра — на
@@ -268,8 +316,12 @@ class FamilyServerSyncService {
     // виключно на цьому пристрої).
     final owner = await MembersRepository(_db).getOwner();
     final previouslyPushed = await _previouslyPushed(channelId);
-    final currentIds = <String>{};
+    final currentIds = <String, String>{};
     final entities = <Map<String, dynamic>>[];
+    // Відносні шляхи фото/вкладень, на які зараз посилаються дозволені
+    // записи — зібрані тут же, в тому самому проході по рядках, щоб не
+    // робити другий прохід/другий запит до бази.
+    final currentPhotoPaths = <String>{};
 
     if (owner != null && owner.personUuid != null) {
       final subjectUuid = owner.personUuid!;
@@ -290,11 +342,24 @@ class FamilyServerSyncService {
         );
         if (!allowed) continue;
 
+        final photoField = _photoPathFields[type];
+
         final rows = await _rowsFor(type, owner.id);
         for (final row in rows) {
+          if (photoField != null) {
+            try {
+              final paths = List<String>.from(jsonDecode(row[photoField] as String? ?? '[]') as List);
+              currentPhotoPaths.addAll(paths);
+            } catch (_) {}
+          }
+
           final id = '$subjectUuid|$type|${row['uuid']}';
-          currentIds.add(id);
-          final changed = !previouslyPushed.contains(id);
+          // '' (немає власного updatedAt, напр. ActivityAssignees) завжди
+          // трактується як "змінилось" — безпечний дефолт замість вигаданої
+          // версії, цей рядок просто пуситься щоразу (дешево, малий обсяг).
+          final version = row['updatedAt']?.toString() ?? '';
+          currentIds[id] = version;
+          final changed = version.isEmpty || previouslyPushed[id] != version;
           if (!changed) continue;
 
           final json = Map<String, dynamic>.from(row)
@@ -309,25 +374,67 @@ class FamilyServerSyncService {
         }
         if (_windowedTypes.contains(type)) {
           for (final uuid in await _existingUuidsFor(type, owner.id)) {
-            currentIds.add('$subjectUuid|$type|$uuid');
+            final id = '$subjectUuid|$type|$uuid';
+            // Поза поточним вікном _rowsFor, але ще існує локально — лишаємо
+            // в currentIds (щоб не потрапив у tombstone-diff нижче), версію
+            // переносимо з попереднього разу як є, без переоцінки "чи змінився".
+            currentIds[id] = previouslyPushed[id] ?? '';
           }
         }
       }
     }
 
-    for (final goneId in previouslyPushed.difference(currentIds)) {
+    for (final goneId in previouslyPushed.keys.toSet().difference(currentIds.keys.toSet())) {
       final parts = goneId.split('|');
       if (parts.length != 3) continue;
       entities.add({'type': parts[1], 'uuid': parts[2], 'ciphertext': '', 'deleted': true});
     }
 
-    if (entities.isEmpty) return;
+    // ── Фото: байти НЕ входять у entity-json вище (те саме, що вже й так
+    // містить самі шляхи як текст) — окремий "photos" payload під тим самим
+    // ключем /family/push уже приймає. Пушимо лише НОВІ (ще не пушені)
+    // photo_id — байти зображення ніколи не змінюються "на місці", тож
+    // повторний пуш того самого шляху не потрібен; зниклі (видалені з усіх
+    // записів) — тумбстоунимо так само, як і сутності.
+    final previouslyPushedPhotos = await _previouslyPushedPhotos(channelId);
+    final currentPhotoIds = <String>{};
+    final photos = <Map<String, dynamic>>[];
+    for (final path in currentPhotoPaths) {
+      final photoId = await photoIdFor(path);
+      currentPhotoIds.add(photoId);
+      if (previouslyPushedPhotos.contains(photoId)) continue;
+      try {
+        final plainBytes = await PhotoService.decryptedBytes(path);
+        final encryptedBytes = await SyncCryptoService.encryptBytes(key, plainBytes);
+        // Сервер відкидає ВЕСЬ чанк, якщо хоч одне фото завелике
+        // (FamilySyncV2Controller::MAX_PHOTO_BYTES = 8МБ) — пропускаємо
+        // саме це фото заздалегідь, а не ламаємо пуш решти через один
+        // застарий/нестиснутий PDF чи оригінал.
+        if (encryptedBytes.length <= 8 * 1024 * 1024) {
+          photos.add({'photo_id': photoId, 'bytes': base64Encode(encryptedBytes)});
+        }
+      } catch (e, st) {
+        // Файл міг бути видалений з диска, ще не докачаний тощо — пропускаємо
+        // це ОДНЕ фото, не обриваємо пуш решти сутностей/фото.
+        AppLogger.logError('FamilyServerSyncService.pushPhoto(path=$path)', e, st);
+      }
+    }
+    for (final goneId in previouslyPushedPhotos.difference(currentPhotoIds)) {
+      photos.add({'photo_id': goneId, 'deleted': true});
+    }
+
+    if (entities.isEmpty && photos.isEmpty) return;
 
     for (var i = 0; i < entities.length; i += 500) {
       final chunk = entities.sublist(i, i + 500 > entities.length ? entities.length : i + 500);
       await _api.push(accountId: myAccountId, channelId: channelId, entities: chunk);
     }
+    for (var i = 0; i < photos.length; i += 100) {
+      final chunk = photos.sublist(i, i + 100 > photos.length ? photos.length : i + 100);
+      await _api.push(accountId: myAccountId, channelId: channelId, photos: chunk);
+    }
     await _setPreviouslyPushed(channelId, currentIds);
+    await _setPreviouslyPushedPhotos(channelId, currentPhotoIds);
   }
 
   // ── Присвоєння syncUuid — портовано 1:1 з архіву ─────────────────────

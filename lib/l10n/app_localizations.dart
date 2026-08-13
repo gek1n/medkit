@@ -1048,6 +1048,12 @@ abstract class AppLocalizations {
   /// **'Документи'**
   String get documentsLabel;
 
+  /// No description provided for @photoLoadError.
+  ///
+  /// In uk, this message translates to:
+  /// **'Не вдалося завантажити фото'**
+  String get photoLoadError;
+
   /// No description provided for @notSpecifiedValue.
   ///
   /// In uk, this message translates to:

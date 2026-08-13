@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/services/attachment_cleanup_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/peer_photo_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
@@ -466,11 +467,7 @@ class _ViewBody extends ConsumerWidget {
                     child: Text(reminder.notes!, style: AppTextStyles.bodyMd),
                   ),
                 ],
-                // Крок 11 (view-only перший прохід): фото піра — на вимогу
-                // через FamilyKeyService.sharedChannelKey+/family/photo,
-                // ще не підключено в UI (C4 TODO) — поки просто ховаємо
-                // секцію для піра, замість показу зламаних мініатюр.
-                if (photos.isNotEmpty && peer == null) ...[
+                if (photos.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   Text(context.l10n.reminderPhotoLabel.toUpperCase(),
                       style: AppTextStyles.labelSm),
@@ -486,11 +483,17 @@ class _ViewBody extends ConsumerWidget {
                     ),
                     itemBuilder: (context, i) => GestureDetector(
                       onTap: () => showPhotoGalleryViewer(
-                          context, imagePaths: photos, initialIndex: i),
+                          context, imagePaths: photos, initialIndex: i, peer: peer),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                         child: FutureBuilder<Uint8List>(
-                          future: PhotoService.decryptedBytes(photos[i]),
+                          future: peer == null
+                              ? PhotoService.decryptedBytes(photos[i])
+                              : PeerPhotoService.fetch(
+                                  channelId: peer!.channelId,
+                                  publicKeyHex: peer!.publicKeyHex,
+                                  relativePath: photos[i],
+                                ),
                           builder: (context, snap) {
                             if (!snap.hasData) {
                               return Container(color: AppColors.surface);

@@ -2,10 +2,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../core/services/peer_photo_service.dart';
 import '../../core/services/photo_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../features/family/peer_view_providers.dart';
 import 'photo_gallery_viewer.dart';
 
 /// Картка-"пост" у стилі Instagram-стрічки — спільний вигляд для всіх
@@ -25,6 +27,10 @@ class FeedPostCard extends StatelessWidget {
   // Кастомний віджет замість [icon] (напр. повнокольорова MedcardIcon) —
   // коли задано, [icon] ігнорується.
   final Widget? iconWidget;
+  // Коли задано — photoPaths це шляхи З ІНШОГО пристрою, прев'ю й
+  // повноекранний перегляд довантажують байти через PeerPhotoService
+  // замість локального PhotoService.
+  final PeerSubject? peer;
 
   const FeedPostCard({
     super.key,
@@ -38,6 +44,7 @@ class FeedPostCard extends StatelessWidget {
     this.photoPaths = const [],
     required this.onTap,
     this.iconWidget,
+    this.peer,
   });
 
   @override
@@ -61,13 +68,20 @@ class FeedPostCard extends StatelessWidget {
           children: [
             if (hasPhoto)
               GestureDetector(
-                onTap: () => showPhotoGalleryViewer(context, imagePaths: photoPaths, initialIndex: 0),
+                onTap: () => showPhotoGalleryViewer(
+                    context, imagePaths: photoPaths, initialIndex: 0, peer: peer),
                 child: Stack(
                   children: [
                     AspectRatio(
                       aspectRatio: 4 / 3,
                       child: FutureBuilder<Uint8List>(
-                        future: PhotoService.decryptedBytes(photoPaths.first),
+                        future: peer == null
+                            ? PhotoService.decryptedBytes(photoPaths.first)
+                            : PeerPhotoService.fetch(
+                                channelId: peer!.channelId,
+                                publicKeyHex: peer!.publicKeyHex,
+                                relativePath: photoPaths.first,
+                              ),
                         builder: (context, snap) {
                           if (!snap.hasData) {
                             return Container(color: color.withValues(alpha: 0.08));
