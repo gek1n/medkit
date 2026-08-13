@@ -2332,7 +2332,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get nextToMedsAction => 'Далі — інвентар →';
 
   @override
-  String get scanOrEnterManuallyHint => 'Додайте те, що використовуєте зараз';
+  String get onboardingFirstReminderTitle => 'Додайте перше нагадування';
 
   @override
   String get addMedsShortAction => 'Додати до інвентарю';
@@ -2341,15 +2341,11 @@ class AppLocalizationsUk extends AppLocalizations {
   String get addMoreMedsAction => 'Додати ще';
 
   @override
-  String get onboardingAddItemAction => 'Додати';
-
-  @override
-  String get onboardingAddItemHint =>
-      'Нагадування чи інвентар — оберіть варіант';
+  String get onboardingAddItemAction => 'Додати нагадування';
 
   @override
   String get addMedsLaterInfo =>
-      'Інвентар можна додати пізніше через розділ «Інвентар» в головному меню';
+      'Нагадування можна додати пізніше в головному меню';
 
   @override
   String get nextAction => 'Далі →';

@@ -2325,8 +2325,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nextToMedsAction => 'Next — inventory →';
 
   @override
-  String get scanOrEnterManuallyHint =>
-      'Add the things you\'re currently using';
+  String get onboardingFirstReminderTitle => 'Add your first reminder';
 
   @override
   String get addMedsShortAction => 'Add to inventory';
@@ -2335,15 +2334,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addMoreMedsAction => 'Add more';
 
   @override
-  String get onboardingAddItemAction => 'Add';
-
-  @override
-  String get onboardingAddItemHint =>
-      'A reminder or an inventory item — pick one';
+  String get onboardingAddItemAction => 'Add reminder';
 
   @override
   String get addMedsLaterInfo =>
-      'You can add inventory later from the \"Inventory\" section in the main menu';
+      'You can add reminders later from the main menu';
 
   @override
   String get nextAction => 'Next →';

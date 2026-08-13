@@ -4198,11 +4198,11 @@ abstract class AppLocalizations {
   /// **'Далі — інвентар →'**
   String get nextToMedsAction;
 
-  /// No description provided for @scanOrEnterManuallyHint.
+  /// No description provided for @onboardingFirstReminderTitle.
   ///
   /// In uk, this message translates to:
-  /// **'Додайте те, що використовуєте зараз'**
-  String get scanOrEnterManuallyHint;
+  /// **'Додайте перше нагадування'**
+  String get onboardingFirstReminderTitle;
 
   /// No description provided for @addMedsShortAction.
   ///
@@ -4219,19 +4219,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingAddItemAction.
   ///
   /// In uk, this message translates to:
-  /// **'Додати'**
+  /// **'Додати нагадування'**
   String get onboardingAddItemAction;
-
-  /// No description provided for @onboardingAddItemHint.
-  ///
-  /// In uk, this message translates to:
-  /// **'Нагадування чи інвентар — оберіть варіант'**
-  String get onboardingAddItemHint;
 
   /// No description provided for @addMedsLaterInfo.
   ///
   /// In uk, this message translates to:
-  /// **'Інвентар можна додати пізніше через розділ «Інвентар» в головному меню'**
+  /// **'Нагадування можна додати пізніше в головному меню'**
   String get addMedsLaterInfo;
 
   /// No description provided for @nextAction.
