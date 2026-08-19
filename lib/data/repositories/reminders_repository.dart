@@ -362,6 +362,34 @@ class RemindersRepository {
     }
   }
 
+  // NotificationService.scheduleMonthlyReminder планує наперед лише
+  // monthsAhead (12) окремих одноразових сповіщень — на відміну від
+  // daily/weekly/yearly (там нативний matchDateTimeComponents-повтор, ОС сама
+  // повторює безкінечно), тут вікно СКІНЧЕННЕ. Без цього методу нагадування
+  // "раз на місяць", створене й жодного разу не відредаговане понад ~12
+  // місяців, тихо переставало б спрацьовувати назавжди — саме так виглядав
+  // реальний звіт "нагадування, створене давно, більше не приходить".
+  // Викликається на холодному старті (main.dart) — просто перепланувати ще
+  // раз (той самий scheduleNotificationsForReminder, що й при збереженні):
+  // кожен варіант перезаписує свій id на місці (safe idempotent overwrite,
+  // той самий принцип, що й rescheduleRecurringVariant), тож вікно
+  // "від'їжджає" вперед за поточним "зараз" щоразу, коли користувач хоч раз
+  // відкриває застосунок протягом 12 місяців — а не лише в момент
+  // створення/редагування нагадування.
+  Future<void> refreshMonthlyReminderWindows() async {
+    final pending = await (_db.select(_db.reminders)
+          ..where((t) => t.status.equals('pending') & t.repeatType.equals('monthly')))
+        .get();
+    for (final reminder in pending) {
+      try {
+        await scheduleNotificationsForReminder(reminder);
+      } catch (e, st) {
+        AppLogger.logError(
+            'RemindersRepository.refreshMonthlyReminderWindows(id=${reminder.id})', e, st);
+      }
+    }
+  }
+
   Future<int> insert(RemindersCompanion appointment) async {
     final creator = await ownCreatorInfo(_db);
     final id = await _db.into(_db.reminders).insert(appointment);

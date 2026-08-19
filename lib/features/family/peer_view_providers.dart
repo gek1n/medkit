@@ -647,12 +647,25 @@ final peerTodayProgressProvider =
           effectiveDue(i).isBefore(activeWindowStart))
       .length;
 
+  bool isToday(DateTime dt) =>
+      dt.year == now.year && dt.month == now.month && dt.day == now.day;
+
+  // peerReminderLogsProvider/peerRemindersProvider несуть УСІ синхронізовані
+  // записи (без обмеження датою — на відміну від локального
+  // todayAppointmentsProvider/todayReminderLogsProvider, які запитують саме
+  // "сьогодні"), а локальний кеш windowed-типів (reminder_log) ніколи сам не
+  // чиститься від записів, що вже випали з вікна пуша — без isToday() тут
+  // рахувались би і майбутні одноразові нагадування (repeatType=='none'),
+  // і НАКОПИЧЕНІ логи повторюваних нагадувань за ІНШІ дні, роздуваючи
+  // бейдж "виконано/всього" в перемикачі "переглянути як" (реальний звіт:
+  // "5/9" замість "0/2", коли фактично на сьогодні лише 2 задачі).
   final occurrences = reminders.expand((r) {
     if (r.repeatType == 'none') {
+      if (!isToday(r.scheduledAt)) return const <({String status, DateTime scheduledAt})>[];
       return [(status: r.status, scheduledAt: r.scheduledAt)];
     }
     return reminderLogs
-        .where((l) => l.reminderId == r.id)
+        .where((l) => l.reminderId == r.id && isToday(l.snoozedUntil ?? l.scheduledAt))
         .map((l) => (status: l.status, scheduledAt: l.snoozedUntil ?? l.scheduledAt));
   });
   for (final o in occurrences) {

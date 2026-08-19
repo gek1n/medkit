@@ -301,7 +301,20 @@ class _TodayContent extends ConsumerWidget {
                 ),
               ];
             }
-            return reminderLogs.where((l) => l.reminderId == r.id).map(
+            // Той самий принцип, що й для 'none' вище — peerReminderLogsProvider
+            // несе УСІ синхронізовані ReminderLog без обмеження датою (кеш
+            // windowed-типу сам ніколи не чиститься від записів, що випали з
+            // вікна пуша), тож без цієї перевірки повторюване нагадування
+            // піра показувало б по картці на КОЖЕН накопичений день одразу,
+            // а не лише сьогоднішню. Для локального todayReminderLogsProvider
+            // (вже сам звужений до сьогодні) перевірка — безпечний no-op.
+            return reminderLogs
+                .where((l) =>
+                    l.reminderId == r.id &&
+                    (l.snoozedUntil ?? l.scheduledAt).year == todayDate.year &&
+                    (l.snoozedUntil ?? l.scheduledAt).month == todayDate.month &&
+                    (l.snoozedUntil ?? l.scheduledAt).day == todayDate.day)
+                .map(
                   (log) => _ApptOccurrence(
                     reminder: r,
                     logId: log.id,
