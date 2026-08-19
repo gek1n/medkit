@@ -796,6 +796,11 @@ class _ShellState extends ConsumerState<_Shell> with WidgetsBindingObserver {
     unawaited(BackupReminderService.maybeRemind());
     unawaited(NotificationService.logDiagnostics());
     unawaited(NotificationService.cancelStalePendingVaccinationReminders());
+    // Топ-ап скінченного 12-місячного вікна scheduleMonthlyReminder — див.
+    // RemindersRepository.refreshMonthlyReminderWindows. Достатньо на
+    // холодному старті (не на кожен resume): вікно "спливає" лише за місяці,
+    // не за хвилини.
+    unawaited(ref.read(remindersRepositoryProvider).refreshMonthlyReminderWindows());
   }
 
   @override
